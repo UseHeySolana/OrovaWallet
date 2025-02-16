@@ -1,0 +1,9 @@
+interface UserType {
+
+}
+
+
+
+export {
+    UserType,
+}

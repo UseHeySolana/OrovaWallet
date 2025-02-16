@@ -1,0 +1,22 @@
+{
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "development"
+    },
+    "test": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "test"
+    },
+    "production": {
+      "channel": "production"
+    }
+  }
+}
