@@ -1,6 +1,14 @@
 import { AudioManager } from "@/misc/processors/audioClassManager";
+import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import CText from "@/components/TextComp";
+import DragableSheet from "@/components/CustomItems/DragableSheet";
+import { Image } from "expo-image";
+import AntDesign from '@expo/vector-icons/AntDesign'
+import { DMSans_500Medium } from "@expo-google-fonts/dm-sans";
+import Buttons from "@/components/ButtonComp";
+
 const Items = [
   {
     id: 1,
@@ -48,11 +56,15 @@ const Items = [
    * 1. Register User Voice for Authentication 
    * 2. Save User Voice and ask if to create wallet with their voice
    */
-export default function RegUserVoice() {
+export default function RegUserVoice({ navigation }: any) {
   const [recording, setRecording] = useState(false);
    const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
+
+
+  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
+
     const audioManager = useRef<AudioManager | null>(null);
       useEffect(() => {
         if (!audioManager.current) {
@@ -68,44 +80,98 @@ export default function RegUserVoice() {
   
         }
         return () => {
-          audioManager.current?.cleanup();
+          // audioManager.current?.cleanup();
         };
       }, [])
 
-  const startRecording = () =>  {
+  const startRecording = async () => {
     setRecording(true);
-    audioManager.current?.startRecording();
-    
+    await audioManager.current?.startRecording();
   }
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     setRecording(false);
-    audioManager.current?.stopRecording();
+    await audioManager.current?.stopRecording();
+
   }
   return (
     <View
-      className=" h-full m-auto flex-1 justify-start items-start"
+      className="relative h-full w-100 flex items-center"
     >
-      <View className="w-11/12 m-auto p-2">
+      <View className="h-full  w-100 m-auto flex justify-center items-start">
+        <View className="w-11/12 m-auto p-2">
         <View className="">
-          <Text className="text-[75px] text-purple font-bold">"</Text>
-          <Text className="text-[90px]">Hey Solana, send 5 SOL to Alex</Text>
-          <Text className="text-[75px]  text-purple font-bold self-end rotate-180">"</Text>
+            <CText className="text-[75px] text-purple font-bold">"</CText>
+            <CText style={{ fontFamily: "bold" }} className="text-[80px] text-wrap">Hey Solana, send 5 SOL to Alex</CText>
+            <CText className="text-[75px] text-purple font-bold self-end rotate-180">"</CText>
         </View>
         <View>
-          <Text className="text-[32px] text-gray-400">Let’s register your voice! say the big text you see on your screen, LFG</Text>
+            <CText className="text-[32px] text-gray-400">Let’s register your voice! say the big text you see on your screen, LFG</CText>
         </View>
       </View>
 
+      </View>
+
+
 
       <View className="w-11/12 m-auto p-2 gap-y-3 bottom-10 absolute">
-        <Pressable onPress={()=>{startRecording()}} >
+        {/* <Pressable onPress={() => { recording ? stopRecording() : startRecording() }} > */}
+        <Pressable onPress={() => setStartWalletReg(true)} >
           <View className={`${!recording ? "bg-[#971BB2]" : "bg-red-600" } py-5 rounded-full `}>
-            <Text className="text-white text-center">Record</Text>
+            <CText className="text-white text-center">Record</CText>
           </View>
         </Pressable>
       </View>
 
+      {
+        startWalletReg && (
+          <DragableSheet
+            close={() => setStartWalletReg(false)}
+            child={
+              <View className=" py-4 w-full  gap-y-5 flex flex-col justify-between ">
+                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
+                <View className="flex w-100 justify-center items-center py-">
+                  <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
+                </View>
+
+                <Pressable onPress={() => navigation.navigate('SecretPhrase')} >
+                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
+                    <View className="">
+                      <AntDesign name="pluscircleo" size={24} color="black" />
+                    </View>
+
+                    <View className="">
+                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Create new Wallet</CText>
+                      <CText className="text-primary text-[14px]  text-start">Create a new Solana Wallet</CText>
+
+                    </View>
+                  </View>
+
+                </Pressable>
+                <Pressable onPress={() => navigation.replace('ImportPhrase')} >
+                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
+                    <View className="bg-white rounded-full p-1">
+                      <AntDesign name="arrowdown" size={24} color="black" />
+                    </View>
+
+                    <View className="">
+                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Import existing wallet</CText>
+                      <CText className="text-primary text-[14px]  text-start">Import a previously existing wallet</CText>
+
+                    </View>
+                  </View>
+
+                </Pressable>
+              </View>
+}
+          />
+        )
+      }
+
+
+
     </View>
   );
 }
+
+

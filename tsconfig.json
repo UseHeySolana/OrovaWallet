@@ -14,5 +14,10 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"
-  ]
+,
+"./app/index.tsx",
+"./src/**/*.tsx",
+"src/App.js",
+"src/App.js",
+]
 }

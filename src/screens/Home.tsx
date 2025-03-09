@@ -1,7 +1,7 @@
 import Buttons from "@/components/ButtonComp";
 import AppSettings from "@/misc/store/settingsstore";
 import { Image, ImageBackground } from "expo-image";
-import { Link, useFocusEffect, useNavigation, useRouter } from "expo-router";
+// import { Link, router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 const screens = [
@@ -24,9 +24,9 @@ const screens = [
   }
 ]
 const { width, height } = Dimensions.get('window');
-export default function Index() {
-  const router = useRouter()
-  const { alreadyOpened,markOpened} = AppSettings()
+const Home = ({ navigation }: any) => {
+
+  const { alreadyOpened,markOpened,skippedAiSettings, createdWallet } = AppSettings()
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -39,11 +39,11 @@ export default function Index() {
   const onLayoutRootView = useCallback(async () => {
   
   }, []);
-  useFocusEffect(()=>{
+  useEffect(() => {
     if (alreadyOpened) { 
-      router.replace('/aisetup')
+      navigation.navigate('AiSetup')
      }
-  })
+   }, [])
   return (
     <View
     onLayout={onLayoutRootView}
@@ -98,7 +98,7 @@ export default function Index() {
                 onPress={() => {
                   if (currentIndex >= 2) {
                     markOpened();
-                    router.replace("/aisetup")
+                    navigation.navigate('AiSetup')
                   }
                   scrollRef.current?.scrollTo({ x: width * (currentIndex + 1) });
                 }}
@@ -115,3 +115,5 @@ export default function Index() {
     </View>
   );
 }
+
+export default Home;

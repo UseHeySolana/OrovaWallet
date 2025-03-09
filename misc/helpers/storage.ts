@@ -1,24 +1,31 @@
-const Cookies = require('js-cookie')
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 export const storage = {
 
-    get: (name: string) => {
-        const storageItem = Cookies.get(name)
+    get: async (name: string) => {
+        const storageItem = await AsyncStorage.getItem(name)
         return storageItem;
     },
-    set: (name: string, item: string) => {
-        const saved = Cookies.set(name, item)
-        if (saved) {
+    set: async (name: string, item: string) => {
+        try {
+            const saved = await AsyncStorage.setItem(name, item)
+
+
             return true
-        } else {
+
+        } catch (e) {
             return false
         };
     },
-    remove: (name: string) => {
-        const removed = Cookies.remove(name)
-        if (removed) {
+    remove: async (name: string) => {
+        try {
+            const saved = await AsyncStorage.removeItem(name)
+
+
             return true
-        } else {
+
+        } catch (e) {
             return false
         };
     }

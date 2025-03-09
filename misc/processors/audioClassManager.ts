@@ -1,14 +1,19 @@
-
-import AudioRecord from 'react-native-audio-record';
 import { Audio } from "expo-av";
 import {VoiceVerification} from './voiceAuth'
 import LiveAudioStream from 'react-native-live-audio-stream';
+import { Buffer } from 'buffer';
+import RNFS from 'react-native-fs';
+import * as FileSystem from 'expo-file-system';
+import AudioRecord from 'react-native-audio-record';
+
 
 export class AudioManager extends VoiceVerification {
     private isListening: boolean = false;
     public isAIPlaying: boolean = false;
     private recording: any;
     private audioFilePath: string | null = null;
+    public audioChunks: any[] = [];
+    private silenceTimeout: any;
 
     public callbacks: {
         onSpeechStart: () => void;
@@ -55,78 +60,65 @@ export class AudioManager extends VoiceVerification {
             bitsPerSample: 16,  // 8 or 16, default 16
             audioSource: 6,     // android only (see below)
             bufferSize: 4096, // default is 2048
-            wavFile:"wav", //
+            wavFile: "/arie", //
           };
           
-        LiveAudioStream.init(options);
+        AudioRecord.init(options);
         
-        //  LiveAudioStream.start();
+    }
+    analyseAudio = async () => {
+        AudioRecord.on('data', (data: any) => {
+            // console.log("analysing");
+            let ana = 0
+            const buffer = Buffer.from(data, 'base64');
+            const amplitude = this.getAmplitude(buffer);
+            console.log("Amplitude:", amplitude); // Debugging
+            if (amplitude > 1000) {
+                // Speech detected (adjust threshold as needed)
+                console.log("speech detected");
 
-        //   LiveAudioStream.stop();
-// this.callbacks.onSpeechStart();
-// this.callbacks.onSpeechEnd();
-        // Voice.onSpeechResults = async (e) => {
-        //     if (e.value) {
-        //         this.stopListening();
-        //         this.callbacks.onProcessingStart();
-        //         const transcribeText = e.value[0];
-        //         console.log(transcribeText);
-        //         // await this.convertAudioAndRespond(transcribeText);
-        //     }
-        // };
+                clearTimeout(this.silenceTimeout);
+            } else {
+                // Silence detected, start timeout
+                if (!this.silenceTimeout) {
+                    this.silenceTimeout = setTimeout(() => {
+
+                        // this.stopRecording();
+                        console.log("silence detected");
+                    }, 1500); // 1.5 seconds of silence
+                }
+            }
+        });
 
     }
 
-    async startListeningToUser() {
-        if (this.isListening || this.isAIPlaying) return;
-        this.isListening = true;
-        // Voice.start('en-US');
+
+    getAmplitude(buffer: Buffer): number {
+        let sum = 0;
+        const length = buffer.length;
+
+        for (let i = 0; i < length; i += 2) {
+            const int16 = buffer.readInt16LE(i); // Convert to signed 16-bit PCM value
+            sum += int16 * int16;
+        }
+
+        return Math.sqrt(sum / (length / 2)); // RMS calculation
     }
 
-    async convertAudioAndRespond(text: string) {
-        // const feedback = await processAudioLang(this, text);
-        // await this.playAudio(feedback);
-    }
-
-    // async playAudio(text: string) {
-    //     this.callbacks.onAiSpeakingStart();
-    //     this.isAIPlaying = true;
-
-    //     // Convert text to speech
-    //     const audioFilePath = await playText(this, text, true);
-    //     if (!audioFilePath) return;
-
-    //     this.audioFilePath = audioFilePath;
-    //     const sound = new Sound(audioFilePath, Sound.MAIN_BUNDLE, (error) => {
-    //         if (error) {
-    //             console.log('Failed to load sound', error);
-    //             return;
-    //         }
-    //         sound.play(() => {
-    //             this.isAIPlaying = false;
-    //             this.callbacks.onAiSpeakingEnd();
-    //         });
-    //     });
-    // }
-
-    stopListening() {
-        if (!this.isListening) return;
-        // Voice.stop();
-        this.isListening = false;
-        this.callbacks.onSpeechEnd();
-    }
-
-    cleanup() {
-        this.stopListening();
-        // Voice.destroy();
-    }
 
     startRecording = async () => {
-        LiveAudioStream.start();
+        AudioRecord.start();
+        this.analyseAudio();
     }
 
     stopRecording = async () => {
-       let uri = await LiveAudioStream.stop();
-       console.log(uri);
+        const audioFile = await AudioRecord.stop();
+
+        try {
+            const { sound } = await Audio.Sound.createAsync({ uri: audioFile });
+            await sound.playAsync();
+        } catch (error) {
+            console.error("Error saving or playing audio:", error);
+        }
     }
 }

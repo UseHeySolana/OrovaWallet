@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from "react";
-import { View, PermissionsAndroid } from "react-native";
+import { View, PermissionsAndroid, Pressable } from "react-native";
 import { Audio } from "expo-av";
 import Svg, { Path } from "react-native-svg";
+import Buttons from "@/components/ButtonComp";
 
 const AudioWaveformSVG = () => {
   const [waveform, setWaveform] = useState<string>("");
@@ -46,7 +47,13 @@ const AudioWaveformSVG = () => {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#000" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", }}>
+          <View className="w-full">
+              <Buttons
+                  text="Start Recording"
+                  onPress={startRecording}
+              />
+          </View>
       <Svg width={200} height={100}>
         <Path d={waveform} stroke="#4CAF50" strokeWidth={2} fill="none" />
       </Svg>
