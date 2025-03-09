@@ -2,11 +2,12 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import SetUpAi from '@/app/aisetup';
+import SetUpAi from '@/src/app/aisetup';
 import Home from '../screens/Home';
-import RegUserVoice from '@/app/voicereg';
-import SecretPhrase from '@/app/secretphrase';
-import ImportPhrase from '@/app/importphrase';
+import RegUserVoice from '@/src/app/voicereg';
+import SecretPhrase from '@/src/app/secretphrase';
+import ImportPhrase from '@/src/app/importphrase';
+import Dashboard from '@/src/app/dashboard';
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => (
@@ -22,6 +23,8 @@ const AppNavigator = () => (
         <Stack.Screen name="VoiceReg" component={RegUserVoice} />
         <Stack.Screen name="SecretPhrase" component={SecretPhrase} />
         <Stack.Screen name="ImportPhrase" component={ImportPhrase} />
+        <Stack.Screen name="Dashboard" component={Dashboard} />
+
 
 
     </Stack.Navigator>

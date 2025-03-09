@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { View, PermissionsAndroid, Pressable } from "react-native";
 import { Audio } from "expo-av";
 import Svg, { Path } from "react-native-svg";
-import Buttons from "@/components/ButtonComp";
+import Buttons from "@/src/components/ButtonComp";
 
 const AudioWaveformSVG = () => {
   const [waveform, setWaveform] = useState<string>("");

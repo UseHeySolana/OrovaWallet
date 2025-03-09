@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
-import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
+import CText from "@/src/components/TextComp";
+import DragableSheet from "@/src/components/CustomItems/DragableSheet";
 import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
-import Buttons from "@/components/ButtonComp";
-import { generateMnemonic } from "@/misc/helpers/wallet";
+import Buttons from "@/src/components/ButtonComp";
+import { generateMnemonic } from "@/src/misc/helpers/wallet";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import * as Clipboard from 'expo-clipboard';
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/src/misc/store/settingsstore";
+import { Connection } from "@solana/web3.js";
 
 
 const actions = [
@@ -43,7 +44,7 @@ function getThreeRandomStrings(array: string[]) {
   });
 
 }
-export default function SecretPhrase({ navigation }: any) {
+export default function Dashboard({ navigation }: any) {
   const [startWalletCreation, setStartWalletCreation] = useState(false);
   const { setDefault } = AppSettings()
   const [verifyPhrase, setVerifyPhrase] = useState(false);
@@ -67,8 +68,9 @@ export default function SecretPhrase({ navigation }: any) {
     ]
   )
 
+
   const generateKeyPhrase = async () => {
-    const phrase = generateMnemonic();
+    const phrase = await generateMnemonic();
     setMnemonic(phrase);
     setStartWalletCreation(true);
     console.log(mnemonic)
@@ -111,7 +113,6 @@ export default function SecretPhrase({ navigation }: any) {
     >
       {!startWalletCreation ?
         <View className="gap-y-5 ">
-
           <View className="w-11/12 m-auto bg-white rounded-3xl p-10">
             <View className="gap-x-5">
               <CText style={{ fontFamily: "bold" }} className="text-[24px] text-center">Your secret phrase is the master key to your wallet</CText>
@@ -120,7 +121,7 @@ export default function SecretPhrase({ navigation }: any) {
 
             <View className="w-100 m-auto">
 
-              <Image source={require('@/assets/items/secret.png')} alt="Security image" style={{ height: 221, width: 221 }} contentFit="contain" />
+              <Image source={require('@/src/assets/items/secret.png')} alt="Security image" style={{ height: 221, width: 221 }} contentFit="contain" />
 
             </View>
 
@@ -172,7 +173,7 @@ export default function SecretPhrase({ navigation }: any) {
       {verifyPhrase && (
         <DragableSheet
           close={() => setVerifyPhrase(false)}
-          snapPoints={["80%", "90%"]}
+          snapPoints={["80%", "100%"]}
           child={
             <View className=" py-1 w-full  gap-y-5 flex flex-col justify-between ">
               <View className="w-8/12 m-auto">
@@ -191,6 +192,11 @@ export default function SecretPhrase({ navigation }: any) {
                     </View>
                     <View className="border-b border-gray-200">
                     </View>
+
+                    <KeyboardAvoidingView
+                      behavior="height"
+                    >
+
                     <TextInput
                       style={{ fontFamily: "bold" }}
                       className="py-5"
@@ -202,6 +208,8 @@ export default function SecretPhrase({ navigation }: any) {
                       }}
                       placeholder={`enter ${positionVal[word.position - 1]} word...`}
                     />
+                    </KeyboardAvoidingView>
+
 
 
                   </View>
@@ -232,7 +240,7 @@ export default function SecretPhrase({ navigation }: any) {
                 <View className="bg-white h-fit py-3 rounded-2xl" >
                       <TextInput
                         style={{ fontFamily: "bold" }}
-                        className="py-5"
+                    className=" p-4 py-5"
                         onChangeText={(text) => {
                           const newUserWords = [...userWords];
                           // newUserWords[index].word = text;
@@ -244,7 +252,7 @@ export default function SecretPhrase({ navigation }: any) {
                   <View className="border-b border-gray-200"/>
                       <TextInput
                         style={{ fontFamily: "bold" }}
-                      className="py-5"
+                    className="p-4 py-5"
                         onChangeText={(text) => {
                           // const newUserWords = [...userWords];
                           // // newUserWords[index].word = text;

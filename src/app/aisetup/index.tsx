@@ -1,9 +1,8 @@
 import { Pressable, View } from "react-native";
-
-import CText from "@/components/TextComp";
-import Buttons from "@/components/ButtonComp";
-import AppSettings from "@/misc/store/settingsstore";
+import CText from "@/src/components/TextComp";
+import Buttons from "@/src/components/ButtonComp";
 import { useEffect } from "react";
+import AppSettings from "@/src/misc/store/settingsstore";
 
 const Items = [
   {

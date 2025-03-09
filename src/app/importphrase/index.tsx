@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, TextInput, View } from "react-native";
-import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
+import CText from "@/src/components/TextComp";
+import DragableSheet from "@/src/components/CustomItems/DragableSheet";
 import EvilIcons from '@expo/vector-icons/EvilIcons';
-import Buttons from "@/components/ButtonComp";
-import { generateMnemonic } from "@/misc/helpers/wallet";
+import Buttons from "@/src/components/ButtonComp";
+import { generateMnemonic } from "@/src/misc/helpers/wallet";
 import * as Clipboard from 'expo-clipboard';
-import { isJson } from "@/misc/helpers/ai";
+import { isJson } from "@/src/misc/helpers/ai";
 /**
   * What should be done here
   * 1. Notify what the secret phrase is for.

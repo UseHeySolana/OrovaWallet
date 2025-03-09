@@ -1,25 +1,25 @@
-import Buttons from "@/components/ButtonComp";
-import AppSettings from "@/misc/store/settingsstore";
+import Buttons from "@/src/components/ButtonComp";
 import { Image, ImageBackground } from "expo-image";
 // import { Link, router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
+import AppSettings from "../misc/store/settingsstore";
 const screens = [
   {
     title: "Control Your Wallet with Just Your Voice",
     subtitle: "Say 'Hey Solana' to send, trade, and manage crypto hands-free. Your most intuitive wallet is here.",
-    image: require("@/assets/images/wallet.png")
+    image: require("@/src/assets/images/wallet.png")
   },
   {
     title: "Smarter Transactions with AI Insights",
     subtitle: "Optimize your portfolio with AI-driven insights and actions.",
-    image: require("@/assets/smater.png")
+    image: require("@/src/assets/smater.png")
 
   },
   {
     title: "Secure & Fast - Your Security, Our Priority",
     subtitle: `Experience top-notch security, with full control over permissions and privacy.`,
-    image: require("@/assets/secure.png")
+    image: require("@/src/assets/secure.png")
 
   }
 ]

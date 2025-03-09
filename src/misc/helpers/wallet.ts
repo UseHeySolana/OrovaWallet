@@ -1,35 +1,35 @@
-
-// import { Connection, PublicKey } from '@solana/web3.js';
 import * as bip39 from 'bip39';
 
 import { derivePath } from 'ed25519-hd-key';
 import { storage } from './storage';
 import { isJson } from './ai';
 import 'react-native-get-random-values';
+import { createSolanaRpc } from '@solana/kit';
 
 
 
-export const generateMnemonic = () => {
-    // bip39.generateMnemonic()
-    // console.log('called 2')
-    return "mass scrub off warfare beef abstract phrase sock modify reflect various dentist";
+
+export const generateMnemonic = async () => {
+
+    return bip39.generateMnemonic();
 };
+
 
 // export const getKeypairFromMnemonic = async (mnemonic: string) => {
 //     if (isJson(mnemonic)) {
 //         // const keyPair = Keypair?.fromSecretKey(Uint8Array.from(JSON.parse(mnemonic)));
-//         const keyPair = Keypair.generate()
+//         const keyPair = web3.Keypair.generate()
 //         return keyPair;
 //         // return createKeyPairFromBytes(Uint8Array.from(JSON.parse(mnemonic)));
 //         // return web3keyPair.fromSecretKey(Uint8Array.from(JSON.parse(mnemonic)));
 //     } else {
-//     const seed = bip39.mnemonicToSeedSync(mnemonic);
-//     const derivedSeed = derivePath("m/44'/501'/0'/0'", seed.toString('hex')).key;
+//         const seed = bip39.mnemonicToSeedSync(mnemonic);
+//         const derivedSeed = derivePath("m/44'/501'/0'/0'", seed.toString('hex')).key;
 
 //         // const keyPair = Keypair.fromSeed(derivedSeed);
 //         // console.log(keyPair);
 
-//         const keyPair = Keypair.generate()
+//         const keyPair = web3.Keypair.generate()
 //         return keyPair;
 //     }
 // };

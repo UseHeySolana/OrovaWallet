@@ -1,13 +1,13 @@
-import { AudioManager } from "@/misc/processors/audioClassManager";
+import { AudioManager } from "@/src/misc/processors/audioClassManager";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
+import CText from "@/src/components/TextComp";
+import DragableSheet from "@/src/components/CustomItems/DragableSheet";
 import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
 import { DMSans_500Medium } from "@expo-google-fonts/dm-sans";
-import Buttons from "@/components/ButtonComp";
+import Buttons from "@/src/components/ButtonComp";
 
 const Items = [
   {
@@ -131,7 +131,7 @@ export default function RegUserVoice({ navigation }: any) {
               <View className=" py-4 w-full  gap-y-5 flex flex-col justify-between ">
                 <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
                 <View className="flex w-100 justify-center items-center py-">
-                  <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
+                  <Image style={{ height: 185, width: 300 }} source={require('@/src/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
                 </View>
 
                 <Pressable onPress={() => navigation.navigate('SecretPhrase')} >

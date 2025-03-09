@@ -42,8 +42,8 @@ const DragableSheet = (props: DragableSheetProps) => {
         []
     );
     return (
-        
-        <Pressable onPress={()=>{close? close(): ""}} className="bg-black/50 h-screen w-screen top-0 absolute backdrop-blur-lg ">
+        <>
+            {/* <Pressable onPress={()=>{close? close(): ""}} className="bg-black/50 h-screen w-screen top-0 absolute backdrop-blur-lg "> */}
             {/* <SafeAreaView style={{ backgroundColor:'black' }}> */}
             {/* <StatusBar  */}
             {/* // backgroundColor={resetView ? "#00000085" : "#f3f3f3"}  /> */}
@@ -59,7 +59,7 @@ const DragableSheet = (props: DragableSheetProps) => {
 
         <BottomSheet
         keyboardBehavior="interactive"
-            keyboardBlurBehavior="restore"
+                keyboardBlurBehavior="restore"
 
         onClose={()=>{}}
         style={{}}
@@ -91,7 +91,8 @@ const DragableSheet = (props: DragableSheetProps) => {
         </BottomSheet>
             {/* </BlurView> */}
 
-        </Pressable>
+            {/* </Pressable> */}
+        </>
 
     )
 }
