@@ -1,10 +1,11 @@
-import { AudioManager } from "@/src/misc/processors/audioClassManager";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import CText from "@/src/components/TextComp";
-import DragableSheet from "@/src/components/CustomItems/DragableSheet";
+import CText from "@/components/TextComp";
+import DragableSheet from "@/components/CustomItems/DragableSheet";
 import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
+import AppSettings from "@/misc/store/settingsstore";
+import { router } from "expo-router";
 
 const Items = [
   {
@@ -53,43 +54,46 @@ const Items = [
    * 1. Register User Voice for Authentication 
    * 2. Save User Voice and ask if to create wallet with their voice
    */
-export default function RegUserVoice({ navigation }: any) {
+export default function RegUserVoice() {
   const [recording, setRecording] = useState(false);
+
+  const { setDefault } = AppSettings()
+
    const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
     const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
 
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
-    const audioManager = useRef<AudioManager | null>(null);
-      useEffect(() => {
-        if (!audioManager.current) {
-          audioManager.current = new AudioManager({
-            onSpeechStart: () => setIsSpeaking(true),
-            onSpeechEnd: () => setIsSpeaking(false),
-            onProcessingStart: () => setIsProcessing(true),
-            onProcessingEnd: () => setIsProcessing(false),
-            onAiSpeakingStart: () => setIsAiSpeaking(true),
-            onAiSpeakingEnd: () => setIsAiSpeaking(false),
-          });
-        } else {
+  //   const audioManager = useRef<AudioManager | null>(null);
+  //     useEffect(() => {
+  //       if (!audioManager.current) {
+  //         audioManager.current = new AudioManager({
+  //           onSpeechStart: () => setIsSpeaking(true),
+  //           onSpeechEnd: () => setIsSpeaking(false),
+  //           onProcessingStart: () => setIsProcessing(true),
+  //           onProcessingEnd: () => setIsProcessing(false),
+  //           onAiSpeakingStart: () => setIsAiSpeaking(true),
+  //           onAiSpeakingEnd: () => setIsAiSpeaking(false),
+  //         });
+  //       } else {
   
-        }
-        return () => {
-          // audioManager.current?.cleanup();
-        };
-      }, [])
+  //       }
+  //       return () => {
+  //         // audioManager.current?.cleanup();
+  //       };
+  //     }, [])
 
-  const startRecording = async () => {
-    setRecording(true);
-    await audioManager.current?.startRecording();
-  }
+  // const startRecording = async () => {
+  //   setRecording(true);
+  //   await audioManager.current?.startRecording();
+  // }
 
-  const stopRecording = async () => {
-    setRecording(false);
-    await audioManager.current?.stopRecording();
+  // const stopRecording = async () => {
+  //   setRecording(false);
+  //   await audioManager.current?.stopRecording();
 
-  }
+  // }
   return (
     <View
       className="relative h-full w-100 flex items-center"
@@ -127,10 +131,13 @@ export default function RegUserVoice({ navigation }: any) {
               <View className=" py-4 w-full  gap-y-5 flex flex-col justify-between ">
                 <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
                 <View className="flex w-100 justify-center items-center py-">
-                  <Image style={{ height: 185, width: 300 }} source={require('@/src/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
+                  <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
                 </View>
 
-                <Pressable onPress={() => navigation.navigate('SecretPhrase')} >
+                <Pressable onPress={() => {
+                  setDefault();
+                  router.push('/secretphrase')
+                }} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
                     <View className="">
                       <AntDesign name="pluscircleo" size={24} color="black" />
@@ -144,7 +151,7 @@ export default function RegUserVoice({ navigation }: any) {
                   </View>
 
                 </Pressable>
-                <Pressable onPress={() => navigation.replace('ImportPhrase')} >
+                <Pressable onPress={() => router.push('/importphrase')} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
                     <View className="bg-white rounded-full p-1">
                       <AntDesign name="arrowdown" size={24} color="black" />

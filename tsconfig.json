@@ -1,8 +1,6 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "module": "esnext",
-    "moduleResolution": "node",
     "strict": true,
     "paths": {
       "@/*": [
@@ -16,10 +14,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"
-,
-"src/app/index.tsx",
-"./src/**/*.tsx",
-"src/App.js",
-"src/App.js",
-]
+  ]
 }

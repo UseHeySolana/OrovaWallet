@@ -1,33 +1,35 @@
-import Buttons from "@/src/components/ButtonComp";
-import AppSettings from "@/src/misc/store/settingsstore";
+import AppSettings from "@/misc/store/settingsstore";
+import Buttons from "@/components/ButtonComp";
 import { Image, ImageBackground } from "expo-image";
 // import { Link, router, useFocusEffect, useNavigation, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
+import { router } from "expo-router";
 
+Buttons
 const screens = [
   {
     title: "Control Your Wallet with Just Your Voice",
     subtitle: "Say 'Hey Solana' to send, trade, and manage crypto hands-free. Your most intuitive wallet is here.",
-    image: require("@/src/assets/images/wallet.png")
+    image: require("@/assets/images/wallet.png")
   },
   {
     title: "Smarter Transactions with AI Insights",
     subtitle: "Optimize your portfolio with AI-driven insights and actions.",
-    image: require("@/src/assets/smater.png")
+    image: require("@/assets/smater.png")
 
   },
   {
     title: "Secure & Fast - Your Security, Our Priority",
     subtitle: `Experience top-notch security, with full control over permissions and privacy.`,
-    image: require("@/src/assets/secure.png")
+    image: require("@/assets/secure.png")
 
   }
 ]
 const { width, height } = Dimensions.get('window');
-const Home = ({ navigation }: any) => {
+export default function Home() {
 
-  const { alreadyOpened,markOpened,skippedAiSettings, createdWallet } = AppSettings()
+  const { alreadyOpened, markOpened, skippedAiSettings, createdWallet } = AppSettings()
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -37,17 +39,24 @@ const Home = ({ navigation }: any) => {
     setCurrentIndex(index);
   };
 
-  const onLayoutRootView = useCallback(async () => {
-  
-  }, []);
+  // useLayoutEffect(() => {
+  //   if (alreadyOpened) {
+  //     router.push('/aisetup');
+  //   }
+  // }, [alreadyOpened])
   useEffect(() => {
-    if (alreadyOpened) { 
-      navigation.navigate('AiSetup')
-     }
-   }, [])
+    // Delay navigation to make sure the layout is initialized
+    const timeout = setTimeout(() => {
+      if (alreadyOpened) {
+        router.push('/aisetup');
+      }
+    }, 500); // Delay by 500ms, adjust if needed
+
+    return () => clearTimeout(timeout); // Cleanup timeout on component unmount
+  }, [alreadyOpened]);
   return (
     <View
-    onLayout={onLayoutRootView}
+      // onLayout={onLayoutRootView}
       className="relative"
     >
       <View className="absolute top-10  z-50 flex-row self-center">
@@ -76,7 +85,6 @@ const Home = ({ navigation }: any) => {
 
         {screens.map((screen, index) => (
 
-
           <View key={index} style={{ width, height }} className="flex items-center justify-start gap-y-3 relative">
             <View className="h-[72%] relative top-0   w-full">
               <Image
@@ -99,7 +107,7 @@ const Home = ({ navigation }: any) => {
                 onPress={() => {
                   if (currentIndex >= 2) {
                     markOpened();
-                    navigation.navigate('AiSetup')
+                    router.replace('/aisetup')
                   }
                   scrollRef.current?.scrollTo({ x: width * (currentIndex + 1) });
                 }}
@@ -117,4 +125,3 @@ const Home = ({ navigation }: any) => {
   );
 }
 
-export default Home;

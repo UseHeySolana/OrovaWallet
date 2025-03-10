@@ -1,6 +1,4 @@
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
-import { BlurView } from '@react-native-community/blur';
-
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StatusBar } from "react-native";
 import { Pressable, View } from "react-native";
@@ -15,32 +13,32 @@ const DragableSheet = (props: DragableSheetProps) => {
     const { child, snapPoints, close } = props;
     const [resetView, setResetView ]= useState(true)
     const bottomSheetRef = useRef<BottomSheet>(null);
-    useEffect(()=>{
-        bottomSheetRef.current?.snapToIndex(0);
-    },[bottomSheetRef])
+    // useEffect(()=>{
+    //     bottomSheetRef.current?.snapToIndex(0);
+    // },[bottomSheetRef])
   
     const onChange = (e:any)=>{
         if(e < 1){
             bottomSheetRef.current?.expand;
         }
     }
-    const renderBackdrop = useMemo(
-        () => (props:any) => (
-          <BottomSheetBackdrop
-            {...props}
-            disappearsOnIndex={-1}
-            appearsOnIndex={0}
-            pressBehavior="close"
-            // You can customize these styles
-            style={{
-                height: "100%",
-                border: "1px solid black",
-              backgroundColor: '#0000000',
-            }}
-          />
-        ),
-        []
-    );
+    // const renderBackdrop = useMemo(
+    //     () => (props:any) => (
+    //       <BottomSheetBackdrop
+    //         {...props}
+    //         disappearsOnIndex={-1}
+    //         appearsOnIndex={0}
+    //         pressBehavior="close"
+    //         // You can customize these styles
+    //         style={{
+    //             height: "100%",
+    //             border: "1px solid black",
+    //           backgroundColor: '#0000000',
+    //         }}
+    //       />
+    //     ),
+    //     []
+    // );
     return (
         <>
             {/* <Pressable onPress={()=>{close? close(): ""}} className="bg-black/50 h-screen w-screen top-0 absolute backdrop-blur-lg "> */}

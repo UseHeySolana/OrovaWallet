@@ -1,8 +1,9 @@
 import { Pressable, View } from "react-native";
-import CText from "@/src/components/TextComp";
-import Buttons from "@/src/components/ButtonComp";
+import CText from "@/components/TextComp";
+import Buttons from "@/components/ButtonComp";
 import { useEffect } from "react";
-import AppSettings from "@/src/misc/store/settingsstore";
+import AppSettings from "@/misc/store/settingsstore";
+import { router } from "expo-router";
 
 const Items = [
   {
@@ -46,8 +47,9 @@ const Items = [
     type: "dropdown",
   }
 ]
-export default function SetUpAi({ navigation }: any) {
+export default function SetUpAi() {
   const { markedSkipped, skippedAiSettings } = AppSettings()
+
   /**
    * What should be done here
    * 1. Welcome User to the application, 
@@ -56,7 +58,7 @@ export default function SetUpAi({ navigation }: any) {
    */
   useEffect(() => {
     if (skippedAiSettings) {
-      navigation.replace('VoiceReg')
+      router.replace('/voicereg')
     }
   }, [skippedAiSettings])
   return (
@@ -96,7 +98,10 @@ export default function SetUpAi({ navigation }: any) {
 
       <View className="w-11/12 m-auto p-2 gap-y-3">
         <Buttons onPress={() => { }} text="Next" type="primary" />
-        <Buttons onPress={() => { markedSkipped(); navigation.navigate('VoiceReg') }} text="Skip" buttonType="feedback" type="secondary" />
+        <Buttons onPress={() => { 
+          markedSkipped();
+           router.replace('/voicereg')
+            }} text="Skip" buttonType="feedback" type="secondary" />
       </View>
 
     </View>

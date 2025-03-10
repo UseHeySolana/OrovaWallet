@@ -1,9 +1,6 @@
 import { getRandomValues as expoCryptoGetRandomValues } from "expo-crypto";
 import { Buffer } from "buffer";
-
 global.Buffer = Buffer;
-global.TextEncoder = require("text-encoding").TextEncoder;
-// import "react-native-get-random-values";
 
 // getRandomValues polyfill
 class Crypto {
@@ -21,3 +18,5 @@ const webCrypto = typeof crypto !== "undefined" ? crypto : new Crypto();
         });
     }
 })();
+
+import "expo-router/entry";
