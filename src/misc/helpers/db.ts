@@ -1,14 +1,3 @@
-import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  getDoc,
-  DocumentReference,
-} from "firebase/firestore";
-import { storage } from "./storage";
-
 export type MessageData = {
   id: string;
   userName: string;
@@ -17,20 +6,24 @@ export type MessageData = {
   addPin: string;
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "";
+
 const request = {
   get: async (url: string) => {
     const response = await fetch(BASE_URL + url, {
       method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
-
     return response;
   },
   post: async (data: FormData, url: string) => {
-    // Upload to your API endpoint
-
     const response = await fetch(BASE_URL + url, {
       method: "POST",
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
       body: data,
     });
 
@@ -70,14 +63,12 @@ const addDataToFirestore = async (
     const response = await request.post(formData, "/create-user");
     const data = await response.json();
     console.log("Document written with ID: ", data.id);
-    storage.set("user_id", data.id);
     return true;
   } catch (error) {
     console.log("Error adding document ", error);
     return false;
   }
 };
-
 const fetchData = async () => {
   try {
     const response = await request.get("/fetch-users");
@@ -88,8 +79,6 @@ const fetchData = async () => {
     return [];
   }
 };
-
-
 
 const handleSearch = (query: string, searchedItem: any[]) => {
   const lowerCaseQuery = query.toLowerCase();
@@ -102,4 +91,5 @@ const handleSearch = (query: string, searchedItem: any[]) => {
   return filtered;
 };
 
-export { fetchData, addDataToFirestore, handleSearch, fetchUser };
+export { fetchData, addDataToFirestore, handleSearch, fetchUser, request };
+

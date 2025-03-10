@@ -1,9 +1,10 @@
 import Buttons from "@/src/components/ButtonComp";
+import AppSettings from "@/src/misc/store/settingsstore";
 import { Image, ImageBackground } from "expo-image";
 // import { Link, router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
-import AppSettings from "../misc/store/settingsstore";
+
 const screens = [
   {
     title: "Control Your Wallet with Just Your Voice",

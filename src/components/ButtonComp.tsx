@@ -2,6 +2,7 @@ import { Pressable, Text, TouchableNativeFeedback, View } from "react-native";
 import CText from "./TextComp";
 
 interface Buttons {
+  loading?: boolean
 text:string;
 type?: "primary" | "secondary" ;
 className?:string;
@@ -11,7 +12,7 @@ onPress:() => void;
   buttonType?: "feedback" | "pressable"
 }
 export default function Buttons(props:Buttons) {
-  const { textClass, text, className, type = "primary", onPress, buttonType } = props;
+  const { loading, textClass, text, className, type = "primary", onPress, buttonType } = props;
 
   const buttonColor = type == "primary" ? "bg-[#971BB2] py-5 rounded-full " : "bg-gray-200 py-5 rounded-full"
   return (
