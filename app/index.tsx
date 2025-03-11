@@ -5,6 +5,7 @@ import { Image, ImageBackground } from "expo-image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
+import UserItem from "@/misc/store/userstore";
 
 Buttons
 const screens = [
@@ -30,6 +31,7 @@ const { width, height } = Dimensions.get('window');
 export default function Home() {
 
   const { alreadyOpened, markOpened, skippedAiSettings, createdWallet } = AppSettings()
+  const { user } = UserItem()
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -47,13 +49,14 @@ export default function Home() {
   useEffect(() => {
     // Delay navigation to make sure the layout is initialized
     const timeout = setTimeout(() => {
-      if (alreadyOpened) {
-        router.push('/aisetup');
+      const destination = user !== null ? '/dashboard' : alreadyOpened ? '/aisetup' : null;
+      if (destination) {
+        router.replace(destination);
       }
     }, 500); // Delay by 500ms, adjust if needed
 
     return () => clearTimeout(timeout); // Cleanup timeout on component unmount
-  }, [alreadyOpened]);
+  }, [alreadyOpened, user]);
   return (
     <View
       // onLayout={onLayoutRootView}

@@ -9,11 +9,11 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-fontFamily: {
-          dm: "DMSans_400Regular",
-          dmSemiBold: "DMSans_500Medium",
+      fontFamily: {
+        dm: "DMSans_400Regular",
+        dmSemiBold: "DMSans_500Medium",
           dmBold: "DMSans_700Bold"
-        }
+      }
       ,
       colors: {
         "primary": "#111111",

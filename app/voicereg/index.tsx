@@ -6,6 +6,8 @@ import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
+import { Keypair } from "@solana/web3.js";
+import UserItem from "@/misc/store/userstore";
 
 const Items = [
   {
@@ -54,10 +56,12 @@ const Items = [
    * 1. Register User Voice for Authentication 
    * 2. Save User Voice and ask if to create wallet with their voice
    */
-export default function RegUserVoice() {
+function Voicereg() {
   const [recording, setRecording] = useState(false);
 
   const { setDefault } = AppSettings()
+  const { user } = UserItem()
+
 
    const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -116,8 +120,10 @@ export default function RegUserVoice() {
 
       <View className="w-11/12 m-auto p-2 gap-y-3 bottom-10 absolute">
         {/* <Pressable onPress={() => { recording ? stopRecording() : startRecording() }} > */}
-        <Pressable onPress={() => setStartWalletReg(true)} >
-          <View className={`${!recording ? "bg-[#971BB2]" : "bg-red-600" } py-5 rounded-full `}>
+        <Pressable onPress={() => {
+          setStartWalletReg(true)
+        }} >
+          <View style={{ padding: 5 }} className={`${!recording ? "bg-[#971BB2]" : "bg-red-600"} py-5 rounded-full `}>
             <CText className="text-white text-center">Record</CText>
           </View>
         </Pressable>
@@ -127,15 +133,15 @@ export default function RegUserVoice() {
         startWalletReg && (
           <DragableSheet
             close={() => setStartWalletReg(false)}
+            snapPoints={["55%"]}
             child={
-              <View className=" py-4 w-full  gap-y-5 flex flex-col justify-between ">
+              <View className="w-full  gap-y-5 flex flex-col justify-between ">
                 <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
                 <View className="flex w-100 justify-center items-center py-">
                   <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
                 </View>
 
                 <Pressable onPress={() => {
-                  setDefault();
                   router.push('/secretphrase')
                 }} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
@@ -151,7 +157,7 @@ export default function RegUserVoice() {
                   </View>
 
                 </Pressable>
-                <Pressable onPress={() => router.push('/importphrase')} >
+                <Pressable onPress={() => router.replace('/importphrase')} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
                     <View className="bg-white rounded-full p-1">
                       <AntDesign name="arrowdown" size={24} color="black" />
@@ -177,4 +183,5 @@ export default function RegUserVoice() {
   );
 }
 
+export default Voicereg
 

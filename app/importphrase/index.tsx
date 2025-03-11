@@ -4,9 +4,15 @@ import CText from "@/components/TextComp";
 import DragableSheet from "@/components/CustomItems/DragableSheet";
 import EvilIcons from '@expo/vector-icons/EvilIcons';
 import Buttons from "@/components/ButtonComp";
-import { generateMnemonic } from "@/misc/helpers/wallet";
+import { generateMnemonic, getKeypairFromMnemonic } from "@/misc/helpers/wallet";
 import * as Clipboard from 'expo-clipboard';
 import { isJson } from "@/misc/helpers/ai";
+import AppSettings from "@/misc/store/settingsstore";
+import WalletItem from "@/misc/store/wallet";
+import { fetchData, handleSearch, MessageData } from "@/misc/helpers/db";
+import { router } from "expo-router";
+import UserItem from "@/misc/store/userstore";
+import { pasteItem } from "@/misc/helpers/functions";
 /**
   * What should be done here
   * 1. Notify what the secret phrase is for.
@@ -16,40 +22,79 @@ import { isJson } from "@/misc/helpers/ai";
 
 export default function ImportPhrase({ navigation }: any) {
   const [mnemonic, setMnemonic] = useState(""); 
+  const { isLoading, setLoading } = AppSettings()
+  const { updateKeypair } = WalletItem()
+  const { setUser } = UserItem()
+  const [users, setUsers] = useState<MessageData[]>([]);
+
+
+  useEffect(() => {
+    (async () => {
+      const data = await fetchData();
+      setUsers(data);
+    })()
+  }, [])
 
   const importWallet = async () => {
-    console.log("Importing")
+    await setLoading(true)
     if (mnemonic == "") {
         Alert.alert("No Phrase Imported", "error")
+      setLoading(false)
         return;
     }
+
 
     if (isJson(mnemonic)) {
         if (JSON.parse(mnemonic).length != 64) {
             Alert.alert("Awwn! this is not a valid private key!", "error")
+          setLoading(false)
+
             return;
         }
     } else {
         if (mnemonic.trim().split(/\s+/).length != 12) {
-            Alert.alert("Invalid phrase!, phrase must be 12.", "error")
+          Alert.alert("🛑", "Invalid phrase!, phrase must be 12.")
+          setLoading(false)
             return;
         }
     }
 
-    // const keypair = await getKeypairFromMnemonic(mnemonic);
-// console.log(keypair)
-    // const checkAddress = handleSearch(keypair.publicKey.toBase58(), users)
-    // if (checkAddress.length > 0) {
-    //     location.href = '/home';
-    //     storage.set('mnemonic', mnemonic)
-    //     storage.set('user_id', checkAddress[0].id)
-    // } else {
+    try {
+      const keyPair = await getKeypairFromMnemonic(mnemonic.trim());
+      // Only proceed once keypair is available
+      if (keyPair && keyPair.publicKey) {
+        const checkAddress = handleSearch(keyPair.publicKey.toBase58(), users);
+        console.log('address', checkAddress);
 
-    // }
+        if (checkAddress.length > 0) {
+          setUser({
+            username: checkAddress[0].username,
+            mobileNumber: checkAddress[0].phone_number,
+            walletAddress: checkAddress[0].wallet_address,
+            pin: checkAddress[0].pin,
+          });
+
+          // Wait for keypair to be updated
+          await updateKeypair(keyPair);
+
+          // Only navigate after everything is complete
+          router.replace('/dashboard');
+          setLoading(false);
+        } else {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+        console.error("Failed to generate keypair: keypair is null or undefined");
+      }
+    } catch (error) {
+      setLoading(false)
+      console.error("Error generating keypair:", error);
+    }
 }
   return (
     <View
-      className="py-10 relative  h-[100%]"
+      className="pt-4 relative  h-[100%]"
     >
       <View className="gap-y-5 w-full px-4">
         <View className=" bg-white rounded-3xl px-3 py-10 gap-y-5">
@@ -68,17 +113,19 @@ export default function ImportPhrase({ navigation }: any) {
               </View>
               <View className="relative">
                 <TextInput
-
-                  style={{ fontFamily: "bold", height: 200 }}
+                  style={{ fontFamily: "bold", fontSize: 24 }}
                   multiline
+                  value={mnemonic}
                   numberOfLines={100}
-                  className="py-5  text-start text-[20px] w-full h-full"
+                  className="py-10 px-10 text-start  w-full h-[250] "
                   onChangeText={(text) => {
                     setMnemonic(text)
                   }}
                 />
                 <View className="w-[100px] absolute right-0 bottom-0">
-                  <Buttons buttonType="feedback" type="secondary" onPress={() => navigation.navigate("SecretPhrase")} text="Paste" />
+                  <Buttons buttonType="feedback" type="secondary" onPress={async () => {
+                    setMnemonic(await pasteItem())
+                  }} text="Paste" />
 
                 </View>
 

@@ -11,10 +11,26 @@ onPress:() => void;
   icon?: React.ReactNode;
   buttonType?: "feedback" | "pressable"
 }
+
+/**
+ * 
+ * @param props interface Buttons {
+  loading?: boolean
+text:string;
+type?: "primary" | "secondary" ;
+className?:string;
+textClass?:string;
+onPress:() => void;
+  icon?: React.ReactNode;
+  buttonType?: "feedback" | "pressable"
+}
+ * @returns 
+ */
 export default function Buttons(props:Buttons) {
   const { loading, textClass, text, className, type = "primary", onPress, buttonType } = props;
 
-  const buttonColor = type == "primary" ? "bg-[#971BB2] py-5 rounded-full " : "bg-gray-200 py-5 rounded-full"
+  const buttonColor = type == "primary" ? "bg-[#971BB2]  " : "bg-gray-200 "
+
   return (
     <>
       {buttonType === "feedback" ? (
@@ -27,7 +43,7 @@ export default function Buttons(props:Buttons) {
             <TouchableNativeFeedback
               background={TouchableNativeFeedback.Ripple('#971BB2', false)}
               onPress={onPress}>
-              <View className={`${buttonColor} flex flex-row justify-center items-center gap-x-2`}>
+              <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"} flex flex-row justify-center items-center gap-x-2`}>
                 {props.icon}
                 <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[16px]  text-center"} ${type === "primary" ?
                   "text-white" : "text-black"
@@ -38,7 +54,7 @@ export default function Buttons(props:Buttons) {
         </>
       ) :
         <Pressable onPress={onPress}>
-          <View className={`${buttonColor} flex flex-row justify-center items-center gap-x-2`}>
+          <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"}  flex flex-row justify-center items-center gap-x-2`}>
             {props.icon}
             <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[16px]  text-center"} ${type === "primary" ?
               "text-white" : "text-black"

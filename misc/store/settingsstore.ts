@@ -29,7 +29,7 @@ const AppSettings = create(
             loadingTimeout: null,
             notifications: true,
             aiVoice: "nova",
-            network: "devnet",
+            network: "https://devnet.helius-rpc.com/?api-key=",
             alreadyOpened: false,
             skippedAiSettings: false,
             createdWallet: false,
@@ -38,8 +38,23 @@ const AppSettings = create(
             markedSkipped: () => set({ skippedAiSettings: true }),
             updateNotifications: (newNotifications: boolean) => set({ notifications: newNotifications }),
             updateAiVoice: (newAiVoice: string) => set({ aiVoice: newAiVoice }),
-            setDefault: () => set({ theme: "light", notifications: true, aiVoice: "nova", network: "mainnet", alreadyOpened: false, skippedAiSettings: false }),
-            setLoading: (state) => {
+            setDefault: () => {
+                // reset the default settings
+                set(
+                    {
+                        theme: "light",
+                        isLoading: false,
+                        loadingTimeout: null,
+                        notifications: true,
+                        aiVoice: "nova",
+                        network: "https://devnet.helius-rpc.com/?api-key=",
+                        alreadyOpened: false,
+                        skippedAiSettings: false,
+                        createdWallet: false,
+                    })
+            },
+            setLoading: async (state) => {
+
                 // Clear previous timeout if it exists
                 const previousTimeout = get().loadingTimeout;
                 if (previousTimeout) {
@@ -60,6 +75,8 @@ const AppSettings = create(
                     // If manually turning off loading, clear any pending timeout
                     set({ loadingTimeout: null });
                 }
+                await new Promise(resolve => setTimeout(resolve, 100));
+
             }
 
         }),
@@ -67,7 +84,7 @@ const AppSettings = create(
             name: 'settings', // Storage key
             storage: createJSONStorage(() => AsyncStorage), // Use AsyncStorage for React Native
             onRehydrateStorage: () => (state) => {
-                console.log("Rehydrating:", state);
+                // console.log("Rehydrating:", state);
             }
         }
     )

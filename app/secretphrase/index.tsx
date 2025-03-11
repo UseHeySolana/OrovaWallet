@@ -15,6 +15,8 @@ import { addDataToFirestore, fetchData, handleSearch, MessageData } from "@/misc
 import OTPTextView from "react-native-otp-textinput";
 import { UserType } from "@/misc/types/usertypes";
 import UserItem from "@/misc/store/userstore";
+import { Keypair } from "@solana/web3.js";
+import { router } from "expo-router";
 
 
 const actions = [
@@ -94,10 +96,19 @@ export default function SecretPhrase({ navigation }: any) {
       setUsers(data);
     })()
   }, [])
+
   const generateKeyPhrase = async () => {
+    setLoading(true)
     const phrase = await generateMnemonic();
-    setMnemonic(phrase);
-    setStartWalletCreation(true)
+    if (phrase) {
+
+      setMnemonic(phrase);
+      setStartWalletCreation(true)
+      setLoading(false)
+
+    } else {
+      setLoading(false)
+    }
   }
 
   const copyKeyPhrase = async () => {
@@ -111,48 +122,37 @@ export default function SecretPhrase({ navigation }: any) {
       setLoading(false)
     }, 1000)
   }
-
   const validatePhrase = async () => {
-    setLoading(true)
 
     // if (userWords.some(word => !word.word.trim())) {
     //   Alert.alert("Error", "Please fill in all the words");
     //   return;
     // }
-
-    // // Check if each entered word matches the corresponding verified word
+    setLoading(true)
+    // Check if each entered word matches the corresponding verified word
     // const isCorrect = userWords.every((userWord, index) => {
     //   const verifiedWord = verifiedWords[index];
     //   // Compare the words case-insensitively
     //   return userWord.word.toLowerCase().trim() === verifiedWord.word.toLowerCase();
     // });
 
+   
 
     // if (!isCorrect) {
     //   Alert.alert("Error", "Some words don't match. Please check and try again.");
-    // setLoading(false)
+    //   setLoading(false)
     //   return;
     // } else {
 
     try {
-      // const genKeypair = await getKeypairFromMnemonic(mnemonic);
-      // const keyPair = Keypair?.fromSecretKey(Uint8Array.from(JSON.parse(mnemonic)));
-
-      // console.log(keyPair.publicKey.toString()); // Debugging
-      // console.log(genKeypair.keypair._keypair.publicKey);
+      setCurrentState('sign-up')
+      const keyPair = await getKeypairFromMnemonic(mnemonic);
+      updateKeypair(keyPair)
       setLoading(false)
-
     } catch (error) {
       setLoading(false)
       console.error("Error generating keypair:", error);
     }
-    // const genKeypair = await getKeypairFromMnemonic(mnemonic);
-    // const key = genKeypair.keypair as Keypair;
-    // console.log(key.publicKey.toString())
-
-    // updateKeypair(genKeypair.keypair)
-    // setCurrentState('sign-up')
-
     // }
   }
 
@@ -173,14 +173,6 @@ export default function SecretPhrase({ navigation }: any) {
     } else {
 
       setCurrentState('set-pin');
-  // if (updatingProfile == true) {
-  // setCurrentState("enter-pin")
-  // } else {
-  //   // setUpdatingProfile(false);
-  //   // setSavePhrase(true)
-  //   // setCurrentState("save-phrase");
-  // }
-
       setLoading(false)
     }
 
@@ -205,9 +197,10 @@ export default function SecretPhrase({ navigation }: any) {
     setLoading(false)
 
 
-    let status = false
+    // let status = false
+    let walletAddress = keypair?.publicKey.toBase58() || ""
 
-    // const status = await addDataToFirestore(userDetails.username, userDetails.mobileNumber, wallet, userDetails.addPin)
+    const status = await addDataToFirestore(userDetails.username, userDetails.mobileNumber,walletAddress , userDetails.addPin)
     if (status) {
       const user: UserType = {
         username: userDetails.username,
@@ -216,8 +209,8 @@ export default function SecretPhrase({ navigation }: any) {
         pin: userDetails.addPin,
       }
       setUser(user);
-      // Alert.alert("Welcome to Hey Solana, Your Wallet has been created!")
-      // navigation.replace('Dashboard')
+      Alert.alert("Welcome to Hey Solana, Your Wallet has been created!")
+      router.replace('/dashboard')
       setLoading(false)
     } else {
       Alert.alert("An unknown error occured");
@@ -293,9 +286,9 @@ export default function SecretPhrase({ navigation }: any) {
       {currentState == "verify-phrase" && (
         <DragableSheet
           close={() => setVerifyPhrase(false)}
-          snapPoints={["80%", "100%"]}
+          snapPoints={["70%", "100%"]}
           child={
-            <View className=" py-1 w-full  gap-y-5 flex flex-col justify-between ">
+            <View className=" py-1 w-full px-4 gap-y-5 flex flex-col justify-between ">
               <View className="w-8/12 m-auto">
                 <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Confirm secret phrase</CText>
                 <CText className="text-[16px] text-center">Please enter the correct answer below from your secret phrase</CText>
@@ -317,17 +310,17 @@ export default function SecretPhrase({ navigation }: any) {
                       behavior="height"
                     >
 
-                    <TextInput
-                      style={{ fontFamily: "bold" }}
-                      className="py-5"
-                      onChangeText={(text) => {
-                        const newUserWords = [...userWords];
-                        newUserWords[index].word = text;
-                        newUserWords[index].position = word.position;
-                        setUserWords(newUserWords);
-                      }}
-                      placeholder={`enter ${positionVal[word.position - 1]} word...`}
-                    />
+                      <TextInput
+                        style={{ fontFamily: "bold" }}
+                        className="py-5"
+                        onChangeText={(text) => {
+                          const newUserWords = [...userWords];
+                          newUserWords[index].word = text;
+                          newUserWords[index].position = word.position;
+                          setUserWords(newUserWords);
+                        }}
+                        placeholder={`enter ${positionVal[word.position - 1]} word...`}
+                      />
                     </KeyboardAvoidingView>
 
 
@@ -347,10 +340,10 @@ export default function SecretPhrase({ navigation }: any) {
 
       {currentState == "sign-up" && (
         <DragableSheet
-          snapPoints={["100%"]}
-          close={()=>setWalletSigning(false)}
+          snapPoints={["50%"]}
+          close={() => setWalletSigning(false)}
           child={
-            <View className=" py-1 w-full  gap-y-10 flex flex-col justify-between ">
+            <View className=" py-1 w-full px-4 gap-y-10 flex flex-col justify-between ">
               <View className="w-8/12 m-auto">
                 <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">One last thing</CText>
                 <CText className="text-[16px] text-center">Your username will be unique and can be used to make transactions.</CText>
@@ -358,27 +351,27 @@ export default function SecretPhrase({ navigation }: any) {
 
               <KeyboardAvoidingView className="bg-grey rounded-3xl gap-y-3 px-4 py-5">
                 <View className="bg-white h-fit py-3 rounded-2xl" >
-                      <TextInput
-                        style={{ fontFamily: "bold" }}
+                  <TextInput
+                    style={{ fontFamily: "bold" }}
                     className=" p-4 py-5"
                     defaultValue="maskyray2"
 
-                        onChangeText={(text) => {
-                          setUserDetails({ ...userDetails, username: text })
-                        }}
-                        placeholder={`enter a username`}
-                      />
-                  <View className="border-b border-gray-200"/>
-                      <TextInput
-                        style={{ fontFamily: "bold" }}
+                    onChangeText={(text) => {
+                      setUserDetails({ ...userDetails, username: text })
+                    }}
+                    placeholder={`enter a username`}
+                  />
+                  <View className="border-b border-gray-200" />
+                  <TextInput
+                    style={{ fontFamily: "bold" }}
                     className="p-4 py-5"
                     defaultValue="08132532431"
-                        onChangeText={(text) => {
-                          setUserDetails({ ...userDetails, mobileNumber: text })
+                    onChangeText={(text) => {
+                      setUserDetails({ ...userDetails, mobileNumber: text })
 
-                        }}
-                        placeholder={`enter a phone number`}
-                      />
+                    }}
+                    placeholder={`enter a phone number`}
+                  />
                 </View>
               </KeyboardAvoidingView>
 
@@ -391,10 +384,10 @@ export default function SecretPhrase({ navigation }: any) {
 
       {currentState === 'set-pin' && (
         <DragableSheet
-          snapPoints={["100%"]}
+          snapPoints={["40%"]}
           close={() => setWalletSigning(false)}
           child={
-            <View className=" py-1 w-full  gap-y-10 flex flex-col justify-between ">
+            <View className=" py-1 w-full gap-y-10 flex flex-col justify-between ">
               <View className="w-8/12 m-auto">
                 <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Create Your Pin</CText>
               </View>
