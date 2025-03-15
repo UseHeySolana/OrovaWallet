@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import AppSettings from '@/misc/store/settingsstore';
+import { AiServiceProvider } from '@/misc/context/AiContext';
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -64,6 +65,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView>
+      <AiServiceProvider>
     <SafeAreaView style={{ flex: 1 }}>
       <Stack
         screenOptions={{
@@ -77,6 +79,8 @@ export default function RootLayout() {
         {isLoading && <LoadingScreen />}
 
       </SafeAreaView>
+      </AiServiceProvider>
+
     </GestureHandlerRootView>
   );
 }

@@ -1,6 +1,7 @@
 
 import * as Clipboard from 'expo-clipboard';
 
+
 const copyItem = async (text: string) => {
     try {
         await Clipboard.setStringAsync(text);
@@ -25,6 +26,8 @@ const pasteItem = async () => {
         return ""
     }
 }
+
+
 export {
     copyItem,
     pasteItem

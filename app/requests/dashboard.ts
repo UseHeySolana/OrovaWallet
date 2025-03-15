@@ -6,13 +6,13 @@ import WalletItem from "@/misc/store/wallet";
 import { UserType } from "@/misc/types/usertypes";
 import { Connection, PublicKey } from "@solana/web3.js";
 
+export const api_key = process.env.EXPO_PUBLIC_HELIUS_API || "";
+
 const setUserItems = async (user: UserType, updateUserWallet: any, publicKey: PublicKey, network: string) => {
-    const api_key = process.env.EXPO_PUBLIC_HELIUS_API || "";
-    let connection = new Connection(`${network}${api_key}`);
+    const connection = new Connection(`${network}${api_key}`);
     const pubConvert = new PublicKey(publicKey);
     try {
         if (user) {
-
             const Solbalance = await getBalance(pubConvert, connection);
             const rate = await fetchConversionRate("So11111111111111111111111111111111111111112");
             const balance = Number(Solbalance) * rate;

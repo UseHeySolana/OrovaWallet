@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ScrollView, Pressable, TouchableNativeFeedback, RefreshControl, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ScrollView, Pressable, TouchableNativeFeedback, RefreshControl, View, Alert } from "react-native";
 import CText from "@/components/TextComp";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -9,14 +9,17 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
-
 import UserItem from "@/misc/store/userstore";
 import { copyItem } from "@/misc/helpers/functions";
-import setUserItems from "../requests/dashboard";
-
+import setUserItems, { api_key } from "../requests/dashboard";
+import { Audio } from "expo-av";
 import { router } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import AppSettings from "@/misc/store/settingsstore";
+import SessionManager from "@/misc/helpers/aistream/aistream";
+import { Connection } from "@solana/web3.js";
+import { prompB } from "@/misc/helpers/prompt";
+import { useAi } from "@/misc/context/AiContext";
 
 
 const AiHelpers = [
@@ -37,17 +40,19 @@ const AiHelpers = [
 /**
   * What should be done here
   * 1. Get User Tokens and Balance
+  * 2. AI interactions can also be done Here
   */
-export default function Dashboard({ navigation }: any) {
-
+export default function Dashboard() {
   const [activeItems, setActiveItems] = useState([0, 1])
   const [activeTab, setActiveTab] = useState(0)
 
-  const { user, userWallet, updateUserWallet, logout } = UserItem()
-  const { network, setLoading } = AppSettings()
+  const { user, userWallet, updateUserWallet, logout } = UserItem();
+  const { network, setLoading } = AppSettings();
+  const { sessionManager, isSessionActive, startSession, stopSession } = useAi()
   const { publicKey } = WalletItem()
   const [refreshing, setRefreshing] = useState(false);
   const [update, setUpdate] = useState(0)
+
 
 
   useEffect(() => {
@@ -62,21 +67,22 @@ export default function Dashboard({ navigation }: any) {
     getUser();
   }, [user, network, updateUserWallet, publicKey, update])
 
-
   const onRefresh = async () => {
     setRefreshing(true);
     setUpdate(Math.random())
     setRefreshing(false);
   };
+
+
   return (
     <View
       className="pt-3 w-screen px-4 h-screen gap-y-3 "
     >
       {/* Top Icons */}
       <View className="flex  flex-row justify-between items-center">
-        <View className="p-3  rounded-full bg-white">
+        <Pressable onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white">
           <Feather name="settings" size={16} color="black" />
-        </View>
+        </Pressable>
         <View className="bg-white p-3 rounded-3xl flex flex-row items-center gap-x-1">
           <View className="h-6 w-6  rounded-full">
             <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
@@ -85,9 +91,9 @@ export default function Dashboard({ navigation }: any) {
           </View>
           <CText style={{ fontFamily: 'md' }} className="">@{user?.username}</CText>
         </View>
-        <View className="p-3  rounded-full bg-white">
+        <Pressable onPress={() => router.push('/scan')} className="p-3  rounded-full bg-white">
           <AntDesign name="scan1" size={16} color="black" />
-        </View>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -200,12 +206,12 @@ export default function Dashboard({ navigation }: any) {
             <View className="flex-1">
               {userWallet?.tokenAccounts?.map((token: any, index: number) => {
                 return (
+                  <View key={index}>
                   <TouchableNativeFeedback
                     key={index}
                     background={TouchableNativeFeedback.Ripple('#971BB2', false)}
                     onPress={() => { console.log("touched") }}
-                  >
-                    <>
+                    >
                       <View
                         className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
                       >
@@ -215,29 +221,34 @@ export default function Dashboard({ navigation }: any) {
                           </View>
 
                           <View className="text-[14px]">
-                            <CText style={{ fontFamily: "bold" }} className="text-[24px]">
+                            <CText style={{ fontFamily: "bold" }} className="text-[16px]">
                               {token?.name || "?"}
                             </CText>
-                            <CText style={{ fontFamily: "md" }} className="text-[18px]">
-                              {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
+                            <CText style={{ fontFamily: "reg" }} className="text-[16px]">
+                              {token?.balance < 1 ?
+                                token?.balance?.toFixed(Math.min(token?.decimals, 5))
+                                : token?.balance.toFixed(Math.max(token?.decimals, 3))
+                              }
 
                             </CText>
                           </View>
                         </View>
                         <View className="flex flex-col justify-end">
-                          <CText className="text-[14px]">
+                          {/* <CText className="text-[14px]">
                             {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
-                          </CText>
-                          <CText className="text-[10px]">
+                          </CText> */}
+                          <CText style={{ fontFamily: "bold" }} className="text-[16px]">
                             {token?.usdc_price
                               ? "$" + token?.usdc_price?.toFixed(2)
                               : ""}
                           </CText>
                         </View>
                       </View>
-                      <View className="bg-grey w-full p-[0.6]" />
-                    </>
-                  </TouchableNativeFeedback>
+                    </TouchableNativeFeedback>
+                    <View className="bg-grey w-full p-[0.6]" />
+
+                  </View>
+
                 );
               })}
 
@@ -246,13 +257,13 @@ export default function Dashboard({ navigation }: any) {
             </View>
 
             <View className="absolute bottom-5 w-full">
-              <View className="bg-grey rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
+              <Pressable className="bg-grey rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
 
                 <FontAwesome name="sliders" size={14} color="black" />
                 <CText>
                   Manage tokens
                 </CText>
-              </View>
+              </Pressable>
             </View>
 
           </View>
@@ -273,11 +284,11 @@ export default function Dashboard({ navigation }: any) {
             <Ionicons name="color-palette-outline" size={24} color="black" />
 
           </View>
-          <View className="h-[100]  w-[100] bg-grey  p-3 rounded-full">
+          <Pressable onPress={() => isSessionActive ? stopSession() : startSession()} className="h-[100]  w-[100] bg-grey  p-3 rounded-full">
             <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
               contentFit="cover"
             />
-          </View>
+          </Pressable>
           <View className="h-[56] w-[56] flex items-center justify-center rounded-full">
             <FontAwesome6 name="arrows-rotate" size={16} color="black" />
           </View>

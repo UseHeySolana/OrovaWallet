@@ -5,13 +5,13 @@ import { UserType } from '../types/usertypes';
 import AppSettings from './settingsstore';
 import WalletItem from './wallet';
 
-interface userWalletType {
+export interface userWalletType {
   balance: number;
   solBalance: number;
   tokenAccounts: [];
   totalUsdBalance: number;
 }
-interface Userstore {
+export interface Userstore {
   user: UserType | null;
   setUser: (user: UserType) => void;
   logout: () => void;

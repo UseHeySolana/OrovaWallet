@@ -1,7 +1,6 @@
 import { Connection, Keypair, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
-import { NETWORK } from "../global_types";
-import { getKeyPair } from "./wallet";
+import WalletItem from "../store/wallet";
 
 
 
@@ -11,7 +10,7 @@ export const transferSol = async (
     connection: Connection
 ) => {
     try {
-        let fromWallet = await getKeyPair();
+        let fromWallet = WalletItem.getState().keypair;
         if (!fromWallet) throw Error;
         // Create the transaction
         const transaction = new Transaction().add(
@@ -52,7 +51,8 @@ export const transferToken = async (
     decimals: number,
     connection: Connection
 ) => {
-    let fromWallet = await getKeyPair();
+    let fromWallet = WalletItem.getState().keypair;
+
     if (!fromWallet) throw Error;
     try {
 
