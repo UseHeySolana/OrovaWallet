@@ -16,11 +16,11 @@ import { Audio } from "expo-av";
 import { router } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import AppSettings from "@/misc/store/settingsstore";
-import SessionManager from "@/misc/helpers/aistream/aistream";
-import { Connection } from "@solana/web3.js";
-import { prompB } from "@/misc/helpers/prompt";
 import { useAi } from "@/misc/context/AiContext";
+import AudioRecord from 'react-native-audio-record';
 
+import LiveAudioStream from 'react-native-live-audio-stream';
+import { Base } from "@/components/Navigation/Base";
 
 const AiHelpers = [
   {
@@ -54,6 +54,9 @@ export default function Dashboard() {
   const [update, setUpdate] = useState(0)
 
 
+  const [showDraw, setShowDraw] = useState(true)
+
+
 
   useEffect(() => {
 
@@ -73,6 +76,9 @@ export default function Dashboard() {
     setRefreshing(false);
   };
 
+  const sendMessage = async () => {
+    sessionManager?.sendTextMessage("this is new")
+  }
 
   return (
     <View
@@ -126,14 +132,14 @@ export default function Dashboard() {
 
             <View className="flex flex-row gap-2 py-3 items-center px-4">
               <View className="w-[43%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { logout(); router.dismissTo('/') }} type="primary" text="Send" icon={
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/send') }} type="primary" text="Send" icon={
                   <View className="rotate-[230deg]">
                     <AntDesign name="arrowdown" size={16} color="white" />
                   </View>
                 } />
               </View>
               <View className="w-[43%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { }} type="secondary" text="Buy"
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Buy"
                   icon={
                     <View className="rotate-[60deg]">
                       <AntDesign name="arrowdown" size={16} color="black" />
@@ -227,7 +233,7 @@ export default function Dashboard() {
                             <CText style={{ fontFamily: "reg" }} className="text-[16px]">
                               {token?.balance < 1 ?
                                 token?.balance?.toFixed(Math.min(token?.decimals, 5))
-                                : token?.balance.toFixed(Math.max(token?.decimals, 3))
+                                : token?.balance.toFixed(Math.min(token?.decimals, 3))
                               }
 
                             </CText>
@@ -273,32 +279,7 @@ export default function Dashboard() {
 
 
 
-      <View className="absolute w-screen bottom-5 px-2">
-
-        <View className="w-full bg-[#E1E1E1] p-2 h-[75] rounded-full flex flex-row justify-between items-center ">
-
-          <View className="h-[56] w-[56] border border-purple flex items-center justify-center rounded-full">
-            <Ionicons name="wallet-outline" size={24} color="#971BB2" />
-          </View>
-          <View className="h-[56] w-[56] flex items-center justify-center rounded-full">
-            <Ionicons name="color-palette-outline" size={24} color="black" />
-
-          </View>
-          <Pressable onPress={() => isSessionActive ? stopSession() : startSession()} className="h-[100]  w-[100] bg-grey  p-3 rounded-full">
-            <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-            />
-          </Pressable>
-          <View className="h-[56] w-[56] flex items-center justify-center rounded-full">
-            <FontAwesome6 name="arrows-rotate" size={16} color="black" />
-          </View>
-          <View className="h-[56] w-[56] flex items-center justify-center rounded-full">
-            <MaterialCommunityIcons name="web" size={24} color="black" />
-          </View>
-
-        </View>
-      </View>
-
+      <Base stopSession={stopSession} startSession={startSession} isSessionActive={isSessionActive} />
 
     </View>
   );

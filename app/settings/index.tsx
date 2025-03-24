@@ -91,7 +91,7 @@ function Settings() {
     >
       <View className="w-full px-4 flex flex-row justify-start">
         <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white">
-          <AntDesign name="back" size={14} color="black" />
+          <IconLibrary.back />
         </Pressable>
       </View>
 

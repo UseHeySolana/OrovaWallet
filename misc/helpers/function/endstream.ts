@@ -1,10 +1,11 @@
 import AppSettings from "@/misc/store/settingsstore";
 import SessionManager from "../aistream/aistream";
+import GeminiSessionManager from "../gemini/StreamManager";
 
 export class EndStream {
     public endStream: any;
 
-    constructor(public session: SessionManager) {
+    constructor(public session: SessionManager | GeminiSessionManager) {
         this.endStream = this.end_stream()
     }
     end_stream() {

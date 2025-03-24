@@ -1,4 +1,4 @@
-// import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 // import { getBalance, getKeyPair } from "./wallet";
 // // import { playText } from "./deepgram";
 // import { fetchData, fetchUser } from "./db";
@@ -7,8 +7,10 @@
 // // import { AudioManager } from "../classes/audioManagerClass";
 // import { prompA } from "./prompt";
 
-// const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GA_KEY || "");
-// const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GA_KEY || "");
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+
 
 // export async function runGenAi(message: any) {
 //   // For text-only input, use the gemini-pro model
@@ -40,16 +42,16 @@
 //   };
 // }
 
-// export const convertSpeech = async (sentence: any) => {
-//   const result = await model.generateContent([
-//     `"${sentence} "Can you rewrite this sentence in a more conversational tone, I want to use it for a text to speech api, make it friendly
+export const convertSpeech = async (sentence: any) => {
+    const result = await model.generateContent([
+        `"${sentence} "Can you rewrite this sentence in a more conversational tone, I want to use it for a text to speech api, make it friendly
 
-//         Don't return any extra text just the re construct the sentence in a more conversational tone.
-//         `,
-//   ]);
-//   console.log(result.response.text());
-//   return result.response.text();
-// };
+        Don't return any extra text just the re construct the sentence in a more conversational tone.
+        `,
+    ]);
+    console.log(result.response.text());
+    return result.response.text();
+};
 // export function delay(ms: any) {
 //   return new Promise((resolve) => setTimeout(resolve, ms));
 // }

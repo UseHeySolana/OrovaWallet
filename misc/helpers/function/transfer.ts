@@ -1,13 +1,10 @@
-
-
-
-
 import { Connection } from "@solana/web3.js";
 import { userWalletType } from "@/misc/store/userstore";
 import { convertSpeech } from "../ai-lang";
 import { fetchData } from "../db";
 import { transferSol, transferToken } from "../transfers";
 import SessionManager from "../aistream/aistream";
+import GeminiSessionManager from "../gemini/StreamManager";
 
 const aiTransfer = async (userDetails: userWalletType, connection: Connection, args:{amount: number, token: string, recipient: string}) => {
     const { amount, token, recipient } = args;
@@ -61,7 +58,7 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
 export class TransferFunction  {
     public transferFunction: any;
 
-    constructor(public session:SessionManager) {
+    constructor(public session: SessionManager | GeminiSessionManager) {
         this.transferFunction = this.transfer_tokens()
     }
     transfer_tokens() {
@@ -81,7 +78,6 @@ export class TransferFunction  {
                     },
                     recipient: {
                         type: "string",
-                        // enum: ["celsius", "fahrenheit"],
                         description: "The user name of the recipient"
                     }
                 },

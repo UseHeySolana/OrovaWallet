@@ -49,7 +49,7 @@ export default function Home() {
   useEffect(() => {
     // Delay navigation to make sure the layout is initialized
     const timeout = setTimeout(() => {
-      const destination = user !== null ? '/dashboard' : alreadyOpened ? '/aisetup' : null;
+      const destination = user !== null ? '/dashboard' : alreadyOpened ? '/voicereg' : null;
       if (destination) {
         router.replace(destination);
       }

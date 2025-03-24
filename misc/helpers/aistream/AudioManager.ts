@@ -85,6 +85,17 @@ class AudioManager {
         }
     }
 
+    async recordAudio() {
+        const recording = new Audio.Recording();
+        try {
+            await recording.prepareToRecordAsync();
+            await recording.startAsync();
+            console.log('Recording started');
+        } catch (error) {
+            console.error('Failed to start recording:', error);
+        }
+    }
+
     /**
      * Cleans up audio resources
      */
@@ -103,6 +114,9 @@ class AudioManager {
             console.error('Error resetting audio mode:', err);
         });
     }
+
+
+
 }
 
 export default AudioManager;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, TouchableNativeFeedback, View } from "react-native";
 import CText from "@/components/TextComp";
 import DragableSheet from "@/components/CustomItems/DragableSheet";
 import { Image } from "expo-image";
@@ -8,6 +8,7 @@ import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import { Keypair } from "@solana/web3.js";
 import UserItem from "@/misc/store/userstore";
+import IconLibrary from "@/misc/helpers/icons";
 
 const Items = [
   {
@@ -53,129 +54,79 @@ const Items = [
 ]
  /**
    * What should be done here
-   * 1. Register User Voice for Authentication 
-   * 2. Save User Voice and ask if to create wallet with their voice
+   * 1: Send tokens
    */
-function Voicereg() {
-  const [recording, setRecording] = useState(false);
-
-  const { setDefault } = AppSettings()
-  const { user } = UserItem()
+function Send() {
+  const { user, userWallet } = UserItem()
+  const [selectedToken, setTokenSelected] = useState(null);
 
 
-   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-    const [isProcessing, setIsProcessing] = useState<boolean>(false);
-    const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
-
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
-
-  //   const audioManager = useRef<AudioManager | null>(null);
-  //     useEffect(() => {
-  //       if (!audioManager.current) {
-  //         audioManager.current = new AudioManager({
-  //           onSpeechStart: () => setIsSpeaking(true),
-  //           onSpeechEnd: () => setIsSpeaking(false),
-  //           onProcessingStart: () => setIsProcessing(true),
-  //           onProcessingEnd: () => setIsProcessing(false),
-  //           onAiSpeakingStart: () => setIsAiSpeaking(true),
-  //           onAiSpeakingEnd: () => setIsAiSpeaking(false),
-  //         });
-  //       } else {
-  
-  //       }
-  //       return () => {
-  //         // audioManager.current?.cleanup();
-  //       };
-  //     }, [])
-
-  // const startRecording = async () => {
-  //   setRecording(true);
-  //   await audioManager.current?.startRecording();
-  // }
-
-  // const stopRecording = async () => {
-  //   setRecording(false);
-  //   await audioManager.current?.stopRecording();
-
-  // }
   return (
     <View
-      className="relative h-full w-100 flex items-center"
+      className="relative pt-3 h-full w-100 flex items-start justify-start flex-col gap-y-4"
     >
-      <View className="h-full  w-100 m-auto flex justify-center items-start">
-        <View className="w-11/12 m-auto p-2">
-        <View className="">
-            <CText className="text-[75px] text-purple font-bold">"</CText>
-            <CText style={{ fontFamily: "bold" }} className="text-[80px] text-wrap">Hey Solana, send 5 SOL to Alex</CText>
-            <CText className="text-[75px] text-purple font-bold self-end rotate-180">"</CText>
-        </View>
-        <View>
-            <CText className="text-[32px] text-gray-400">Let’s register your voice! say the big text you see on your screen, LFG</CText>
-        </View>
-      </View>
-
-      </View>
-
-
-
-      <View className="w-11/12 m-auto p-2 gap-y-3 bottom-10 absolute">
-        {/* <Pressable onPress={() => { recording ? stopRecording() : startRecording() }} > */}
-        <Pressable onPress={() => {
-          setStartWalletReg(true)
-        }} >
-          <View style={{ padding: 5 }} className={`${!recording ? "bg-[#971BB2]" : "bg-red-600"} py-5 rounded-full `}>
-            <CText className="text-white text-center">Record</CText>
-          </View>
+      <View className="w-full px-4 flex flex-row justify-start">
+        <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white">
+          <IconLibrary.back />
         </Pressable>
       </View>
+      <View className=" flex-1 gap-y-2 flex-col justify-start items-center rounded-2xl w-11/12 py-2 m-auto">
+        <View className="flex flex-row justify-between items-center gap-x-2  ">
+          <View
+            className=" flex flex-row items-center  gap-x-2 justify-start p-4 rounded-xl  text-start  w-full bg-white "
+          >
+            <IconLibrary.search />
+            <TextInput
+              style={{ fontFamily: "bold", fontSize: 15 }}
+              // value={""}
+              placeholder="Search"
+              className="w-full"
+              numberOfLines={100}
+              onChangeText={(text) => {
+              }}
+            />
+            {/* <CText className="">${userWallet.balance}</CText> */}
+          </View>
+        </View>
 
-      {
-        startWalletReg && (
-          <DragableSheet
-            close={() => setStartWalletReg(false)}
-            snapPoints={["55%"]}
-            child={
-              <View className="w-full  gap-y-5 flex flex-col justify-between ">
-                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
-                <View className="flex w-100 justify-center items-center py-">
-                  <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
+        <View className="bg-white rounded-xl overflow-hidden">
+          {userWallet?.tokenAccounts.map((token: any, index: number) => (
+            <View key={index}>
+              <TouchableNativeFeedback
+                background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                onPress={() => { console.log("touched") }}
+              >
+                <View
+                  className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
+                >
+                  <View className="flex flex-row items-start gap-x-2 w-full">
+                    <View className="h-14 w-14  overflow-hidden rounded-full">
+                      <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
+                    </View>
+
+                    <View className="text-[14px]">
+                      <CText style={{ fontFamily: "bold" }} className="text-[18px]">
+                        {token?.name || "?"}
+                      </CText>
+                      <CText style={{ fontFamily: "reg" }} className="text-[16px]">
+                        {token?.balance < 1 ?
+                          token?.balance?.toFixed(Math.min(token?.decimals, 5))
+                          : token?.balance.toFixed(Math.min(token?.decimals, 3))
+                        }
+                        {" "}
+                        {token.symbol}
+
+                      </CText>
+                    </View>
+                  </View>  
                 </View>
+              </TouchableNativeFeedback>
+              <View className="bg-grey w-full p-[0.6]" />
 
-                <Pressable onPress={() => {
-                  router.push('/secretphrase')
-                }} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
-                    <View className="">
-                      <AntDesign name="pluscircleo" size={24} color="black" />
-                    </View>
-
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Create new Wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Create a new Solana Wallet</CText>
-
-                    </View>
-                  </View>
-
-                </Pressable>
-                <Pressable onPress={() => router.push('/importphrase')} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
-                    <View className="bg-white rounded-full p-1">
-                      <AntDesign name="arrowdown" size={24} color="black" />
-                    </View>
-
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Import existing wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Import a previously existing wallet</CText>
-
-                    </View>
-                  </View>
-
-                </Pressable>
-              </View>
-}
-          />
-        )
-      }
+            </View>
+          ))}
+        </View>
+      </View>
 
 
 
@@ -183,5 +134,5 @@ function Voicereg() {
   );
 }
 
-export default Voicereg
+export default Send
 

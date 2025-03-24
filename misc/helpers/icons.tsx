@@ -7,6 +7,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Entypo from '@expo/vector-icons/Entypo';
+import EvilIcons from '@expo/vector-icons/EvilIcons';
 
 type IconProps = {
     size?: number;
@@ -15,6 +16,15 @@ type IconProps = {
 
 // Export components directly instead of functions that return components
 export const IconLibrary = {
+    search: (props: IconProps = {}) => (
+        <EvilIcons
+            size={props.size || 18}
+            color={props.color || "black"}
+            name="search"
+        />
+
+    ),
+
     wallet: (props: IconProps = {}) => (
         <Ionicons
             name="wallet-outline"
@@ -78,6 +88,12 @@ export const IconLibrary = {
             color={props.color || "black"}
         />
     ),
+    back: (props: IconProps = {}) => (
+        <AntDesign name="back"
+            size={props.size || 14}
+            color={props.color || "black"}
+        />
+    )
 };
 
 export default IconLibrary;
