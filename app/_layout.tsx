@@ -10,6 +10,9 @@ import { View } from 'react-native';
 import { Image } from 'expo-image';
 import AppSettings from '@/misc/store/settingsstore';
 import { AiServiceProvider } from '@/misc/context/AiContext';
+import IconLibrary from "@/misc/helpers/icons";
+import CText from '@/components/TextComp';
+
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -22,7 +25,7 @@ export default function RootLayout() {
     bold: DMSans_700Bold,
   });
 
-  const { isLoading } = AppSettings();
+  const { isLoading, toast } = AppSettings();
   useEffect(() => {
     async function prepare() {
       try {
@@ -63,6 +66,32 @@ export default function RootLayout() {
     </View>
   );
 
+  const ToastModal = ({ type, message }: { type: "success" | "error" | "info"; message: string }) => {
+    const bgClass =
+      type === "success"
+        ? "bg-green-400/15 border border-green-400"
+        : type === "error"
+          ? "bg-red-600/15 border border-red-600"
+          : "bg-orange-400/15 border border-orange-400";
+
+    const textClass =
+      type === "success"
+        ? "text-green-600"
+        : type === "error"
+          ? "text-red-600"
+          : "text-orange-600";
+    return (
+      <View className="absolute top-3 px-4 bg-grey py-3 w-full flex items-center">
+        <View className={`p-3 rounded-xl ${bgClass} w-full flex flex-row items-center`}>
+          {type === "success" && <IconLibrary.check color="green" />}
+          {type === "error" && <IconLibrary.error color="red" />}
+          {type === "info" && <IconLibrary.info color="orange" />}
+          <CText className={`ml-2 ${textClass} text-[18px]`} style={{ fontFamily: 'bold' }}>{message}</CText>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <GestureHandlerRootView>
       <AiServiceProvider>
@@ -76,7 +105,9 @@ export default function RootLayout() {
       >
 
       </Stack>
-        {isLoading && <LoadingScreen />}
+
+          {toast.show && <ToastModal type={toast.type} message={toast.message} />}
+          {/* {isLoading && <LoadingScreen />} */}
 
       </SafeAreaView>
       </AiServiceProvider>

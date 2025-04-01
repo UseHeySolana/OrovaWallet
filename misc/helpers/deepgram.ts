@@ -1,8 +1,7 @@
-import { AudioManager } from "../processors/audioClassManager";
-
-
-
-
+import { Audio } from "expo-av";
+import * as FileSystem from 'expo-file-system';
+import { decode, encode } from 'base64-arraybuffer';
+import GeminiAudioManager from "./gemini/GeminiAudioManager";
 
 export const blobToFile = (blob: Blob): File => {
     return new File([blob], `audio_${Date.now()}.mp3`, { type: blob.type });
@@ -55,108 +54,117 @@ export const transcribeAudio = async (audioBlob: Blob) => {
     }
 };
 
-// export const playText = async (
-//   audioClass: AudioManager,
-//   text: string,
-//   end: boolean
-// ) => {
-//   try {
-//     const response = await fetch("/api/tts", {
-//       method: "POST",
-//       headers: {
+
+export const playText = async (
+    text: string,
+    end: boolean
+) => {
+    try {
+// const response = await fetch("http://192.168.169.141:3002/api/tts", {
+//     method: "POST",
+//     headers: {
 //         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ text }),
-//     });
+        //     },
+        //     body: JSON.stringify({ text: ' JavaScript logs will be removed from Metro in React Native 0.77! Please use React Native DevTools as your default tool. Tip: Type j in the terminal to open (requires Google Chrome or Microsoft Edge).' }),
+        // });
 
-//     if (!response.ok || !response.body) {
-//       throw new Error("Failed to generate speech");
-//     }
+        const audioManger = new GeminiAudioManager()
 
-//     const mediaSource = new MediaSource();
-//     const audio = new Audio();
-//     audio.src = URL.createObjectURL(mediaSource);
-//     audio.playbackRate = 1.1;
+        const response = await fetch("http://192.168.169.141:3002/api/tts");
 
-//     audioClass.callbacks.onProcessingEnd();
-//     audioClass.callbacks.onAiSpeakingStart();
+        if (!response.ok) {
+            throw new Error("Failed to generate speech");
+        }
 
-//     return new Promise<boolean>((resolve, reject) => {
-//       mediaSource.addEventListener("sourceopen", async () => {
-//         const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-//         const reader = response.body!.getReader();
+        const { buffer } = await response.json();
 
-//         let isStreamEnded = false;
-//         let pendingChunks: Uint8Array[] = [];
-//         let isFirstChunk = true;
+        console.log('called')
 
-//         const processNextChunk = () => {
-//           if (pendingChunks.length > 0 && !sourceBuffer.updating) {
-//             const chunk = pendingChunks.shift();
-//             if (chunk) {
-//               sourceBuffer.appendBuffer(chunk);
-//             }
-//           }
+        // Convert ArrayBuffer to Base64 string
+        const base64Audio = encode(buffer);
+        audioManger.enqueueAudioChunk(base64Audio); //
+        // const mediaSource = new MediaSource();
+        // const audio = new Audio();
+        // audio.src = URL.createObjectURL(mediaSource);
+        // audio.playbackRate = 1.1;
 
-//           if (
-//             isStreamEnded &&
-//             pendingChunks.length === 0 &&
-//             !sourceBuffer.updating
-//           ) {
-//             mediaSource.endOfStream();
-//             resolve(true);
-//           }
-//         };
+        // return new Promise<boolean>((resolve, reject) => {
+        //     mediaSource.addEventListener("sourceopen", async () => {
+        //         const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+        //         const reader = response.body!.getReader();
 
-//         sourceBuffer.addEventListener("updateend", processNextChunk);
+        //         let isStreamEnded = false;
+        //         let pendingChunks: Uint8Array[] = [];
+        //         let isFirstChunk = true;
 
-//         const streamAudio = async () => {
-//           try {
-//             const { done, value } = await reader.read();
+        //         const processNextChunk = () => {
+        //             if (pendingChunks.length > 0 && !sourceBuffer.updating) {
+        //                 const chunk = pendingChunks.shift();
+        //                 if (chunk) {
+        //                     sourceBuffer.appendBuffer(chunk);
+        //                 }
+        //             }
 
-//             if (done) {
-//               isStreamEnded = true;
-//               processNextChunk();
-//               return;
-//             }
+        //           if (
+        //               isStreamEnded &&
+        //               pendingChunks.length === 0 &&
+        //               !sourceBuffer.updating
+        //           ) {
+        //               mediaSource.endOfStream();
+        //               resolve(true);
+        //           }
+        //       };
 
-//             if (sourceBuffer.updating) {
-//               pendingChunks.push(value);
-//             } else {
-//               sourceBuffer.appendBuffer(value);
-//             }
+        //         sourceBuffer.addEventListener("updateend", processNextChunk);
 
-//             if (isFirstChunk) {
-//               audio.play();
-//               isFirstChunk = false;
-//             }
+        //         const streamAudio = async () => {
+        //             try {
+        //                 const { done, value } = await reader.read();
 
-//             await streamAudio();
-//           } catch (error) {
-//             reject(error);
-//           }
-//         };
+        //               if (done) {
+        //                   isStreamEnded = true;
+        //                   processNextChunk();
+        //                   return;
+        //               }
 
-//         await streamAudio();
-//       });
+        //               if (sourceBuffer.updating) {
+        //                   pendingChunks.push(value);
+        //               } else {
+        //                   sourceBuffer.appendBuffer(value);
+        //               }
 
-//       audio.onended = async () => {
-//         if (end) {
-//           await audioClass.afterAudio();
-//         }
-//         resolve(true);
-//       };
+        //               if (isFirstChunk) {
+        //                   audio.play();
+        //                   isFirstChunk = false;
+        //               }
 
-//       audio.onerror = () => {
-//         console.error("Audio playback error");
-//         reject(new Error("Audio playback failed"));
-//       };
-//     });
-//   } catch (error) {
-//     console.error("Error playing audio:", error);
-//     return false;
-//   }
-// };
+        //               await streamAudio();
+        //           } catch (error) {
+        //               reject(error);
+        //           }
+        //       };
+
+        //         await streamAudio();
+        //     });
+
+        //     audio.onended = async () => {
+        //         if (end) {
+        //         }
+        //         resolve(true);
+        //     };
+
+        //     audio.onerror = () => {
+        //         console.error("Audio playback error");
+        //         reject(new Error("Audio playback failed"));
+        //     };
+        // });
+
+
+    } catch (error) {
+        console.error("Error playing audio:", error);
+        return false;
+    }
+};
 
 
 

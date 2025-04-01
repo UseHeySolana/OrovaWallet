@@ -4,6 +4,7 @@ import { router, useSegments } from "expo-router";
 
 
 import * as FileSystem from 'expo-file-system';
+import { FunctionParams } from "../types";
 
 export async function getAllRoutes() {
     try {
@@ -24,7 +25,7 @@ export async function getAllRoutes() {
 }
 
 export class Routing {
-    public changeRoute: any;
+    public changeRoute: FunctionParams;
     public goBack: any;
 
     constructor(public session: SessionManager) {

@@ -6,51 +6,9 @@ import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
-import { Keypair } from "@solana/web3.js";
 import UserItem from "@/misc/store/userstore";
-
-const Items = [
-  {
-    id: 1,
-    title: "Voice Assistant",
-    description: "",
-    subItems: [],
-    type: "toogle",
-  },
-  {
-    id: 2,
-    title: "Language",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "English",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 3,
-    title: "Assistant Voice",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "Kira",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 4,
-    title: "Assistant Name",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "User Input",
-      description: "",
-    }],
-    type: "dropdown",
-  }
-]
+import { playText } from "@/misc/helpers/deepgram";
+import { useAi } from "@/misc/context/AiContext";
  /**
    * What should be done here
    * 1. Register User Voice for Authentication 
@@ -58,46 +16,23 @@ const Items = [
    */
 function Voicereg() {
   const [recording, setRecording] = useState(false);
-
+  const { sessionManager, isSessionActive, startSession, stopSession } = useAi()
   const { setDefault } = AppSettings()
-  const { user } = UserItem()
-
-
-   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-    const [isProcessing, setIsProcessing] = useState<boolean>(false);
-    const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
-
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
-  //   const audioManager = useRef<AudioManager | null>(null);
-  //     useEffect(() => {
-  //       if (!audioManager.current) {
-  //         audioManager.current = new AudioManager({
-  //           onSpeechStart: () => setIsSpeaking(true),
-  //           onSpeechEnd: () => setIsSpeaking(false),
-  //           onProcessingStart: () => setIsProcessing(true),
-  //           onProcessingEnd: () => setIsProcessing(false),
-  //           onAiSpeakingStart: () => setIsAiSpeaking(true),
-  //           onAiSpeakingEnd: () => setIsAiSpeaking(false),
-  //         });
-  //       } else {
-  
-  //       }
-  //       return () => {
-  //         // audioManager.current?.cleanup();
-  //       };
-  //     }, [])
+  useEffect(() => {
+    if (!isSessionActive) {
+      startSession()
+    }
+    return () => stopSession()
+  }, [])
 
-  // const startRecording = async () => {
-  //   setRecording(true);
-  //   await audioManager.current?.startRecording();
-  // }
 
-  // const stopRecording = async () => {
-  //   setRecording(false);
-  //   await audioManager.current?.stopRecording();
+  const sendMessage = () => {
+    console.log('pressed')
+    sessionManager?.sendTextMessage("Repeat this text with enthusiasm becuase you are onboarding a new user, {Let's register your voice! say the big text you see on your screen.}")
+  }
 
-  // }
   return (
     <View
       className="relative h-full w-100 flex items-center"
@@ -106,7 +41,7 @@ function Voicereg() {
         <View className="w-11/12 m-auto p-2">
         <View className="">
             <CText className="text-[75px] text-purple font-bold">"</CText>
-            <CText style={{ fontFamily: "bold" }} className="text-[80px] text-wrap">Hey Solana, send 5 SOL to Alex</CText>
+            <CText style={{ fontFamily: "bold" }} className="text-[80px] text-wrap">Hey Solana, send 5 SOL to Me</CText>
             <CText className="text-[75px] text-purple font-bold self-end rotate-180">"</CText>
         </View>
         <View>
@@ -121,7 +56,8 @@ function Voicereg() {
       <View className="w-11/12 m-auto p-2 gap-y-3 bottom-10 absolute">
         {/* <Pressable onPress={() => { recording ? stopRecording() : startRecording() }} > */}
         <Pressable onPress={() => {
-          setStartWalletReg(true)
+          // setStartWalletReg(true)
+          sendMessage();
         }} >
           <View style={{ padding: 5 }} className={`${!recording ? "bg-[#971BB2]" : "bg-red-600"} py-5 rounded-full `}>
             <CText className="text-white text-center">Record</CText>

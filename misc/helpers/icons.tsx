@@ -12,10 +12,39 @@ import EvilIcons from '@expo/vector-icons/EvilIcons';
 type IconProps = {
     size?: number;
     color?: string;
-};
+}
 
 // Export components directly instead of functions that return components
 export const IconLibrary = {
+    error: (props: IconProps = {}) => (
+        <MaterialIcons
+            size={props.size || 18}
+            color={props.color || "black"}
+            name="error-outline"
+        />
+    ),
+    check: (props: IconProps = {}) => (
+        <AntDesign
+            size={props.size || 18}
+            color={props.color || "black"}
+            name="check"
+        />
+    ),
+    info: (props: IconProps = {}) => (
+        <AntDesign
+            size={props.size || 18}
+            color={props.color || "black"}
+            name="infocirlceo"
+        />
+    ),
+    logout: (props: IconProps = {}) => (
+        <AntDesign
+            size={props.size || 18}
+            color={props.color || "black"}
+            name="logout"
+        />
+
+    ),
     search: (props: IconProps = {}) => (
         <EvilIcons
             size={props.size || 18}

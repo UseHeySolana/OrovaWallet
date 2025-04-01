@@ -71,6 +71,11 @@ const settingsMenu2 = [
     route: "/manageaccounts",
     icon: <IconLibrary.moon />,
   },
+  {
+    title: "Logout",
+    route: null,
+    icon: <IconLibrary.logout />,
+  },
 ]
 /*
 /**
@@ -81,7 +86,7 @@ function Settings() {
   const [recording, setRecording] = useState(false);
 
   const { setDefault } = AppSettings()
-  const { user, userWallet } = UserItem()
+  const { user, userWallet, logout } = UserItem()
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
 
@@ -141,7 +146,10 @@ function Settings() {
       <View className="w-11/12  m-auto p-4 rounded-2xl shadow bottom-10 bg-white ">
         {settingsMenu2.map((item, index) => {
           return (
-            <View key={index} className="py-1 flex flex-row justify-between items-center">
+            <Pressable onPress={() => {
+              //@ts-expect-error
+              { item.route ? router.push(item.route) : logout() }
+            }} key={index} className="py-1 flex flex-row justify-between items-center">
               <View className="flex flex-row justify-start items-center gap-x-2">
                 <View className="h-6 flex flex-row justify-center items-center w-6">
                   {item.icon ? item.icon : <FontAwesome name="angle-right" size={18} color="black" />}
@@ -151,10 +159,12 @@ function Settings() {
                 </CText>
               </View>
 
+              {item.route &&
               <Pressable onPress={() => router.back()} className="p-3">
                 <FontAwesome name="angle-right" size={18} color="black" />
               </Pressable>
-            </View>
+              }
+            </Pressable>
           )
         })}
       </View>

@@ -53,7 +53,6 @@ class GeminiSessionManager {
         this.ws = null;
         this.clientId = uuidv4();
 
-
         // Load memory asynchronously
         this.loadMemory().then(memory => {
             this.memory = memory || [];

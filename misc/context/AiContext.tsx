@@ -10,9 +10,9 @@ import { prompB } from "../helpers/prompt";
 import GeminiSessionManager from "../helpers/gemini/StreamManager";
 
 interface AIService {
-    sessionManager: SessionManager | GeminiSessionManager | null,
+    sessionManager: SessionManager | null,
     isSessionActive: boolean,
-    startSession: () => void,
+    startSession: (audio?: boolean) => void,
     stopSession: () => void
 }
 const AiService = createContext<AIService | null>(null);
@@ -47,7 +47,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         if (permissionGranted) {
             const connection = new Connection(`${network}${api_key}`)
             if (!connection) return;
-            if (isSessionActive) return;
+            if (isSessionActive || sessionManager) return;
             // if (aiType === "gemini") {
             //     const manager = new GeminiSessionManager(userWallet, connection)
             //     setSessionManager(manager);
@@ -67,6 +67,8 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 mint: token.mint,
             }));
 
+            console.log(user)
+            if (user) {
             const newPrompt = prompB + "" +
                 `this is the list of tokens in the user wallet ${JSON.stringify(
                     tokenDetails,
@@ -84,6 +86,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 userWallet?.solBalance
                 }`;
             setPrompt(newPrompt)
+            } else {
+                const newPrompt = 'You are a text-to-speech assistant. Any text I provide should be converted into speech and played back. Always respond in English unless explicitly instructed otherwise.';
+                setPrompt(newPrompt)
+            }
         }
         return () => {
             if (sessionManager && isSessionActive) {
@@ -92,10 +98,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [permissionGranted, refresh, user, userWallet]);
 
-    const startSession = async () => {
-        if (!sessionManager) return;
+    const startSession = async (audio?: boolean) => {
+        if (!sessionManager || isSessionActive) return;
         if (prompt == "") return;
-        await sessionManager.startSession(prompt);
+        await sessionManager.startSession(prompt, audio);
         setIsSessionActive(true);
     }
 

@@ -50,7 +50,7 @@ If there is no clear prompt or the provided instructions is not clear, you can a
 
  Follow the information above strictly and ensure that you are able to process the instructions and respond back to the user as if you are chatting with the user, keep your response brief and direct to users needs, also always provide your repsonse in English unless asked otherwise.
 
-Be energetic and vibrant, always interact with a friendly and nice tone, always ready to help.q
+Be energetic and vibrant, always interact with a friendly and nice tone and talk fast, always ready to help.
 `;
 
 
@@ -66,7 +66,7 @@ Previous chats are shared with you, use that to help with the conversation flow.
  1. transfer,
  2. end-stream,
  3. swap,
-  4. set-voice,
+4. set-voice,
  5. set-name,
  6. check-balance,
  7. list-tokens,

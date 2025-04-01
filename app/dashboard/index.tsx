@@ -12,15 +12,15 @@ import Buttons from "@/components/ButtonComp";
 import UserItem from "@/misc/store/userstore";
 import { copyItem } from "@/misc/helpers/functions";
 import setUserItems, { api_key } from "../requests/dashboard";
-import { Audio } from "expo-av";
 import { router } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import AppSettings from "@/misc/store/settingsstore";
 import { useAi } from "@/misc/context/AiContext";
-import AudioRecord from 'react-native-audio-record';
 
-import LiveAudioStream from 'react-native-live-audio-stream';
 import { Base } from "@/components/Navigation/Base";
+import Animated, { useSharedValue } from "react-native-reanimated";
+import { toolManipulator } from "@/misc/helpers/function/toolManipulator";
+import { toolRouter } from "@/misc/helpers/toolsregistry";
 
 const AiHelpers = [
   {
@@ -44,7 +44,7 @@ const AiHelpers = [
   */
 export default function Dashboard() {
   const [activeItems, setActiveItems] = useState([0, 1])
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeTab, setActiveTab] = useState('tokens')
 
   const { user, userWallet, updateUserWallet, logout } = UserItem();
   const { network, setLoading } = AppSettings();
@@ -52,14 +52,11 @@ export default function Dashboard() {
   const { publicKey } = WalletItem()
   const [refreshing, setRefreshing] = useState(false);
   const [update, setUpdate] = useState(0)
-
-
   const [showDraw, setShowDraw] = useState(true)
 
 
 
   useEffect(() => {
-
     const getUser = async () => {
       await setLoading(true)
       if (!user || !publicKey) return
@@ -77,7 +74,11 @@ export default function Dashboard() {
   };
 
   const sendMessage = async () => {
-    sessionManager?.sendTextMessage("this is new")
+    if (!sessionManager) return
+    const man = new toolManipulator(sessionManager);
+    console.log(JSON.stringify(man.chooseTools.description + JSON.stringify(man.toolsDes[0])))
+
+    // sessionManager?.sendTextMessage("this is new")
   }
 
   return (
@@ -130,25 +131,25 @@ export default function Dashboard() {
 
             <View className="bg-grey w-full p-[0.6]" />
 
-            <View className="flex flex-row gap-2 py-3 items-center px-4">
-              <View className="w-[43%]">
+            <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
+              <View className="w-[40%]">
                 <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/send') }} type="primary" text="Send" icon={
                   <View className="rotate-[230deg]">
                     <AntDesign name="arrowdown" size={16} color="white" />
                   </View>
                 } />
               </View>
-              <View className="w-[43%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Buy"
+              <View className="w-[40%]">
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Receive"
                   icon={
-                    <View className="rotate-[60deg]">
+                    <View className="rotate-[40deg]">
                       <AntDesign name="arrowdown" size={16} color="black" />
                     </View>
                   }
                 />
               </View>
-              <View className="w-[10%] flex justify-center items-center">
-                <Pressable className="p-2 h-10 w-10 flex justify-center items-center  rounded-full bg-grey">
+              <View className="w-[45px] h-[45px] rounded-full  bg-grey flex justify-center items-center">
+                <Pressable className="p-2 flex justify-center items-center">
                   <FontAwesome6 name="arrows-rotate" size={16} color="gray" />
                 </Pressable>
               </View>
@@ -164,7 +165,6 @@ export default function Dashboard() {
                   position: "relative",
                   bottom: index * 70,
                   zIndex: index * -1,
-
                   width: `${100 - index * 4}%`
                 }} className="h-[80px] m-auto" >
 
@@ -189,11 +189,11 @@ export default function Dashboard() {
 
           </View>
 
-          <View className="w-full  pb-[60px] shadow-md m-auto bg-white overflow-hidden rounded-3xl">
+          <Animated.View className="w-full  pb-[60px] shadow-md m-auto bg-white overflow-hidden rounded-3xl">
             <View className="flex flex-row items-center justify-between">
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                onPress={() => { }}>
+                onPress={() => setActiveTab('tokens')}>
 
                 <View className="w-[50%] py-5 border-b-2 border-purple">
                   <CText style={{ fontFamily: "bold" }} className="text-[18px]  text-center">Tokens</CText>
@@ -201,7 +201,7 @@ export default function Dashboard() {
               </TouchableNativeFeedback>
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                onPress={() => { }}>
+                onPress={() => setActiveTab('history')}>
                 <View className="w-[50%] py-5 border-b-2 border-grey ">
                   <CText className="text-[18px] text-center">History</CText>
             </View>
@@ -209,7 +209,18 @@ export default function Dashboard() {
 
             </View>
 
-            <View className="flex-1">
+            {activeTab == "tokens" ?
+
+              <View className="flex-1">
+
+                <View className="py-5 w-full">
+                  <Pressable className="bg-grey rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
+                    <FontAwesome name="sliders" size={14} color="black" />
+                    <CText>
+                      Manage tokens
+                    </CText>
+                  </Pressable>
+                </View>
               {userWallet?.tokenAccounts?.map((token: any, index: number) => {
                 return (
                   <View key={index}>
@@ -252,7 +263,6 @@ export default function Dashboard() {
                       </View>
                     </TouchableNativeFeedback>
                     <View className="bg-grey w-full p-[0.6]" />
-
                   </View>
 
                 );
@@ -260,19 +270,17 @@ export default function Dashboard() {
 
 
 
-            </View>
+              </View>
 
-            <View className="absolute bottom-5 w-full">
-              <Pressable className="bg-grey rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
+              :
 
-                <FontAwesome name="sliders" size={14} color="black" />
-                <CText>
-                  Manage tokens
-                </CText>
-              </Pressable>
-            </View>
+              <View className="flex-1">
+              </View>
 
-          </View>
+            }
+
+
+          </Animated.View>
         </View>
 
       </ScrollView>

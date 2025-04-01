@@ -1,9 +1,10 @@
 import AppSettings from "@/misc/store/settingsstore";
 import SessionManager from "../aistream/aistream";
+import { FunctionParams } from "../types";
 
 export class Settings {
-    public setVoice: any;
-    public setName: any;
+    public setVoice: FunctionParams;
+    public setName: FunctionParams;
 
     constructor(public session: SessionManager) {
         this.setVoice = this.set_voice()

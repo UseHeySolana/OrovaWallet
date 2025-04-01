@@ -47,8 +47,7 @@ class SessionManager {
         this.availableFunctions = toolFunctions(this);
     }
 
-    async startSession(systemInstructions?: string): Promise<void> {
-        console.log(systemInstructions);
+    async startSession(systemInstructions?: string, audio?: boolean): Promise<void> {
         // Set system instructions if provided
         if (systemInstructions) {
             this.systemInstructions = systemInstructions;
@@ -66,34 +65,33 @@ class SessionManager {
             //check if token is available then create
             const ek = AppSettings.getState().ek;
 
-            let EPHEMERAL_KEY:string;
-            function isClientSecretExpired(date:number) {
+            let EPHEMERAL_KEY: string;
+            function isClientSecretExpired(date: number) {
                 const currentTime = Math.floor(Date.now() / 1000); // Get current time in seconds
                 return date <= currentTime;
             }
-            if(ek.value === "" || isClientSecretExpired(ek.expiry)){
+            if (ek.value === "" || isClientSecretExpired(ek.expiry)) {
                 const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
                 const data = await tokenResponse.json();
                 EPHEMERAL_KEY = data.client_secret.value;
-                AppSettings.setState({ek:{value:data.client_secret.value, expiry:data.client_secret.expires_at}})
-            }else{
+                AppSettings.setState({ ek: { value: data.client_secret.value, expiry: data.client_secret.expires_at } })
+            } else {
                 EPHEMERAL_KEY = AppSettings.getState().ek.value;
             }
 
-        
+
             this.peerConnection = new RTCPeerConnection({
                 iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Add STUN server for better connection
             });
 
-            // Get media stream (different in React Native)
-            const stream = await mediaDevices.getUserMedia({ audio: true });
-
-
-            // Add tracks to peer connection
-            stream.getTracks().forEach(track => {
-                this.peerConnection!.addTrack(track, stream);
-            });
-
+            if (audio) {
+                // Get media stream (different in React Native)
+                const stream = await mediaDevices.getUserMedia({ audio: true });
+                // Add tracks to peer connection
+                stream.getTracks().forEach(track => {
+                    this.peerConnection!.addTrack(track, stream);
+                });
+            }
             // Setup connection state tracking
             this.peerConnection.addEventListener('connectionstatechange', () => {
                 console.log(`Connection state changed: ${this.peerConnection?.connectionState}`);
@@ -460,7 +458,6 @@ class SessionManager {
     private async handleFunctionCall(functionCall: any): Promise<void> {
         const { name, arguments: argsJson, call_id } = functionCall;
         console.log(`Function call received: ${name}`, argsJson);
-
         try {
             // Find the registered function handler
             const functionDef = this.availableFunctions.find(fn => fn.name === name);

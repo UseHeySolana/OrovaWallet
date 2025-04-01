@@ -5,6 +5,7 @@ import { fetchData } from "../db";
 import { transferSol, transferToken } from "../transfers";
 import SessionManager from "../aistream/aistream";
 import GeminiSessionManager from "../gemini/StreamManager";
+import { FunctionParams } from "../types";
 
 const aiTransfer = async (userDetails: userWalletType, connection: Connection, args:{amount: number, token: string, recipient: string}) => {
     const { amount, token, recipient } = args;
@@ -56,7 +57,7 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
     }
 }
 export class TransferFunction  {
-    public transferFunction: any;
+    public transferFunction: FunctionParams;
 
     constructor(public session: SessionManager | GeminiSessionManager) {
         this.transferFunction = this.transfer_tokens()

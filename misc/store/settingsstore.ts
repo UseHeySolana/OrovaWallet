@@ -27,6 +27,12 @@ interface Settings {
     setLoading: (state: boolean) => void
     loadingTimeout: any,
     setEk: (value: string, expiry: number) => void
+    toast: {
+        show: boolean,
+        message: string,
+        type: "success" | "error" | "info",
+    },
+    setToast: (message: string, type: "success" | "error" | "info") => void
 }
 
 
@@ -39,11 +45,16 @@ const AppSettings = create(
             },
             theme: "light",
             isLoading: false,
+            toast: {
+                show: false,
+                message: "",
+                type: "success"
+            },
             loadingTimeout: null,
             notifications: true,
             aiVoice: "alloy",
             aiName: "HeySolana",
-            network: "https://devnet.helius-rpc.com/?api-key=",
+            network: "https://mainnet.helius-rpc.com/?api-key=",
             alreadyOpened: false,
             skippedAiSettings: false,
             createdWallet: false,
@@ -69,28 +80,33 @@ const AppSettings = create(
                         createdWallet: false,
                     })
             },
+            setToast: (message: string, type: "success" | "error" | "info") => {
+                set({ toast: { message, type, show: true } })
+                setTimeout(() => set({ toast: { show: false, message: "", type: "success" } }), 1000);
+            },
+
             setLoading: async (state) => {
 
-                // Clear previous timeout if it exists
-                // const previousTimeout = get().loadingTimeout;
-                // if (previousTimeout) {
-                //     clearTimeout(previousTimeout);
-                // }
+
+                const previousTimeout = get().loadingTimeout;
+                if (previousTimeout) {
+                    clearTimeout(previousTimeout);
+                }
 
                 // Update loading state
                 set({ isLoading: state });
 
-                // if (state) {
-                //     // Set a new timeout and store its ID
-                //     const timeoutId = setTimeout(() => {
-                //         set({ isLoading: false, loadingTimeout: null });
-                //     }, 10000);
+                if (state) {
+                    // Set a new timeout and store its ID
+                    const timeoutId = setTimeout(() => {
+                        set({ isLoading: false, loadingTimeout: null });
+                    }, 10000);
 
-                //     set({ loadingTimeout: timeoutId });
-                // } else {
-                //     // If manually turning off loading, clear any pending timeout
-                //     set({ loadingTimeout: null });
-                // }
+                    set({ loadingTimeout: timeoutId });
+                } else {
+                    // If manually turning off loading, clear any pending timeout
+                    set({ loadingTimeout: null });
+                }
                 await new Promise(resolve => setTimeout(resolve, 100));
 
             }
