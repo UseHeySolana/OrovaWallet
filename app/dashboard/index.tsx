@@ -98,7 +98,7 @@ export default function Dashboard() {
           </View>
           <CText style={{ fontFamily: 'md' }} className="">@{user?.username}</CText>
         </View>
-        <Pressable onPress={() => router.push('/scan')} className="p-3  rounded-full bg-white">
+        <Pressable onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white">
           <AntDesign name="scan1" size={16} color="black" />
         </Pressable>
       </View>
@@ -120,7 +120,7 @@ export default function Dashboard() {
                 </View>
               </View>
               <View className="flex flex-row justify-center items-center gap-2">
-                <Pressable onPress={async () => await copyItem(user?.walletAddress || "")} className="p-3  rounded-full bg-grey">
+                <Pressable onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey">
                   <Ionicons name="copy-outline" size={16} color="black" />
                 </Pressable>
                 <View className="p-3  rounded-full bg-grey">
@@ -133,7 +133,7 @@ export default function Dashboard() {
 
             <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
               <View className="w-[40%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/send') }} type="primary" text="Send" icon={
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="primary" text="Send" icon={
                   <View className="rotate-[230deg]">
                     <AntDesign name="arrowdown" size={16} color="white" />
                   </View>
@@ -177,7 +177,7 @@ export default function Dashboard() {
                     <View>
                       <CText style={{ fontFamily: "bold" }} className="text-[18px]">{item.title}</CText>
                       <CText className="text-[14px]">{item.caption}</CText>
-                  </View>
+                    </View>
 
                   </View>
                   <Pressable className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey text-white" onPress={() => { }}>
@@ -204,7 +204,7 @@ export default function Dashboard() {
                 onPress={() => setActiveTab('history')}>
                 <View className="w-[50%] py-5 border-b-2 border-grey ">
                   <CText className="text-[18px] text-center">History</CText>
-            </View>
+                </View>
               </TouchableNativeFeedback>
 
             </View>
@@ -221,52 +221,52 @@ export default function Dashboard() {
                     </CText>
                   </Pressable>
                 </View>
-              {userWallet?.tokenAccounts?.map((token: any, index: number) => {
-                return (
-                  <View key={index}>
-                  <TouchableNativeFeedback
-                    key={index}
-                    background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                    onPress={() => { console.log("touched") }}
-                    >
-                      <View
-                        className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
+                {userWallet?.tokenAccounts?.map((token: any, index: number) => {
+                  return (
+                    <View key={index}>
+                      <TouchableNativeFeedback
+                        key={index}
+                        background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                        onPress={() => { console.log("touched") }}
                       >
-                        <View className="flex flex-row items-start gap-x-2">
-                          <View className="h-14 w-14  overflow-hidden rounded-full">
-                            <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
-                          </View>
+                        <View
+                          className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
+                        >
+                          <View className="flex flex-row items-start gap-x-2">
+                            <View className="h-14 w-14  overflow-hidden rounded-full">
+                              <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
+                            </View>
 
-                          <View className="text-[14px]">
-                            <CText style={{ fontFamily: "bold" }} className="text-[16px]">
-                              {token?.name || "?"}
-                            </CText>
-                            <CText style={{ fontFamily: "reg" }} className="text-[16px]">
-                              {token?.balance < 1 ?
-                                token?.balance?.toFixed(Math.min(token?.decimals, 5))
-                                : token?.balance.toFixed(Math.min(token?.decimals, 3))
-                              }
+                            <View className="text-[14px]">
+                              <CText style={{ fontFamily: "bold" }} className="text-[16px]">
+                                {token?.name || "?"}
+                              </CText>
+                              <CText style={{ fontFamily: "reg" }} className="text-[16px]">
+                                {token?.balance < 1 ?
+                                  token?.balance?.toFixed(Math.min(token?.decimals, 5))
+                                  : token?.balance.toFixed(Math.min(token?.decimals, 3))
+                                }
 
-                            </CText>
+                              </CText>
+                            </View>
                           </View>
-                        </View>
-                        <View className="flex flex-col justify-end">
-                          {/* <CText className="text-[14px]">
+                          <View className="flex flex-col justify-end">
+                            {/* <CText className="text-[14px]">
                             {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
                           </CText> */}
-                          <CText style={{ fontFamily: "bold" }} className="text-[16px]">
-                            {token?.usdc_price
-                              ? "$" + token?.usdc_price?.toFixed(2)
-                              : ""}
-                          </CText>
+                            <CText style={{ fontFamily: "bold" }} className="text-[16px]">
+                              {token?.usdc_price
+                                ? "$" + token?.usdc_price?.toFixed(2)
+                                : ""}
+                            </CText>
+                          </View>
                         </View>
-                      </View>
-                    </TouchableNativeFeedback>
-                    <View className="bg-grey w-full p-[0.6]" />
-                  </View>
+                      </TouchableNativeFeedback>
+                      <View className="bg-grey w-full p-[0.6]" />
+                    </View>
 
-                );
-              })}
+                  );
+                })}
 
 
 

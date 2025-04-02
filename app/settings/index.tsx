@@ -91,9 +91,7 @@ function Settings() {
 
 
   return (
-    <View
-      className="relative pt-3 h-full w-100 flex items-center gap-y-4"
-    >
+    <View className="relative pt-3 h-full w-100 flex items-center gap-y-4">
       <View className="w-full px-4 flex flex-row justify-start">
         <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white">
           <IconLibrary.back />
@@ -116,10 +114,6 @@ function Settings() {
           <FontAwesome name="angle-right" size={18} color="black" />
         </Pressable>
       </View>
-
-
-
-
 
       <View className="w-11/12  m-auto px-4 py-4 shadow rounded-2xl bottom-10 bg-white ">
         {settingsMenu.map((item, index) => {
@@ -148,7 +142,7 @@ function Settings() {
           return (
             <Pressable onPress={() => {
               //@ts-expect-error
-              { item.route ? router.push(item.route) : logout() }
+              { item.route ? router.push(item.route) : logout(); router.replace('/') }
             }} key={index} className="py-1 flex flex-row justify-between items-center">
               <View className="flex flex-row justify-start items-center gap-x-2">
                 <View className="h-6 flex flex-row justify-center items-center w-6">
@@ -160,9 +154,9 @@ function Settings() {
               </View>
 
               {item.route &&
-              <Pressable onPress={() => router.back()} className="p-3">
-                <FontAwesome name="angle-right" size={18} color="black" />
-              </Pressable>
+                <Pressable onPress={() => router.back()} className="p-3">
+                  <FontAwesome name="angle-right" size={18} color="black" />
+                </Pressable>
               }
             </Pressable>
           )

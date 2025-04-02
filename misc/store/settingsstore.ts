@@ -4,6 +4,7 @@ import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
 import { Connection } from '@solana/web3.js';
 
 interface Settings {
+    openWithAuth: boolean;
     ek: {
         value: string;
         expiry: number;
@@ -23,6 +24,7 @@ interface Settings {
     updateNotifications: (newNotifications: boolean) => void;
     updateAiVoice: (newAiVoice: string) => void;
     setDefault: () => void;
+
     isLoading: boolean,
     setLoading: (state: boolean) => void
     loadingTimeout: any,
@@ -33,12 +35,14 @@ interface Settings {
         type: "success" | "error" | "info",
     },
     setToast: (message: string, type: "success" | "error" | "info") => void
+    setOpenWithAuth: (val: boolean) => void
 }
 
 
 const AppSettings = create(
     persist<Settings>(
         (set, get) => ({
+            openWithAuth: true,
             ek: {
                 value: "",
                 expiry: 0,
@@ -85,6 +89,7 @@ const AppSettings = create(
                 setTimeout(() => set({ toast: { show: false, message: "", type: "success" } }), 1000);
             },
 
+            setOpenWithAuth: (val: boolean) => set({ openWithAuth: val }),
             setLoading: async (state) => {
 
 

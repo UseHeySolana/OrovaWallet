@@ -5,7 +5,8 @@ import { Image, ImageBackground } from "expo-image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
-import UserItem from "@/misc/store/userstore";
+import WalletItem from "@/misc/store/wallet";
+
 
 Buttons
 const screens = [
@@ -31,7 +32,7 @@ const { width, height } = Dimensions.get('window');
 export default function Home() {
 
   const { alreadyOpened, markOpened, skippedAiSettings, createdWallet } = AppSettings()
-  const { user } = UserItem()
+  const { publicKey } = WalletItem()
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -49,14 +50,14 @@ export default function Home() {
   useEffect(() => {
     // Delay navigation to make sure the layout is initialized
     const timeout = setTimeout(() => {
-      const destination = user !== null ? '/dashboard' : alreadyOpened && skippedAiSettings ? '/username' : null;
+      const destination = publicKey !== null ? '/dashboard' : alreadyOpened ? '/auth/username' : null;
       if (destination) {
         router.replace(destination);
       }
     }, 500); // Delay by 500ms, adjust if needed
 
     return () => clearTimeout(timeout); // Cleanup timeout on component unmount
-  }, [alreadyOpened, user]);
+  }, [alreadyOpened, publicKey]);
   return (
     <View
       // onLayout={onLayoutRootView}
@@ -110,7 +111,7 @@ export default function Home() {
                 onPress={() => {
                   if (currentIndex >= 2) {
                     markOpened();
-                    router.replace('/aisetup')
+                    router.replace('/auth/username')
                   }
                   scrollRef.current?.scrollTo({ x: width * (currentIndex + 1) });
                 }}

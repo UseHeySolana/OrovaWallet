@@ -23,7 +23,7 @@ export interface Userstore {
 const UserItem = create(
   persist<Userstore>(
     (set, get) => ({
-      user: null ,
+      user: null,
       userWallet: {
         balance: 0,
         solBalance: 0,

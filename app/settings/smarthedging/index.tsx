@@ -51,11 +51,11 @@ const Items = [
     type: "dropdown",
   }
 ]
- /**
-   * What should be done here
-   * 1. Register User Voice for Authentication 
-   * 2. Save User Voice and ask if to create wallet with their voice
-   */
+/**
+  * What should be done here
+  * 1. Register User Voice for Authentication 
+  * 2. Save User Voice and ask if to create wallet with their voice
+  */
 function Voicereg() {
   const [recording, setRecording] = useState(false);
 
@@ -63,9 +63,9 @@ function Voicereg() {
   const { user } = UserItem()
 
 
-   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-    const [isProcessing, setIsProcessing] = useState<boolean>(false);
-    const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
 
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
@@ -81,7 +81,7 @@ function Voicereg() {
   //           onAiSpeakingEnd: () => setIsAiSpeaking(false),
   //         });
   //       } else {
-  
+
   //       }
   //       return () => {
   //         // audioManager.current?.cleanup();
@@ -104,15 +104,15 @@ function Voicereg() {
     >
       <View className="h-full  w-100 m-auto flex justify-center items-start">
         <View className="w-11/12 m-auto p-2">
-        <View className="">
+          <View className="">
             <CText className="text-[75px] text-purple font-bold">"</CText>
             <CText style={{ fontFamily: "bold" }} className="text-[80px] text-wrap">Hey Solana, send 5 SOL to Alex</CText>
             <CText className="text-[75px] text-purple font-bold self-end rotate-180">"</CText>
-        </View>
-        <View>
+          </View>
+          <View>
             <CText className="text-[32px] text-gray-400">Let’s register your voice! say the big text you see on your screen, LFG</CText>
+          </View>
         </View>
-      </View>
 
       </View>
 
@@ -142,7 +142,7 @@ function Voicereg() {
                 </View>
 
                 <Pressable onPress={() => {
-                  router.push('/secretphrase')
+                  router.push('/auth/secretphrase')
                 }} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
                     <View className="">
@@ -172,7 +172,7 @@ function Voicereg() {
 
                 </Pressable>
               </View>
-}
+            }
           />
         )
       }

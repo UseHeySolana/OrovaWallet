@@ -11,7 +11,7 @@ import * as Clipboard from 'expo-clipboard';
 import AppSettings from "@/misc/store/settingsstore";
 // import { Connection, Keypair } from "@solana/web3.js";
 import WalletItem from "@/misc/store/wallet";
-import { addDataToFirestore, fetchData, handleSearch, MessageData } from "@/misc/helpers/db";
+import { addDataToFirestore, fetchData, handleSearch, MessageData, saveWalletAddress } from "@/misc/helpers/db";
 import OTPTextView from "react-native-otp-textinput";
 import { UserType } from "@/misc/types/usertypes";
 import UserItem from "@/misc/store/userstore";
@@ -59,7 +59,6 @@ export default function SecretPhrase({ navigation }: any) {
   const [verifyPhrase, setVerifyPhrase] = useState(false);
   const [mnemonic, setMnemonic] = useState("");
   const [verifiedWords, setVerifiedWords] = useState<{ position: number, word: string }[]>([]);
-  const [walletSigning, setWalletSigning] = useState(false)
   const [userWords, setUserWords] = useState(
     [
       {
@@ -76,26 +75,11 @@ export default function SecretPhrase({ navigation }: any) {
       }
     ]
   )
-  const [users, setUsers] = useState<MessageData[]>([]);
-  const [showOtp, setShowOtp] = useState(true)
-  let otpInput = useRef<OTPTextView>(null)
-  const [userDetails, setUserDetails] = useState({
-    username: "maskyray2",
-    mobileNumber: "08132532431",
-    walletAddress: "",
-    addPin: "",
-  })
 
   const { keypair, updateKeypair, publicKey } = WalletItem()
-  const { setUser } = UserItem();
-  const { setLoading, isLoading } = AppSettings()
+  const { user } = UserItem();
+  const { setLoading, isLoading, setToast } = AppSettings()
 
-  useEffect(() => {
-    (async () => {
-      const data = await fetchData();
-      setUsers(data);
-    })()
-  }, [])
 
   const generateKeyPhrase = async () => {
     setLoading(true)
@@ -136,7 +120,7 @@ export default function SecretPhrase({ navigation }: any) {
     //   return userWord.word.toLowerCase().trim() === verifiedWord.word.toLowerCase();
     // });
 
-   
+
 
     // if (!isCorrect) {
     //   Alert.alert("Error", "Some words don't match. Please check and try again.");
@@ -145,9 +129,20 @@ export default function SecretPhrase({ navigation }: any) {
     // } else {
 
     try {
-      setCurrentState('sign-up')
+      setCurrentState('set-pin');
       const keyPair = await getKeypairFromMnemonic(mnemonic);
       updateKeypair(keyPair)
+
+      if (!user) {
+        router.replace('/auth/username')
+        return
+      }
+      const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
+      if (response.status !== false) {
+        setToast("Wallet Createded", 'success')
+        router.replace('/dashboard')
+        setLoading(false)
+      }
       setLoading(false)
     } catch (error) {
       setLoading(false)
@@ -155,70 +150,6 @@ export default function SecretPhrase({ navigation }: any) {
     }
     // }
   }
-
-  const saveUserToDB = async () => {
-    if (userDetails.username == "" || userDetails.mobileNumber == "") {
-      Alert.alert("Error", "Field Required")
-      return
-    }
-
-    setLoading(true)
-
-    const name = handleSearch(userDetails.username, users)
-    const number = handleSearch(userDetails.mobileNumber, users)
-    if (name.length > 0 || number.length > 0) {
-      name.length ? Alert.alert("UserName already Exists", "error")
-        : Alert.alert("Mobile Number already Exists", "error");
-      setLoading(false)
-    } else {
-
-      setCurrentState('set-pin');
-      setLoading(false)
-    }
-
-
-  }
-
-  const saveUser = async () => {
-    //save to DB
-    setLoading(true)
-    if (userDetails.addPin == "") {
-      Alert.alert('error', 'Pin cannot be empty 😔')
-      setLoading(false)
-      return;
-    }
-
-    if (!publicKey) {
-      setLoading(false)
-      // setCurrentState('start-wallet')
-      return
-    };
-
-    setLoading(false)
-
-
-    // let status = false
-    let walletAddress = keypair?.publicKey.toBase58() || ""
-
-    const status = await addDataToFirestore(userDetails.username, userDetails.mobileNumber,walletAddress , userDetails.addPin)
-    if (status) {
-      const user: UserType = {
-        username: userDetails.username,
-        mobileNumber: userDetails.mobileNumber,
-        walletAddress: keypair?.publicKey.toBase58() || "",
-        pin: userDetails.addPin,
-      }
-      setUser(user);
-      Alert.alert("Welcome to Hey Solana, Your Wallet has been created!")
-      router.replace('/dashboard')
-      setLoading(false)
-    } else {
-      Alert.alert("An unknown error occured");
-      // location.reload()
-      setLoading(false)
-    }
-  }
-
 
   return (
     <View
@@ -333,80 +264,6 @@ export default function SecretPhrase({ navigation }: any) {
               </View>
 
               <Buttons buttonType="pressable" onPress={() => currentState === 'verify-phrase' ? validatePhrase() : copyKeyPhrase()} className="" text="Confirm" type="primary" />
-            </View>
-          }
-        />
-      )}
-
-      {currentState == "sign-up" && (
-        <DragableSheet
-          snapPoints={["50%"]}
-          close={() => setWalletSigning(false)}
-          child={
-            <View className=" py-1 w-full px-4 gap-y-10 flex flex-col justify-between ">
-              <View className="w-8/12 m-auto">
-                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">One last thing</CText>
-                <CText className="text-[16px] text-center">Your username will be unique and can be used to make transactions.</CText>
-              </View>
-
-              <KeyboardAvoidingView className="bg-grey rounded-3xl gap-y-3 px-4 py-5">
-                <View className="bg-white h-fit py-3 rounded-2xl" >
-                  <TextInput
-                    style={{ fontFamily: "bold" }}
-                    className=" p-4 py-5"
-                    defaultValue="maskyray2"
-
-                    onChangeText={(text) => {
-                      setUserDetails({ ...userDetails, username: text })
-                    }}
-                    placeholder={`enter a username`}
-                  />
-                  <View className="border-b border-gray-200" />
-                  <TextInput
-                    style={{ fontFamily: "bold" }}
-                    className="p-4 py-5"
-                    defaultValue="08132532431"
-                    onChangeText={(text) => {
-                      setUserDetails({ ...userDetails, mobileNumber: text })
-
-                    }}
-                    placeholder={`enter a phone number`}
-                  />
-                </View>
-              </KeyboardAvoidingView>
-
-              <Buttons buttonType="pressable" onPress={() => saveUserToDB()} className="" text="Done" type="primary" />
-            </View>
-          }
-        />
-      )}
-
-
-      {currentState === 'set-pin' && (
-        <DragableSheet
-          snapPoints={["40%"]}
-          close={() => setWalletSigning(false)}
-          child={
-            <View className=" py-1 w-full gap-y-10 flex flex-col justify-between ">
-              <View className="w-8/12 m-auto">
-                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Create Your Pin</CText>
-              </View>
-
-              <KeyboardAvoidingView className="bg-grey rounded-3xl gap-y-3 px-4 py-5">
-                <View className="bg-white h-fit py-3 rounded-2xl" >
-                  <OTPTextInput
-                    tintColor={"#e5e7eb"}
-                    containerStyle={{
-                      padding: 5,
-                    }}
-                    textInputStyle={{
-                    }}
-                    handleTextChange={(text) => { setUserDetails({ ...userDetails, addPin: text }) }}
-                    ref={otpInput} />
-                </View>
-              </KeyboardAvoidingView>
-
-              <Buttons buttonType="pressable" onPress={() => saveUser()} className="" text="Done" type="primary" />
             </View>
           }
         />

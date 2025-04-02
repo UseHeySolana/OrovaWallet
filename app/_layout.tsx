@@ -95,21 +95,21 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView>
       <AiServiceProvider>
-    <SafeAreaView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          statusBarStyle: 'dark',
-          statusBarBackgroundColor: "#f3f3f3",
-        }}
-      >
+        <SafeAreaView style={{ flex: 1 }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              statusBarStyle: 'dark',
+              statusBarBackgroundColor: "#f3f3f3",
+            }}
+          >
 
-      </Stack>
+          </Stack>
 
           {toast.show && <ToastModal type={toast.type} message={toast.message} />}
-          {/* {isLoading && <LoadingScreen />} */}
+          {isLoading && <LoadingScreen />}
 
-      </SafeAreaView>
+        </SafeAreaView>
       </AiServiceProvider>
 
     </GestureHandlerRootView>

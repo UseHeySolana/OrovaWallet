@@ -7887,6 +7887,11 @@ react-native-audio-record@^0.2.2:
   resolved "https://registry.npmjs.org/react-native-audio-record/-/react-native-audio-record-0.2.2.tgz"
   integrity sha512-+JEY3AWz21xylePbXZ81DLHcqU5oJYztn3Uel3ay53P3ZrvJlwfmOmyOuoavA9boPV1O0dLLQIu9gC7xbKwNvQ==
 
+react-native-country-code-select@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.npmjs.org/react-native-country-code-select/-/react-native-country-code-select-0.0.3.tgz"
+  integrity sha512-VXFXG8FvdJjjRGFuZAjQ1fvcZO+k2ZY2T+IUffHndY/2ldTbG4hOOpALHHXPDGtDbm5kbsFucP60nM9QfVmd1w==
+
 react-native-css-interop@0.1.22:
   version "0.1.22"
   resolved "https://registry.npmjs.org/react-native-css-interop/-/react-native-css-interop-0.1.22.tgz"
@@ -7951,6 +7956,11 @@ react-native-loudness@^2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/react-native-loudness/-/react-native-loudness-2.0.0.tgz"
   integrity sha512-EqZ5yKeI5inpV01/lUrjypDNa4xkLLBqC6ikMKgyGaq/foZx50X2viHrwkp94q1R723nTEImKPbigZIKUdc7xQ==
+
+react-native-otp-entry@^1.8.4:
+  version "1.8.4"
+  resolved "https://registry.npmjs.org/react-native-otp-entry/-/react-native-otp-entry-1.8.4.tgz"
+  integrity sha512-7j7p/ZEz5QlS22DWYoFigbLqLDSwFbwTVlsl2QOuW6q9Jwai+y5C2GSdKZRkY7RAy0ZwG/ltkaciSdnoBNdcwQ==
 
 react-native-otp-textinput@^1.1.6:
   version "1.1.6"
