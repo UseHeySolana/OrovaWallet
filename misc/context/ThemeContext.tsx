@@ -17,7 +17,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     const { setColorScheme, toggleColorScheme, colorScheme } = useColorScheme();
 
     const [isDarkMode, setIsDarkMode] = useState(colorScheme === 'dark');
-    console.log(colorScheme);
     const { setLoading } = AppSettings()
 
     useEffect(() => {

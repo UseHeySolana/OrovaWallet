@@ -53,7 +53,7 @@ const settingsMenu = [
 const settingsMenu2 = [
   {
     title: "Address Book",
-    route: null,
+    route: '/settings/addressbook',
     icon: <IconLibrary.notebook />,
   },
   {
