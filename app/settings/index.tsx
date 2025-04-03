@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
@@ -9,6 +9,7 @@ import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 
 import IconLibrary from "@/misc/helpers/icons";
+import { useThemeContext } from "@/misc/context/ThemeContext";
 
 const settingsMenu = [
   // {
@@ -38,7 +39,7 @@ const settingsMenu = [
   // },
   {
     title: "Security",
-    route: "/manageaccounts",
+    route: null,
     icon: <IconLibrary.security />,
   },
   // {
@@ -52,12 +53,12 @@ const settingsMenu = [
 const settingsMenu2 = [
   {
     title: "Address Book",
-    route: "/addressbook",
+    route: null,
     icon: <IconLibrary.notebook />,
   },
   {
     title: "Connected Apps",
-    route: "/connectedapps",
+    route: null,
     icon: <IconLibrary.connection />,
   },
 
@@ -68,12 +69,13 @@ const settingsMenu2 = [
   // },
   {
     title: "Dark mode",
-    route: "/manageaccounts",
+    route: 'dark',
+    type: 'toggle',
     icon: <IconLibrary.moon />,
   },
   {
     title: "Logout",
-    route: null,
+    route: "logout",
     icon: <IconLibrary.logout />,
   },
 ]
@@ -85,10 +87,29 @@ const settingsMenu2 = [
 function Settings() {
   const [recording, setRecording] = useState(false);
 
+  const { isDarkMode, toggleTheme } = useThemeContext()
   const { setDefault } = AppSettings()
   const { user, userWallet, logout } = UserItem()
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
+  const routeNavigation = (route: any, type?: string) => {
+    console.log(route, type)
+    if (type == 'toggle') {
+      return;
+    }
+    if (route == null) {
+      return;
+    }
+    if (route == 'logout') {
+      logout();
+      router.replace('/');
+      return;
+    }
+    if (route !== null) {
+      router.push(route);
+    }
+
+  }
 
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
@@ -142,12 +163,12 @@ function Settings() {
           })}
         </View>
 
-        <View className="w-11/12  m-auto p-4 rounded-2xl shadow bottom-10 bg-white dark:bg-accent ">
+        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow bottom-10 bg-white dark:bg-accent ">
           {settingsMenu2.map((item, index) => {
             return (
               <Pressable onPress={() => {
-                //@ts-expect-error
-                { item.route ? router.push(item.route) : logout(); router.replace('/') }
+
+                routeNavigation(item.route, item.type)
               }} key={index} className="py-1 flex flex-row justify-between items-center">
                 <View className="flex flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
@@ -158,10 +179,25 @@ function Settings() {
                   </CText>
                 </View>
 
-                {item.route &&
-                  <Pressable onPress={() => router.back()} className="p-3">
-                    <IconLibrary.angle_right />
-                  </Pressable>
+                {item.route && item.route !== "logout" &&
+                  <>
+                    {item.type === 'toggle' ?
+                      <Switch
+                        trackColor={{ false: 'red', true: 'green' }}
+                        thumbColor={'white'}
+                        ios_backgroundColor="#3e3e3e"
+                        onValueChange={() => {
+                          toggleTheme(isDarkMode ? 'light' : 'dark')
+                        }}
+                        value={isDarkMode}
+                      />
+                      :
+                      <Pressable onPress={() => router.back()} className="p-3">
+                        <IconLibrary.angle_right />
+                      </Pressable>
+                    }
+                  </>
+
                 }
               </Pressable>
             )

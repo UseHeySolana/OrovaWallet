@@ -76,8 +76,7 @@ export default function Dashboard() {
 
   const sendMessage = async () => {
     if (!sessionManager) return
-    // const man = new toolManipulator(sessionManager);
-    // console.log(JSON.stringify(man.chooseTools.description + JSON.stringify(man.toolsDes[0])))
+
     sessionManager?.sendTextMessage("this is new")
   }
 

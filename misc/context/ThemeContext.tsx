@@ -3,10 +3,11 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 
 import { useColorScheme } from "nativewind";
 import { storage } from '../helpers/storage';
+import AppSettings from '../store/settingsstore';
 
 interface ColorScheme {
     isDarkMode: boolean,
-    toggleTheme: () => void,
+    toggleTheme: (mode: "light" | "dark" | "system") => void,
 }
 const ThemeContext = createContext<ColorScheme | null>(null);
 
@@ -17,6 +18,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     const [isDarkMode, setIsDarkMode] = useState(colorScheme === 'dark');
     console.log(colorScheme);
+    const { setLoading } = AppSettings()
 
     useEffect(() => {
         (() => {
@@ -25,8 +27,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         setIsDarkMode(colorScheme === 'dark');
     }, [colorScheme]);
 
-    const toggleTheme = () => {
-        toggleColorScheme
+    const toggleTheme = async (mode: "light" | "dark" | "system") => {
+        setLoading(true)
+        setColorScheme(mode)
     };
 
 

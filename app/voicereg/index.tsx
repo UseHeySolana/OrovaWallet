@@ -36,7 +36,7 @@ function Voicereg() {
 
   return (
     <View
-      className="relative h-full w-100 flex items-center"
+      className="relative h-full bg-grey dark:bg-dark w-100 flex items-center"
     >
       <View className="h-full  w-100 m-auto flex justify-center items-start">
         <View className="w-11/12 m-auto p-2">

@@ -81,14 +81,15 @@ export default function SetUpAi() {
   }, [skippedAiSettings])
   return (
     <View
-      className=" py-5"
+      className=" py-5 bg-grey dark:bg-dark flex-1"
+
     >
-      <View className="w-11/12 m-auto p-2 gap-y-3">
+      <View className="w-11/12  m-auto p-2 gap-y-3 flex-1">
         {
           Items.map((item) => (
             <View
               key={item.id}
-              className={`flex flex-col rounded-2xl bg-white border-b border-gray-200  py-4`}
+              className={`flex flex-col rounded-2xl bg-white dark:bg-accent py-4`}
             >
               <View className="flex flex-row justify-between items-center py-2 px-4">
 
@@ -111,7 +112,7 @@ export default function SetUpAi() {
                 }
               </View>
               {item.subItems.length <= 0 ? null :
-                <View className="border-b border-gray-200">
+                <View className="border-b border-gray-200 dark:border-accent2">
                 </View>
               }
               {item.type === 'dropdown' &&
@@ -141,7 +142,7 @@ export default function SetUpAi() {
                 <TextInput
                   style={{ fontFamily: 'reg' }}
                   value={settings.assistantName}
-                  className=" text-start  w-full py-3 px-5 "
+                  className=" text-start  w-full py-3 px-5 text-black dark:text-white "
                   onChangeText={(text) => {
                     setSettings({ ...settings, assistantName: text });
                   }}
