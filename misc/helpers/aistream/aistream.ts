@@ -47,7 +47,7 @@ class SessionManager {
         this.availableFunctions = toolFunctions(this);
     }
 
-    async startSession(systemInstructions?: string, audio?: boolean): Promise<void> {
+    async startSession(systemInstructions?: string): Promise<void> {
         // Set system instructions if provided
         if (systemInstructions) {
             this.systemInstructions = systemInstructions;
@@ -84,14 +84,14 @@ class SessionManager {
                 iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Add STUN server for better connection
             });
 
-            if (audio) {
-                // Get media stream (different in React Native)
-                const stream = await mediaDevices.getUserMedia({ audio: true });
-                // Add tracks to peer connection
-                stream.getTracks().forEach(track => {
-                    this.peerConnection!.addTrack(track, stream);
-                });
-            }
+            // if (audio) {
+            // Get media stream (different in React Native)
+            const stream = await mediaDevices.getUserMedia({ audio: true });
+            // Add tracks to peer connection
+            stream.getTracks().forEach(track => {
+                this.peerConnection!.addTrack(track, stream);
+            });
+            // }
             // Setup connection state tracking
             this.peerConnection.addEventListener('connectionstatechange', () => {
                 console.log(`Connection state changed: ${this.peerConnection?.connectionState}`);

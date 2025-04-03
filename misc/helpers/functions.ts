@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 
 
 const copyItem = async (text: string) => {
+    console.log('copy')
     try {
         await Clipboard.setStringAsync(text);
         return true

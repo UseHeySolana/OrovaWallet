@@ -34,9 +34,9 @@ const UserItem = create(
       updateUserWallet: (userWallet: userWalletType) => set({ userWallet }),
       logout: () => {
         // Clear user data and wallet state
-        AsyncStorage.clear();
+        // AsyncStorage.clear();
         AppSettings.getState().setDefault();
-        WalletItem.getState().setDefault();
+        // WalletItem.getState().setDefault();
         // Clear user state and wallet state
         set({
           user: null,

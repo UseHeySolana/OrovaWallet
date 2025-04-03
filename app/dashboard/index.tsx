@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, Pressable, TouchableNativeFeedback, RefreshControl, View, Alert } from "react-native";
+import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity } from "react-native";
 import CText from "@/components/TextComp";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -75,10 +75,10 @@ export default function Dashboard() {
 
   const sendMessage = async () => {
     if (!sessionManager) return
-    const man = new toolManipulator(sessionManager);
-    console.log(JSON.stringify(man.chooseTools.description + JSON.stringify(man.toolsDes[0])))
+    // const man = new toolManipulator(sessionManager);
+    // console.log(JSON.stringify(man.chooseTools.description + JSON.stringify(man.toolsDes[0])))
 
-    // sessionManager?.sendTextMessage("this is new")
+    sessionManager?.sendTextMessage("this is new")
   }
 
   return (
@@ -87,9 +87,9 @@ export default function Dashboard() {
     >
       {/* Top Icons */}
       <View className="flex  flex-row justify-between items-center">
-        <Pressable onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white">
+        <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white">
           <Feather name="settings" size={16} color="black" />
-        </Pressable>
+        </TouchableOpacity>
         <View className="bg-white p-3 rounded-3xl flex flex-row items-center gap-x-1">
           <View className="h-6 w-6  rounded-full">
             <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
@@ -98,14 +98,16 @@ export default function Dashboard() {
           </View>
           <CText style={{ fontFamily: 'md' }} className="">@{user?.username}</CText>
         </View>
-        <Pressable onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white">
+        <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white">
           <AntDesign name="scan1" size={16} color="black" />
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
+        className=""
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View className=" min-h-[50px] gap-y-3">
@@ -120,9 +122,9 @@ export default function Dashboard() {
                 </View>
               </View>
               <View className="flex flex-row justify-center items-center gap-2">
-                <Pressable onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey">
+                <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey">
                   <Ionicons name="copy-outline" size={16} color="black" />
-                </Pressable>
+                </TouchableOpacity>
                 <View className="p-3  rounded-full bg-grey">
                   <AntDesign name="qrcode" size={16} color="black" />
                 </View>
@@ -149,9 +151,9 @@ export default function Dashboard() {
                 />
               </View>
               <View className="w-[45px] h-[45px] rounded-full  bg-grey flex justify-center items-center">
-                <Pressable className="p-2 flex justify-center items-center">
+                <TouchableOpacity className="p-2 flex justify-center items-center">
                   <FontAwesome6 name="arrows-rotate" size={16} color="gray" />
-                </Pressable>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -180,29 +182,30 @@ export default function Dashboard() {
                     </View>
 
                   </View>
-                  <Pressable className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey text-white" onPress={() => { }}>
+                  <TouchableOpacity className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey text-white" onPress={() => { }}>
                     <MaterialCommunityIcons name="greater-than" size={12} color="black" />
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               )
             })}
 
           </View>
 
-          <Animated.View className="w-full  pb-[60px] shadow-md m-auto bg-white overflow-hidden rounded-3xl">
+          <Animated.View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white overflow-hidden rounded-3xl">
             <View className="flex flex-row items-center justify-between">
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple('#971BB2', false)}
                 onPress={() => setActiveTab('tokens')}>
 
-                <View className="w-[50%] py-5 border-b-2 border-purple">
+                <View className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"} `}>
                   <CText style={{ fontFamily: "bold" }} className="text-[18px]  text-center">Tokens</CText>
                 </View>
               </TouchableNativeFeedback>
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple('#971BB2', false)}
                 onPress={() => setActiveTab('history')}>
-                <View className="w-[50%] py-5 border-b-2 border-grey ">
+                <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey"} `}>
+
                   <CText className="text-[18px] text-center">History</CText>
                 </View>
               </TouchableNativeFeedback>
@@ -214,12 +217,12 @@ export default function Dashboard() {
               <View className="flex-1">
 
                 <View className="py-5 w-full">
-                  <Pressable className="bg-grey rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
+                  <TouchableOpacity className="bg-grey rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
                     <FontAwesome name="sliders" size={14} color="black" />
                     <CText>
                       Manage tokens
                     </CText>
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
                 {userWallet?.tokenAccounts?.map((token: any, index: number) => {
                   return (
@@ -274,7 +277,11 @@ export default function Dashboard() {
 
               :
 
-              <View className="flex-1">
+              <View className="flex-1 justify-center items-center">
+
+                <CText>
+                  No Transaction History yet!
+                </CText>
               </View>
 
             }

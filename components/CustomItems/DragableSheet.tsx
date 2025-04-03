@@ -42,11 +42,8 @@ const DragableSheet = (props: DragableSheetProps) => {
     return (
         <BottomSheet
             keyboardBehavior="interactive"
-                keyboardBlurBehavior="restore"
+            keyboardBlurBehavior="restore"
             onClose={() => { }}
-            style={{
-
-            }}
             ref={bottomSheetRef}
             onChange={(e) => onChange(e)}
             snapPoints={snapPoints ? snapPoints : ["60%"]}
@@ -63,10 +60,6 @@ const DragableSheet = (props: DragableSheetProps) => {
                 />
             }
             enablePanDownToClose={false}
-            // containerStyle={{
-            //     zIndex: 44,
-            //     flex: 1,
-            // }}
         >
             <BottomSheetView className="h-full px-4 rounded-t-3xl" >
                 {child}

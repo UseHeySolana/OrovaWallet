@@ -21,7 +21,7 @@ import { pasteItem } from "@/misc/helpers/functions";
   */
 
 export default function ImportPhrase({ navigation }: any) {
-  const [mnemonic, setMnemonic] = useState(""); 
+  const [mnemonic, setMnemonic] = useState("");
   const { isLoading, setLoading } = AppSettings()
   const { updateKeypair } = WalletItem()
   const { setUser } = UserItem()
@@ -38,25 +38,24 @@ export default function ImportPhrase({ navigation }: any) {
   const importWallet = async () => {
     await setLoading(true)
     if (mnemonic == "") {
-        Alert.alert("No Phrase Imported", "error")
+      Alert.alert("No Phrase Imported", "error")
       setLoading(false)
-        return;
+      return;
     }
 
-
     if (isJson(mnemonic)) {
-        if (JSON.parse(mnemonic).length != 64) {
-            Alert.alert("Awwn! this is not a valid private key!", "error")
-          setLoading(false)
+      if (JSON.parse(mnemonic).length != 64) {
+        Alert.alert("Awwn! this is not a valid private key!", "error")
+        setLoading(false)
 
-            return;
-        }
+        return;
+      }
     } else {
-        if (mnemonic.trim().split(/\s+/).length != 12) {
-          Alert.alert("🛑", "Invalid phrase!, phrase must be 12.")
-          setLoading(false)
-            return;
-        }
+      if (mnemonic.trim().split(/\s+/).length != 12) {
+        Alert.alert("🛑", "Invalid phrase!, phrase must be 12.")
+        setLoading(false)
+        return;
+      }
     }
 
     try {
@@ -70,14 +69,13 @@ export default function ImportPhrase({ navigation }: any) {
           setUser({
             username: checkAddress[0].username,
             mobileNumber: checkAddress[0].phone_number,
-            walletAddress: checkAddress[0].wallet_address,
             pin: checkAddress[0].pin,
           });
 
-          // Wait for keypair to be updated
+          // - Wait for keypair to be updated
           await updateKeypair(keyPair);
 
-          // Only navigate after everything is complete
+          // - Only navigate after everything is complete
           router.replace('/dashboard');
           setLoading(false);
         } else {
@@ -91,7 +89,7 @@ export default function ImportPhrase({ navigation }: any) {
       setLoading(false)
       console.error("Error generating keypair:", error);
     }
-}
+  }
   return (
     <View
       className="pt-4 relative  h-[100%]"

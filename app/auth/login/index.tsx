@@ -86,7 +86,6 @@ function Login() {
         mobileNumber: userDetails.mobileNumber,
         pin: "",
       })
-
       if (publicKey) {
         router.replace('/dashboard')
       }
@@ -137,6 +136,7 @@ function Login() {
                 style={{ fontFamily: "bold" }}
                 className="p-4 py-5 flex-1"
                 value={userDetails.mobileNumber}
+                keyboardType="phone-pad"
                 onChangeText={(text) => {
                   setUserDetails({ ...userDetails, mobileNumber: text })
                 }}
@@ -190,7 +190,6 @@ function Login() {
                     </View>
                   </KeyboardAvoidingView>
                 </View>
-
                 <Buttons buttonType="pressable" onPress={() => verifyOtp()} className="" text="Verify" type="primary" />
               </View>
             }
@@ -199,51 +198,49 @@ function Login() {
       }
 
 
-      {
-        currentState == 'start-wallet' && (
-          <DragableSheet
-            snapPoints={["55%"]}
-            child={
-              <View className="w-full  gap-y-5 flex flex-col justify-between ">
-                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
-                <View className="flex w-100 justify-center items-center py-">
-                  <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
+      {currentState == 'start-wallet' && (
+        <DragableSheet
+          snapPoints={["55%"]}
+          child={
+            <View className="w-full  gap-y-5 flex flex-col justify-between ">
+              <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
+              <View className="flex w-100 justify-center items-center py-">
+                <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
+              </View>
+
+              <Pressable onPress={() => {
+                router.push('/auth/secretphrase')
+              }} >
+                <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
+                  <View className="">
+                    <AntDesign name="pluscircleo" size={24} color="black" />
+                  </View>
+
+                  <View className="">
+                    <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Create new Wallet</CText>
+                    <CText className="text-primary text-[14px]  text-start">Create a new Solana Wallet</CText>
+                  </View>
                 </View>
 
-                <Pressable onPress={() => {
-                  router.push('/auth/secretphrase')
-                }} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
-                    <View className="">
-                      <AntDesign name="pluscircleo" size={24} color="black" />
-                    </View>
-
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Create new Wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Create a new Solana Wallet</CText>
-
-                    </View>
+              </Pressable>
+              <Pressable onPress={() => router.replace('/auth/importphrase')} >
+                <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
+                  <View className="bg-white rounded-full p-1">
+                    <AntDesign name="arrowdown" size={24} color="black" />
                   </View>
 
-                </Pressable>
-                <Pressable onPress={() => router.replace('/importphrase')} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
-                    <View className="bg-white rounded-full p-1">
-                      <AntDesign name="arrowdown" size={24} color="black" />
-                    </View>
+                  <View className="">
+                    <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Import existing wallet</CText>
+                    <CText className="text-primary text-[14px]  text-start">Import a previously existing wallet</CText>
 
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Import existing wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Import a previously existing wallet</CText>
-
-                    </View>
                   </View>
+                </View>
 
-                </Pressable>
-              </View>
-            }
-          />
-        )
+              </Pressable>
+            </View>
+          }
+        />
+      )
       }
 
 

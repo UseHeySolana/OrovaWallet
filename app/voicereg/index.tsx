@@ -94,7 +94,7 @@ function Voicereg() {
                   </View>
 
                 </Pressable>
-                <Pressable onPress={() => router.replace('/importphrase')} >
+                <Pressable onPress={() => router.replace('/auth/importphrase')} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
                     <View className="bg-white rounded-full p-1">
                       <AntDesign name="arrowdown" size={24} color="black" />

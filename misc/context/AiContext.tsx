@@ -69,23 +69,23 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
 
             console.log(user)
             if (user) {
-            const newPrompt = prompB + "" +
-                `this is the list of tokens in the user wallet ${JSON.stringify(
-                    tokenDetails,
-                    null,
-                    2
-                )} ` +
-                `this is the user details ${"UserName: " +
-                user?.username +
-                "," +
-                "Total Balance : " +
-                userWallet?.balance +
-                ", Total Balance in USD/Dollars:" +
-                userWallet?.totalUsdBalance +
-                ", Sol Balance " +
-                userWallet?.solBalance
-                }`;
-            setPrompt(newPrompt)
+                const newPrompt = prompB + "" +
+                    `this is the list of tokens in the user wallet ${JSON.stringify(
+                        tokenDetails,
+                        null,
+                        2
+                    )} ` +
+                    `this is the user details ${"UserName: " +
+                    user?.username +
+                    "," +
+                    "Total Balance : " +
+                    userWallet?.balance +
+                    ", Total Balance in USD/Dollars:" +
+                    userWallet?.totalUsdBalance +
+                    ", Sol Balance " +
+                    userWallet?.solBalance
+                    }`;
+                setPrompt(newPrompt)
             } else {
                 const newPrompt = 'You are a text-to-speech assistant. Any text I provide should be converted into speech and played back. Always respond in English unless explicitly instructed otherwise.';
                 setPrompt(newPrompt)
@@ -98,10 +98,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [permissionGranted, refresh, user, userWallet]);
 
-    const startSession = async (audio?: boolean) => {
+    const startSession = async () => {
         if (!sessionManager || isSessionActive) return;
         if (prompt == "") return;
-        await sessionManager.startSession(prompt, audio);
+        await sessionManager.startSession(prompt);
         setIsSessionActive(true);
     }
 

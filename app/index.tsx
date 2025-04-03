@@ -6,6 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
+import UserItem from "@/misc/store/userstore";
 
 
 Buttons
@@ -29,10 +30,13 @@ const screens = [
   }
 ]
 const { width, height } = Dimensions.get('window');
+
+
 export default function Home() {
 
   const { alreadyOpened, markOpened, skippedAiSettings, createdWallet } = AppSettings()
   const { publicKey } = WalletItem()
+  const { user } = UserItem()
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -42,22 +46,42 @@ export default function Home() {
     setCurrentIndex(index);
   };
 
-  // useLayoutEffect(() => {
-  //   if (alreadyOpened) {
-  //     router.push('/aisetup');
-  //   }
-  // }, [alreadyOpened])
+  const getDestination = () => {
+    // User is logged in
+    if (publicKey !== null && user !== null) {
+      return '/dashboard';
+    }
+
+    // User has a wallet connected but needs to log in
+    if (alreadyOpened && user === null && publicKey !== null) {
+      return '/auth/login';
+    }
+
+    // User has opened the app before but needs to set username
+    if (alreadyOpened) {
+      return '/auth/username';
+    }
+
+    // Default case - no destination
+    return null;
+  };
+
   useEffect(() => {
+    console.log(user)
+    console.log(publicKey)
     // Delay navigation to make sure the layout is initialized
     const timeout = setTimeout(() => {
-      const destination = publicKey !== null ? '/dashboard' : alreadyOpened ? '/auth/username' : null;
+      const destination = getDestination();
       if (destination) {
         router.replace(destination);
       }
     }, 500); // Delay by 500ms, adjust if needed
 
     return () => clearTimeout(timeout); // Cleanup timeout on component unmount
-  }, [alreadyOpened, publicKey]);
+  }, [alreadyOpened, publicKey, user]);
+
+
+
   return (
     <View
       // onLayout={onLayoutRootView}

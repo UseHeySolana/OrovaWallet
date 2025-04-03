@@ -29,7 +29,7 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate loading delay
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate loading delay
       } catch (e) {
         console.warn(e);
       } finally {

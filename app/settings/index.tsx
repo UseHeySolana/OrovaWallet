@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
@@ -11,61 +11,61 @@ import UserItem from "@/misc/store/userstore";
 import IconLibrary from "@/misc/helpers/icons";
 
 const settingsMenu = [
-  {
-    title: "Manage Accounts",
-    route: "/manageaccounts",
-    icon: <IconLibrary.wallet />
-  },
+  // {
+  //   title: "Manage Accounts",
+  //   route: "/manageaccounts",
+  //   icon: <IconLibrary.wallet />
+  // },
   {
     title: "AI Assistant",
-    route: "/manageaccounts",
+    route: "/aisetup",
     icon: <View className="h-[18px] w-[18px]  rounded-full">
       <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
         contentFit="cover"
       />
     </View>,
   },
-  {
-    title: "Smart Hedging",
-    route: "/manageaccounts",
-    icon: <IconLibrary.linechart />,
-  },
+  // {
+  //   title: "Smart Hedging",
+  //   route: "/manageaccounts",
+  //   icon: <IconLibrary.linechart />,
+  // },
 
-  {
-    title: "Currency",
-    route: "/manageaccounts",
-    icon: <IconLibrary.currency />,
-  },
+  // {
+  //   title: "Currency",
+  //   route: "/manageaccounts",
+  //   icon: <IconLibrary.currency />,
+  // },
   {
     title: "Security",
     route: "/manageaccounts",
     icon: <IconLibrary.security />,
   },
-  {
-    title: "Language",
-    route: "/manageaccounts",
-    icon: <IconLibrary.language />,
-  },
+  // {
+  //   title: "Language",
+  //   route: "/manageaccounts",
+  //   icon: <IconLibrary.language />,
+  // },
 
 ]
 
 const settingsMenu2 = [
   {
     title: "Address Book",
-    route: "/manageaccounts",
+    route: "/addressbook",
     icon: <IconLibrary.notebook />,
   },
   {
     title: "Connected Apps",
-    route: "/manageaccounts",
+    route: "/connectedapps",
     icon: <IconLibrary.connection />,
   },
 
-  {
-    title: "Feedback",
-    route: "/manageaccounts",
-    icon: <IconLibrary.commenting />,
-  },
+  // {
+  //   title: "Feedback",
+  //   route: "/manageaccounts",
+  //   icon: <IconLibrary.commenting />,
+  // },
   {
     title: "Dark mode",
     route: "/manageaccounts",
@@ -91,14 +91,14 @@ function Settings() {
 
 
   return (
-    <View className="relative pt-3 h-full w-100 flex items-center gap-y-4">
+    <View className="relative pt-3  w-100 flex items-start justify-start gap-y-4">
       <View className="w-full px-4 flex flex-row justify-start">
         <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white">
           <IconLibrary.back />
         </Pressable>
       </View>
 
-      <View className="bg-white mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
+      <View className="bg-white mb-10 flex shadow flex-row justify-start items-center rounded-2xl w-11/12 py-5 m-auto p-2">
         <View className="flex flex-row justify-between items-center gap-x-2  ">
           <View className="h-10 w-10  rounded-full">
             <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
@@ -118,7 +118,10 @@ function Settings() {
       <View className="w-11/12  m-auto px-4 py-4 shadow rounded-2xl bottom-10 bg-white ">
         {settingsMenu.map((item, index) => {
           return (
-            <View key={index} className="py-2 flex flex-row justify-between items-center">
+            <TouchableOpacity
+              // @ts-expect-error
+              onPress={() => { item.route && router.push(item.route) }}
+              key={index} className="py-2 flex flex-row justify-between items-center">
               <View className="flex flex-row justify-start items-center gap-x-2">
                 <View className="h-6 flex flex-row justify-center items-center w-6">
                   {item.icon ? item.icon : <FontAwesome name="angle-right" size={18} color="black" />}
@@ -132,7 +135,7 @@ function Settings() {
               <Pressable onPress={() => router.back()} className="p-3">
                 <FontAwesome name="angle-right" size={18} color="black" />
               </Pressable>
-            </View>
+            </TouchableOpacity>
           )
         })}
       </View>
