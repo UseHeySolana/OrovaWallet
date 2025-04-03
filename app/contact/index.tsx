@@ -144,7 +144,7 @@ function Voicereg() {
                 <Pressable onPress={() => {
                   router.push('/auth/secretphrase')
                 }} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
+                  <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
                     <View className="">
                       <AntDesign name="pluscircleo" size={24} color="black" />
                     </View>
@@ -158,7 +158,7 @@ function Voicereg() {
 
                 </Pressable>
                 <Pressable onPress={() => router.push('/importphrase')} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey py-5 rounded-full   gap-x-3">
+                  <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
                     <View className="bg-white rounded-full p-1">
                       <AntDesign name="arrowdown" size={24} color="black" />
                     </View>

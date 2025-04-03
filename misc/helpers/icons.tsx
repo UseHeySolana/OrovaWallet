@@ -8,121 +8,216 @@ import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Entypo from '@expo/vector-icons/Entypo';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
+import { useThemeContext } from '../context/ThemeContext';
+import { storage } from './storage';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 type IconProps = {
     size?: number;
     color?: string;
 }
 
-// Export components directly instead of functions that return components
-export const IconLibrary = {
-    error: (props: IconProps = {}) => (
-        <MaterialIcons
-            size={props.size || 18}
-            color={props.color || "black"}
-            name="error-outline"
-        />
-    ),
-    check: (props: IconProps = {}) => (
-        <AntDesign
-            size={props.size || 18}
-            color={props.color || "black"}
-            name="check"
-        />
-    ),
-    info: (props: IconProps = {}) => (
-        <AntDesign
-            size={props.size || 18}
-            color={props.color || "black"}
-            name="infocirlceo"
-        />
-    ),
-    logout: (props: IconProps = {}) => (
-        <AntDesign
-            size={props.size || 18}
-            color={props.color || "black"}
-            name="logout"
-        />
-
-    ),
-    search: (props: IconProps = {}) => (
-        <EvilIcons
-            size={props.size || 18}
-            color={props.color || "black"}
-            name="search"
-        />
-
-    ),
-
-    wallet: (props: IconProps = {}) => (
-        <Ionicons
-            name="wallet-outline"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    linechart: (props: IconProps = {}) => (
-        <AntDesign
-            name="linechart"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    currency: (props: IconProps = {}) => (
-        <Feather
-            name="dollar-sign"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    security: (props: IconProps = {}) => (
-        <MaterialIcons
-            name="security"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    language: (props: IconProps = {}) => (
-        <FontAwesome
-            name="language"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    notebook: (props: IconProps = {}) => (
-        <SimpleLineIcons
-            name="notebook"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    connection: (props: IconProps = {}) => (
-        <MaterialCommunityIcons
-            name="connection"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    commenting: (props: IconProps = {}) => (
-        <FontAwesome
-            name="commenting-o"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    moon: (props: IconProps = {}) => (
-        <Entypo
-            name="moon"
-            size={props.size || 18}
-            color={props.color || "black"}
-        />
-    ),
-    back: (props: IconProps = {}) => (
-        <AntDesign name="back"
-            size={props.size || 14}
-            color={props.color || "black"}
-        />
-    )
+// Create a context wrapper component that provides themed icons
+const IconLibrary = {
+    pluscircle: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <AntDesign
+                name="pluscircleo"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    arrowdown: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <AntDesign
+                name="arrowdown"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    copy: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <FontAwesome6
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="copy"
+            />
+        );
+    },
+    arrow_rotate: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <FontAwesome6
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="arrows-rotate"
+            />
+        );
+    },
+    angle_right: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <FontAwesome
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="angle-right"
+            />
+        );
+    },
+    error: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <MaterialIcons
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="error-outline"
+            />
+        );
+    },
+    check: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <AntDesign
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="check"
+            />
+        );
+    },
+    info: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <AntDesign
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="infocirlceo"
+            />
+        );
+    },
+    logout: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <AntDesign
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="logout"
+            />
+        );
+    },
+    search: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <EvilIcons
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="search"
+            />
+        );
+    },
+    wallet: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Ionicons
+                name="wallet-outline"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    linechart: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <AntDesign
+                name="linechart"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    currency: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Feather
+                name="dollar-sign"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    security: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <MaterialIcons
+                name="security"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    language: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <FontAwesome
+                name="language"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    notebook: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <SimpleLineIcons
+                name="notebook"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    connection: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <MaterialCommunityIcons
+                name="connection"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    commenting: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <FontAwesome
+                name="commenting-o"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    moon: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Entypo
+                name="moon"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    back: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <AntDesign name="back"
+                size={props.size || 14}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    }
 };
 
 export default IconLibrary;

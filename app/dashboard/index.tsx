@@ -21,6 +21,7 @@ import { Base } from "@/components/Navigation/Base";
 import Animated, { useSharedValue } from "react-native-reanimated";
 import { toolManipulator } from "@/misc/helpers/function/toolManipulator";
 import { toolRouter } from "@/misc/helpers/toolsregistry";
+import { useThemeContext } from "@/misc/context/ThemeContext";
 
 const AiHelpers = [
   {
@@ -54,7 +55,7 @@ export default function Dashboard() {
   const [update, setUpdate] = useState(0)
   const [showDraw, setShowDraw] = useState(true)
 
-
+  const { isDarkMode } = useThemeContext()
 
   useEffect(() => {
     const getUser = async () => {
@@ -77,29 +78,28 @@ export default function Dashboard() {
     if (!sessionManager) return
     // const man = new toolManipulator(sessionManager);
     // console.log(JSON.stringify(man.chooseTools.description + JSON.stringify(man.toolsDes[0])))
-
     sessionManager?.sendTextMessage("this is new")
   }
 
   return (
     <View
-      className="pt-3 w-screen px-4 h-screen gap-y-3 "
+      className="pt-3 w-screen px-4 h-screen gap-y-3 bg-grey dark:bg-accent dark:bg-dark "
     >
       {/* Top Icons */}
       <View className="flex  flex-row justify-between items-center">
-        <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white">
-          <Feather name="settings" size={16} color="black" />
+        <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
+          <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
         </TouchableOpacity>
-        <View className="bg-white p-3 rounded-3xl flex flex-row items-center gap-x-1">
+        <View className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1">
           <View className="h-6 w-6  rounded-full">
             <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
               contentFit="contain"
             />
           </View>
-          <CText style={{ fontFamily: 'md' }} className="">@{user?.username}</CText>
+          <CText style={{ fontFamily: 'md' }} className="text-dark dark:text-white">@{user?.username}</CText>
         </View>
-        <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white">
-          <AntDesign name="scan1" size={16} color="black" />
+        <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
+          <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
         </TouchableOpacity>
       </View>
 
@@ -111,7 +111,7 @@ export default function Dashboard() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View className=" min-h-[50px] gap-y-3">
-          <View className="m-auto  w-full shadow-md bg-white rounded-3xl py-4">
+          <View className="m-auto  w-full shadow-md bg-white dark:bg-accent rounded-3xl py-4">
             <View className="flex flex-row  justify-between items-center px-5 py-3">
               <View className="">
                 <CText className="text-[45px]">
@@ -122,16 +122,16 @@ export default function Dashboard() {
                 </View>
               </View>
               <View className="flex flex-row justify-center items-center gap-2">
-                <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey">
-                  <Ionicons name="copy-outline" size={16} color="black" />
+                <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
+                  <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
                 </TouchableOpacity>
-                <View className="p-3  rounded-full bg-grey">
-                  <AntDesign name="qrcode" size={16} color="black" />
+                <View className="p-3  rounded-full bg-grey dark:bg-accent2">
+                  <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
                 </View>
               </View>
             </View>
 
-            <View className="bg-grey w-full p-[0.6]" />
+            <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
             <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
               <View className="w-[40%]">
@@ -145,14 +145,14 @@ export default function Dashboard() {
                 <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Receive"
                   icon={
                     <View className="rotate-[40deg]">
-                      <AntDesign name="arrowdown" size={16} color="black" />
+                      <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
                     </View>
                   }
                 />
               </View>
-              <View className="w-[45px] h-[45px] rounded-full  bg-grey flex justify-center items-center">
+              <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
                 <TouchableOpacity className="p-2 flex justify-center items-center">
-                  <FontAwesome6 name="arrows-rotate" size={16} color="gray" />
+                  <FontAwesome6 name="arrows-rotate" size={16} color={isDarkMode ? "white" : "black"} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -170,7 +170,7 @@ export default function Dashboard() {
                   width: `${100 - index * 4}%`
                 }} className="h-[80px] m-auto" >
 
-                  <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white">
+                  <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
                     <View className="h-8 w-8 rounded-full">
                       <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
                         contentFit="contain"
@@ -182,8 +182,8 @@ export default function Dashboard() {
                     </View>
 
                   </View>
-                  <TouchableOpacity className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey text-white" onPress={() => { }}>
-                    <MaterialCommunityIcons name="greater-than" size={12} color="black" />
+                  <TouchableOpacity className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white" onPress={() => { }}>
+                    <MaterialCommunityIcons name="greater-than" size={12} color={isDarkMode ? "white" : "black"} />
                   </TouchableOpacity>
                 </View>
               )
@@ -191,7 +191,7 @@ export default function Dashboard() {
 
           </View>
 
-          <Animated.View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white overflow-hidden rounded-3xl">
+          <Animated.View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
             <View className="flex flex-row items-center justify-between">
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple('#971BB2', false)}
@@ -204,7 +204,7 @@ export default function Dashboard() {
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple('#971BB2', false)}
                 onPress={() => setActiveTab('history')}>
-                <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey"} `}>
+                <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey dark:border-dark"} `}>
 
                   <CText className="text-[18px] text-center">History</CText>
                 </View>
@@ -217,7 +217,7 @@ export default function Dashboard() {
               <View className="flex-1">
 
                 <View className="py-5 w-full">
-                  <TouchableOpacity className="bg-grey rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
+                  <TouchableOpacity className="bg-grey dark:bg-accent2 rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
                     <FontAwesome name="sliders" size={14} color="black" />
                     <CText>
                       Manage tokens
@@ -265,7 +265,7 @@ export default function Dashboard() {
                           </View>
                         </View>
                       </TouchableNativeFeedback>
-                      <View className="bg-grey w-full p-[0.6]" />
+                      <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
                     </View>
 
                   );

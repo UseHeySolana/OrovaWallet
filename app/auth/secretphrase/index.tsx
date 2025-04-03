@@ -17,6 +17,8 @@ import { UserType } from "@/misc/types/usertypes";
 import UserItem from "@/misc/store/userstore";
 import { Keypair } from "@solana/web3.js";
 import { router } from "expo-router";
+import IconLibrary from "@/misc/helpers/icons";
+import ConfirmPhraseSheet from "@/components/Sheets/ConfirmKeyWordsSheet";
 
 
 const actions = [
@@ -139,7 +141,7 @@ export default function SecretPhrase({ navigation }: any) {
       }
       const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
       if (response.status !== false) {
-        setToast("Wallet Createded", 'success')
+        setToast("Wallet Created", 'success')
         router.replace('/dashboard')
         setLoading(false)
       }
@@ -153,11 +155,11 @@ export default function SecretPhrase({ navigation }: any) {
 
   return (
     <View
-      className="py-10 relative  h-[100%]"
+      className="py-10 relative bg-grey dark:bg-dark  h-[100%]"
     >
       {!startWalletCreation ?
         <View className="gap-y-5 ">
-          <View className="w-11/12 m-auto bg-white rounded-3xl p-10">
+          <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl p-10">
             <View className="gap-x-5">
               <CText style={{ fontFamily: "bold" }} className="text-[24px] text-center">Your secret phrase is the master key to your wallet</CText>
               <CText className="text-[16px] text-center">Read the context below carefully in order to be able to properly safeguard your wallet.</CText>
@@ -171,10 +173,10 @@ export default function SecretPhrase({ navigation }: any) {
 
           </View>
 
-          <View className="w-11/12 m-auto bg-white gap-y-3 rounded-3xl p-3">
+          <View className="w-11/12 m-auto bg-white dark:bg-accent gap-y-3 rounded-3xl p-3">
             {actions.map((action, index) => {
               return (
-                <View key={index} className="bg-grey rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
+                <View key={index} className="bg-grey dark:bg-accent2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
                   <View className="h-5 w-5 border-4 border-purple rounded-full"></View>
                   <View className="w-[288px] ">
 
@@ -188,12 +190,12 @@ export default function SecretPhrase({ navigation }: any) {
         </View>
         :
         <View className="gap-y-5">
-          <View className="w-11/12 m-auto bg-white rounded-3xl gap-y-4 px-4 py-3">
+          <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl gap-y-4 px-4 py-3">
             <View className="gap-y-4 mb-2">
               <CText style={{ fontFamily: "bold" }} className="text-[24px] text-start">Secret Phrase</CText>
               <CText className="text-[16px] text-start">Write this down</CText>
             </View>
-            <View className="w-full m-auto bg-grey rounded-3xl">
+            <View className="w-full m-auto bg-grey dark:bg-accent2 rounded-3xl">
               <View className="p-7 flex flex-row flex-wrap gap-2 justify-between items-center">
                 {mnemonic.split(" ").map((word, index) => {
                   return (
@@ -203,7 +205,7 @@ export default function SecretPhrase({ navigation }: any) {
                 })}
               </View>
             </View>
-            <Buttons buttonType="feedback" onPress={() => copyKeyPhrase()} className="" icon={<FontAwesome6 name="copy" size={20} color="black" />} text="Copy secret phrase" type="secondary" />
+            <Buttons buttonType="feedback" onPress={() => copyKeyPhrase()} className="" icon={<IconLibrary.copy />} text="Copy secret phrase" type="secondary" />
           </View>
         </View>
       }
@@ -214,60 +216,16 @@ export default function SecretPhrase({ navigation }: any) {
         }
       </View>
 
-      {currentState == "verify-phrase" && (
-        <DragableSheet
-          close={() => setVerifyPhrase(false)}
-          snapPoints={["70%", "100%"]}
-          child={
-            <View className=" py-1 w-full px-4 gap-y-5 flex flex-col justify-between ">
-              <View className="w-8/12 m-auto">
-                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Confirm secret phrase</CText>
-                <CText className="text-[16px] text-center">Please enter the correct answer below from your secret phrase</CText>
-              </View>
-
-              <View className="bg-grey rounded-3xl gap-y-3 p-2">
-
-                {verifiedWords.length > 0 && verifiedWords.map((word, index) => (
-
-                  <View key={index} className="bg-white p-3 rounded-2xl">
-
-                    <View className="py-4">
-                      <CText className="text-[16px]" style={{ fontFamily: "bold" }} >Word #{word.position}</CText>
-                    </View>
-                    <View className="border-b border-gray-200">
-                    </View>
-
-                    <KeyboardAvoidingView
-                      behavior="height"
-                    >
-
-                      <TextInput
-                        style={{ fontFamily: "bold" }}
-                        className="py-5"
-                        onChangeText={(text) => {
-                          const newUserWords = [...userWords];
-                          newUserWords[index].word = text;
-                          newUserWords[index].position = word.position;
-                          setUserWords(newUserWords);
-                        }}
-                        placeholder={`enter ${positionVal[word.position - 1]} word...`}
-                      />
-                    </KeyboardAvoidingView>
-
-
-
-                  </View>
-                ))}
-
-
-
-              </View>
-
-              <Buttons buttonType="pressable" onPress={() => currentState === 'verify-phrase' ? validatePhrase() : copyKeyPhrase()} className="" text="Confirm" type="primary" />
-            </View>
-          }
-        />
-      )}
+      <ConfirmPhraseSheet
+        open={currentState === 'verify-phrase'}
+        verifiedWords={verifiedWords}
+        userWords={userWords}
+        copyKeyPhrase={copyKeyPhrase}
+        positionVal={positionVal}
+        setUserWords={(words) => setUserWords(words)}
+        currentState={currentState}
+        validatePhrase={validatePhrase}
+      />
 
     </View>
   );

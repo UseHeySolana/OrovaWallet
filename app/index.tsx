@@ -67,8 +67,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log(user)
-    console.log(publicKey)
     // Delay navigation to make sure the layout is initialized
     const timeout = setTimeout(() => {
       const destination = getDestination();
@@ -85,7 +83,8 @@ export default function Home() {
   return (
     <View
       // onLayout={onLayoutRootView}
-      className="relative"
+      className="relative bg-white dark:bg-dark"
+
     >
       <View className="absolute top-10  z-50 flex-row self-center">
         {screens.map((_, index) => (
@@ -123,8 +122,8 @@ export default function Home() {
             </View>
 
             <View className="items-center mt-5 px-6">
-              <Text className="text-3xl  text-center font-bold text-primary">{screen.title}</Text>
-              <Text className="text-lg mt-2 text-gray-600 text-center">{screen.subtitle}</Text>
+              <Text className="text-3xl  text-center font-bold text-primary dark:text-white">{screen.title}</Text>
+              <Text className="text-lg mt-2 text-gray-600 dark:text-white text-center">{screen.subtitle}</Text>
             </View>
 
             <View className="px-3 w-full absolute h-fit bottom-12 left-0">

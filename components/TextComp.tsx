@@ -2,10 +2,11 @@ import { Text, TextProps } from "react-native";
 
 interface CustomTextProps extends TextProps {
   children: React.ReactNode;
+  textColor?: string;
 }
 
-const CText: React.FC<CustomTextProps> = ({ style, children, ...props }) => (
-  <Text {...props} style={[{ fontFamily: "reg" }, style]}>
+const CText: React.FC<CustomTextProps> = ({ style, children, className, textColor, ...props }) => (
+  <Text {...props} className={`${textColor ? textColor : "text-dark dark:text-white"} ${className}`} style={[{ fontFamily: "reg" }, style]}>
     {children}
   </Text>
 );

@@ -9,6 +9,7 @@ import { router } from "expo-router";
 import { Keypair } from "@solana/web3.js";
 import UserItem from "@/misc/store/userstore";
 import IconLibrary from "@/misc/helpers/icons";
+import { useThemeContext } from "@/misc/context/ThemeContext";
 
 const Items = [
   {
@@ -52,35 +53,37 @@ const Items = [
     type: "dropdown",
   }
 ]
- /**
-   * What should be done here
-   * 1: Send tokens
-   */
+/**
+  * What should be done here
+  * 1: Send tokens
+  */
 function Send() {
   const { user, userWallet } = UserItem()
+  const { isDarkMode } = useThemeContext()
   const [selectedToken, setTokenSelected] = useState(null);
 
 
   return (
     <View
-      className="relative pt-3 h-full w-100 flex items-start justify-start flex-col gap-y-4"
+      className="relative pt-3 bg-grey dark:bg-dark h-full w-100 flex items-start justify-start flex-col gap-y-4"
     >
       <View className="w-full px-4 flex flex-row justify-start">
-        <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white">
+        <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
           <IconLibrary.back />
         </Pressable>
       </View>
       <View className=" flex-1 gap-y-2 flex-col justify-start items-center rounded-2xl w-11/12 py-2 m-auto">
         <View className="flex flex-row justify-between items-center gap-x-2  ">
           <View
-            className=" flex flex-row items-center  gap-x-2 justify-start p-4 rounded-xl  text-start  w-full bg-white "
+            className=" flex flex-row items-center  gap-x-2 justify-start p-4 rounded-xl  text-start  w-full bg-white dark:bg-accent"
           >
             <IconLibrary.search />
             <TextInput
               style={{ fontFamily: "bold", fontSize: 15 }}
               // value={""}
               placeholder="Search"
-              className="w-full"
+              className="w-full text-black dark:text-white"
+              placeholderTextColor={isDarkMode ? 'white' : 'black'}
               numberOfLines={100}
               onChangeText={(text) => {
               }}
@@ -89,7 +92,7 @@ function Send() {
           </View>
         </View>
 
-        <View className="bg-white rounded-xl overflow-hidden">
+        <View className="bg-white dark:bg-accent rounded-xl overflow-hidden">
           {userWallet?.tokenAccounts.map((token: any, index: number) => (
             <View key={index}>
               <TouchableNativeFeedback
@@ -118,10 +121,10 @@ function Send() {
 
                       </CText>
                     </View>
-                  </View>  
+                  </View>
                 </View>
               </TouchableNativeFeedback>
-              <View className="bg-grey w-full p-[0.6]" />
+              <View className="bg-grey dark:bg-accent w-full p-[0.6]" />
 
             </View>
           ))}

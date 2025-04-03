@@ -9,10 +9,11 @@ import * as Clipboard from 'expo-clipboard';
 import { isJson } from "@/misc/helpers/ai";
 import AppSettings from "@/misc/store/settingsstore";
 import WalletItem from "@/misc/store/wallet";
-import { fetchData, handleSearch, MessageData } from "@/misc/helpers/db";
+import { fetchData, handleSearch, MessageData, saveWalletAddress } from "@/misc/helpers/db";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 import { pasteItem } from "@/misc/helpers/functions";
+import { useThemeContext } from "@/misc/context/ThemeContext";
 /**
   * What should be done here
   * 1. Notify what the secret phrase is for.
@@ -21,19 +22,13 @@ import { pasteItem } from "@/misc/helpers/functions";
   */
 
 export default function ImportPhrase({ navigation }: any) {
+  const { isDarkMode } = useThemeContext();
   const [mnemonic, setMnemonic] = useState("");
-  const { isLoading, setLoading } = AppSettings()
+  const { isLoading, setLoading, setToast } = AppSettings()
   const { updateKeypair } = WalletItem()
-  const { setUser } = UserItem()
-  const [users, setUsers] = useState<MessageData[]>([]);
+  const { setUser, user } = UserItem()
 
 
-  useEffect(() => {
-    (async () => {
-      const data = await fetchData();
-      setUsers(data);
-    })()
-  }, [])
 
   const importWallet = async () => {
     await setLoading(true)
@@ -61,25 +56,14 @@ export default function ImportPhrase({ navigation }: any) {
     try {
       const keyPair = await getKeypairFromMnemonic(mnemonic.trim());
       // Only proceed once keypair is available
-      if (keyPair && keyPair.publicKey) {
-        const checkAddress = handleSearch(keyPair.publicKey.toBase58(), users);
-        console.log('address', checkAddress);
+      if (keyPair && keyPair.publicKey && user) {
 
-        if (checkAddress.length > 0) {
-          setUser({
-            username: checkAddress[0].username,
-            mobileNumber: checkAddress[0].phone_number,
-            pin: checkAddress[0].pin,
-          });
-
-          // - Wait for keypair to be updated
+        const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
+        if (response.status !== false) {
           await updateKeypair(keyPair);
-
-          // - Only navigate after everything is complete
-          router.replace('/dashboard');
-          setLoading(false);
-        } else {
-          setLoading(false);
+          setToast("Wallet Created", 'success')
+          router.replace('/dashboard')
+          setLoading(false)
         }
       } else {
         setLoading(false);
@@ -92,17 +76,17 @@ export default function ImportPhrase({ navigation }: any) {
   }
   return (
     <View
-      className="pt-4 relative  h-[100%]"
+      className="pt-4 relative bg-gray dark:bg-dark h-[100%]"
     >
       <View className="gap-y-5 w-full px-4">
-        <View className=" bg-white rounded-3xl px-3 py-10 gap-y-5">
+        <View className=" bg-white dark:bg-accent rounded-3xl px-3 py-10 gap-y-5">
           <View className="gap-x-5">
             <CText style={{ fontFamily: "bold" }} className="text-[24px] text-center">Import existing wallet</CText>
             <CText className="text-[16px] text-center">Enter the secret phrase to restore your Solana wallet.</CText>
           </View>
 
-          <View className="w-100 m-auto bg-grey w-full rounded-2xl p-2  ">
-            <View className="bg-white p-3 rounded-2xl">
+          <View className="w-100 m-auto bg-grey dark:bg-accent w-full rounded-2xl p-2  ">
+            <View className="bg-white dark:bg-accent2 p-3 rounded-2xl">
 
               <View className="py-4">
                 <CText className="text-[16px]" style={{ fontFamily: "bold" }} >Secret Phrase or Private Key</CText>
@@ -111,17 +95,18 @@ export default function ImportPhrase({ navigation }: any) {
               </View>
               <View className="relative">
                 <TextInput
-                  style={{ fontFamily: "bold", fontSize: 24 }}
+                  style={{ fontFamily: "bold", fontSize: 24, }}
                   multiline
+
                   value={mnemonic}
                   numberOfLines={100}
-                  className="py-10 px-10 text-start  w-full h-[250] "
+                  className=" px-4  w-full h-[250]  text-dark dark:text-white"
                   onChangeText={(text) => {
                     setMnemonic(text)
                   }}
                 />
                 <View className="w-[100px] absolute right-0 bottom-0">
-                  <Buttons buttonType="feedback" type="secondary" onPress={async () => {
+                  <Buttons buttonType="feedback" type={isDarkMode ? "primary" : "secondary"} onPress={async () => {
                     setMnemonic(await pasteItem())
                   }} text="Paste" />
 
@@ -152,7 +137,7 @@ export default function ImportPhrase({ navigation }: any) {
 
       <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 absolute">
         <Buttons onPress={importWallet} text="Import Wallet" />
-        <Buttons buttonType="feedback" type="secondary" onPress={() => navigation.navigate("SecretPhrase")} text="I don't know what a secret phrase is" />
+        <Buttons buttonType="feedback" type="secondary" onPress={() => router.push("/auth/secretphrase")} text="I don't know what a secret phrase is" />
       </View>
 
     </View>

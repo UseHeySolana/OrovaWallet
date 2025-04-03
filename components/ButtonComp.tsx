@@ -3,11 +3,11 @@ import CText from "./TextComp";
 
 interface Buttons {
   loading?: boolean
-text:string;
-type?: "primary" | "secondary" ;
-className?:string;
-textClass?:string;
-onPress:() => void;
+  text: string;
+  type?: "primary" | "secondary";
+  className?: string;
+  textClass?: string;
+  onPress: () => void;
   icon?: React.ReactNode;
   buttonType?: "feedback" | "pressable"
 }
@@ -26,10 +26,10 @@ onPress:() => void;
 }
  * @returns 
  */
-export default function Buttons(props:Buttons) {
+export default function Buttons(props: Buttons) {
   const { loading, textClass, text, className, type = "primary", onPress, buttonType } = props;
 
-  const buttonColor = type == "primary" ? "bg-[#971BB2]  " : "bg-gray-200 "
+  const buttonColor = type == "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
 
   return (
     <>

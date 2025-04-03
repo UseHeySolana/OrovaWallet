@@ -1,3 +1,4 @@
+import { useThemeContext } from "@/misc/context/ThemeContext";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StatusBar } from "react-native";
@@ -13,15 +14,13 @@ const DragableSheet = (props: DragableSheetProps) => {
     const { child, snapPoints, close } = props;
     const [resetView, setResetView] = useState(true)
     const bottomSheetRef = useRef<BottomSheet>(null);
-    // useEffect(()=>{
-    //     bottomSheetRef.current?.snapToIndex(0);
-    // },[bottomSheetRef])
 
     const onChange = (e: any) => {
         if (e < 1) {
             bottomSheetRef.current?.expand;
         }
     }
+    const { isDarkMode } = useThemeContext()
     // const renderBackdrop = useMemo(
     //     () => (props:any) => (
     //       <BottomSheetBackdrop
@@ -45,6 +44,10 @@ const DragableSheet = (props: DragableSheetProps) => {
             keyboardBlurBehavior="restore"
             onClose={() => { }}
             ref={bottomSheetRef}
+            backgroundStyle={{
+                backgroundColor: isDarkMode ? '#131313' : 'white',
+                paddingBottom: 20,
+            }}
             onChange={(e) => onChange(e)}
             snapPoints={snapPoints ? snapPoints : ["60%"]}
             backdropComponent={(props) =>
