@@ -1,181 +1,106 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
-import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
-import AppSettings from "@/misc/store/settingsstore";
+
 import { router } from "expo-router";
-import { Keypair } from "@solana/web3.js";
-import UserItem from "@/misc/store/userstore";
 
-const Items = [
-  {
-    id: 1,
-    title: "Voice Assistant",
-    description: "",
-    subItems: [],
-    type: "toogle",
-  },
-  {
-    id: 2,
-    title: "Language",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "English",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 3,
-    title: "Assistant Voice",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "Kira",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 4,
-    title: "Assistant Name",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "User Input",
-      description: "",
-    }],
-    type: "dropdown",
+
+import IconLibrary from "@/misc/helpers/icons";
+
+import QRCode from 'react-native-qrcode-svg';
+import Buttons from "@/components/ButtonComp";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import EvilIcons from "@expo/vector-icons/EvilIcons";
+import WalletItem from "@/misc/store/wallet";
+
+import * as Sharing from 'expo-sharing';
+import { copyItem } from "@/misc/helpers/functions";
+
+import RNFS from "react-native-fs"
+
+
+function Scan() {
+
+  const { publicKey } = WalletItem()
+
+  const [walletAddress, setWalletAddress] = useState('Testing')
+
+  useEffect(() => {
+    if (publicKey) {
+      setWalletAddress(publicKey.toString())
+    }
+  }, [publicKey])
+  const share = async () => {
+    // const available = Sharing.isAvailableAsync()
+    // console.log(available);
   }
-]
-/**
-  * What should be done here
-  * 1. Register User Voice for Authentication 
-  * 2. Save User Voice and ask if to create wallet with their voice
-  */
-function Voicereg() {
-  const [recording, setRecording] = useState(false);
 
-  const { setDefault } = AppSettings()
-  const { user } = UserItem()
-
-
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
-
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
-
-  //   const audioManager = useRef<AudioManager | null>(null);
-  //     useEffect(() => {
-  //       if (!audioManager.current) {
-  //         audioManager.current = new AudioManager({
-  //           onSpeechStart: () => setIsSpeaking(true),
-  //           onSpeechEnd: () => setIsSpeaking(false),
-  //           onProcessingStart: () => setIsProcessing(true),
-  //           onProcessingEnd: () => setIsProcessing(false),
-  //           onAiSpeakingStart: () => setIsAiSpeaking(true),
-  //           onAiSpeakingEnd: () => setIsAiSpeaking(false),
-  //         });
-  //       } else {
-
-  //       }
-  //       return () => {
-  //         // audioManager.current?.cleanup();
-  //       };
-  //     }, [])
-
-  // const startRecording = async () => {
-  //   setRecording(true);
-  //   await audioManager.current?.startRecording();
-  // }
-
-  // const stopRecording = async () => {
-  //   setRecording(false);
-  //   await audioManager.current?.stopRecording();
-
-  // }
   return (
-    <View
-      className="relative h-full w-100 flex items-center"
-    >
-      <View className="h-full  w-100 m-auto flex justify-center items-start">
-        <View className="w-11/12 m-auto p-2">
-          <View className="">
-            <CText className="text-[75px] text-purple font-bold">"</CText>
-            <CText style={{ fontFamily: "bold" }} className="text-[80px] text-wrap">Hey Solana, send 5 SOL to Alex</CText>
-            <CText className="text-[75px] text-purple font-bold self-end rotate-180">"</CText>
-          </View>
-          <View>
-            <CText className="text-[32px] text-gray-400">Let’s register your voice! say the big text you see on your screen, LFG</CText>
+    <View className="relative pt-3 px-4 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
+      <View className="w-full gap-y-4">
+
+        <View className="w-full  flex flex-row justify-start">
+          <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
+            <IconLibrary.back />
+          </Pressable>
+        </View>
+        <View className="flex bg-white shadow rounded-xl dark:bg-accent h-fit py-10 w-[370px] m-auto flex-row justify-center items-center ">
+          <View className=" border border-purple/40 p-4 rounded-xl">
+            <View className="h-[299] w-[299] overflow-hidden rounded-xl">
+              <QRCode
+                value={walletAddress}
+                size={300}
+                logo={require('@/assets/images/icon.png')}
+                logoBackgroundColor="transparent"
+              />
+            </View>
+
+            <View className="flex flex-row justify-between py-5">
+              <View className="w-[45%]">
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={share} type="secondary" text="Share" icon={
+                  <View className="rotate-[230deg]">
+                    <AntDesign name="arrowdown" size={16} color="white" />
+                  </View>
+                } />
+              </View>
+              <View className="w-[45%]">
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
+                  async () => await copyItem(publicKey?.toString() || "")
+                }} type="secondary" text="Copy"
+                  icon={
+                    <View className="">
+                      <IconLibrary.copy />
+
+                    </View>
+                  }
+                />
+              </View>
+            </View>
+
+
+
+
           </View>
         </View>
 
-      </View>
 
-
-
-      <View className="w-11/12 m-auto p-2 gap-y-3 bottom-10 absolute">
-        {/* <Pressable onPress={() => { recording ? stopRecording() : startRecording() }} > */}
-        <Pressable onPress={() => {
-          setStartWalletReg(true)
-        }} >
-          <View style={{ padding: 5 }} className={`${!recording ? "bg-[#971BB2]" : "bg-red-600"} py-5 rounded-full `}>
-            <CText className="text-white text-center">Record</CText>
+        <View className="bg-[#9DE0E5]/30 border-[##65F5FF33] border-2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
+          <View className="1">
+            <IconLibrary.question />
           </View>
-        </Pressable>
+          <View className="w-[288px] ">
+
+            <CText style={{ fontFamily: "md" }} className="text-[16px] text-start text-wrap">Use this address to receive tokens and collectibles on the Solana network only..</CText>
+          </View>
+
+        </View>
+
+
+
+
+
       </View>
 
-      {
-        startWalletReg && (
-          <DragableSheet
-            close={() => setStartWalletReg(false)}
-            snapPoints={["55%"]}
-            child={
-              <View className="w-full  gap-y-5 flex flex-col justify-between ">
-                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
-                <View className="flex w-100 justify-center items-center py-">
-                  <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
-                </View>
-
-                <Pressable onPress={() => {
-                  router.push('/auth/secretphrase')
-                }} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
-                    <View className="">
-                      <AntDesign name="pluscircleo" size={24} color="black" />
-                    </View>
-
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Create new Wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Create a new Solana Wallet</CText>
-
-                    </View>
-                  </View>
-
-                </Pressable>
-                <Pressable onPress={() => router.push('/importphrase')} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
-                    <View className="bg-white rounded-full p-1">
-                      <AntDesign name="arrowdown" size={24} color="black" />
-                    </View>
-
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Import existing wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Import a previously existing wallet</CText>
-
-                    </View>
-                  </View>
-
-                </Pressable>
-              </View>
-            }
-          />
-        )
-      }
 
 
 
@@ -183,5 +108,5 @@ function Voicereg() {
   );
 }
 
-export default Voicereg
+export default Scan
 

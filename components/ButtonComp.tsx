@@ -1,4 +1,4 @@
-import { Pressable, Text, TouchableNativeFeedback, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, TouchableNativeFeedback, View } from "react-native";
 import CText from "./TextComp";
 
 interface Buttons {
@@ -8,6 +8,7 @@ interface Buttons {
   className?: string;
   textClass?: string;
   onPress: () => void;
+  style?: {};
   icon?: React.ReactNode;
   buttonType?: "feedback" | "pressable"
 }
@@ -27,9 +28,10 @@ onPress:() => void;
  * @returns 
  */
 export default function Buttons(props: Buttons) {
-  const { loading, textClass, text, className, type = "primary", onPress, buttonType } = props;
+  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType } = props;
 
   const buttonColor = type == "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
+
 
   return (
     <>
@@ -41,13 +43,14 @@ export default function Buttons(props: Buttons) {
             overflow: 'hidden',  // This is the key style that contains the ripple
           }}>
             <TouchableNativeFeedback
+              style={{ ...style }}
               background={TouchableNativeFeedback.Ripple('#971BB2', false)}
               onPress={onPress}>
-              <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"} flex flex-row justify-center items-center gap-x-2`}>
+              <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}>
                 {props.icon}
                 <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[16px]  text-center"} ${type === "primary" ?
                   "text-white" : "text-black"
-                  }`}>{text}</CText>
+                  }`}>{loading ? <><ActivityIndicator /></> : text}</CText>
               </View>
             </TouchableNativeFeedback>
           </View>

@@ -18,6 +18,7 @@ import { TouchableOpacity } from "react-native";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
+import { cleanNumber } from "@/misc/helpers/extrafunctions";
 /**
   * What should be done here
  Login Page
@@ -54,6 +55,7 @@ function Login() {
   }, [user])
 
   const Login = async () => {
+
     const fields = [];
     if (userDetails.mobileNumber === "") {
       fields.push("Mobile Number");
@@ -64,7 +66,7 @@ function Login() {
     }
     setLoading(true)
     const data = {
-      phone_number: "+" + selectedValue.callingCode + userDetails.mobileNumber
+      phone_number: "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber)
     }
     const response = await getCode(data.phone_number)
     if (response.status !== false) {
@@ -144,6 +146,7 @@ function Login() {
                 keyboardType="phone-pad"
                 placeholderTextColor={isDarkMode ? "white" : "black"}
                 onChangeText={(text) => {
+
                   setUserDetails({ ...userDetails, mobileNumber: text })
                 }}
                 placeholder={`enter a phone number`}

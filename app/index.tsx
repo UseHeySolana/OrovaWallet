@@ -73,7 +73,7 @@ export default function Home() {
       if (destination) {
         router.replace(destination);
       }
-    }, 500); // Delay by 500ms, adjust if needed
+    }, 100); // Delay by 500ms, adjust if needed
 
     return () => clearTimeout(timeout); // Cleanup timeout on component unmount
   }, [alreadyOpened, publicKey, user]);

@@ -16,6 +16,7 @@ import { CountryPickerModal } from 'react-native-country-code-select';
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
+import { cleanNumber } from "@/misc/helpers/extrafunctions";
 /**
   * What should be done here
   * 1. Register User Voice for Authentication 
@@ -65,7 +66,7 @@ function Voicereg() {
     setLoading(true)
     const data = {
       username: userDetails.username,
-      phone_number: "+" + selectedValue.callingCode + userDetails.mobileNumber
+      phone_number: "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber)
     }
     const response = await registerUser(data.username, data.phone_number)
     if (response.status !== false) {

@@ -82,7 +82,7 @@ export default function Dashboard() {
 
   return (
     <View
-      className="pt-3 w-screen px-4 h-screen gap-y-3 bg-grey dark:bg-accent dark:bg-dark "
+      className="pt-3 w-screen px-4 h-screen gap-y-3 bg-grey dark:bg-dark "
     >
       {/* Top Icons */}
       <View className="flex  flex-row justify-between items-center">
@@ -124,9 +124,9 @@ export default function Dashboard() {
                 <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
                   <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
                 </TouchableOpacity>
-                <View className="p-3  rounded-full bg-grey dark:bg-accent2">
+                <TouchableOpacity onPress={() => router.push('/dashboard/qrcode')} className="p-3  rounded-full bg-grey dark:bg-accent2">
                   <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
 

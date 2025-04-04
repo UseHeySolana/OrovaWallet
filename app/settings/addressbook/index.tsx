@@ -1,170 +1,170 @@
-import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { memo, useEffect, useRef, useState } from "react";
+import { FlatList, Pressable, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
 import AppSettings from "@/misc/store/settingsstore";
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { router } from "expo-router";
+import * as Contacts from 'expo-contacts';
 import UserItem from "@/misc/store/userstore";
-
 import IconLibrary from "@/misc/helpers/icons";
+import { useThemeContext } from "@/misc/context/ThemeContext";
+import { FlashList } from "@shopify/flash-list";
+import { fetchData } from "@/misc/helpers/db";
+import Buttons from "@/components/ButtonComp";
+import PhoneBook from "@/misc/store/phonebook";
 
-const settingsMenu = [
-  {
-    title: "Manage Accounts",
-    route: "/manageaccounts",
-    icon: <IconLibrary.wallet />
-  },
-  {
-    title: "AI Assistant",
-    route: "/aisetup",
-    icon: <View className="h-[18px] w-[18px]  rounded-full">
-      <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
-        contentFit="cover"
-      />
-    </View>,
-  },
-  // {
-  //   title: "Smart Hedging",
-  //   route: "/manageaccounts",
-  //   icon: <IconLibrary.linechart />,
-  // },
+function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {
+  const phoneC = new Set(phoneContacts.map((item: any) => item.phoneNumbers && item.phoneNumbers[0]?.number?.replace(/[-\s]/g, '')).filter(Boolean));
 
-  // {
-  //   title: "Currency",
-  //   route: "/manageaccounts",
-  //   icon: <IconLibrary.currency />,
-  // },
-  {
-    title: "Security",
-    route: "/manageaccounts",
-    icon: <IconLibrary.security />,
-  },
-  // {
-  //   title: "Language",
-  //   route: "/manageaccounts",
-  //   icon: <IconLibrary.language />,
-  // },
+  // Find matches and return formatted data
+  return heysolanaContacts
+    .filter((target: any) => [...phoneC].some((num: any) => num.includes(target.phone_number)))
+    .map((matchedItem: any) => ({
+      name: matchedItem.username,
+      phoneNumber: matchedItem.phone_number,
+      walletAddress: matchedItem.wallet_address,
+    }));
+}
 
-]
-
-const settingsMenu2 = [
-  {
-    title: "Address Book",
-    route: "/manageaccounts",
-    icon: <IconLibrary.notebook />,
-  },
-  {
-    title: "Connected Apps",
-    route: "/manageaccounts",
-    icon: <IconLibrary.connection />,
-  },
-
-  {
-    title: "Feedback",
-    route: "/manageaccounts",
-    icon: <IconLibrary.commenting />,
-  },
-  {
-    title: "Dark mode",
-    route: "/manageaccounts",
-    icon: <IconLibrary.moon />,
-  },
-  {
-    title: "Logout",
-    route: null,
-    icon: <IconLibrary.logout />,
-  },
-]
-/*
 /**
   * What should be done here
-  * 1. Updates Settings and Shows Settings and What to Change
+  * 1. Adfd user to Address Book  and Shows List of Contact in Address Book and What to Change
   */
-function Settings() {
-  const [recording, setRecording] = useState(false);
+function AddressBook() {
 
-  const { setDefault } = AppSettings()
-  const { user, userWallet, logout } = UserItem()
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
+  const [users, setUsers] = useState<any>([]);
+  const [contactsPhone, setContactsPhone] = useState<any[]>([])
+  const [contactsOnHeySolana, setContactsOnHeySolana] = useState<any[]>([])
+  const { setLoading, isLoading } = AppSettings()
+  const [showContactonHey, setShowContactOnHey] = useState(true)
+  const [showContactonPhone, setShowContactOnPhone] = useState(false)
+  const { contacts, addContact, addMultipleContacts } = PhoneBook()
+
+
+  useEffect(() => {
+    if (contactsPhone.length > 0 && users.length > 0) {
+      const items = getMatchingContacts(contactsPhone, users)
+      // console.log(items);
+      items?.forEach((item: any) => {
+        const contactFetched = {
+          name: item.name as string,
+          phoneNumber: item.phoneNumber as string,
+          walletAddress: item.walletAddress as string,
+        }
+        addContact(contactFetched)
+      })
+      setContactsOnHeySolana(items)
+    } else {
+      setContactsOnHeySolana(contacts)
+    }
+  }, [contactsPhone, users])
+
+
+
+
+  const fetchContacts = async () => {
+    setLoading(true)
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status === 'granted') {
+      const { data } = await Contacts.getContactsAsync({
+        fields: [Contacts.Fields.PhoneNumbers],
+      });
+
+      if (data.length > 0) {
+        const contact = data.filter((item) => item.name.trim() != "null")
+        const usersD = await fetchData()
+        setUsers(usersD);
+        setContactsPhone(contact);
+        setLoading(false)
+      } else {
+        setLoading(false)
+      }
+    }
+  };
 
 
   return (
-    <View className="relative pt-3 h-full w-100 flex items-center justify-start gap-y-4">
-      <View className="w-full px-4 flex flex-row justify-start">
-        <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white">
-          <IconLibrary.back />
-        </Pressable>
-      </View>
+    <View className="relative pt-3 bg-grey dark:bg-dark px-4  w-100 flex-1 items-start justify-start gap-y-4">
+      <View className="w-full flex-1 gap-y-4">
 
-      <View className="bg-white mb-10 flex shadow flex-row justify-start items-center rounded-2xl w-11/12 py-5 m-auto p-2">
-        <View className="flex flex-row justify-between items-center gap-x-2  ">
-          <View className="h-10 w-10  rounded-full">
-            <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
-              contentFit="contain"
-            />
-          </View>
-          <View className="">
-            <CText style={{ fontFamily: "bold" }} className="text-wrap">Account</CText>
-            <CText className="">${userWallet.balance}</CText>
-          </View>
+        <View className="w-full px-4 flex flex-row justify-start">
+          <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
+            <IconLibrary.back />
+          </Pressable>
         </View>
-        <Pressable onPress={() => router.back()} className="p-3">
-          <FontAwesome name="angle-right" size={18} color="black" />
-        </Pressable>
+
+        <View className="gap-y-4">
+          <TouchableOpacity onPress={() => setShowContactOnHey(!showContactonHey)}>
+            <CText style={{ fontFamily: "bold" }} className="p-4 text-primary text-[16px] text-start rounded-xl bg-grey shadow dark:bg-accent">Contacts on HeySolana</CText>
+          </TouchableOpacity>
+
+          {showContactonHey &&
+            <View>
+              <FlatList
+                getItemLayout={(data, index) => ({
+                  length: 100,
+                  offset: 100 * index,
+                  index
+                })}
+                initialNumToRender={15}
+                maxToRenderPerBatch={15}
+                className="h-[200px] rounded-xl bg-grey shadow dark:bg-accent p-4 pb-10 gap-x-2 "
+                data={contactsOnHeySolana}
+                renderItem={(item: any) => {
+                  console.log(item)
+                  return (
+                    <View
+                      className="flex flex-row justify-start gap-x-4 items-center mb-2 rounded-xl"
+                    >
+                      <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
+                        <CText>+</CText>
+                      </View>
+                      <View className="flex-1 flex-row  justify-start gap-x-4  items-center">
+                        <CText className="text-[20px]">{item.item.name}</CText>
+                        <CText className="text-[20px]">{item.item.phoneNumber}</CText>
+                      </View>
+                    </View>)
+                }
+                }
+                keyExtractor={item => item.id}
+              />
+            </View>
+          }
+        </View>
+
+        <View className="gap-y-4 h-[550px]">
+          <TouchableOpacity onPress={() => setShowContactOnPhone(!showContactonPhone)}>
+            <CText style={{ fontFamily: "bold" }} className="p-4 text-primary text-[16px] text-start rounded-xl bg-grey shadow dark:bg-accent">Phone Contacts List</CText>
+          </TouchableOpacity>
+          {showContactonPhone &&
+            <View>
+              <FlatList
+                className="rounded-xl bg-grey shadow dark:bg-accent p-4 pb-10 gap-x-2 "
+                data={contactsPhone}
+                renderItem={({ item }) => (<View
+                  className="flex flex-row justify-start gap-x-2 items-center p-2 mb-2 rounded-xl "
+                >
+                  <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
+                    <CText>+</CText>
+                  </View>
+                  <CText className="text-[20px]">{item.name}</CText>
+                </View>)}
+                keyExtractor={item => item.id}
+                ListEmptyComponent={() => {
+                  return (
+                    <Buttons loading={isLoading}
+                      onPress={fetchContacts} type="primary" text="Fetch Contacts" />
+
+                  )
+                }}
+              />
+            </View>
+
+          }
+        </View>
+
       </View>
 
-      <View className="w-11/12  m-auto px-4 py-4 shadow rounded-2xl bottom-10 bg-white ">
-        {settingsMenu.map((item, index) => {
-          return (
-            <TouchableOpacity
-              // @ts-expect-error
-              onPress={() => { item.route && router.push(item.route) }}
-              key={index} className="py-2 flex flex-row justify-between items-center">
-              <View className="flex flex-row justify-start items-center gap-x-2">
-                <View className="h-6 flex flex-row justify-center items-center w-6">
-                  {item.icon ? item.icon : <FontAwesome name="angle-right" size={18} color="black" />}
-                </View>
-
-                <CText className="text-[16px]">
-                  {item.title}
-                </CText>
-              </View>
-
-              <Pressable onPress={() => router.back()} className="p-3">
-                <FontAwesome name="angle-right" size={18} color="black" />
-              </Pressable>
-            </TouchableOpacity>
-          )
-        })}
-      </View>
-
-      <View className="w-11/12  m-auto p-4 rounded-2xl shadow bottom-10 bg-white ">
-        {settingsMenu2.map((item, index) => {
-          return (
-            <Pressable onPress={() => {
-              //@ts-expect-error
-              { item.route ? router.push(item.route) : logout(); router.replace('/') }
-            }} key={index} className="py-1 flex flex-row justify-between items-center">
-              <View className="flex flex-row justify-start items-center gap-x-2">
-                <View className="h-6 flex flex-row justify-center items-center w-6">
-                  {item.icon ? item.icon : <FontAwesome name="angle-right" size={18} color="black" />}
-                </View>
-                <CText className="text-[16px]">
-                  {item.title}
-                </CText>
-              </View>
-
-              {item.route &&
-                <Pressable onPress={() => router.back()} className="p-3">
-                  <FontAwesome name="angle-right" size={18} color="black" />
-                </Pressable>
-              }
-            </Pressable>
-          )
-        })}
-      </View>
 
 
 
@@ -172,5 +172,5 @@ function Settings() {
   );
 }
 
-export default Settings
+export default AddressBook
 

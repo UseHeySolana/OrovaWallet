@@ -19,6 +19,17 @@ type IconProps = {
 
 // Create a context wrapper component that provides themed icons
 const IconLibrary = {
+
+    question: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <EvilIcons
+                name="question"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
     pluscircle: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (
