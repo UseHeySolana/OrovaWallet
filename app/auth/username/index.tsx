@@ -17,6 +17,7 @@ import { useThemeContext } from "@/misc/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/misc/helpers/extrafunctions";
+import { delay } from "@/misc/helpers/functions";
 /**
   * What should be done here
   * 1. Register User Voice for Authentication 
@@ -64,6 +65,8 @@ function Voicereg() {
       return
     }
     setLoading(true)
+    delay(1000)
+
     const data = {
       username: userDetails.username,
       phone_number: "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber)

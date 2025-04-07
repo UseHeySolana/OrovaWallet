@@ -10,11 +10,12 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
+    "dapp-store": "eas build -p android --profile dapp-store",
     "build:test": "eas build --local -p android --profile test",
     "build:server": "eas build -p android --profile test",
     "build:android": "eas build --local -p android --profile development",
     "build:android-server": "eas build -p android --profile development",
-    "build:android-reduced-size": "grade.properties expo.useLegacyPackaging",
+    "build:android-reduced-size": "eas build --local --platform android --profile reduced-size",
     "build:ios": "eas build --local -p ios --profile production",
     "eas-build-pre-install": "npm config set legacy-peer-deps true"
   },

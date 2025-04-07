@@ -78,9 +78,9 @@ function Scan() {
                 } />
               </View>
               <View className="w-[45%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                  async () => await copyItem(publicKey?.toString() || "")
-                }} type="secondary" text="Copy"
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={
+                  async () => await copyItem(publicKey?.toBase58() || "")
+                } type="secondary" text="Copy"
                   icon={
                     <View className="">
                       <IconLibrary.copy />

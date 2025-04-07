@@ -8,10 +8,7 @@ import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-googl
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from 'react-native';
 import { Image } from 'expo-image';
-import AppSettings from '@/misc/store/settingsstore';
 import { AiServiceProvider } from '@/misc/context/AiContext';
-import IconLibrary from "@/misc/helpers/icons";
-import CText from '@/components/TextComp';
 import { ThemeProvider, useThemeContext } from '@/misc/context/ThemeContext';
 import StackView from './stack';
 
@@ -69,10 +66,7 @@ export default function RootLayout() {
         <AiServiceProvider>
           <SafeAreaView style={{ flex: 1 }}>
 
-
             <StackView />
-
-
           </SafeAreaView>
         </AiServiceProvider>
       </ThemeProvider>

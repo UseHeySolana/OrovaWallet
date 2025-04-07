@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 import { pasteItem } from "@/misc/helpers/functions";
 import { useThemeContext } from "@/misc/context/ThemeContext";
+import IconLibrary from "@/misc/helpers/icons";
 /**
   * What should be done here
   * 1. Notify what the secret phrase is for.
@@ -31,23 +32,23 @@ export default function ImportPhrase({ navigation }: any) {
 
 
   const importWallet = async () => {
-    await setLoading(true)
+    setLoading(true)
     if (mnemonic == "") {
-      Alert.alert("No Phrase Imported", "error")
+      setToast("No Phrase Imported", "error")
       setLoading(false)
       return;
     }
 
     if (isJson(mnemonic)) {
       if (JSON.parse(mnemonic).length != 64) {
-        Alert.alert("Awwn! this is not a valid private key!", "error")
+        setToast("Awwn! this is not a valid private key!", "error")
         setLoading(false)
 
         return;
       }
     } else {
       if (mnemonic.trim().split(/\s+/).length != 12) {
-        Alert.alert("🛑", "Invalid phrase!, phrase must be 12.")
+        setToast("Invalid phrase!, phrase must be 12.", "error")
         setLoading(false)
         return;
       }
@@ -78,7 +79,7 @@ export default function ImportPhrase({ navigation }: any) {
     <View
       className="pt-4 relative bg-gray dark:bg-dark h-[100%]"
     >
-      <View className="gap-y-5 w-full px-4">
+      <View className="gap-y-5 w-full px-4 flex flex-1 flex-col justify-between ">
         <View className=" bg-white dark:bg-accent rounded-3xl px-3 py-10 gap-y-5">
           <View className="gap-x-5">
             <CText style={{ fontFamily: "bold" }} className="text-[24px] text-center">Import existing wallet</CText>
@@ -120,11 +121,9 @@ export default function ImportPhrase({ navigation }: any) {
           </View>
 
         </View>
-
-
         <View className="bg-[#9DE0E5]/30 border-[##65F5FF33] border-2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
           <View className="1">
-            <EvilIcons name="question" size={24} color="black" />
+            <IconLibrary.question />
           </View>
           <View className="w-[288px] ">
 
@@ -135,7 +134,7 @@ export default function ImportPhrase({ navigation }: any) {
 
       </View>
 
-      <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 absolute">
+      <View className="w-full px-4 m-auto p-2 gap-y-3  relative">
         <Buttons onPress={importWallet} text="Import Wallet" />
         <Buttons buttonType="feedback" type="secondary" onPress={() => router.push("/auth/secretphrase")} text="I don't know what a secret phrase is" />
       </View>

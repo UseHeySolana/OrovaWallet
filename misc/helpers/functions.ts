@@ -28,8 +28,16 @@ const pasteItem = async () => {
     }
 }
 
+const delay = (delay: number) => {
+
+    setTimeout(() => {
+
+    }, delay);
+}
+
 
 export {
     copyItem,
-    pasteItem
+    pasteItem,
+    delay
 }

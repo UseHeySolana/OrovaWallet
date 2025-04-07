@@ -19,6 +19,7 @@ import { useThemeContext } from "@/misc/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/misc/helpers/extrafunctions";
+import { delay } from "@/misc/helpers/functions";
 /**
   * What should be done here
  Login Page
@@ -56,6 +57,7 @@ function Login() {
 
   const Login = async () => {
 
+
     const fields = [];
     if (userDetails.mobileNumber === "") {
       fields.push("Mobile Number");
@@ -65,6 +67,7 @@ function Login() {
       return
     }
     setLoading(true)
+    delay(1000)
     const data = {
       phone_number: "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber)
     }

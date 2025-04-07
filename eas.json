@@ -1,5 +1,17 @@
 {
   "build": {
+    "dapp-store": {
+      "channel": "production",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "reduced-size": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "development": {
       "distribution": "internal",
       "android": {

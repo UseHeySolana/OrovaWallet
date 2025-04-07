@@ -12,6 +12,7 @@ import GeminiAudioManager from './GeminiAudioManager';
 import { userWalletType } from "@/misc/store/userstore";
 import { Audio } from "expo-av";
 import { toolFunctions } from "../tools";
+import { env } from "@/env";
 
 interface Part {
     text?: string;
@@ -86,7 +87,7 @@ class GeminiSessionManager {
                 throw new Error('No API key available');
             }
 
-           
+
 
             // Get audio stream for sending
             const stream = await mediaDevices.getUserMedia({ audio: true });
@@ -103,7 +104,7 @@ class GeminiSessionManager {
         }
     }
 
-    private _sendDirect (request: object) {
+    private _sendDirect(request: object) {
         if (!this.ws) {
             throw new Error("WebSocket is not connected");
         }
@@ -189,7 +190,7 @@ class GeminiSessionManager {
 
     private async getApiKey(): Promise<string> {
         // Try to get from environment first
-        const envKey = process.env.EXPO_PUBLIC_GA_KEY;
+        const envKey = env.GA_KEY;
         return envKey || "";
     }
 
