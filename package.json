@@ -1,6 +1,6 @@
 {
   "name": "heysolana",
-  "main": "./index.js",
+  "main": "./index.ts",
   "version": "1.0.0",
   "scripts": {
     "reset-project": "node ./scripts/reset-project.js",

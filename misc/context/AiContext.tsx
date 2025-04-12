@@ -66,8 +66,6 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 usdc_price: token.usdc_price,
                 mint: token.mint,
             }));
-
-            console.log(user)
             if (user) {
                 const newPrompt = prompB + "" +
                     `this is the list of tokens in the user wallet ${JSON.stringify(

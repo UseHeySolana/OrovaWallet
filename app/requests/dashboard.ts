@@ -1,8 +1,4 @@
-import { fetchUser } from "@/misc/helpers/db";
 import { fetchConversionRate, fetchTokenAccounts, getBalance } from "@/misc/helpers/wallet";
-import AppSettings from "@/misc/store/settingsstore";
-import UserItem from "@/misc/store/userstore";
-import WalletItem from "@/misc/store/wallet";
 import { UserType } from "@/misc/types/usertypes";
 import { Connection, PublicKey } from "@solana/web3.js";
 
@@ -48,7 +44,7 @@ const setUserItems = async (user: UserType, updateUserWallet: any, publicKey: Pu
                     mint: token?.id,
                 };
             });
-            fungible.push(sol)
+            fungible.unshift(sol)
 
             updateUserWallet({
                 balance: Number(balance.toFixed(2)),

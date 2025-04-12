@@ -93,7 +93,6 @@ function Settings() {
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
   const routeNavigation = (route: any, type?: string) => {
-    console.log(route, type)
     if (type == 'toggle') {
       return;
     }
@@ -130,7 +129,7 @@ function Settings() {
             </View>
             <View className="">
               <CText style={{ fontFamily: "bold" }} className="text-wrap">Account</CText>
-              <CText className="">${userWallet.balance}</CText>
+              <CText className="">${userWallet.totalUsdBalance.toFixed(2)}</CText>
             </View>
           </View>
           <Pressable onPress={() => router.back()} className="p-3">

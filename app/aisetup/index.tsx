@@ -67,18 +67,22 @@ const Items = [
   }
 ]
 export default function SetUpAi() {
-  const { markedSkipped, skippedAiSettings } = AppSettings()
+  const { markedSkipped, skippedAiSettings, aiName, aiLanguage } = AppSettings()
   const [toggleDropdown, setToggleDropdown] = useState(false);
   const [settings, setSettings] = useState({
     aiActive: true,
-    language: "English",
-    assistantName: "HeySolana"
+    language: aiLanguage,
+    assistantName: aiName,
   })
   useEffect(() => {
     if (skippedAiSettings) {
       router.replace('/voicereg')
     }
   }, [skippedAiSettings])
+
+  const handleSave = () => {
+
+  }
   return (
     <View
       className=" py-5 bg-grey dark:bg-dark flex-1"
@@ -123,7 +127,7 @@ export default function SetUpAi() {
                     </CText>
                   </Pressable>
                   {toggleDropdown &&
-                    <View className="absolute z-50 bg-white w-full rounded-2xl">
+                    <View className="absolute z-50 bg-white dark:bg-accent w-full rounded-2xl">
                       {item.subItems.map((subItem) => <Pressable key={subItem.title} onPress={() => {
                         setSettings({ ...settings, language: subItem.title });
                         setToggleDropdown(false);
@@ -154,11 +158,11 @@ export default function SetUpAi() {
       </View>
 
       <View className="w-11/12 m-auto p-2 gap-y-3">
-        <Buttons onPress={() => { }} text="Next" type="primary" />
-        <Buttons onPress={() => {
+        <Buttons onPress={() => { }} text="Save" type="primary" />
+        {/* <Buttons onPress={() => {
           markedSkipped();
           router.replace('/voicereg')
-        }} text="Skip" buttonType="feedback" type="secondary" />
+        }} text="Skip" buttonType="feedback" type="secondary" /> */}
       </View>
 
     </View>

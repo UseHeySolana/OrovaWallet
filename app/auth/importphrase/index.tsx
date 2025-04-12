@@ -32,7 +32,6 @@ export default function ImportPhrase({ navigation }: any) {
 
 
   const importWallet = async () => {
-    setLoading(true)
     if (mnemonic == "") {
       setToast("No Phrase Imported", "error")
       setLoading(false)
@@ -53,15 +52,15 @@ export default function ImportPhrase({ navigation }: any) {
         return;
       }
     }
+    setLoading(true)
 
     try {
       const keyPair = await getKeypairFromMnemonic(mnemonic.trim());
       // Only proceed once keypair is available
       if (keyPair && keyPair.publicKey && user) {
-
         const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
         if (response.status !== false) {
-          await updateKeypair(keyPair);
+          updateKeypair(keyPair);
           setToast("Wallet Created", 'success')
           router.replace('/dashboard')
           setLoading(false)
@@ -79,7 +78,7 @@ export default function ImportPhrase({ navigation }: any) {
     <View
       className="pt-4 relative bg-gray dark:bg-dark h-[100%]"
     >
-      <View className="gap-y-5 w-full px-4 flex flex-1 flex-col justify-between ">
+      <View className="gap-y-5 w-full px-4 flex flex-1 flex-col justify-start ">
         <View className=" bg-white dark:bg-accent rounded-3xl px-3 py-10 gap-y-5">
           <View className="gap-x-5">
             <CText style={{ fontFamily: "bold" }} className="text-[24px] text-center">Import existing wallet</CText>
@@ -125,7 +124,7 @@ export default function ImportPhrase({ navigation }: any) {
           <View className="1">
             <IconLibrary.question />
           </View>
-          <View className="w-[288px] ">
+          <View className="w-[288px] flex-1 ">
 
             <CText style={{ fontFamily: "md" }} className="text-[16px] text-start text-wrap">The secret phrase is typically 12 words separated by single spaces.</CText>
           </View>
@@ -134,7 +133,7 @@ export default function ImportPhrase({ navigation }: any) {
 
       </View>
 
-      <View className="w-full px-4 m-auto p-2 gap-y-3  relative">
+      <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 relative">
         <Buttons onPress={importWallet} text="Import Wallet" />
         <Buttons buttonType="feedback" type="secondary" onPress={() => router.push("/auth/secretphrase")} text="I don't know what a secret phrase is" />
       </View>

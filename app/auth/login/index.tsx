@@ -20,6 +20,8 @@ import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/misc/helpers/extrafunctions";
 import { delay } from "@/misc/helpers/functions";
+import * as LocalAuthentication from 'expo-local-authentication';
+
 /**
   * What should be done here
  Login Page
@@ -34,29 +36,48 @@ function Login() {
   const [otpValue, setOtpValue] = useState('')
   const { setUser, user } = UserItem();
   const { keypair, updateKeypair, publicKey } = WalletItem()
-  const { setLoading, isLoading, setToast } = AppSettings()
+  const { setLoading, isLoading, setToast, openWithAuth } = AppSettings()
   const [currentState, setCurrentState] = useState<'verify-phrase' | "start-wallet" | "sign-up" | "set-pin" | "">('')
 
   const [selectedValue, setSelectedValue] = useState(
     { "callingCode": ["234"], "countryInitials": "NG", "name": "Nigeria", "region": "Africa", "subregion": "Western Africa" }
   );
 
+  const [fingerPrintSigning, setFingerPrintSigning] = useState(false)
   const [isVisible, setIsVisible] = useState(false);
   const { isDarkMode } = useThemeContext()
 
 
   useEffect(() => {
-    if (user) {
-      setUserDetails({
-        ...userDetails,
-        mobileNumber: user.mobileNumber
-      })
-      setCurrentState('start-wallet')
-    }
+    (async () => {
+
+      if (user) {
+        setUserDetails({
+          ...userDetails,
+          mobileNumber: user.mobileNumber
+        })
+
+        if (openWithAuth) {
+
+          setFingerPrintSigning(true)
+        } else {
+          setCurrentState('start-wallet')
+        }
+      }
+    })()
+
   }, [user])
 
+  const BiometricAuth = async () => {
+    const res = await LocalAuthentication.hasHardwareAsync()
+    if (res) {
+      const result = await LocalAuthentication.authenticateAsync()
+      if (result.success) {
+        router.replace('/dashboard')
+      }
+    }
+  }
   const Login = async () => {
-
 
     const fields = [];
     if (userDetails.mobileNumber === "") {
@@ -123,10 +144,11 @@ function Login() {
           <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Welcome back!</CText>
           <CText className="text-[16px] text-center">Let's make handsfreee transactions</CText>
         </View>
-
-        <KeyboardAvoidingView className="bg-grey dark:bg-accent  rounded-3xl gap-y-3">
-          <View className="bg-white  dark:bg-accent h-fit py-3 rounded-2xl" >
-            {/* <TextInput
+        {!fingerPrintSigning ?
+          <>
+            <KeyboardAvoidingView className="bg-grey dark:bg-accent  rounded-3xl gap-y-3">
+              <View className="bg-white  dark:bg-accent h-fit py-3 rounded-2xl" >
+                {/* <TextInput
               style={{ fontFamily: "bold" }}
               className=" p-4 py-5"
               value={userDetails.username}
@@ -136,39 +158,51 @@ function Login() {
               placeholder={`enter a username`}
             />
             <View className="border-b border-gray-200" /> */}
-            <View className="flex flex-row px-4 justify-between items-center">
-              <TouchableOpacity onPress={() => {
-                setIsVisible(true);
-              }}>
-                <CText style={{ fontFamily: 'bold' }}>+{selectedValue.callingCode}</CText>
-              </TouchableOpacity>
-              <TextInput
-                style={{ fontFamily: "bold" }}
-                className="p-4 py-5 flex-1 text-dark dark:text-white"
-                value={userDetails.mobileNumber}
-                keyboardType="phone-pad"
-                placeholderTextColor={isDarkMode ? "white" : "black"}
-                onChangeText={(text) => {
+                <View className="flex flex-row px-4 justify-between items-center">
+                  <TouchableOpacity onPress={() => {
+                    setIsVisible(true);
+                  }}>
+                    <CText style={{ fontFamily: 'bold' }}>+{selectedValue.callingCode}</CText>
+                  </TouchableOpacity>
+                  <TextInput
+                    style={{ fontFamily: "bold" }}
+                    className="p-4 py-5 flex-1 text-dark dark:text-white"
+                    value={userDetails.mobileNumber}
+                    keyboardType="phone-pad"
+                    placeholderTextColor={isDarkMode ? "white" : "black"}
+                    onChangeText={(text) => {
 
-                  setUserDetails({ ...userDetails, mobileNumber: text })
-                }}
-                placeholder={`enter a phone number`}
-              />
+                      setUserDetails({ ...userDetails, mobileNumber: text })
+                    }}
+                    placeholder={`enter a phone number`}
+                  />
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+
+            <View>
+
+              <Buttons buttonType="pressable" onPress={() => Login()} className="" text={isLoading ? "loading" : "Login"} type="primary" />
+              <View className="py-2 flex flex-row justify-center items-center gap-x-2">
+                <CText className="text-center">Don't have an Account?</CText>
+                <TouchableOpacity
+                  onPress={() => router.replace('/auth/username')}
+                ><CText style={{ fontFamily: 'bold' }} textColor="text-purple">Sign up</CText></TouchableOpacity>
+              </View>
+
+
             </View>
-          </View>
-        </KeyboardAvoidingView>
-        <View>
-
-          <Buttons buttonType="pressable" onPress={() => Login()} className="" text={isLoading ? "loading" : "Login"} type="primary" />
-          <View className="py-2 flex flex-row justify-center items-center gap-x-2">
-            <CText className="text-center">Don't have an Account?</CText>
-            <TouchableOpacity
-              onPress={() => router.replace('/auth/username')}
-            ><CText style={{ fontFamily: 'bold' }} textColor="text-purple">Sign up</CText></TouchableOpacity>
+          </>
+          :
+          <View className="w-full flex justify-center items-center">
+            <TouchableOpacity onPress={BiometricAuth} className="h-[50px] w-[50px]  rounded-full overflow-hidden">
+              <Image source={require('@/assets/images/biometric.png')} style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+              />
+            </TouchableOpacity>
           </View>
 
-
-        </View>
+        }
       </View >
 
 

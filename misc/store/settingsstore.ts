@@ -12,6 +12,8 @@ interface Settings {
     theme: string;
     notifications: boolean;
     aiVoice: string;
+    aiLanguage: string;
+    setAiLanguage: (language: string) => void;
     network: string;
     aiName: string;
     setAiName: (name: string) => void;
@@ -58,6 +60,8 @@ const AppSettings = create(
             notifications: true,
             aiVoice: "alloy",
             aiName: "HeySolana",
+            aiLanguage: "English",
+            setAiLanguage: (language: string) => set({ aiLanguage: language }),
             network: "https://mainnet.helius-rpc.com/?api-key=",
             alreadyOpened: false,
             skippedAiSettings: false,

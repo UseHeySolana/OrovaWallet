@@ -19,8 +19,6 @@ import { useAi } from "@/misc/context/AiContext";
 
 import { Base } from "@/components/Navigation/Base";
 import Animated, { useSharedValue } from "react-native-reanimated";
-import { toolManipulator } from "@/misc/helpers/function/toolManipulator";
-import { toolRouter } from "@/misc/helpers/toolsregistry";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 
 const AiHelpers = [
@@ -82,13 +80,13 @@ export default function Dashboard() {
 
   return (
     <View
-      className="pt-3 w-screen px-4 h-screen gap-y-3 bg-grey dark:bg-dark "
+      className="pt-3 w-screen px-4 h-screen gap-y-[24px] bg-grey dark:bg-dark "
     >
       {/* Top Icons */}
       <View className="flex  flex-row justify-between items-center">
-        <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
+        {/* <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
           <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <View className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1">
           <View className="h-6 w-6  rounded-full">
             <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
@@ -97,9 +95,15 @@ export default function Dashboard() {
           </View>
           <CText style={{ fontFamily: 'md' }} className="text-dark dark:text-white">@{user?.username}</CText>
         </View>
-        <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
-          <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
-        </TouchableOpacity>
+        <View className="flex flex-row gap-x-2">
+          <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
+            <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
+            <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
+          </TouchableOpacity>
+        </View>
+
       </View>
 
       <ScrollView
@@ -110,31 +114,32 @@ export default function Dashboard() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View className=" min-h-[50px] gap-y-3">
-          <View className="m-auto  w-full shadow-md bg-white dark:bg-accent rounded-3xl py-4">
+          <View className="m-auto  w-full shadow-md bg-white dark:bg-transparent rounded-3xl py-4">
             <View className="flex flex-row  justify-between items-center px-5 py-3">
               <View className="">
+                <View>
+                  <CText className="text-[12px]">Wallet balance</CText>
+                </View>
                 <CText className="text-[45px]">
                   ${userWallet?.totalUsdBalance.toFixed(2)}
                 </CText>
-                <View>
-                  <CText className="text-[18px]">Hide balance</CText>
-                </View>
+
               </View>
-              <View className="flex flex-row justify-center items-center gap-2">
+              {/* <View className="flex flex-row justify-center items-center gap-2">
                 <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
                   <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => router.push('/dashboard/qrcode')} className="p-3  rounded-full bg-grey dark:bg-accent2">
                   <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
                 </TouchableOpacity>
-              </View>
+              </View> */}
             </View>
 
             <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
             <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
               <View className="w-[40%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="primary" text="Send" icon={
+                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="secondary" text="Send" icon={
                   <View className="rotate-[230deg]">
                     <AntDesign name="arrowdown" size={16} color="white" />
                   </View>

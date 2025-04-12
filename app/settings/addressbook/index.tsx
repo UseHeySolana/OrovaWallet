@@ -111,9 +111,9 @@ function AddressBook() {
                 className="h-[200px] rounded-xl bg-grey shadow dark:bg-accent p-4 pb-10 gap-x-2 "
                 data={contactsOnHeySolana}
                 renderItem={(item: any) => {
-                  console.log(item)
                   return (
                     <View
+                      key={item.index}
                       className="flex flex-row justify-start gap-x-4 items-center mb-2 rounded-xl"
                     >
                       <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
@@ -142,6 +142,7 @@ function AddressBook() {
                 className="rounded-xl bg-grey shadow dark:bg-accent p-4 pb-10 gap-x-2 "
                 data={contactsPhone}
                 renderItem={({ item }) => (<View
+                  key={item.index}
                   className="flex flex-row justify-start gap-x-2 items-center p-2 mb-2 rounded-xl "
                 >
                   <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">

@@ -32,9 +32,9 @@ const screens = [
 const { width, height } = Dimensions.get('window');
 
 
-export default function Home() {
+export default function Index() {
 
-  const { alreadyOpened, markOpened, skippedAiSettings, createdWallet } = AppSettings()
+  const { alreadyOpened, markOpened, openWithAuth } = AppSettings()
   const { publicKey } = WalletItem()
   const { user } = UserItem()
   const scrollRef = useRef<ScrollView>(null);
@@ -46,11 +46,19 @@ export default function Home() {
     setCurrentIndex(index);
   };
 
+
   const getDestination = () => {
+
     // User is logged in
-    if (publicKey !== null && user !== null) {
+    if (!openWithAuth && publicKey !== null && user !== null) {
       return '/dashboard';
     }
+
+    //Go to verification if verification is enabled
+    if (openWithAuth) {
+      return '/auth/login';
+    }
+
 
     // User has a wallet connected but needs to log in
     if (alreadyOpened && user === null && publicKey !== null) {
@@ -90,9 +98,6 @@ export default function Home() {
         {screens.map((_, index) => (
           <Pressable
             onPress={() => {
-              /**
-               * if current index is 1
-               */
               scrollRef.current?.scrollTo({ x: width * index });
             }}
             key={index}
@@ -145,7 +150,6 @@ export default function Home() {
 
         ))}
       </ScrollView>
-      {/* Pagination Dots */}
 
 
     </View>
