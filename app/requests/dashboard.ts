@@ -1,8 +1,12 @@
 import { fetchConversionRate, fetchTokenAccounts, getBalance } from "@/misc/helpers/wallet";
 import { UserType } from "@/misc/types/usertypes";
 import { Connection, PublicKey } from "@solana/web3.js";
+import * as LocalAuthentication from 'expo-local-authentication';
+import { router } from "expo-router";
+
 
 export const api_key = process.env.EXPO_PUBLIC_HELIUS_API || "";
+
 
 const setUserItems = async (user: UserType, updateUserWallet: any, publicKey: PublicKey, network: string) => {
 
@@ -62,5 +66,15 @@ const setUserItems = async (user: UserType, updateUserWallet: any, publicKey: Pu
     }
 }
 
+
+export const BiometricAuth = async () => {
+    const res = await LocalAuthentication.hasHardwareAsync()
+    if (res) {
+        const result = await LocalAuthentication.authenticateAsync()
+        if (result.success) {
+            router.replace('/dashboard')
+        }
+    }
+}
 
 export default setUserItems

@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Pressable, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
 import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 import { TextInput } from "react-native";
 import Buttons from "@/components/ButtonComp";
-import { addDataToFirestore, fetchData, getCode, handleSearch, MessageData, registerUser, verifyCode } from "@/misc/helpers/db";
-import { OtpInput } from "react-native-otp-entry";
+import { getCode, verifyCode } from "@/misc/helpers/db";
 import WalletItem from "@/misc/store/wallet";
-import { UserType } from "@/misc/types/usertypes";
 import { CountryPickerModal } from 'react-native-country-code-select';
 import { TouchableOpacity } from "react-native";
 import { useThemeContext } from "@/misc/context/ThemeContext";
@@ -20,7 +16,7 @@ import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/misc/helpers/extrafunctions";
 import { delay } from "@/misc/helpers/functions";
-import * as LocalAuthentication from 'expo-local-authentication';
+import { BiometricAuth } from "@/app/requests/dashboard";
 
 /**
   * What should be done here
@@ -31,10 +27,11 @@ function Login() {
   const [userDetails, setUserDetails] = useState({
     username: "",
     mobileNumber: "",
+    wallet_address: "",
   })
 
   const [otpValue, setOtpValue] = useState('')
-  const { setUser, user } = UserItem();
+  const { setUser, user, session } = UserItem();
   const { keypair, updateKeypair, publicKey } = WalletItem()
   const { setLoading, isLoading, setToast, openWithAuth } = AppSettings()
   const [currentState, setCurrentState] = useState<'verify-phrase' | "start-wallet" | "sign-up" | "set-pin" | "">('')
@@ -50,16 +47,17 @@ function Login() {
 
   useEffect(() => {
     (async () => {
-
-      if (user) {
+      if (user && !session) {
         setUserDetails({
           ...userDetails,
           mobileNumber: user.mobileNumber
         })
 
         if (openWithAuth) {
-
           setFingerPrintSigning(true)
+          // setTimeout(() => {
+          //   BiometricAuth()
+          // }, 1000)
         } else {
           setCurrentState('start-wallet')
         }
@@ -68,15 +66,6 @@ function Login() {
 
   }, [user])
 
-  const BiometricAuth = async () => {
-    const res = await LocalAuthentication.hasHardwareAsync()
-    if (res) {
-      const result = await LocalAuthentication.authenticateAsync()
-      if (result.success) {
-        router.replace('/dashboard')
-      }
-    }
-  }
   const Login = async () => {
 
     const fields = [];
@@ -94,7 +83,8 @@ function Login() {
     }
     const response = await getCode(data.phone_number)
     if (response.status !== false) {
-      setUserDetails({ ...userDetails, username: response.data.username })
+
+      setUserDetails({ ...userDetails, username: response.data.username, wallet_address: response.data.wallet_address })
       setCurrentState('set-pin')
       setLoading(false)
     } else {
@@ -102,6 +92,8 @@ function Login() {
       setLoading(false)
     }
   }
+
+  console.log(userDetails);
 
   const verifyOtp = async () => {
     if (otpValue.length < 6) {
@@ -112,16 +104,38 @@ function Login() {
     const response = await verifyCode(otpValue, userDetails.username)
     if (response.status !== false) {
       setToast("Verification Successfull", 'success')
-      setUser({
-        username: userDetails.username,
-        mobileNumber: userDetails.mobileNumber,
-        pin: "",
-      })
-      if (publicKey) {
+
+      //check if the publick key stored is the same as the address coming, route to dashboard
+      if (publicKey !== null && (publicKey.toString() === userDetails.wallet_address)) {
+        setUser({
+          username: userDetails.username,
+          mobileNumber: userDetails.mobileNumber,
+          pin: "",
+        })
         router.replace('/dashboard')
+        return;
+      } else {
+        setUser({
+          username: userDetails.username,
+          mobileNumber: userDetails.mobileNumber,
+          pin: "",
+        })
+        setCurrentState('start-wallet')
+        setLoading(false)
+        return;
       }
-      setCurrentState('start-wallet')
-      setLoading(false)
+
+      // if (publicKey && userDetails.wallet_address !== null) {
+      //   setUser({
+      //     username: userDetails.username,
+      //     mobileNumber: userDetails.mobileNumber,
+      //     pin: "",
+      //   })
+      //   router.replace('/dashboard')
+      //   return;
+      // }
+
+
     } else {
       setToast(response.message, 'error')
       setLoading(false)
@@ -132,18 +146,22 @@ function Login() {
     <View
       className="relative bg-grey dark:bg-dark h-full w-100 flex justify-center items-center"
     >
-      <View className=" py-5 w-full  px-4 gap-y-5 flex-col justify-start ">
-        <View className="w-full flex justify-center items-center">
-          <View className="h-[50px] w-[50px]  rounded-full">
-            <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
-              contentFit="contain"
-            />
+      <View className=" py-5 w-full px-4 gap-y-10 flex-col justify-center ">
+        <View className="flex flex-col justify-center items-center gap-y-2">
+
+          <View className="w-full flex justify-center items-center">
+            <View className="h-[50px] w-[50px]  rounded-full">
+              <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
+              />
+            </View>
+          </View>
+          <View className="w-8/12 m-auto">
+            <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Welcome back!</CText>
+            <CText className="text-[16px] text-center">Let's make handsfreee transactions</CText>
           </View>
         </View>
-        <View className="w-8/12 m-auto">
-          <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Welcome back!</CText>
-          <CText className="text-[16px] text-center">Let's make handsfreee transactions</CText>
-        </View>
+
         {!fingerPrintSigning ?
           <>
             <KeyboardAvoidingView className="bg-grey dark:bg-accent  rounded-3xl gap-y-3">
@@ -194,12 +212,18 @@ function Login() {
             </View>
           </>
           :
-          <View className="w-full flex justify-center items-center">
+          <View className="w-full flex justify-center gap-y-10 items-center">
             <TouchableOpacity onPress={BiometricAuth} className="h-[50px] w-[50px]  rounded-full overflow-hidden">
               <Image source={require('@/assets/images/biometric.png')} style={{ width: "100%", height: "100%" }}
                 contentFit="cover"
               />
             </TouchableOpacity>
+            <View className="">
+              <CText style={{ fontFamily: "bold" }} className="text-[16px] text-center">Tap to login with your biometrics</CText>
+              <TouchableOpacity onPress={() => setFingerPrintSigning(false)}>
+                <CText textColor="text-purple" className="text-[16px] text-center">or login with mobile number</CText>
+              </TouchableOpacity>
+            </View>
           </View>
 
         }

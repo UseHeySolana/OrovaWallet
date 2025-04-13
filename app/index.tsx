@@ -36,7 +36,7 @@ export default function Index() {
 
   const { alreadyOpened, markOpened, openWithAuth } = AppSettings()
   const { publicKey } = WalletItem()
-  const { user } = UserItem()
+  const { user, session } = UserItem()
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -50,20 +50,20 @@ export default function Index() {
   const getDestination = () => {
 
     // User is logged in
-    if (!openWithAuth && publicKey !== null && user !== null) {
+    if (!openWithAuth && publicKey !== null && session !== null) {
       return '/dashboard';
     }
 
     //Go to verification if verification is enabled
-    if (openWithAuth) {
+    if (openWithAuth && !session) {
       return '/auth/login';
     }
 
 
-    // User has a wallet connected but needs to log in
-    if (alreadyOpened && user === null && publicKey !== null) {
-      return '/auth/login';
-    }
+    // // User has a wallet connected but needs to log in
+    // if (alreadyOpened && user === null && publicKey !== null) {
+    //   return '/auth/login';
+    // }
 
     // User has opened the app before but needs to set username
     if (alreadyOpened) {

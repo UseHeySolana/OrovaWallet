@@ -19,14 +19,19 @@ export const generateMnemonic = async () => {
     }
 };
 export const getKeypairFromMnemonic = async (mnemonic: string): Promise<Keypair> => {
-    if (isJson(mnemonic)) {
-        const keyPair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(mnemonic)));
-        return keyPair;
-    } else {
-        const seed = bip39.mnemonicToSeedSync(mnemonic);
-        const derivedSeed = derivePath("m/44'/501'/0'/0'", seed.toString('hex')).key;
-        const keyPair = Keypair.fromSeed(derivedSeed);
-        return keyPair;
+    try {
+        if (isJson(mnemonic)) {
+            const keyPair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(mnemonic)));
+            return keyPair;
+        } else {
+            const seed = bip39.mnemonicToSeedSync(mnemonic);
+            const derivedSeed = derivePath("m/44'/501'/0'/0'", seed.toString('hex')).key;
+            const keyPair = Keypair.fromSeed(derivedSeed);
+            return keyPair;
+        }
+    } catch (error) {
+        console.error("Error generating keypair from mnemonic:", error);
+        throw error;
     }
 };
 

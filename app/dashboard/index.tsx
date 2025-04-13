@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import LottieView from 'lottie-react-native';
 import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity } from "react-native";
 import CText from "@/components/TextComp";
 import Feather from '@expo/vector-icons/Feather';
@@ -20,6 +21,7 @@ import { useAi } from "@/misc/context/AiContext";
 import { Base } from "@/components/Navigation/Base";
 import Animated, { useSharedValue } from "react-native-reanimated";
 import { useThemeContext } from "@/misc/context/ThemeContext";
+
 
 const AiHelpers = [
   {
@@ -51,7 +53,9 @@ export default function Dashboard() {
   const { publicKey } = WalletItem()
   const [refreshing, setRefreshing] = useState(false);
   const [update, setUpdate] = useState(0)
-  const [showDraw, setShowDraw] = useState(true)
+  const animation = useRef<LottieView>(null);
+
+  const [showWallet, setShowWallet] = useState(false)
 
   const { isDarkMode } = useThemeContext()
 
@@ -69,20 +73,32 @@ export default function Dashboard() {
   const onRefresh = async () => {
     setRefreshing(true);
     setUpdate(Math.random())
+    setShowWallet(false)
     setRefreshing(false);
   };
 
+  const startStreamingSession = async () => {
+    if (!sessionManager) return
+    console.log("Starting session")
+    startSession()
+    setShowWallet(false)
+  }
+
+  const stopStreamingSession = async () => {
+    if (!sessionManager) return
+    stopSession()
+    setShowWallet(true)
+  }
+
   const sendMessage = async () => {
     if (!sessionManager) return
-
     sessionManager?.sendTextMessage("this is new")
   }
 
   return (
     <View
-      className="pt-3 w-screen px-4 h-screen gap-y-[24px] bg-grey dark:bg-dark "
+      className="pt-3 w-screen px-4 h-screen gap-y-4 bg-grey dark:bg-dark "
     >
-      {/* Top Icons */}
       <View className="flex  flex-row justify-between items-center">
         {/* <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
           <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
@@ -105,27 +121,31 @@ export default function Dashboard() {
         </View>
 
       </View>
+      {showWallet ?
+        <>
+          {/* Top Icons */}
 
-      <ScrollView
-        className=""
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
 
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <View className=" min-h-[50px] gap-y-3">
-          <View className="m-auto  w-full shadow-md bg-white dark:bg-transparent rounded-3xl py-4">
-            <View className="flex flex-row  justify-between items-center px-5 py-3">
-              <View className="">
-                <View>
-                  <CText className="text-[12px]">Wallet balance</CText>
-                </View>
-                <CText className="text-[45px]">
-                  ${userWallet?.totalUsdBalance.toFixed(2)}
-                </CText>
+          <ScrollView
+            className=""
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
 
-              </View>
-              {/* <View className="flex flex-row justify-center items-center gap-2">
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          >
+            <View className=" min-h-[50px] gap-y-3">
+              <View className="m-auto  w-full shadow-md bg-white dark:bg-transparent rounded-3xl py-4">
+                <View className="flex flex-row  justify-between items-center px-5 py-3">
+                  <View className="">
+                    <View>
+                      <CText className="text-[12px]">Wallet balance</CText>
+                    </View>
+                    <CText className="text-[45px]">
+                      ${userWallet?.totalUsdBalance.toFixed(2)}
+                    </CText>
+
+                  </View>
+                  {/* <View className="flex flex-row justify-center items-center gap-2">
                 <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
                   <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
                 </TouchableOpacity>
@@ -133,172 +153,192 @@ export default function Dashboard() {
                   <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
                 </TouchableOpacity>
               </View> */}
-            </View>
+                </View>
 
-            <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
+                <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
-            <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
-              <View className="w-[40%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="secondary" text="Send" icon={
-                  <View className="rotate-[230deg]">
-                    <AntDesign name="arrowdown" size={16} color="white" />
+                <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
+                  <View className="w-[40%]">
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="secondary" text="Send" icon={
+                      <View className="rotate-[230deg]">
+                        <AntDesign name="arrowdown" size={16} color="white" />
+                      </View>
+                    } />
                   </View>
-                } />
-              </View>
-              <View className="w-[40%]">
-                <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Receive"
-                  icon={
-                    <View className="rotate-[40deg]">
-                      <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
-                    </View>
-                  }
-                />
-              </View>
-              <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
-                <TouchableOpacity className="p-2 flex justify-center items-center">
-                  <FontAwesome6 name="arrows-rotate" size={16} color={isDarkMode ? "white" : "black"} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-          </View>
-
-          <View className="h-[90px] relative w-full">
-            {AiHelpers.map((item, index) => {
-              return (
-                <View key={index} style={{
-                  display: activeItems.includes(index) ? "flex" : "none",
-                  position: "relative",
-                  bottom: index * 70,
-                  zIndex: index * -1,
-                  width: `${100 - index * 4}%`
-                }} className="h-[80px] m-auto" >
-
-                  <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
-                    <View className="h-8 w-8 rounded-full">
-                      <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
-                        contentFit="contain"
-                      />
-                    </View>
-                    <View>
-                      <CText style={{ fontFamily: "bold" }} className="text-[18px]">{item.title}</CText>
-                      <CText className="text-[14px]">{item.caption}</CText>
-                    </View>
-
-                  </View>
-                  <TouchableOpacity className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white" onPress={() => { }}>
-                    <MaterialCommunityIcons name="greater-than" size={12} color={isDarkMode ? "white" : "black"} />
-                  </TouchableOpacity>
-                </View>
-              )
-            })}
-
-          </View>
-
-          <Animated.View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
-            <View className="flex flex-row items-center justify-between">
-              <TouchableNativeFeedback
-                background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                onPress={() => setActiveTab('tokens')}>
-
-                <View className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"} `}>
-                  <CText style={{ fontFamily: "bold" }} className="text-[18px]  text-center">Tokens</CText>
-                </View>
-              </TouchableNativeFeedback>
-              <TouchableNativeFeedback
-                background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                onPress={() => setActiveTab('history')}>
-                <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey dark:border-dark"} `}>
-
-                  <CText className="text-[18px] text-center">History</CText>
-                </View>
-              </TouchableNativeFeedback>
-
-            </View>
-
-            {activeTab == "tokens" ?
-
-              <View className="flex-1">
-
-                <View className="py-5 w-full">
-                  <TouchableOpacity className="bg-grey dark:bg-accent2 rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
-                    <FontAwesome name="sliders" size={14} color="black" />
-                    <CText>
-                      Manage tokens
-                    </CText>
-                  </TouchableOpacity>
-                </View>
-                {userWallet?.tokenAccounts?.map((token: any, index: number) => {
-                  return (
-                    <View key={index}>
-                      <TouchableNativeFeedback
-                        key={index}
-                        background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                        onPress={() => { console.log("touched") }}
-                      >
-                        <View
-                          className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
-                        >
-                          <View className="flex flex-row items-start gap-x-2">
-                            <View className="h-14 w-14  overflow-hidden rounded-full">
-                              <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
-                            </View>
-
-                            <View className="text-[14px]">
-                              <CText style={{ fontFamily: "bold" }} className="text-[16px]">
-                                {token?.name || "?"}
-                              </CText>
-                              <CText style={{ fontFamily: "reg" }} className="text-[16px]">
-                                {token?.balance < 1 ?
-                                  token?.balance?.toFixed(Math.min(token?.decimals, 5))
-                                  : token?.balance.toFixed(Math.min(token?.decimals, 3))
-                                }
-
-                              </CText>
-                            </View>
-                          </View>
-                          <View className="flex flex-col justify-end">
-                            {/* <CText className="text-[14px]">
-                            {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
-                          </CText> */}
-                            <CText style={{ fontFamily: "bold" }} className="text-[16px]">
-                              {token?.usdc_price
-                                ? "$" + token?.usdc_price?.toFixed(2)
-                                : ""}
-                            </CText>
-                          </View>
+                  <View className="w-[40%]">
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Receive"
+                      icon={
+                        <View className="rotate-[40deg]">
+                          <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
                         </View>
-                      </TouchableNativeFeedback>
-                      <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
-                    </View>
+                      }
+                    />
+                  </View>
+                  <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
+                    <TouchableOpacity className="p-2 flex justify-center items-center">
+                      <FontAwesome6 name="arrows-rotate" size={16} color={isDarkMode ? "white" : "black"} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
-                  );
+              </View>
+
+              <View className="h-[90px] relative w-full">
+                {AiHelpers.map((item, index) => {
+                  return (
+                    <View key={index} style={{
+                      display: activeItems.includes(index) ? "flex" : "none",
+                      position: "relative",
+                      bottom: index * 70,
+                      zIndex: index * -1,
+                      width: `${100 - index * 4}%`
+                    }} className="h-[80px] m-auto" >
+
+                      <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
+                        <View className="h-8 w-8 rounded-full">
+                          <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+                            contentFit="contain"
+                          />
+                        </View>
+                        <View>
+                          <CText style={{ fontFamily: "bold" }} className="text-[18px]">{item.title}</CText>
+                          <CText className="text-[14px]">{item.caption}</CText>
+                        </View>
+
+                      </View>
+                      <TouchableOpacity className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white" onPress={() => { }}>
+                        <MaterialCommunityIcons name="greater-than" size={12} color={isDarkMode ? "white" : "black"} />
+                      </TouchableOpacity>
+                    </View>
+                  )
                 })}
 
-
-
               </View>
 
-              :
+              <Animated.View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
+                <View className="flex flex-row items-center justify-between">
+                  <TouchableNativeFeedback
+                    background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                    onPress={() => setActiveTab('tokens')}>
 
-              <View className="flex-1 justify-center items-center">
+                    <View className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"} `}>
+                      <CText style={{ fontFamily: "bold" }} className="text-[18px]  text-center">Tokens</CText>
+                    </View>
+                  </TouchableNativeFeedback>
+                  <TouchableNativeFeedback
+                    background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                    onPress={() => setActiveTab('history')}>
+                    <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey dark:border-dark"} `}>
 
-                <CText>
-                  No Transaction History yet!
-                </CText>
-              </View>
+                      <CText className="text-[18px] text-center">History</CText>
+                    </View>
+                  </TouchableNativeFeedback>
 
-            }
+                </View>
+
+                {activeTab == "tokens" ?
+
+                  <View className="flex-1">
+
+                    <View className="py-5 w-full">
+                      <TouchableOpacity className="bg-grey dark:bg-accent2 rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
+                        <FontAwesome name="sliders" size={14} color="black" />
+                        <CText>
+                          Manage tokens
+                        </CText>
+                      </TouchableOpacity>
+                    </View>
+                    {userWallet?.tokenAccounts?.map((token: any, index: number) => {
+                      return (
+                        <View key={index}>
+                          <TouchableNativeFeedback
+                            key={index}
+                            background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                            onPress={() => { console.log("touched") }}
+                          >
+                            <View
+                              className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
+                            >
+                              <View className="flex flex-row items-start gap-x-2">
+                                <View className="h-14 w-14  overflow-hidden rounded-full">
+                                  <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
+                                </View>
+
+                                <View className="text-[14px]">
+                                  <CText style={{ fontFamily: "bold" }} className="text-[16px]">
+                                    {token?.name || "?"}
+                                  </CText>
+                                  <CText style={{ fontFamily: "reg" }} className="text-[16px]">
+                                    {token?.balance < 1 ?
+                                      token?.balance?.toFixed(Math.min(token?.decimals, 5))
+                                      : token?.balance.toFixed(Math.min(token?.decimals, 3))
+                                    }
+
+                                  </CText>
+                                </View>
+                              </View>
+                              <View className="flex flex-col justify-end">
+                                {/* <CText className="text-[14px]">
+                            {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
+                          </CText> */}
+                                <CText style={{ fontFamily: "bold" }} className="text-[16px]">
+                                  {token?.usdc_price
+                                    ? "$" + token?.usdc_price?.toFixed(2)
+                                    : ""}
+                                </CText>
+                              </View>
+                            </View>
+                          </TouchableNativeFeedback>
+                          <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
+                        </View>
+
+                      );
+                    })}
 
 
-          </Animated.View>
+
+                  </View>
+
+                  :
+
+                  <View className="flex-1 justify-center items-center">
+
+                    <CText>
+                      No Transaction History yet!
+                    </CText>
+                  </View>
+
+                }
+
+
+              </Animated.View>
+            </View>
+
+          </ScrollView>
+
+        </>
+
+        :
+        <View className="flex-1 justify-center items-center bg-accent rounded-3xl">
+
+          {/* <LottieView
+            autoPlay={false}
+            loop={false}
+            ref={animation}
+            style={{
+              width: 200,
+              height: 200,
+              backgroundColor: '#eee',
+            }}
+            source={require('@/assets/anim/animate.json')}
+          /> */}
+
         </View>
 
-      </ScrollView>
+      }
 
 
-
-      <Base stopSession={stopSession} startSession={startSession} isSessionActive={isSessionActive} />
+      <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={startStreamingSession} isSessionActive={isSessionActive} />
 
     </View>
   );

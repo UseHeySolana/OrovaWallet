@@ -12,6 +12,8 @@ export interface userWalletType {
   totalUsdBalance: number;
 }
 export interface Userstore {
+  session: string | null;
+  clearData: () => void;
   user: UserType | null;
   setUser: (user: UserType) => void;
   logout: () => void;
@@ -23,6 +25,7 @@ export interface Userstore {
 const UserItem = create(
   persist<Userstore>(
     (set, get) => ({
+      session: null,
       user: null,
       userWallet: {
         balance: 0,
@@ -32,11 +35,13 @@ const UserItem = create(
       },
       setUser: (user: UserType) => set({ user }),
       updateUserWallet: (userWallet: userWalletType) => set({ userWallet }),
-      logout: () => {
-        // Clear user data and wallet state
-        // AsyncStorage.clear();
+      createSession: () => {
+        const session = `${Math.random()}${new Date().getTime()}${Math.random()}`;
+        set({ session });
+      },
+      clearData: () => {
         AppSettings.getState().setDefault();
-        // WalletItem.getState().setDefault();
+        WalletItem.getState().setDefault();
         // Clear user state and wallet state
         set({
           user: null,
@@ -47,6 +52,9 @@ const UserItem = create(
             totalUsdBalance: 0,
           }
         })
+      },
+      logout: () => {
+        set({ session: null })
       },
     }),
     {

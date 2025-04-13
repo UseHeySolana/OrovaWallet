@@ -56,14 +56,20 @@ export default function ImportPhrase({ navigation }: any) {
 
     try {
       const keyPair = await getKeypairFromMnemonic(mnemonic.trim());
+      console.log(keyPair.publicKey, user);
       // Only proceed once keypair is available
       if (keyPair && keyPair.publicKey && user) {
-        const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
-        if (response.status !== false) {
-          updateKeypair(keyPair);
-          setToast("Wallet Created", 'success')
-          router.replace('/dashboard')
+        try {
+          const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
+          if (response.status !== false) {
+            updateKeypair(keyPair);
+            setToast("Wallet Created", 'success')
+            router.replace('/dashboard')
+            setLoading(false)
+          }
+        } catch (error) {
           setLoading(false)
+          console.error("Error saving wallet address:", error);
         }
       } else {
         setLoading(false);

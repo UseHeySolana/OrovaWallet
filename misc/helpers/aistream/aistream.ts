@@ -53,6 +53,12 @@ class SessionManager {
             this.systemInstructions = systemInstructions;
         }
 
+        if (this.isSessionActive || this.peerConnection || this.dataChannel) {
+            console.warn("Previous session detected – cleaning up before starting a new one.");
+            this.cleanupResources();
+        }
+
+
         try {
             // Request permissions first (important for React Native)
             if (Platform.OS === 'android') {
@@ -293,25 +299,34 @@ class SessionManager {
     }
 
     private cleanupResources(): void {
-        if (this.dataChannel) {
-            this.dataChannel.close();
-            this.dataChannel = null;
+        try {
+            if (this.dataChannel) {
+                if (this.dataChannel.readyState === 'open') {
+                    this.dataChannel.close();
+                }
+                this.dataChannel = null;
+            }
+
+            if (this.peerConnection) {
+                this.peerConnection.getSenders().forEach((sender) => {
+                    if (sender.track) {
+                        sender.track.stop();
+                    }
+                });
+                this.peerConnection.close();
+                this.peerConnection = null;
+            }
+
+            this.audioManager.cleanup();
+            this.isSessionActive = false;
+            this.connectionEstablished = false;
+
+            console.log("Cleaned up previous session resources.");
+        } catch (error) {
+            console.error("Error during cleanup:", error);
         }
-
-        if (this.peerConnection) {
-            this.peerConnection.getSenders().forEach((sender) => {
-                if (sender.track) sender.track.stop();
-            });
-            this.peerConnection.close();
-            this.peerConnection = null;
-        }
-
-        // Clean up audio resources
-        this.audioManager.cleanup();
-
-        this.isSessionActive = false;
-        this.connectionEstablished = false;
     }
+
 
     // Toggle speaker mode
     toggleSpeaker(speakerOn: boolean): void {
