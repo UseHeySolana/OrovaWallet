@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
-import { Connection } from '@solana/web3.js';
 
 interface Settings {
     openWithAuth: boolean;
@@ -44,7 +43,7 @@ interface Settings {
 const AppSettings = create(
     persist<Settings>(
         (set, get) => ({
-            openWithAuth: true,
+            openWithAuth: false,
             ek: {
                 value: "",
                 expiry: 0,
@@ -81,8 +80,8 @@ const AppSettings = create(
                         isLoading: false,
                         loadingTimeout: null,
                         notifications: true,
-                        aiVoice: "nova",
-                        network: "https://devnet.helius-rpc.com/?api-key=",
+                        aiVoice: "alloy",
+                        network: "https://mainnet.helius-rpc.com/?api-key=",
                         alreadyOpened: false,
                         skippedAiSettings: false,
                         createdWallet: false,

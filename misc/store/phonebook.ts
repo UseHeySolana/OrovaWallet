@@ -20,7 +20,15 @@ const PhoneBook = create(
                 set({ contacts: [...get().contacts, ...contacts] });
             },
             addContact: (contact: { name: string; phoneNumber: string, walletAddress: string }) => {
-                set({ contacts: [...get().contacts, contact] });
+                const result = get().contacts.find(item => item.name === contact.name) || null
+
+                console.log(contact)
+
+                if (!result) {
+                    set({ contacts: [...get().contacts, contact] });
+                } else {
+                    return
+                }
             },
             deleteContact: (index: number) => {
                 set({ contacts: [...get().contacts.slice(0, index), ...get().contacts.slice(index + 1)] });

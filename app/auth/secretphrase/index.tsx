@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import OTPTextInput from 'react-native-otp-textinput';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
+import { View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
 import { generateMnemonic, getKeypairFromMnemonic } from "@/misc/helpers/wallet";
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+
 import * as Clipboard from 'expo-clipboard';
 import AppSettings from "@/misc/store/settingsstore";
 // import { Connection, Keypair } from "@solana/web3.js";
 import WalletItem from "@/misc/store/wallet";
-import { addDataToFirestore, fetchData, handleSearch, MessageData, saveWalletAddress } from "@/misc/helpers/db";
-import OTPTextView from "react-native-otp-textinput";
-import { UserType } from "@/misc/types/usertypes";
+import { saveWalletAddress } from "@/misc/helpers/db";
+
 import UserItem from "@/misc/store/userstore";
-import { Keypair } from "@solana/web3.js";
 import { router } from "expo-router";
 import IconLibrary from "@/misc/helpers/icons";
 import ConfirmPhraseSheet from "@/components/Sheets/ConfirmKeyWordsSheet";
@@ -59,6 +55,7 @@ export default function SecretPhrase({ navigation }: any) {
   const [currentState, setCurrentState] = useState<'verify-phrase' | "start-wallet" | "sign-up" | "set-pin" | "">('')
   const [startWalletCreation, setStartWalletCreation] = useState(false);
   const [verifyPhrase, setVerifyPhrase] = useState(false);
+  // const { showToast } =
   const [mnemonic, setMnemonic] = useState("");
   const [verifiedWords, setVerifiedWords] = useState<{ position: number, word: string }[]>([]);
   const [userWords, setUserWords] = useState(

@@ -6,7 +6,7 @@ interface CustomTextProps extends TextProps {
 }
 
 const CText: React.FC<CustomTextProps> = ({ style, children, className, textColor, ...props }) => (
-  <Text {...props} className={`${textColor ? textColor : "text-dark dark:text-white"} ${className}`} style={[{ fontFamily: "reg" }, style]}>
+  <Text {...props} className={`${textColor ? textColor : "text-[1rem] text-dark dark:text-white"} ${className}`} style={[{ fontFamily: "reg" }, style]}>
     {children}
   </Text>
 );

@@ -27,10 +27,12 @@ export async function getAllRoutes() {
 export class Routing {
     public changeRoute: FunctionParams;
     public goBack: any;
+    public qrCode: any;
 
     constructor(public session: SessionManager) {
         this.changeRoute = this.change_route()
         this.goBack = this.go_back()
+        this.qrCode = this.qr_code()
     }
     change_route() {
         return {
@@ -41,7 +43,7 @@ export class Routing {
                 properties: {
                     route: {
                         type: "string",
-                        description:"This is the route you would navigate to the route should be mapped to and be among this list of routes, about, contact, currency,dashboard,language, scan, send, smarthedging, swap, tokeninfo"
+                        description: "This is the route you would navigate to the route should be mapped to and be among this list of routes, about, contact, currency,dashboard,language, scan, send, smarthedging, swap, tokeninfo"
                     }
                 },
                 required: ["route"],
@@ -49,7 +51,7 @@ export class Routing {
             handler: async (args: { route: string }) => {
                 //@ts-expect-error
                 router.push(`/${args.route}`)
-                return "Welcome to this route!";
+                return "Route changed successfully, anything else you want to do?";
             }
         }
     }
@@ -62,6 +64,18 @@ export class Routing {
             handler: async () => {
                 router.back();
                 return "Returned to previous screen successfully";
+            }
+        }
+    }
+
+    qr_code() {
+        return {
+            name: "go_back",
+            description: "This returns you to the previous route.",
+            parameters: null,
+            handler: async () => {
+                router.push('/dashboard/qrcode');
+                return "Here is your QR code, you can share or send it to someone else";
             }
         }
     }

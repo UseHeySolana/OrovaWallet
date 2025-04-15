@@ -7,6 +7,7 @@ import { Dimensions, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollV
 import { router } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import UserItem from "@/misc/store/userstore";
+import CText from "@/components/TextComp";
 
 
 Buttons
@@ -50,7 +51,7 @@ export default function Index() {
   const getDestination = () => {
 
     // User is logged in
-    if (!openWithAuth && publicKey !== null && session !== null) {
+    if (!openWithAuth && publicKey !== null) {
       return '/dashboard';
     }
 
@@ -118,20 +119,23 @@ export default function Index() {
         {screens.map((screen, index) => (
 
           <View key={index} style={{ width, height }} className="flex items-center justify-start gap-y-3 relative">
-            <View className="h-[72%] relative top-0   w-full">
+
+
+            <View className="relative top-0  h-full w-full">
               <Image
                 source={screen.image}
                 style={{ width: '100%', height: '100%' }}
-                contentFit="cover"
+                contentFit="contain"
+                contentPosition="top center"
               />
             </View>
 
-            <View className="items-center mt-5 px-6">
-              <Text className="text-3xl  text-center font-bold text-primary dark:text-white">{screen.title}</Text>
-              <Text className="text-lg mt-2 text-gray-600 dark:text-white text-center">{screen.subtitle}</Text>
+            <View className="items-center mt-5 absolute bottom-[15%] px-6">
+              <CText className="text-[1.2rem]  text-center font-bold text-primary dark:text-white">{screen.title}</CText>
+              <CText className="text-[0.8rem] mt-2 text-gray-600 dark:text-white text-center">{screen.subtitle}</CText>
             </View>
 
-            <View className="px-3 w-full absolute h-fit bottom-12 left-0">
+            <View className="px-3 w-full absolute h-fit bottom-10 left-0">
               <Buttons
                 className=""
                 text="Next"

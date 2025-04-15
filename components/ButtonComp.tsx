@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text, TouchableNativeFeedback, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import CText from "./TextComp";
 
 interface Buttons {
@@ -48,7 +48,7 @@ export default function Buttons(props: Buttons) {
               onPress={onPress}>
               <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}>
                 {props.icon}
-                <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[16px]  text-center"} ${type === "primary" ?
+                <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[1rem]  text-center"} ${type === "primary" ?
                   "text-white" : "text-black"
                   }`}>{loading ? <><ActivityIndicator /></> : text}</CText>
               </View>
@@ -56,14 +56,14 @@ export default function Buttons(props: Buttons) {
           </View>
         </>
       ) :
-        <Pressable onPress={onPress}>
-          <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"}  flex flex-row justify-center items-center gap-x-2`}>
+        <TouchableOpacity onPress={onPress}>
+          <View className={`${buttonColor} ${className ? className : "py-5  rounded-full"}  flex flex-row justify-center items-center gap-x-2`}>
             {props.icon}
-            <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[16px]  text-center"} ${type === "primary" ?
+            <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[1rem]  text-center"} ${type === "primary" ?
               "text-white" : "text-black"
               }`}>{text}</CText>
           </View>
-        </Pressable>
+        </TouchableOpacity>
       }
     </>
   );

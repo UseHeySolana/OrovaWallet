@@ -21,7 +21,7 @@ export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, s
   return (
     <View className="absolute w-screen flex flex-row justify-center items-center bottom-5 px-2">
 
-      <View className="w-fit gap-x-4 bg-[#E1E1E1] dark:bg-accent2 p-2 h-[75] rounded-full flex flex-row justify-between items-center ">
+      <View className="w-fit gap-x-4 bg-[#E1E1E1]/60 dark:bg-accent2 p-2 h-[75] rounded-full flex flex-row justify-between items-center ">
 
         {/* <View className="h-[56] w-[56] border border-purple flex items-center justify-center rounded-full">
             <Ionicons name="wallet-outline" size={24} color="#971BB2" />

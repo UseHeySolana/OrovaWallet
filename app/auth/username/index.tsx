@@ -18,12 +18,14 @@ import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/misc/helpers/extrafunctions";
 import { delay } from "@/misc/helpers/functions";
+import {useKeyboard} from "@/misc/context/KeyboardContext";
 /**
   * What should be done here
   * 1. Register User Voice for Authentication 
   * 2. Save User Voice and ask if to create wallet with their voice
   */
 function Voicereg() {
+const{isKeyboardVisible} =useKeyboard()
 
   const [userDetails, setUserDetails] = useState({
     username: "",
@@ -51,6 +53,8 @@ function Voicereg() {
       setCurrentState('start-wallet')
     }
   }, [user])
+
+ 
 
   const saveUserToDB = async () => {
     const fields = [];
@@ -104,14 +108,15 @@ function Voicereg() {
   }
   const { isDarkMode } = useThemeContext()
 
+
   return (
     <View
-      className="relative bg-grey dark:bg-dark  h-full w-100 flex items-center"
+      className="bg-grey dark:bg-dark  h-full w-100 flex-1 items-center"
     >
-      <View className=" py-5 w-full px-4 gap-y-10 flex flex-col justify-start ">
-        <View className="w-8/12 m-auto">
-          <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Let's get you started</CText>
-          <CText className="text-[16px] text-center">Your username will be unique and can be used to make transactions.</CText>
+      <View className=" py-5 w-full  px-4 gap-y-10 flex flex-col justify-start ">
+        <View className="w-10/12 m-auto">
+          <CText style={{ fontFamily: "bold" }} className="text-[1.25em] text-center">Let's get you started</CText>
+          <CText className="text-[1rem] text-center">Your username will be unique and can be used to make transactions.</CText>
         </View>
 
         <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3">
@@ -148,7 +153,7 @@ function Voicereg() {
 
           <Buttons buttonType="pressable" onPress={() => saveUserToDB()} className="" text={isLoading ? "loading" : "Sign up"} type="primary" />
           <View className="px-4 my-3">
-            <CText className="text-[16px] text-center">
+            <CText className="text-[1rem] text-center">
               I have read, understood and agreed to the <CText style={{ fontFamily: 'bold' }} textColor="text-purple">Terms&Conditions </CText>and
               <CText style={{ fontFamily: 'bold' }} textColor="text-purple"> Privacy Policy</CText>
 
@@ -157,15 +162,18 @@ function Voicereg() {
 
 
         </View>
-      </View >
 
-      <View className="absolute bottom-10 flex flex-row justify-center items-center gap-x-2">
-        <CText className="text-[18px] flex items-center flex-row">Already have an Account?</CText>
-        <TouchableOpacity
-          onPress={() => router.push('/auth/login')}
-        >
-          <CText style={{ fontFamily: 'bold' }} textColor="text-purple" className="text-[18px]">Log in</CText></TouchableOpacity>
-      </View>
+
+      </View >
+      {!isKeyboardVisible &&
+        <View className="absolute bottom-10 flex w-full flex-row justify-center items-center gap-x-2">
+          <CText className="text-[1.125em] flex items-center flex-row">Already have an Account?</CText>
+          <TouchableOpacity
+            onPress={() => router.push('/auth/login')}
+          >
+            <CText style={{ fontFamily: 'bold' }} textColor="text-purple" className="text-[1.125em]">Log in</CText></TouchableOpacity>
+        </View>
+      }
 
 
       <CountryPickerModal
@@ -182,8 +190,6 @@ function Voicereg() {
       />
 
       <WalletSheet open={currentState === 'start-wallet'} />
-
-
 
 
     </View >

@@ -5,27 +5,31 @@ import { Connection } from "@solana/web3.js";
 import AppSettings from "../store/settingsstore";
 import UserItem from "../store/userstore";
 import { api_key } from "@/app/requests/dashboard";
-import { Alert } from "react-native";
 import { prompB } from "../helpers/prompt";
-import GeminiSessionManager from "../helpers/gemini/StreamManager";
 
 interface AIService {
     sessionManager: SessionManager | null,
     isSessionActive: boolean,
     startSession: (audio?: boolean) => void,
-    stopSession: () => void
+    stopSession: () => void,
+    currentMode: 'loading' | 'aispeaking' | 'human',
+    conversationId: string,
 }
 const AiService = createContext<AIService | null>(null);
 
 export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const { user, userWallet } = UserItem()
     const { network, setLoading } = AppSettings()
+
     const [sessionManager, setSessionManager] = useState<SessionManager | null>(null);
     const [isSessionActive, setIsSessionActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(false);
-    const [aiType, setAiType] = useState<"openai" | "gemini">("openai");
     const [refresh, setRefresh] = useState(0);
     const [prompt, setPrompt] = useState("")
+
+    const [currentMode, setCurrentMode] = useState<'loading' | 'aispeaking' | 'human'>("loading");
+
+    const [conversationId, setConversationId] = useState('');
 
     useEffect(() => {
         const checkPermissions = async () => {
@@ -48,11 +52,13 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             const connection = new Connection(`${network}${api_key}`)
             if (!connection) return;
             if (isSessionActive || sessionManager) return;
-            // if (aiType === "gemini") {
-            //     const manager = new GeminiSessionManager(userWallet, connection)
-            //     setSessionManager(manager);
-            // } else {
-            const manager = new SessionManager(userWallet, connection);
+
+            const manager = new SessionManager(userWallet, connection,
+                {
+                    setMode: (mode) => setCurrentMode(mode),
+                    setConversationId: (id) => setConversationId(id),
+                }
+            );
             setSessionManager(manager);
             const tokenDetails = userWallet?.tokenAccounts.map((token: any) => ({
                 name: token.name,
@@ -110,6 +116,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             if (sessionManager) {
                 sessionManager.stopSession();
                 setIsSessionActive(false);
+                setSessionManager(null);
             }
             setRefresh(Math.random());
             setLoading(false);
@@ -118,7 +125,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, [sessionManager]);
 
     return (
-        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession }}>
+        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId }}>
             {children}
         </AiService.Provider>
     );

@@ -29,6 +29,14 @@
     },
     "production": {
       "channel": "production"
+    },
+    "playstore": {
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "withoutCredentials": false
+      },
+      "developmentClient": false
     }
   }
 }

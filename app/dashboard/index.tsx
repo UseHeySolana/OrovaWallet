@@ -19,8 +19,10 @@ import AppSettings from "@/misc/store/settingsstore";
 import { useAi } from "@/misc/context/AiContext";
 
 import { Base } from "@/components/Navigation/Base";
-import Animated, { useSharedValue } from "react-native-reanimated";
 import { useThemeContext } from "@/misc/context/ThemeContext";
+import Animated from "react-native-reanimated";
+import Convo, { MessageType } from "@/misc/store/conversation";
+import { scale } from "react-native-size-matters";
 
 
 const AiHelpers = [
@@ -38,6 +40,20 @@ const AiHelpers = [
   }
 ]
 
+const colors = {
+  loading: {
+    color1: "#971BB2", // main purple
+    color2: "#D98BEA", // lighter purple for shimmer effect
+  },
+  aispeaking: {
+    color1: "#4B00E0", // electric violet
+    color2: "#00F0FF", // neon cyan
+  },
+  human: {
+    color1: "#1BB296", // teal (fresh, natural contrast to purple)
+    color2: "#A3F3E4", // minty highlight for friendliness
+  }
+}
 /**
   * What should be done here
   * 1. Get User Tokens and Balance
@@ -45,19 +61,36 @@ const AiHelpers = [
   */
 export default function Dashboard() {
   const [activeItems, setActiveItems] = useState([0, 1])
+  const { messages, getConversationMessages, conversations } = Convo()
   const [activeTab, setActiveTab] = useState('tokens')
-
   const { user, userWallet, updateUserWallet, logout } = UserItem();
   const { network, setLoading } = AppSettings();
-  const { sessionManager, isSessionActive, startSession, stopSession } = useAi()
+  const { sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId } = useAi()
   const { publicKey } = WalletItem()
   const [refreshing, setRefreshing] = useState(false);
   const [update, setUpdate] = useState(0)
   const animation = useRef<LottieView>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [showWallet, setShowWallet] = useState(false)
-
   const { isDarkMode } = useThemeContext()
+
+  const [message, setMessage] = useState<MessageType[]>([])
+
+  useEffect(() => {
+    const messageItem = getConversationMessages(conversationId) || [];
+    setMessage(messageItem);
+
+  }, [conversationId, messages])
+
+  useEffect(() => {
+    if (currentMode === "aispeaking" || currentMode === "human") {
+      animation.current?.play()
+    } else if (currentMode === "loading") {
+      animation.current?.pause()
+    }
+
+  }, [currentMode])
 
   useEffect(() => {
     const getUser = async () => {
@@ -95,9 +128,10 @@ export default function Dashboard() {
     sessionManager?.sendTextMessage("this is new")
   }
 
+
   return (
     <View
-      className="pt-3 w-screen px-4 h-screen gap-y-4 bg-grey dark:bg-dark "
+      className="pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark "
     >
       <View className="flex  flex-row justify-between items-center">
         {/* <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
@@ -145,14 +179,14 @@ export default function Dashboard() {
                     </CText>
 
                   </View>
-                  {/* <View className="flex flex-row justify-center items-center gap-2">
-                <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
-                  <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push('/dashboard/qrcode')} className="p-3  rounded-full bg-grey dark:bg-accent2">
-                  <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
-                </TouchableOpacity>
-              </View> */}
+                  <View className="flex flex-row justify-center items-center gap-2">
+                    <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
+                      <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push('/dashboard/qrcode')} className="p-3  rounded-full bg-grey dark:bg-accent2">
+                      <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
@@ -161,7 +195,7 @@ export default function Dashboard() {
                   <View className="w-[40%]">
                     <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="secondary" text="Send" icon={
                       <View className="rotate-[230deg]">
-                        <AntDesign name="arrowdown" size={16} color="white" />
+                        <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
                       </View>
                     } />
                   </View>
@@ -201,8 +235,8 @@ export default function Dashboard() {
                           />
                         </View>
                         <View>
-                          <CText style={{ fontFamily: "bold" }} className="text-[18px]">{item.title}</CText>
-                          <CText className="text-[14px]">{item.caption}</CText>
+                          <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">{item.title}</CText>
+                          <CText className="text-[1rem]">{item.caption}</CText>
                         </View>
 
                       </View>
@@ -222,7 +256,7 @@ export default function Dashboard() {
                     onPress={() => setActiveTab('tokens')}>
 
                     <View className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"} `}>
-                      <CText style={{ fontFamily: "bold" }} className="text-[18px]  text-center">Tokens</CText>
+                      <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]  text-center">Tokens</CText>
                     </View>
                   </TouchableNativeFeedback>
                   <TouchableNativeFeedback
@@ -230,7 +264,7 @@ export default function Dashboard() {
                     onPress={() => setActiveTab('history')}>
                     <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey dark:border-dark"} `}>
 
-                      <CText className="text-[18px] text-center">History</CText>
+                      <CText className="text-[1.1rem] text-center">History</CText>
                     </View>
                   </TouchableNativeFeedback>
 
@@ -257,18 +291,25 @@ export default function Dashboard() {
                             onPress={() => { console.log("touched") }}
                           >
                             <View
-                              className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
+                              className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[1.14rem]"
                             >
                               <View className="flex flex-row items-start gap-x-2">
-                                <View className="h-14 w-14  overflow-hidden rounded-full">
+                                <View
+                                  style={{
+                                    width: scale(30),
+                                    height: scale(30),
+
+                                  }}
+
+                                  className="overflow-hidden rounded-full">
                                   <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
                                 </View>
 
                                 <View className="text-[14px]">
-                                  <CText style={{ fontFamily: "bold" }} className="text-[16px]">
+                                  <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
                                     {token?.name || "?"}
                                   </CText>
-                                  <CText style={{ fontFamily: "reg" }} className="text-[16px]">
+                                  <CText style={{ fontFamily: "reg" }} className="text-[1rem]">
                                     {token?.balance < 1 ?
                                       token?.balance?.toFixed(Math.min(token?.decimals, 5))
                                       : token?.balance.toFixed(Math.min(token?.decimals, 3))
@@ -319,22 +360,70 @@ export default function Dashboard() {
         </>
 
         :
-        <View className="flex-1 justify-center items-center bg-accent rounded-3xl">
+        <View className="flex-1 justify-start py-2  rounded-3xl overflow-hidden">
+          {message.length > 0 &&
 
-          {/* <LottieView
-            autoPlay={false}
-            loop={false}
+            <View className="h-[36rem]">
+              <ScrollView
+                ref={scrollViewRef}
+                className=" py-2 relative h-[36rem] space-y-4"
+                onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+              >
+                {message.map((item: any, index: number) => {
+                  const isSystem = item.role === "system";
+                  const isUser = !isSystem;
+                  return (
+                    <View
+                      key={index + item.id}
+                      className={`w-full flex-row mb-2 ${isSystem ? "justify-start" : "justify-end"
+                        }`}
+                    >
+                      <View
+                        className={`bg-white dark:bg-accent2 p-2 rounded-xl w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"
+                          }`}
+                      >
+                        <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
+                          {isSystem ? "HeySolana" : `@${user?.username}`}
+                        </CText>
+                        <View className="bg-grey dark:bg-accent p-2 rounded-lg">
+                          <CText className="text-[12px]">{item.content}</CText>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })
+                }
+              </ScrollView>
+            </View>
+
+          }
+
+          <LottieView
+            autoPlay={true}
+            loop
+            speed={10}
             ref={animation}
             style={{
-              width: 200,
-              height: 200,
-              backgroundColor: '#eee',
+              position: "absolute",
+              bottom: -10,
+              zIndex: 99999,
+              width: 1000,
+              height: 500,
             }}
-            source={require('@/assets/anim/animate.json')}
-          /> */}
-
+            resizeMode="cover"
+            colorFilters={[
+              {
+                keypath: "Shape Layer 2",
+                color: colors[currentMode].color1,
+              },
+              {
+                keypath: "Shape Layer 1",
+                color: colors[currentMode].color2,
+              },
+            ]}
+            source={require('@/assets/anim/lower.json')}
+          />
         </View>
-
       }
 
 

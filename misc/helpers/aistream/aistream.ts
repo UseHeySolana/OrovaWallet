@@ -14,6 +14,7 @@ import { userWalletType } from "@/misc/store/userstore";
 import { toolFunctions } from "../tools";
 import { Audio } from "expo-av";
 import AppSettings from "@/misc/store/settingsstore";
+import Convo from "@/misc/store/conversation";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -27,13 +28,25 @@ class SessionManager {
     private systemInstructions: string = "";
     private availableFunctions: any[] = [];
     private connectionEstablished: boolean = false;
+    // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
+    public callbacks: {
+        setMode: (mode: "loading" | "human" | "aispeaking") => void;
+        setConversationId: (id: string) => void;
+    };
+    private conversation_id: string | null = null;
 
-    constructor(public userDetails: userWalletType, public connection: Connection) {
+    constructor(public userDetails: userWalletType, public connection: Connection,
+        callbacks: {
+            setMode: (mode: "loading" | "human" | "aispeaking") => void,
+            setConversationId: (id: string) => void
+
+        }) {
         this.isSessionActive = false;
         this.events = [];
         this.memory = [];
         this.dataChannel = null;
         this.peerConnection = null;
+        this.callbacks = callbacks;
 
         // Initialize audio manager
         this.audioManager = new AudioManager();
@@ -121,11 +134,12 @@ class SessionManager {
                 offerToReceiveVideo: false,
                 voiceActivityDetection: true
             });
+
             await this.peerConnection.setLocalDescription(offer);
 
             // Send offer to API
             const baseUrl = "https://api.openai.com/v1/realtime";
-            const model = "gpt-4o-realtime-preview-2024-12-17";
+            const model = "gpt-4o-mini-realtime-preview-2024-12-17";
             const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
                 method: "POST",
                 body: offer.sdp,
@@ -156,7 +170,9 @@ class SessionManager {
                     }
                 }
             });
-
+            this.conversation_id = new Date().getTime().toString();
+            this.callbacks.setConversationId(this.conversation_id);
+            Convo.getState().createConversation(this.conversation_id)
             console.log("Session started and ready for audio streaming.");
         } catch (error) {
             console.error("Error starting session:", error);
@@ -169,15 +185,60 @@ class SessionManager {
         if (!this.dataChannel) return;
 
         // Handle data channel messages
-        this.dataChannel.addEventListener('message', (e: any) => {
+        this.dataChannel.addEventListener('message', (e: MessageEvent) => {
             try {
                 const message = JSON.parse(e.data);
                 this.events.unshift(message);
                 this.updateMemory(message);
 
-                if (message.type === "response.audio_transcript.done") {
-                    console.log("Transcript:", message.transcript);
+
+                if (message.type.includes('conversation')) {
+                    console.log(message.type)
                 }
+
+                if (message.type === "input_audio_buffer.speech_started") {
+                    this.callbacks.setMode('human');
+                }
+
+
+
+                if (message.type === "response.created") {
+                    this.callbacks.setMode('aispeaking');
+                }
+
+                if (message.type == "conversation.item.input_audio_transcription.completed") {
+                    const finalTranscript = !message.transcript || message.transcript === "\n"
+                        ? "[inaudible]"
+                        : message.transcript;
+                    if (this.conversation_id !== null) {
+                        Convo.getState().setMessages({
+                            id: message.response_id,
+                            role: 'user',
+                            content: finalTranscript,
+                            timestamp: new Date().getTime(),
+                            conversation_id: this.conversation_id,
+                        })
+                    }
+                }
+
+
+                if (message.type === "response.audio_transcript.done") {
+                    if (this.conversation_id !== null) {
+                        Convo.getState().setMessages({
+                            id: message.response_id,
+                            role: 'system',
+                            content: message.transcript,
+                            timestamp: new Date().getTime(),
+                            conversation_id: this.conversation_id,
+                        })
+                    }
+                }
+
+                // if (message.type === "response.audio.done") {
+                //     // console.log("Transcript:", message.transcript);
+                //     this.callbacks.setMode('loading');
+
+                // }
 
                 // Handle function calls from the model
                 if (message.type === "response.done" &&
@@ -191,6 +252,8 @@ class SessionManager {
                             this.handleFunctionCall(item);
                         }
                     }
+
+
                 }
             } catch (error) {
                 console.error("Error processing data channel message:", error);
@@ -236,19 +299,7 @@ class SessionManager {
 
             // Step 2: Register functions after system instructions
             if (this.availableFunctions.length > 0) {
-                console.log("Registering available functions");
-                await this.sendWithDelay({
-                    type: "session.update",
-                    session: {
-                        tools: this.availableFunctions.map(fn => ({
-                            type: "function",
-                            name: fn.name,
-                            description: fn.description,
-                            parameters: fn.parameters
-                        })),
-                        tool_choice: "auto"
-                    }
-                }, 500);
+                this.registerFunctions(this.availableFunctions);
             }
 
             // Step 3: Send an initial greeting to establish context
@@ -296,6 +347,8 @@ class SessionManager {
 
     stopSession(): void {
         this.cleanupResources();
+        this.callbacks.setMode('loading');
+        console.log("Session stopped and resources cleaned up.");
     }
 
     private cleanupResources(): void {
@@ -436,6 +489,7 @@ class SessionManager {
         this.availableFunctions = functions;
 
         if (this.isSessionActive) {
+
             const event = {
                 type: "session.update",
                 session: {
@@ -464,6 +518,7 @@ class SessionManager {
                         }],
                     }
                 });
+                console.log("Function Registered");
 
                 this.sendClientEvent({ type: "response.create" });
             }, 500);

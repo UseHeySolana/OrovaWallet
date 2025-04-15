@@ -10,13 +10,13 @@ export class toolManipulator {
     constructor(public session: SessionManager,) {
         this.toolsDes = toolRouter(session)
         this.chooseTools = this.choose_tools()
-    
+
     }
 
     choose_tools() {
         return {
             name: "choose_tools",
-            description: "You are to match the intent of the user so you can correctly map the tools that the user wants to use. Here are the list of available tools and what they do with their parameters"+"----" + this.toolsDes.map((tool) => { return tool.name + " : " + tool.description }).join("\n"),
+            description: "You are to match the intent of the user so you can correctly map the tools that the user wants to use. Here are the list of available tools and what they do with their parameters",
             parameters: {
                 type: "object",
                 properties: {
@@ -33,6 +33,7 @@ export class toolManipulator {
             },
             handler: async (args: { tool: string, parameter: object }) => {
                 const selectedTool = this.toolsDes.find((tool) => tool.name === args.tool);
+
                 if (!selectedTool) {
                     return "Tool not found";
                 }

@@ -20,6 +20,7 @@ const settingsMenu = [
   {
     title: "AI Assistant",
     route: "/aisetup",
+    subtitle: "Setup HeySolana AI",
     icon: <View className="h-[18px] w-[18px]  rounded-full">
       <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
         contentFit="cover"
@@ -39,8 +40,17 @@ const settingsMenu = [
   // },
   {
     title: "Security",
-    route: null,
+    subtitle: "Manage authentication and more",
+    route: '/settings/security',
     icon: <IconLibrary.security />,
+  },
+
+  {
+    title: "Network",
+    route: '/settings/network',
+    subtitle: AppSettings.getState().network.includes('mainnet') ? 'Mainnet' : 'Devnet',
+
+    icon: <IconLibrary.network />,
   },
   // {
   //   title: "Language",
@@ -54,11 +64,15 @@ const settingsMenu2 = [
   {
     title: "Address Book",
     route: '/settings/addressbook',
+    subtitle: "Check your contacts that are on HeySolana",
+
     icon: <IconLibrary.notebook />,
   },
   {
     title: "Connected Apps",
     route: null,
+    subtitle: "Activate tools that HeySolana interacts with",
+
     icon: <IconLibrary.connection />,
   },
 
@@ -71,11 +85,14 @@ const settingsMenu2 = [
     title: "Dark mode",
     route: 'dark',
     type: 'toggle',
+    subtitle: "Change the app mode",
+
     icon: <IconLibrary.moon />,
   },
   {
     title: "Logout",
     route: "logout",
+    subtitle: "Sign out/ Remove wallet and clear data",
     icon: <IconLibrary.logout />,
   },
 ]
@@ -148,10 +165,14 @@ function Settings() {
                   <View className="h-6 flex flex-row justify-center items-center w-6">
                     {item.icon ? item.icon : <IconLibrary.angle_right />}
                   </View>
-
-                  <CText className="text-[16px]">
-                    {item.title}
-                  </CText>
+                  <View>
+                    <CText className="text-[1.2rem]">
+                      {item.title}
+                    </CText>
+                    <CText textColor="text-gray-400" className="text-[1rem] ">
+                      {item.subtitle}
+                    </CText>
+                  </View>
                 </View>
 
                 <Pressable onPress={() => router.back()} className="p-3">
@@ -173,9 +194,14 @@ function Settings() {
                   <View className="h-6 flex flex-row justify-center items-center w-6">
                     {item.icon ? item.icon : <IconLibrary.angle_right />}
                   </View>
-                  <CText className="text-[16px]">
-                    {item.title}
-                  </CText>
+                  <View>
+                    <CText className="text-[1.2rem]">
+                      {item.title}
+                    </CText>
+                    <CText textColor="text-gray-400" className="text-[1rem] ">
+                      {item.subtitle}
+                    </CText>
+                  </View>
                 </View>
 
                 {item.route && item.route !== "logout" &&

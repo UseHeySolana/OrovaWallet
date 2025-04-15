@@ -19,6 +19,26 @@ type IconProps = {
 
 // Create a context wrapper component that provides themed icons
 const IconLibrary = {
+    delete: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <EvilIcons
+                name="trash"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    lock: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <EvilIcons
+                name="lock"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
     cancel: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (
@@ -224,6 +244,16 @@ const IconLibrary = {
         return (
             <Entypo
                 name="moon"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    network: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Entypo
+                name="network"
                 size={props.size || 18}
                 color={props.color || (isDarkMode ? "white" : "black")}
             />

@@ -55,9 +55,9 @@ function Login() {
 
         if (openWithAuth) {
           setFingerPrintSigning(true)
-          // setTimeout(() => {
-          //   BiometricAuth()
-          // }, 1000)
+          setTimeout(() => {
+            BiometricAuth()
+          }, 1000)
         } else {
           setCurrentState('start-wallet')
         }
@@ -125,16 +125,6 @@ function Login() {
         return;
       }
 
-      // if (publicKey && userDetails.wallet_address !== null) {
-      //   setUser({
-      //     username: userDetails.username,
-      //     mobileNumber: userDetails.mobileNumber,
-      //     pin: "",
-      //   })
-      //   router.replace('/dashboard')
-      //   return;
-      // }
-
 
     } else {
       setToast(response.message, 'error')
@@ -150,15 +140,15 @@ function Login() {
         <View className="flex flex-col justify-center items-center gap-y-2">
 
           <View className="w-full flex justify-center items-center">
-            <View className="h-[50px] w-[50px]  rounded-full">
+            <View className="h-[3.125em] w-[3.125em]  rounded-full">
               <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
                 contentFit="contain"
               />
             </View>
           </View>
           <View className="w-8/12 m-auto">
-            <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Welcome back!</CText>
-            <CText className="text-[16px] text-center">Let's make handsfreee transactions</CText>
+            <CText style={{ fontFamily: "bold" }} className="text-[1.25em] text-center">Welcome back!</CText>
+            <CText className="text-[1em] text-center">Let's make handsfreee transactions</CText>
           </View>
         </View>
 
@@ -189,7 +179,6 @@ function Login() {
                     keyboardType="phone-pad"
                     placeholderTextColor={isDarkMode ? "white" : "black"}
                     onChangeText={(text) => {
-
                       setUserDetails({ ...userDetails, mobileNumber: text })
                     }}
                     placeholder={`enter a phone number`}
@@ -213,15 +202,15 @@ function Login() {
           </>
           :
           <View className="w-full flex justify-center gap-y-10 items-center">
-            <TouchableOpacity onPress={BiometricAuth} className="h-[50px] w-[50px]  rounded-full overflow-hidden">
+            <TouchableOpacity onPress={BiometricAuth} className="h-[3.125em] w-[3.125em]  rounded-full overflow-hidden">
               <Image source={require('@/assets/images/biometric.png')} style={{ width: "100%", height: "100%" }}
                 contentFit="cover"
               />
             </TouchableOpacity>
             <View className="">
-              <CText style={{ fontFamily: "bold" }} className="text-[16px] text-center">Tap to login with your biometrics</CText>
+              <CText style={{ fontFamily: "bold" }} className="text-[1em] text-center">Tap to login with your biometrics</CText>
               <TouchableOpacity onPress={() => setFingerPrintSigning(false)}>
-                <CText textColor="text-purple" className="text-[16px] text-center">or login with mobile number</CText>
+                <CText textColor="text-purple" className="text-[1em] text-center">or login with mobile number</CText>
               </TouchableOpacity>
             </View>
           </View>

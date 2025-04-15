@@ -12,7 +12,9 @@ config.resolver.extraNodeModules.stream = require.resolve("stream-browserify");
 config.resolver.extraNodeModules["readable-stream"] = require.resolve("readable-stream");
 
 
-
+config.resolver.assetExts.push("lottie");
+//     assetExts: [...defaultConfig.resolver.assetExts, "lottie"],
+//   },
 
 
 

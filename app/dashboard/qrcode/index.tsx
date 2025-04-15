@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 
+import { scale } from 'react-native-size-matters';
 import { router } from "expo-router";
 
 
@@ -48,7 +49,6 @@ function Scan() {
       return
     }
   }
-
   return (
     <View className="relative pt-3 px-4 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full gap-y-4">
@@ -58,12 +58,21 @@ function Scan() {
             <IconLibrary.back />
           </Pressable>
         </View>
-        <View ref={qrcode} className="flex bg-white shadow rounded-xl dark:bg-accent h-fit py-10 w-[370px] m-auto flex-row justify-center items-center ">
+
+        <View
+          style={{
+            width: scale(320),
+            padding: scale(10),
+          }}
+          className="flex bg-white shadow rounded-xl dark:bg-accent h-fit m-auto flex-row justify-center items-center ">
           <View className=" border border-purple/40 p-4 rounded-xl">
-            <View className="h-[299] w-[299] overflow-hidden rounded-xl">
+            <View ref={qrcode} style={{
+              width: scale(250),
+              height: scale(250)
+            }} className=" overflow-hidden rounded-xl">
               <QRCode
                 value={walletAddress}
-                size={300}
+                size={scale(249)}
                 logo={require('@/assets/images/icon.png')}
                 logoBackgroundColor="transparent"
               />
@@ -102,9 +111,11 @@ function Scan() {
           <View className="1">
             <IconLibrary.question />
           </View>
-          <View className="w-[288px] ">
+          <View style={{
+            width: scale(280)
+          }}>
 
-            <CText style={{ fontFamily: "md" }} className="text-[16px] text-start text-wrap">Use this address to receive tokens and collectibles on the Solana network only..</CText>
+            <CText style={{ fontFamily: "md" }} className="text-[1.rem] text-start text-wrap">Use this address to receive tokens and collectibles on the Solana network only..</CText>
           </View>
 
         </View>

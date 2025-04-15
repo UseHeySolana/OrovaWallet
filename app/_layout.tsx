@@ -9,6 +9,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { AiServiceProvider } from '@/misc/context/AiContext';
+import { KeyboardProvider } from '@/misc/context/KeyboardContext';
+
 import { ThemeProvider, useThemeContext } from '@/misc/context/ThemeContext';
 import StackView from './stack';
 
@@ -62,14 +64,16 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView>
-      <ThemeProvider>
-        <AiServiceProvider>
-          <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <ThemeProvider>
+          <AiServiceProvider>
 
-            <StackView />
-          </SafeAreaView>
-        </AiServiceProvider>
-      </ThemeProvider>
+            <SafeAreaView style={{ flex: 1 }}>
+              <StackView />
+            </SafeAreaView>
+          </AiServiceProvider>
+        </ThemeProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

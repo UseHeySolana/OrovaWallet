@@ -11,6 +11,8 @@ const toolRouter = (SessionManager: SessionManager) => {
         new Settings(SessionManager).setName,
         new Routing(SessionManager).changeRoute,
         new Routing(SessionManager).goBack,
+        new Routing(SessionManager).qrCode,
+
     ]
 }
 

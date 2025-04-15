@@ -66,6 +66,9 @@ const setUserItems = async (user: UserType, updateUserWallet: any, publicKey: Pu
     }
 }
 
+// export const checkBiometric = async ()=>{
+
+// }
 
 export const BiometricAuth = async () => {
     const res = await LocalAuthentication.hasHardwareAsync()
