@@ -1,0 +1,436 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import LottieView from 'lottie-react-native';
+import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity } from "react-native";
+import CText from "@/components/TextComp";
+import Feather from '@expo/vector-icons/Feather';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Image } from "expo-image";
+import Buttons from "@/components/ButtonComp";
+import UserItem from "@/misc/store/userstore";
+import { copyItem } from "@/misc/helpers/functions";
+import setUserItems, { api_key } from "../requests/dashboard";
+import { router } from "expo-router";
+import WalletItem from "@/misc/store/wallet";
+import AppSettings from "@/misc/store/settingsstore";
+import { useAi } from "@/misc/context/AiContext";
+
+import { Base } from "@/components/Navigation/Base";
+import { useThemeContext } from "@/misc/context/ThemeContext";
+import Animated from "react-native-reanimated";
+import Convo, { MessageType } from "@/misc/store/conversation";
+import { scale } from "react-native-size-matters";
+
+
+const AiHelpers = [
+  {
+    title: "AI Assistant (Smart finance)",
+    caption: "Smart Hedging & transaction analysis",
+  },
+  {
+    title: " AI Assistant",
+    caption: "Smart Ledging & transaction analysis"
+  },
+  {
+    title: " AI Assistant",
+    caption: "Smart Ledging & transaction analysis"
+  }
+]
+
+const colors = {
+  loading: {
+    color1: "#971BB2", // main purple
+    color2: "#D98BEA", // lighter purple for shimmer effect
+  },
+  aispeaking: {
+    color1: "#4B00E0", // electric violet
+    color2: "#00F0FF", // neon cyan
+  },
+  human: {
+    color1: "#1BB296", // teal (fresh, natural contrast to purple)
+    color2: "#A3F3E4", // minty highlight for friendliness
+  }
+}
+/**
+  * What should be done here
+  * 1. Get User Tokens and Balance
+  * 2. AI interactions can also be done Here
+  */
+export default function Dashboard() {
+  const [activeItems, setActiveItems] = useState([0, 1])
+  const { messages, getConversationMessages, conversations } = Convo()
+  const [activeTab, setActiveTab] = useState('tokens')
+  const { user, userWallet, updateUserWallet, logout } = UserItem();
+  const { network, setLoading } = AppSettings();
+  const { sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId } = useAi()
+  const { publicKey } = WalletItem()
+  const [refreshing, setRefreshing] = useState(false);
+  const [update, setUpdate] = useState(0)
+  const animation = useRef<LottieView>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const [showWallet, setShowWallet] = useState(false)
+  const { isDarkMode } = useThemeContext()
+
+  const [message, setMessage] = useState<MessageType[]>([])
+
+  useEffect(() => {
+    const messageItem = getConversationMessages(conversationId) || [];
+    setMessage(messageItem);
+
+  }, [conversationId, messages])
+
+  useEffect(() => {
+    if (currentMode === "aispeaking" || currentMode === "human") {
+      animation.current?.play()
+    } else if (currentMode === "loading") {
+      animation.current?.pause()
+    }
+
+  }, [currentMode])
+
+  useEffect(() => {
+    const getUser = async () => {
+      await setLoading(true)
+      if (!user || !publicKey) return
+      await setUserItems(user, updateUserWallet, publicKey, network);
+      setLoading(false)
+    }
+
+    getUser();
+  }, [user, network, updateUserWallet, publicKey, update])
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setUpdate(Math.random())
+    setShowWallet(false)
+    setRefreshing(false);
+  };
+
+  const startStreamingSession = async () => {
+    if (!sessionManager) return
+    console.log("Starting session")
+    startSession()
+    setShowWallet(false)
+  }
+
+  const stopStreamingSession = async () => {
+    if (!sessionManager) return
+    stopSession()
+    setShowWallet(true)
+  }
+
+  const sendMessage = async () => {
+    if (!sessionManager) return
+    sessionManager?.sendTextMessage("this is new")
+  }
+
+
+  return (
+    <View
+      className="pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark "
+    >
+      <View className="flex  flex-row justify-between items-center">
+        {/* <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
+          <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
+        </TouchableOpacity> */}
+        <View className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1">
+          <View className="h-6 w-6  rounded-full">
+            <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+              contentFit="contain"
+            />
+          </View>
+          <CText style={{ fontFamily: 'md' }} className="text-dark dark:text-white">@{user?.username}</CText>
+        </View>
+        <View className="flex flex-row gap-x-2">
+          <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
+            <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
+            <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
+          </TouchableOpacity>
+        </View>
+
+      </View>
+      {showWallet ?
+        <>
+          {/* Top Icons */}
+
+
+          <ScrollView
+            className=""
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          >
+            <View className=" min-h-[50px] gap-y-3">
+              <View className="m-auto  w-full shadow-md bg-white dark:bg-transparent rounded-3xl py-4">
+                <View className="flex flex-row  justify-between items-center px-5 py-3">
+                  <View className="">
+                    <View>
+                      <CText className="text-[12px]">Wallet balance</CText>
+                    </View>
+                    <CText className="text-[45px]">
+                      ${userWallet?.totalUsdBalance.toFixed(2)}
+                    </CText>
+
+                  </View>
+                  <View className="flex flex-row justify-center items-center gap-2">
+                    <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
+                      <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push('/dashboard/qrcode')} className="p-3  rounded-full bg-grey dark:bg-accent2">
+                      <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
+
+                <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
+                  <View className="w-[40%]">
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="secondary" text="Send" icon={
+                      <View className="rotate-[230deg]">
+                        <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
+                      </View>
+                    } />
+                  </View>
+                  <View className="w-[40%]">
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Receive"
+                      icon={
+                        <View className="rotate-[40deg]">
+                          <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
+                        </View>
+                      }
+                    />
+                  </View>
+                  <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
+                    <TouchableOpacity className="p-2 flex justify-center items-center">
+                      <FontAwesome6 name="arrows-rotate" size={16} color={isDarkMode ? "white" : "black"} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+              </View>
+
+              <View className="h-[90px] relative w-full">
+                {AiHelpers.map((item, index) => {
+                  return (
+                    <View key={index} style={{
+                      display: activeItems.includes(index) ? "flex" : "none",
+                      position: "relative",
+                      bottom: index * 70,
+                      zIndex: index * -1,
+                      width: `${100 - index * 4}%`
+                    }} className="h-[80px] m-auto" >
+
+                      <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
+                        <View className="h-8 w-8 rounded-full">
+                          <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+                            contentFit="contain"
+                          />
+                        </View>
+                        <View>
+                          <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">{item.title}</CText>
+                          <CText className="text-[1rem]">{item.caption}</CText>
+                        </View>
+
+                      </View>
+                      <TouchableOpacity className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white" onPress={() => { }}>
+                        <MaterialCommunityIcons name="greater-than" size={12} color={isDarkMode ? "white" : "black"} />
+                      </TouchableOpacity>
+                    </View>
+                  )
+                })}
+
+              </View>
+
+              <Animated.View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
+                <View className="flex flex-row items-center justify-between">
+                  <TouchableNativeFeedback
+                    background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                    onPress={() => setActiveTab('tokens')}>
+
+                    <View className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"} `}>
+                      <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]  text-center">Tokens</CText>
+                    </View>
+                  </TouchableNativeFeedback>
+                  <TouchableNativeFeedback
+                    background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                    onPress={() => setActiveTab('history')}>
+                    <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey dark:border-dark"} `}>
+
+                      <CText className="text-[1.1rem] text-center">History</CText>
+                    </View>
+                  </TouchableNativeFeedback>
+
+                </View>
+
+                {activeTab == "tokens" ?
+
+                  <View className="flex-1">
+
+                    <View className="py-5 w-full">
+                      <TouchableOpacity className="bg-grey dark:bg-accent2 rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
+                        <FontAwesome name="sliders" size={14} color="black" />
+                        <CText>
+                          Manage tokens
+                        </CText>
+                      </TouchableOpacity>
+                    </View>
+                    {userWallet?.tokenAccounts?.map((token: any, index: number) => {
+                      return (
+                        <View key={index}>
+                          <TouchableNativeFeedback
+                            key={index}
+                            background={TouchableNativeFeedback.Ripple('#971BB2', false)}
+                            onPress={() => { console.log("touched") }}
+                          >
+                            <View
+                              className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[1.14rem]"
+                            >
+                              <View className="flex flex-row items-start gap-x-2">
+                                <View
+                                  style={{
+                                    width: scale(30),
+                                    height: scale(30),
+
+                                  }}
+
+                                  className="overflow-hidden rounded-full">
+                                  <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
+                                </View>
+
+                                <View className="text-[14px]">
+                                  <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
+                                    {token?.name || "?"}
+                                  </CText>
+                                  <CText style={{ fontFamily: "reg" }} className="text-[1rem]">
+                                    {token?.balance < 1 ?
+                                      token?.balance?.toFixed(Math.min(token?.decimals, 5))
+                                      : token?.balance.toFixed(Math.min(token?.decimals, 3))
+                                    }
+
+                                  </CText>
+                                </View>
+                              </View>
+                              <View className="flex flex-col justify-end">
+                                {/* <CText className="text-[14px]">
+                            {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
+                          </CText> */}
+                                <CText style={{ fontFamily: "bold" }} className="text-[16px]">
+                                  {token?.usdc_price
+                                    ? "$" + token?.usdc_price?.toFixed(2)
+                                    : ""}
+                                </CText>
+                              </View>
+                            </View>
+                          </TouchableNativeFeedback>
+                          <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
+                        </View>
+
+                      );
+                    })}
+
+
+
+                  </View>
+
+                  :
+
+                  <View className="flex-1 justify-center items-center">
+
+                    <CText>
+                      No Transaction History yet!
+                    </CText>
+                  </View>
+
+                }
+
+
+              </Animated.View>
+            </View>
+
+          </ScrollView>
+
+        </>
+
+        :
+        <View className="flex-1 justify-start py-2  rounded-3xl overflow-hidden">
+          {message.length > 0 &&
+
+            <View className="h-[36rem]">
+              <ScrollView
+                ref={scrollViewRef}
+                className=" py-2 relative h-[36rem] space-y-4"
+                onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+              >
+                {message.map((item: any, index: number) => {
+                  const isSystem = item.role === "system";
+                  const isUser = !isSystem;
+                  return (
+                    <View
+                      key={index + item.id}
+                      className={`w-full flex-row mb-2 ${isSystem ? "justify-start" : "justify-end"
+                        }`}
+                    >
+                      <View
+                        className={`bg-white dark:bg-accent2 p-2 rounded-xl w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"
+                          }`}
+                      >
+                        <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
+                          {isSystem ? "HeySolana" : `@${user?.username}`}
+                        </CText>
+                        <View className="bg-grey dark:bg-accent p-2 rounded-lg">
+                          <CText className="text-[12px]">{item.content}</CText>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })
+                }
+              </ScrollView>
+            </View>
+
+          }
+
+          <LottieView
+            autoPlay={true}
+            loop
+            speed={10}
+            ref={animation}
+            style={{
+              position: "absolute",
+              bottom: -10,
+              zIndex: 99999,
+              width: 1000,
+              height: 500,
+            }}
+            resizeMode="cover"
+            colorFilters={[
+              {
+                keypath: "Shape Layer 2",
+                color: colors[currentMode].color1,
+              },
+              {
+                keypath: "Shape Layer 1",
+                color: colors[currentMode].color2,
+              },
+            ]}
+            source={require('@/assets/anim/lower.json')}
+          />
+        </View>
+      }
+
+
+      <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={startStreamingSession} isSessionActive={isSessionActive} />
+
+    </View>
+  );
+}
+
+

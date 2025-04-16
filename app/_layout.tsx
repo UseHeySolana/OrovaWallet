@@ -1,39 +1,81 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import React, { useState } from 'react';
+import '../global.css'
+import { SplashScreen, Stack } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useFonts } from "expo-font";
+import { useEffect } from "react";
+import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-google-fonts/dm-sans";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { View } from 'react-native';
+import { Image } from 'expo-image';
+import { AiServiceProvider } from '@/misc/context/AiContext';
+import { KeyboardProvider } from '@/misc/context/KeyboardContext';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { ThemeProvider, useThemeContext } from '@/misc/context/ThemeContext';
+import StackView from './stack';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+
+SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+  const [appReady, setAppReady] = useState(false);
+
+  const [loaded, error] = useFonts({
+    reg: DMSans_400Regular,
+    md: DMSans_500Medium,
+    bold: DMSans_700Bold,
   });
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
 
-  if (!loaded) {
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate loading delay
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        if (loaded) {
+          setAppReady(true);
+          SplashScreen.hideAsync(); // Hide splash screen once everything is ready
+        }
+      }
+    }
+    prepare();
+  }, [loaded, error]);
+
+  if (!loaded && !error) {
     return null;
   }
 
+
+  if (!appReady) {
+    return (
+      <View className='bg-white' style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Image source={require('@/assets/images/splaash.gif')}
+          style={{ height: 100, width: 100 }}
+          contentFit="contain"
+        />
+      </View>
+    );
+  }
+
+
+
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView>
+      <KeyboardProvider>
+        <ThemeProvider>
+          <AiServiceProvider>
+
+            <SafeAreaView style={{ flex: 1 }}>
+              <StackView />
+            </SafeAreaView>
+          </AiServiceProvider>
+        </ThemeProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
+
+
