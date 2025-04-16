@@ -8,9 +8,10 @@ import { router } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import UserItem from "@/misc/store/userstore";
 import CText from "@/components/TextComp";
+import { startUpdateFlow, UpdateFlow } from '@gurukumparan/react-native-android-inapp-updates';
+import * as Updates from 'expo-updates';
 
 
-Buttons
 const screens = [
   {
     title: "Control Your Wallet with Just Your Voice",
@@ -86,6 +87,35 @@ export default function Index() {
 
     return () => clearTimeout(timeout); // Cleanup timeout on component unmount
   }, [alreadyOpened, publicKey, user]);
+
+
+  useEffect(() => {
+    const runComboUpdateFlow = async () => {
+      try {
+        // 1. Try OTA update
+        const otaUpdate = await Updates.checkForUpdateAsync();
+        console.log(otaUpdate);
+        if (otaUpdate.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+          return;
+        }
+
+        // 2. If no OTA, check Play Store update
+
+        try {
+          const result = await startUpdateFlow(UpdateFlow.FLEXIBLE);
+        } catch (e) {
+          console.log('error:', e);
+        }
+      } catch (err) {
+        console.warn("Update flow error", err);
+      }
+    };
+
+    runComboUpdateFlow();
+  }, []);
+
 
 
 
