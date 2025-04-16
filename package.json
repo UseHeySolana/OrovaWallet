@@ -1,7 +1,7 @@
 {
   "name": "heysolana",
   "main": "./index.ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "reset-project": "node ./scripts/reset-project.js",
     "start": "npx expo start --dev-client",

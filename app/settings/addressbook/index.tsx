@@ -113,7 +113,7 @@ function AddressBook() {
                 renderItem={(item: any) => {
                   return (
                     <View
-                      key={item.index}
+                      key={item.item.name}
                       className="flex flex-row justify-start gap-x-4 items-center mb-2 rounded-xl"
                     >
                       <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">

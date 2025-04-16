@@ -11,21 +11,28 @@ import UserItem from "@/misc/store/userstore";
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 
-
+interface networkSettings {
+  title: string,
+  route: 'devnet' | 'mainnet' | null,
+  type: string,
+  subtitle: string,
+  icon: React.ReactNode,
+}
 
 const settingsMenu2 = [
   {
-    title: "Biometric Signin",
-    route: 'dark',
+    title: "Mainnet",
+    route: 'mainnet',
     type: 'toggle',
-    subtitle: "Use fingerprint and faceId to signin",
-    icon: <IconLibrary.lock />,
+    subtitle: "All balances and transactions are real",
+    icon: <IconLibrary.network />,
   },
   {
-    title: "Delete Account",
-    route: null,
-    subtitle: "Delete account from HeySolana",
-    icon: <IconLibrary.delete />,
+    title: "Devnet",
+    route: 'devnet',
+    type: 'toggle',
+    subtitle: "Dummy Transactions and Paper Tokens",
+    icon: <IconLibrary.network />,
   },
 ]
 /*
@@ -34,32 +41,14 @@ const settingsMenu2 = [
   * 1. Updates Settings and Shows Settings and What to Change
   */
 function Security() {
-  const [recording, setRecording] = useState(false);
+  const { network, changeNetwork } = AppSettings()
 
-  const { isDarkMode, toggleTheme } = useThemeContext()
-  const { setDefault, openWithAuth, setOpenWithAuth, setToast } = AppSettings()
-  const { user, userWallet, logout } = UserItem()
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
-
-  const routeNavigation = (route: any, type?: string) => {
-    if (type == 'toggle') {
-      return;
-    }
-    if (route == null) {
-      return;
-    }
-    if (route == 'logout') {
-      logout();
-      router.replace('/');
-      return;
-    }
-    if (route !== null) {
-      router.push(route);
-    }
-
+  const networkType = {
+    mainnet: network.includes('mainnet'),
+    devnet: network.includes('devnet'),
   }
 
-  console.log(openWithAuth);
+
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full gap-y-6">
@@ -68,32 +57,15 @@ function Security() {
           <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
             <IconLibrary.back />
           </Pressable>
-          <CText className="text-[1.4rem]">Security</CText>
+          <CText className="text-[1.4rem]">Network</CText>
         </View>
 
-        {/* <View className="bg-white dark:bg-accent mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
-          <View className="flex flex-row justify-between items-center gap-x-2  ">
-            <View className="h-10 w-10  rounded-full">
-              <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
-                contentFit="contain"
-              />
-            </View>
-            <View className="">
-              <CText style={{ fontFamily: "bold" }} className="text-wrap">Account</CText>
-              <CText className="">${userWallet.totalUsdBalance.toFixed(2)}</CText>
-            </View>
-          </View>
-          <Pressable onPress={() => router.back()} className="p-3">
-            <IconLibrary.angle_right />
-          </Pressable>
-        </View> */}
 
-        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow  bg-white dark:bg-accent ">
+
+        <View className="w-11/12  m-auto p-4 gap-y-6  rounded-2xl shadow  bg-white dark:bg-accent ">
           {settingsMenu2.map((item, index) => {
             return (
-              <Pressable onPress={() => {
-                routeNavigation(item.route, item.type)
-              }} key={index} className="py-1 flex flex-row justify-between items-center">
+              <TouchableOpacity key={index} className="py-1 flex flex-row justify-between items-center">
                 <View className="flex flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
                     {item.icon ? item.icon : <IconLibrary.angle_right />}
@@ -108,32 +80,26 @@ function Security() {
                   </View>
                 </View>
 
-                {item.route && item.route !== "logout" &&
+                {item.route &&
                   <>
                     {item.type === 'toggle' ?
                       <Switch
                         trackColor={{ false: 'red', true: 'green' }}
                         thumbColor={'white'}
                         ios_backgroundColor="#3e3e3e"
-                        onValueChange={() => {
-                          setOpenWithAuth(!openWithAuth)
-                          if (!openWithAuth) {
-                            setToast('Biometric signin activated', 'success');
-                          } else {
-                            setToast('Biometric signin deactivated', 'info');
-                          }
-                        }}
-                        value={openWithAuth}
+                        onValueChange={() => changeNetwork(item.route)}
+                        //@ts-ignore
+                        value={networkType[item.route]}
                       />
                       :
-                      <Pressable onPress={() => router.back()} className="p-3">
+                      <TouchableOpacity onPress={() => router.back()} className="p-3">
                         <IconLibrary.angle_right />
-                      </Pressable>
+                      </TouchableOpacity>
                     }
                   </>
 
                 }
-              </Pressable>
+              </TouchableOpacity>
             )
           })}
         </View>

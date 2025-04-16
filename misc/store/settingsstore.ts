@@ -14,6 +14,7 @@ interface Settings {
     aiLanguage: string;
     setAiLanguage: (language: string) => void;
     network: string;
+    changeNetwork: (network: string) => void;
     aiName: string;
     setAiName: (name: string) => void;
     alreadyOpened: boolean;
@@ -62,6 +63,10 @@ const AppSettings = create(
             aiLanguage: "English",
             setAiLanguage: (language: string) => set({ aiLanguage: language }),
             network: "https://mainnet.helius-rpc.com/?api-key=",
+            changeNetwork: (network: string) => {
+                const net = network == 'mainnet' ? "https://mainnet.helius-rpc.com/?api-key=" : "https://devnet.helius-rpc.com/?api-key="
+                set({ network: net })
+            },
             alreadyOpened: false,
             skippedAiSettings: false,
             createdWallet: false,
