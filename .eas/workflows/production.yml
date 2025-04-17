@@ -1,0 +1,17 @@
+name: Release Android App
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build:
+    type: build
+    params:
+      platform: android
+      profile: playstore
+  submit:
+    needs: [build]
+    type: submit
+    params:
+      build_id: ${{ needs.build.outputs.build_id }}
