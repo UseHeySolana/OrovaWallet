@@ -15,6 +15,7 @@ export class toolManipulator {
 
     choose_tools() {
         return {
+            type: "function",
             name: "choose_tools",
             description: "You are to match the intent of the user so you can correctly map the tools that the user wants to use. Here are the list of available tools and what they do with their parameters",
             parameters: {

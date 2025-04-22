@@ -15,6 +15,7 @@ import { toolFunctions } from "../tools";
 import { Audio } from "expo-av";
 import AppSettings from "@/misc/store/settingsstore";
 import Convo from "@/misc/store/conversation";
+import { toolRouter } from "../toolsregistry";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -55,7 +56,6 @@ class SessionManager {
         this.loadMemory().then(memory => {
             this.memory = memory;
         });
-
         // Pre-register functions but don't send them yet
         this.availableFunctions = toolFunctions(this);
     }
@@ -63,7 +63,18 @@ class SessionManager {
     async startSession(systemInstructions?: string): Promise<void> {
         // Set system instructions if provided
         if (systemInstructions) {
-            this.systemInstructions = systemInstructions;
+            const sysIns = `
+                \n
+                 these are the list of sub tools supported and parameters,
+                ${JSON.stringify(toolRouter(this).map(item => ({
+                "toolName": item.name,
+                "toolParameters": item.parameters,
+            })))}
+             note always use the 'choose_tools' function to route to these.
+                `;
+
+
+            this.systemInstructions = systemInstructions + sysIns;
         }
 
         if (this.isSessionActive || this.peerConnection || this.dataChannel) {
@@ -112,6 +123,7 @@ class SessionManager {
             });
             // }
             // Setup connection state tracking
+            //@ts-ignore
             this.peerConnection.addEventListener('connectionstatechange', () => {
                 console.log(`Connection state changed: ${this.peerConnection?.connectionState}`);
                 if (this.peerConnection?.connectionState === 'connected') {
@@ -160,6 +172,7 @@ class SessionManager {
             await this.peerConnection.setRemoteDescription(answer);
 
             // Handle audio tracks with our AudioManager
+            //@ts-ignore            
             this.peerConnection.addEventListener('track', (event) => {
                 console.log("Track event received:", event.track?.kind);
                 if (event.streams && event.streams[0]) {
@@ -192,9 +205,9 @@ class SessionManager {
                 this.updateMemory(message);
 
 
-                if (message.type.includes('conversation')) {
-                    console.log(message.type)
-                }
+                // if (message.type.includes('conversation')) {
+                //     console.log(message.type)
+                // }
 
                 if (message.type === "input_audio_buffer.speech_started") {
                     this.callbacks.setMode('human');
@@ -234,11 +247,6 @@ class SessionManager {
                     }
                 }
 
-                // if (message.type === "response.audio.done") {
-                //     // console.log("Transcript:", message.transcript);
-                //     this.callbacks.setMode('loading');
-
-                // }
 
                 // Handle function calls from the model
                 if (message.type === "response.done" &&
@@ -527,7 +535,6 @@ class SessionManager {
 
     private async handleFunctionCall(functionCall: any): Promise<void> {
         const { name, arguments: argsJson, call_id } = functionCall;
-        console.log(`Function call received: ${name}`, argsJson);
         try {
             // Find the registered function handler
             const functionDef = this.availableFunctions.find(fn => fn.name === name);
@@ -545,6 +552,20 @@ class SessionManager {
             }
 
             console.log(`Executing function ${name} with args:`, args);
+
+            if (this.conversation_id !== null) {
+                Convo.getState().setMessages({
+                    id: call_id,
+                    role: 'tool',
+                    content: "",
+                    timestamp: new Date().getTime(),
+                    conversation_id: this.conversation_id,
+                    tool: {
+                        action: name,
+                        arguments: args,
+                    }
+                })
+            }
 
             // Execute the function
             const result = await functionDef.handler(args);

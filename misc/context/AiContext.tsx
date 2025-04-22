@@ -6,6 +6,7 @@ import AppSettings from "../store/settingsstore";
 import UserItem from "../store/userstore";
 import { api_key } from "@/app/requests/dashboard";
 import { prompB } from "../helpers/prompt";
+import { toolRouter } from "../helpers/toolsregistry";
 
 interface AIService {
     sessionManager: SessionManager | null,
@@ -88,7 +89,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                     userWallet?.totalUsdBalance +
                     ", Sol Balance " +
                     userWallet?.solBalance
-                    }`;
+                    }
+                    `
+
+                    ;
                 setPrompt(newPrompt)
             } else {
                 const newPrompt = 'You are a text-to-speech assistant. Any text I provide should be converted into speech and played back. Always respond in English unless explicitly instructed otherwise.';
@@ -105,6 +109,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const startSession = async () => {
         if (!sessionManager || isSessionActive) return;
         if (prompt == "") return;
+
         await sessionManager.startSession(prompt);
         setIsSessionActive(true);
     }

@@ -70,7 +70,7 @@ const settingsMenu2 = [
   },
   {
     title: "Connected Apps",
-    route: null,
+    route: '/settings/apps',
     subtitle: "Activate tools that HeySolana interacts with",
 
     icon: <IconLibrary.connection />,

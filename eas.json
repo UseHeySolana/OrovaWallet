@@ -6,19 +6,6 @@
         "buildType": "apk"
       }
     },
-    "reduced-size": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "development": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "channel": "development"
-    },
     "test": {
       "developmentClient": true,
       "distribution": "internal",
@@ -28,9 +15,6 @@
       "channel": "test"
     },
     "production": {
-      "channel": "production"
-    },
-    "playstore": {
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease",

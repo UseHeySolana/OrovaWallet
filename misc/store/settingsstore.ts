@@ -14,6 +14,8 @@ interface Settings {
     aiLanguage: string;
     setAiLanguage: (language: string) => void;
     network: string;
+    aiActive: boolean;
+    setAiActive: (active: boolean) => void;
     changeNetwork: (network: string) => void;
     aiName: string;
     setAiName: (name: string) => void;
@@ -62,6 +64,8 @@ const AppSettings = create(
             aiName: "HeySolana",
             aiLanguage: "English",
             setAiLanguage: (language: string) => set({ aiLanguage: language }),
+            aiActive: true,
+            setAiActive: (active: boolean) => set({ aiActive: active }),
             network: "https://mainnet.helius-rpc.com/?api-key=",
             changeNetwork: (network: string) => {
                 const net = network == 'mainnet' ? "https://mainnet.helius-rpc.com/?api-key=" : "https://devnet.helius-rpc.com/?api-key="

@@ -10,7 +10,8 @@ export interface MessageType {
     conversation_id: string;
     tool?: {
         action: string,
-        link: string
+        link?: string,
+        arguments?: any,
     }
 
 }
