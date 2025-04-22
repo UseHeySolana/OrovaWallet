@@ -11,7 +11,6 @@ import CText from "@/components/TextComp";
 import { startUpdateFlow, UpdateFlow } from '@gurukumparan/react-native-android-inapp-updates';
 import * as Updates from 'expo-updates';
 
-
 const screens = [
   {
     title: "Control Your Wallet with Just Your Voice",
@@ -94,7 +93,6 @@ export default function Index() {
       try {
         // 1. Try OTA update
         const otaUpdate = await Updates.checkForUpdateAsync();
-        console.log(otaUpdate);
         if (otaUpdate.isAvailable) {
           await Updates.fetchUpdateAsync();
           await Updates.reloadAsync();
@@ -102,7 +100,6 @@ export default function Index() {
         }
 
         // 2. If no OTA, check Play Store update
-
         try {
           const result = await startUpdateFlow(UpdateFlow.FLEXIBLE);
         } catch (e) {
@@ -116,14 +113,10 @@ export default function Index() {
     runComboUpdateFlow();
   }, []);
 
-
-
-
   return (
     <View
       // onLayout={onLayoutRootView}
       className="relative bg-white dark:bg-dark"
-
     >
       <View className="absolute top-10  z-50 flex-row self-center">
         {screens.map((_, index) => (
@@ -184,8 +177,6 @@ export default function Index() {
 
         ))}
       </ScrollView>
-
-
     </View>
   );
 }

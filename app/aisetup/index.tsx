@@ -6,6 +6,7 @@ import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import { Switch } from "react-native";
 import { TextInput } from "react-native";
+import IconLibrary from "@/misc/helpers/icons";
 
 const Items = [
   {
@@ -67,7 +68,7 @@ const Items = [
   }
 ]
 export default function SetUpAi() {
-  const { markedSkipped, skippedAiSettings, aiName, aiLanguage } = AppSettings()
+  const { markedSkipped, skippedAiSettings, aiName, aiLanguage, setToast } = AppSettings()
   const [toggleDropdown, setToggleDropdown] = useState(false);
   const [settings, setSettings] = useState({
     aiActive: true,
@@ -81,13 +82,22 @@ export default function SetUpAi() {
   }, [skippedAiSettings])
 
   const handleSave = () => {
+    AppSettings.getState().setAiName(settings.assistantName)
+    AppSettings.getState().setAiLanguage(settings.language)
+    AppSettings.getState().setAiActive(settings.aiActive)
+    setToast("Settings saved", "success")
 
   }
   return (
     <View
       className=" py-5 bg-grey dark:bg-dark flex-1"
-
     >
+      <View className="w-full px-4 flex flex-row justify-start items-center gap-x-5">
+        <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
+          <IconLibrary.back />
+        </Pressable>
+        <CText className="text-[1.4rem]">AI Settings</CText>
+      </View>
       <View className="w-11/12  m-auto p-2 gap-y-3 flex-1">
         {
           Items.map((item) => (
@@ -158,7 +168,7 @@ export default function SetUpAi() {
       </View>
 
       <View className="w-11/12 m-auto p-2 gap-y-3">
-        <Buttons onPress={() => { }} text="Save" type="primary" />
+        <Buttons onPress={() => handleSave()} text="Save" type="primary" />
         {/* <Buttons onPress={() => {
           markedSkipped();
           router.replace('/voicereg')

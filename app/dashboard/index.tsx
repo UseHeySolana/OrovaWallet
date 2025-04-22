@@ -64,7 +64,7 @@ export default function Dashboard() {
   const { messages, getConversationMessages, conversations } = Convo()
   const [activeTab, setActiveTab] = useState('tokens')
   const { user, userWallet, updateUserWallet, logout } = UserItem();
-  const { network, setLoading } = AppSettings();
+  const { network, setLoading, aiName } = AppSettings();
   const { sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId } = useAi()
   const { publicKey } = WalletItem()
   const [refreshing, setRefreshing] = useState(false);
@@ -112,7 +112,6 @@ export default function Dashboard() {
 
   const startStreamingSession = async () => {
     if (!sessionManager) return
-    console.log("Starting session")
     startSession()
     setShowWallet(false)
   }
@@ -288,7 +287,12 @@ export default function Dashboard() {
                           <TouchableNativeFeedback
                             key={index}
                             background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                            onPress={() => { console.log("touched") }}
+                            onPress={() => {
+                              router.push({
+                                pathname: '/dashboard/tokeninfo',
+                                params: { mint: token.mint },
+                              });
+                            }}
                           >
                             <View
                               className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[1.14rem]"
@@ -314,7 +318,6 @@ export default function Dashboard() {
                                       token?.balance?.toFixed(Math.min(token?.decimals, 5))
                                       : token?.balance.toFixed(Math.min(token?.decimals, 3))
                                     }
-
                                   </CText>
                                 </View>
                               </View>
@@ -366,30 +369,58 @@ export default function Dashboard() {
             <View className="h-[36rem]">
               <ScrollView
                 ref={scrollViewRef}
-                className=" py-2 relative h-[36rem] space-y-4"
+                className=" py-2 relative h-[36rem] gap-y-4"
                 onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
               >
                 {message.map((item: any, index: number) => {
                   const isSystem = item.role === "system";
-                  const isUser = !isSystem;
+                  const toolCall = item.role === "tool";
+                  const isUser = item.role === 'user';
+
+                  const params = toolCall && Object.keys(item.tool?.arguments?.parameter) || [];
                   return (
+
                     <View
-                      key={index + item.id}
-                      className={`w-full flex-row mb-2 ${isSystem ? "justify-start" : "justify-end"
-                        }`}
-                    >
-                      <View
-                        className={`bg-white dark:bg-accent2 p-2 rounded-xl w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"
-                          }`}
-                      >
-                        <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
-                          {isSystem ? "HeySolana" : `@${user?.username}`}
-                        </CText>
-                        <View className="bg-grey dark:bg-accent p-2 rounded-lg">
-                          <CText className="text-[12px]">{item.content}</CText>
+                      className="mb-3"
+                      key={index + item.id
+                      }>
+                      {toolCall ?
+                        <View className="py-4 shadow-sm px-4  flex flex-col items-start justify-center text-[1.14rem] bg-white dark:bg-accent2 rounded-xl">
+                          <CText className="uppercase">{item.tool.arguments.tool.replace('_', ' ')}</CText>
+                          <View>
+                            {params?.map((param: any, index: number) => {
+                              return (
+                                <View key={index} className="flex flex-row items-center  justify-between gap-x-2">
+                                  <CText className="text-[1rem] uppercase">{param}</CText>
+                                  <CText className="text-[1rem]">{item.tool.arguments?.parameter[param]}</CText>
+                                </View>
+                              )
+                            }
+                            )}
+                          </View>
+
                         </View>
-                      </View>
+                        :
+                        <View
+
+                          className={`w-full flex-row mb-2 ${isSystem ? "justify-start" : "justify-end"
+                            }`}
+                        >
+                          <View
+                            className={`bg-white dark:bg-accent2 p-2 rounded-xl w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"
+                              }`}
+                          >
+                            <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
+                              {isSystem ? aiName : `@${user?.username}`}
+                            </CText>
+                            <View className="bg-grey dark:bg-accent p-2 rounded-lg">
+                              <CText className="text-[12px]">{item.content}</CText>
+                            </View>
+                          </View>
+                        </View>
+                      }
                     </View>
+
                   );
                 })
                 }
@@ -429,7 +460,7 @@ export default function Dashboard() {
 
       <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={startStreamingSession} isSessionActive={isSessionActive} />
 
-    </View>
+    </View >
   );
 }
 

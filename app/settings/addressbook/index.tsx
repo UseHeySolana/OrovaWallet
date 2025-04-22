@@ -87,10 +87,11 @@ function AddressBook() {
     <View className="relative pt-3 bg-grey dark:bg-dark px-4  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full flex-1 gap-y-4">
 
-        <View className="w-full px-4 flex flex-row justify-start">
+        <View className="w-full flex flex-row justify-start items-center gap-x-5">
           <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
             <IconLibrary.back />
           </Pressable>
+          <CText className="text-[1.4rem]">Address Book</CText>
         </View>
 
         <View className="gap-y-4">
@@ -108,31 +109,37 @@ function AddressBook() {
                 })}
                 initialNumToRender={15}
                 maxToRenderPerBatch={15}
-                className="h-[200px] rounded-xl bg-grey shadow dark:bg-accent p-4 pb-10 gap-x-2 "
+                className="max-h-full rounded-xl gap-x-2  "
                 data={contactsOnHeySolana}
                 renderItem={(item: any) => {
                   return (
                     <View
-                      key={item.item.name}
-                      className="flex flex-row justify-start gap-x-4 items-center mb-2 rounded-xl"
+                      className=" bg-grey shadow dark:bg-accent mb-2 flex flex-row justify-start gap-x-2 items-center p-3 rounded-xl "
+                      key={item.item.walletAddress}
                     >
                       <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
                         <CText>+</CText>
                       </View>
-                      <View className="flex-1 flex-row  justify-start gap-x-4  items-center">
-                        <CText className="text-[20px]">{item.item.name}</CText>
-                        <CText className="text-[20px]">{item.item.phoneNumber}</CText>
+                      <View className="flex-1 flex-col  justify-start gap-x-4  items-start">
+                        <CText className="text-[1.45rem]">{item.item.name}</CText>
+                        <CText className="text-[1rem]">{item.item.walletAddress?.slice(0, 4) + '...' + item.item.walletAddress?.slice(-5)}</CText>
+
                       </View>
                     </View>)
                 }
                 }
-                keyExtractor={item => item.id}
+                keyExtractor={item => item.name}
               />
             </View>
           }
+
+
+          <Buttons loading={isLoading}
+            onPress={fetchContacts} type="primary" text="Match Contacts" />
+
         </View>
 
-        <View className="gap-y-4 h-[550px]">
+        {/* <View className="gap-y-4 h-[550px]">
           <TouchableOpacity onPress={() => setShowContactOnPhone(!showContactonPhone)}>
             <CText style={{ fontFamily: "bold" }} className="p-4 text-primary text-[16px] text-start rounded-xl bg-grey shadow dark:bg-accent">Phone Contacts List</CText>
           </TouchableOpacity>
@@ -162,7 +169,7 @@ function AddressBook() {
             </View>
 
           }
-        </View>
+        </View> */}
 
       </View>
 

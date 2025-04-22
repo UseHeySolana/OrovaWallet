@@ -137,23 +137,26 @@ function Login() {
       className="relative bg-grey dark:bg-dark h-full w-100 flex justify-center items-center"
     >
       <View className=" py-5 w-full px-4 gap-y-10 flex-col justify-center ">
-        <View className="flex flex-col justify-center items-center gap-y-2">
 
-          <View className="w-full flex justify-center items-center">
-            <View className="h-[3.125em] w-[3.125em]  rounded-full">
-              <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
-                contentFit="contain"
-              />
-            </View>
-          </View>
-          <View className="w-8/12 m-auto">
-            <CText style={{ fontFamily: "bold" }} className="text-[1.25em] text-center">Welcome back!</CText>
-            <CText className="text-[1em] text-center">Let's make handsfreee transactions</CText>
-          </View>
-        </View>
 
         {!fingerPrintSigning ?
           <>
+
+            <View className="flex flex-col justify-center items-center gap-y-2">
+
+              <View className="w-full flex justify-center items-center">
+                <View className="h-[3.125em] w-[3.125em]  rounded-full">
+                  <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+                    contentFit="contain"
+                  />
+                </View>
+              </View>
+              <View className="w-8/12 m-auto">
+                <CText style={{ fontFamily: "bold" }} className="text-[1.25em] text-center">Welcome back!</CText>
+                <CText className="text-[1em] text-center">Let's make handsfreee transactions</CText>
+              </View>
+            </View>
+
             <KeyboardAvoidingView className="bg-grey dark:bg-accent  rounded-3xl gap-y-3">
               <View className="bg-white  dark:bg-accent h-fit py-3 rounded-2xl" >
                 {/* <TextInput
@@ -201,19 +204,38 @@ function Login() {
             </View>
           </>
           :
-          <View className="w-full flex justify-center gap-y-10 items-center">
-            <TouchableOpacity onPress={BiometricAuth} className="h-[3.125em] w-[3.125em]  rounded-full overflow-hidden">
-              <Image source={require('@/assets/images/biometric.png')} style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-              />
-            </TouchableOpacity>
-            <View className="">
-              <CText style={{ fontFamily: "bold" }} className="text-[1em] text-center">Tap to login with your biometrics</CText>
-              <TouchableOpacity onPress={() => setFingerPrintSigning(false)}>
-                <CText textColor="text-purple" className="text-[1em] text-center">or login with mobile number</CText>
-              </TouchableOpacity>
+          <>
+            <View className="flex flex-col justify-center items-center gap-y-2">
+
+              <View className="w-full flex justify-center items-center">
+                <View className="h-[10.125rem] w-[10.125rem]  rounded-full">
+                  <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+                    contentFit="contain"
+                  />
+                </View>
+              </View>
             </View>
-          </View>
+
+            <View className="w-full flex justify-center gap-y-10 items-center">
+              <TouchableOpacity onPress={BiometricAuth} className="bg-purple py-5 flex flex-row justify-center items-center gap-x-3  rounded-full overflow-hidden w-full">
+                <View className="h-[1.5rem] w-[1.5rem]  rounded-full">
+                  <Image source={require('@/assets/images/biometric2.png')} style={{ width: "100%", height: "100%" }}
+                    contentFit="contain"
+                  />
+                </View>
+
+                <CText className="text-white text-[1.5em] font-bold">Unlock with Biometric</CText>
+              </TouchableOpacity>
+              <View className="">
+                <CText style={{ fontFamily: "bold" }} className="text-[1em] text-center">Tap to login with your biometrics</CText>
+                <TouchableOpacity onPress={() => setFingerPrintSigning(false)}>
+                  <CText textColor="text-purple" className="text-[1em] text-center">or login with mobile number</CText>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+          </>
+
 
         }
       </View >

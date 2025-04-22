@@ -7,6 +7,7 @@ export type MessageData = {
 };
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "";
+const AIRBILLS = process.env.EXPO_PUBLIC_API_URL || "";
 
 
 const request = {
@@ -35,7 +36,6 @@ const request = {
   },
 
   postJson: async (data: any, url: string) => {
-    console.log(BASE_URL + url)
 
     const response = await fetch(BASE_URL + url, {
       method: "POST",
@@ -43,6 +43,44 @@ const request = {
         "Accept": "*/*",
         // "User-Agent": "Thunder Client (https://www.thunderclient.com)",
         "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data),
+    });
+
+    return response;
+  },
+
+
+  getRan: async (url: string) => {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response;
+  },
+  postRan: async (data: FormData, url: string) => {
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      body: data,
+    });
+
+    return response;
+  },
+
+  postJsonRan: async (data: any, url: string, headers?: object) => {
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Accept": "*/*",
+        "Content-Type": "application/json",
+        ...headers,
       },
       body: JSON.stringify(data),
     });
@@ -101,6 +139,12 @@ const fetchData = async () => {
   }
 };
 
+/**
+ * 
+ * @param query 
+ * @param searchedItem 
+ * @returns 
+ */
 const handleSearch = (query: string, searchedItem: any[]) => {
   const lowerCaseQuery = query.toLowerCase();
   const filtered = searchedItem.filter(
@@ -111,6 +155,13 @@ const handleSearch = (query: string, searchedItem: any[]) => {
   );
   return filtered;
 };
+
+/**
+ * 
+ * @param username 
+ * @param phone_number 
+ * @returns 
+ */
 
 const registerUser = async (username: string, phone_number: string) => {
   const item = {
@@ -147,6 +198,12 @@ const verifyCode = async (otp: string, username: string) => {
   return { status: true, data: await response.json() };
 }
 
+/**
+ * 
+ * @param walletAddress 
+ * @param username 
+ * @returns 
+ */
 const saveWalletAddress = async (walletAddress: string, username: string) => {
   const item = {
     "wallet_address": walletAddress,
@@ -164,7 +221,39 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
   return { status: true, data: await response.json() };
 }
 
+/**
+ * 
+ * @param phone_number 
+ * @param amount 
+ * @param token 
+ * @param userWalletAddress 
+ * @returns 
+ */
+const purchaseAirtime = async (phone_number: string, amount: number, userWalletAddress: string) => {
+  const url = 'https://vendor.airbillspay.com/bills/airtime/paypoint'
+  const data =
+  {
+    "phoneNumber": phone_number,
+    "amount": amount,
+    "token": 'USDC',
+    "user_address": userWalletAddress,
+  }
+  console.log(data);
+  const response = await request.postJsonRan(data, url, { "secret-key": AIRBILLS });
+  if (!response.ok) {
+    const result = await response.json();
+    return {
+      status: false, message: result.message
+    }
+  }
+  return { status: true, data: await response.json() };
+}
 
+/**
+ * 
+ * @param phone_number 
+ * @returns 
+ */
 const getCode = async (phone_number: string) => {
   const item = {
     "phone_number": phone_number
@@ -183,6 +272,7 @@ const getCode = async (phone_number: string) => {
   }
 }
 export {
+  purchaseAirtime,
   verifyCode,
   getCode,
   saveWalletAddress,
