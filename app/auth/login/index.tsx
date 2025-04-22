@@ -93,8 +93,6 @@ function Login() {
     }
   }
 
-  console.log(userDetails);
-
   const verifyOtp = async () => {
     if (otpValue.length < 6) {
       setToast('Invalid Otp', 'error')
