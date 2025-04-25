@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
 import AppSettings from "@/misc/store/settingsstore";
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 
@@ -154,22 +152,22 @@ function Settings() {
           </Pressable>
         </View>
 
-        <View className="w-11/12  m-auto px-4 py-4 shadow rounded-2xl bottom-10 bg-white dark:bg-accent ">
+        <View className="w-11/12   m-auto px-4 py-4 shadow rounded-2xl bottom-10 bg-white dark:bg-accent ">
           {settingsMenu.map((item, index) => {
             return (
               <TouchableOpacity
                 // @ts-expect-error
                 onPress={() => { item.route && router.push(item.route) }}
-                key={index} className="py-2 flex flex-row justify-between items-center">
-                <View className="flex flex-row justify-start items-center gap-x-2">
+                key={index} className="py-2 flex  flex-row justify-between items-center ">
+                <View className="flex-1 flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
                     {item.icon ? item.icon : <IconLibrary.angle_right />}
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <CText className="text-[1.2rem]">
                       {item.title}
                     </CText>
-                    <CText textColor="text-gray-400" className="text-[1rem] ">
+                    <CText textColor="text-gray-400 text-wrap" className="text-[1rem]">
                       {item.subtitle}
                     </CText>
                   </View>
@@ -190,11 +188,11 @@ function Settings() {
 
                 routeNavigation(item.route, item.type)
               }} key={index} className="py-1 flex flex-row justify-between items-center">
-                <View className="flex flex-row justify-start items-center gap-x-2">
+                <View className="flex-1 flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
                     {item.icon ? item.icon : <IconLibrary.angle_right />}
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <CText className="text-[1.2rem]">
                       {item.title}
                     </CText>

@@ -10,8 +10,8 @@ jobs:
     params:
       platform: android
       profile: production
-  submit:
-    needs: [build]
-    type: submit
-    params:
-      build_id: ${{ needs.build.outputs.build_id }}
+  # submit:
+  #   needs: [build]
+  #   type: submit
+  #   params:
+  #     build_id: ${{ needs.build.outputs.build_id }}
