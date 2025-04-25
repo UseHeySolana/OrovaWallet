@@ -71,22 +71,6 @@ function Security() {
           <CText className="text-[1.4rem]">Security</CText>
         </View>
 
-        {/* <View className="bg-white dark:bg-accent mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
-          <View className="flex flex-row justify-between items-center gap-x-2  ">
-            <View className="h-10 w-10  rounded-full">
-              <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
-                contentFit="contain"
-              />
-            </View>
-            <View className="">
-              <CText style={{ fontFamily: "bold" }} className="text-wrap">Account</CText>
-              <CText className="">${userWallet.totalUsdBalance.toFixed(2)}</CText>
-            </View>
-          </View>
-          <Pressable onPress={() => router.back()} className="p-3">
-            <IconLibrary.angle_right />
-          </Pressable>
-        </View> */}
 
         <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow  bg-white dark:bg-accent ">
           {settingsMenu2.map((item, index) => {
@@ -94,11 +78,11 @@ function Security() {
               <Pressable onPress={() => {
                 routeNavigation(item.route, item.type)
               }} key={index} className="py-1 flex flex-row justify-between items-center">
-                <View className="flex flex-row justify-start items-center gap-x-2">
+                <View className="flex-1 flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
                     {item.icon ? item.icon : <IconLibrary.angle_right />}
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <CText className="text-[1.2rem]">
                       {item.title}
                     </CText>
