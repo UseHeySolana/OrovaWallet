@@ -2,8 +2,17 @@ import * as bip39 from 'bip39';
 import { getRandomValues as expoCryptoGetRandomValues } from "expo-crypto";
 import { derivePath } from 'ed25519-hd-key';
 import { storage } from './storage';
-import { isJson } from './ai';
+
 import { PublicKey, Connection, Keypair } from '@solana/web3.js';
+
+export const isJson = (str: any) => {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
 
 
 

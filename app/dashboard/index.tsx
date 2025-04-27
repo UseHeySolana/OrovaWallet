@@ -23,6 +23,8 @@ import { useThemeContext } from "@/misc/context/ThemeContext";
 import Animated from "react-native-reanimated";
 import Convo, { MessageType } from "@/misc/store/conversation";
 import { scale } from "react-native-size-matters";
+import { showToast } from "@/misc/helpers/extrafunctions";
+import { isToolCall } from "@/misc/types/multimodal-live-types";
 
 
 const AiHelpers = [
@@ -78,7 +80,7 @@ export default function Dashboard() {
   const [message, setMessage] = useState<MessageType[]>([])
 
   useEffect(() => {
-    const messageItem = getConversationMessages(conversationId) || [];
+    const messageItem = getConversationMessages('1745755916570') || [];
     setMessage(messageItem);
 
   }, [conversationId, messages])
@@ -126,6 +128,7 @@ export default function Dashboard() {
     if (!sessionManager) return
     sessionManager?.sendTextMessage("this is new")
   }
+
 
 
   return (
@@ -192,14 +195,21 @@ export default function Dashboard() {
 
                 <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
                   <View className="w-[40%]">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => { router.push('/dashboard/send') }} type="secondary" text="Send" icon={
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
+                      //  router.push('/dashboard/send') 
+                      showToast("Kindly Use Voice to send tokens")
+                    }} type="secondary" text="Send" icon={
                       <View className="rotate-[230deg]">
                         <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
                       </View>
                     } />
                   </View>
                   <View className="w-[40%]">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => sendMessage()} type="secondary" text="Receive"
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
+                      showToast("Kindly Use Voice to send tokens")
+
+                      // sendMessage()
+                    }} type="secondary" text="Receive"
                       icon={
                         <View className="rotate-[40deg]">
                           <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
@@ -385,34 +395,69 @@ export default function Dashboard() {
                       key={index + item.id
                       }>
                       {toolCall ?
-                        <View className="py-4 shadow-sm px-4  flex flex-col items-start justify-center text-[1.14rem] bg-white dark:bg-accent2 rounded-xl">
-                          <CText className="uppercase">{item.tool.arguments.tool.replace('_', ' ')}</CText>
-                          <View>
-                            {params?.map((param: any, index: number) => {
-                              return (
-                                <View key={index} className="flex flex-row items-center  justify-between gap-x-2">
-                                  <CText className="text-[1rem] uppercase">{param}</CText>
-                                  <CText className="text-[1rem]">{item.tool.arguments?.parameter[param]}</CText>
-                                </View>
-                              )
-                            }
-                            )}
+                        <View className="py-4 shadow-sm px-4  flex flex-col items-start justify-center text-[1.14rem] border border-accent2 rounded-xl gap-y-3">
+                          <View className="flex flex-row items-center justify-between w-full bg-white dark:bg-accent2 p-1 rounded-full gap-x-3">
+                            <View className="flex-1 flex-row items-center gap-x-2 bg-grey dark:bg-accent p-2 rounded-full ">
+                              <Image source={require('@/assets/images/icon.png')} style={{ width: 30, height: 30 }} contentFit="contain" className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`} />
+                              <View className="">
+
+                                <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
+                                  {item.tool?.arguments?.owner ? item?.tool?.argumnets?.owner : aiName}
+                                </CText>
+                                <CText>Tool Used</CText>
+                              </View>
+                            </View>
+
+                            <View>
+                              <View className="bg-grey dark:bg-accent p-2 w-10 h-10 rounded-full">
+                                <Image source={
+                                  item.tool?.status == 'pending' ?
+                                    require('@/assets/toolstatus/pending.png') :
+                                    item.tool?.status == 'compelete' ?
+                                      require('@/assets/toolstatus/complete.png')
+                                      : require('@/assets/toolstatus/failed.png')
+                                } style={{ width: '100%', height: '100%' }} contentFit="contain" className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`} />
+
+                              </View>
+
+                            </View>
+
+
                           </View>
+
+                          <View className="bg-white dark:bg-accent2 p-3 rounded-xl w-full">
+                            <CText className="uppercase text-[1.23rem]" style={{ fontFamily: "bold" }}>{item.tool.arguments.tool.replace('_', ' ').replace('-', ' ')}</CText>
+                            <View className="flex-1 py-4">
+                              {params?.map((param: any, index: number) => {
+                                return (
+                                  <View key={index} className="flex flex-row  items-center  justify-start gap-x-4">
+                                    <CText className="text-[1rem] uppercase">{param}</CText>
+                                    <CText className="text-[1rem]">{item.tool.arguments?.parameter[param]}</CText>
+                                  </View>
+                                )
+                              }
+                              )}
+                            </View>
+
+                          </View>
+
 
                         </View>
                         :
                         <View
-
-                          className={`w-full flex-row mb-2 ${isSystem ? "justify-start" : "justify-end"
+                          className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"
                             }`}
                         >
-                          <View
-                            className={`bg-white dark:bg-accent2 p-2 rounded-xl w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"
-                              }`}
-                          >
+                          <View className="flex flex-row items-center gap-x-2 ">
+                            <Image source={require('@/assets/images/ai.png')} style={{ width: 30, height: 30 }} contentFit="contain" className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`} />
                             <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
                               {isSystem ? aiName : `@${user?.username}`}
                             </CText>
+                          </View>
+                          <View
+                            className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"
+                              }`}
+                          >
                             <View className="bg-grey dark:bg-accent p-2 rounded-lg">
                               <CText className="text-[12px]">{item.content}</CText>
                             </View>
