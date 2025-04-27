@@ -1,14 +1,10 @@
-import { memo, useEffect, useRef, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { FlatList, Pressable, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
-import { Image } from "expo-image";
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import * as Contacts from 'expo-contacts';
-import UserItem from "@/misc/store/userstore";
 import IconLibrary from "@/misc/helpers/icons";
-import { useThemeContext } from "@/misc/context/ThemeContext";
-import { FlashList } from "@shopify/flash-list";
 import { fetchData } from "@/misc/helpers/db";
 import Buttons from "@/components/ButtonComp";
 import PhoneBook from "@/misc/store/phonebook";
@@ -28,7 +24,7 @@ function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {
 
 /**
   * What should be done here
-  * 1. Adfd user to Address Book  and Shows List of Contact in Address Book and What to Change
+  * 1. Add user to Address Book  and Shows List of Contact in Address Book and What to Change
   */
 function AddressBook() {
 
@@ -44,7 +40,6 @@ function AddressBook() {
   useEffect(() => {
     if (contactsPhone.length > 0 && users.length > 0) {
       const items = getMatchingContacts(contactsPhone, users)
-      // console.log(items);
       items?.forEach((item: any) => {
         const contactFetched = {
           name: item.name as string,
@@ -58,8 +53,6 @@ function AddressBook() {
       setContactsOnHeySolana(contacts)
     }
   }, [contactsPhone, users])
-
-
 
 
   const fetchContacts = async () => {

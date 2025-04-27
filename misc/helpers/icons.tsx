@@ -239,6 +239,16 @@ const IconLibrary = {
             />
         );
     },
+    tools: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Entypo
+                name="tools"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
     moon: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (

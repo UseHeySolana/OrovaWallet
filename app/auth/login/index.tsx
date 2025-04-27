@@ -214,7 +214,7 @@ function Login() {
               </View>
             </View>
 
-            <View className="w-full flex justify-center gap-y-10 items-center">
+            <View className="w-10/12 m-auto  flex justify-center gap-y-10 items-center">
               <TouchableOpacity onPress={BiometricAuth} className="bg-purple py-5 flex flex-row justify-center items-center gap-x-3  rounded-full overflow-hidden w-full">
                 <View className="h-[1.5rem] w-[1.5rem]  rounded-full">
                   <Image source={require('@/assets/images/biometric2.png')} style={{ width: "100%", height: "100%" }}

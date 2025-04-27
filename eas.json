@@ -20,7 +20,8 @@
         "gradleCommand": ":app:bundleRelease",
         "withoutCredentials": false
       },
-      "developmentClient": false
+      "developmentClient": false,
+      "channel": "production"
     }
   }
 }

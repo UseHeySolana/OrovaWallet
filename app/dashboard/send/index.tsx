@@ -10,6 +10,7 @@ import { Keypair } from "@solana/web3.js";
 import UserItem from "@/misc/store/userstore";
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
+import SearchInput from "@/components/SearchInput/SearchInput";
 
 const Items = [
   {
@@ -73,31 +74,18 @@ function Send() {
         </Pressable>
       </View>
       <View className=" flex-1 gap-y-2 flex-col justify-start items-center rounded-2xl w-11/12 py-2 m-auto">
-        <View className="flex flex-row justify-between items-center gap-x-2  ">
-          <View
-            className=" flex flex-row items-center  gap-x-2 justify-start p-4 rounded-xl  text-start  w-full bg-white dark:bg-accent"
-          >
-            <IconLibrary.search />
-            <TextInput
-              style={{ fontFamily: "bold", fontSize: 15 }}
-              // value={""}
-              placeholder="Search"
-              className="w-full text-black dark:text-white"
-              placeholderTextColor={isDarkMode ? 'white' : 'black'}
-              numberOfLines={100}
-              onChangeText={(text) => {
-              }}
-            />
-            {/* <CText className="">${userWallet.balance}</CText> */}
-          </View>
-        </View>
-
+        <SearchInput />
         <View className="bg-white dark:bg-accent rounded-xl overflow-hidden">
           {userWallet?.tokenAccounts.map((token: any, index: number) => (
             <View key={index}>
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                onPress={() => { console.log("touched") }}
+                onPress={() => {
+                  router.push({
+                    pathname: '/dashboard/send/token',
+                    params: { mint: token.mint },
+                  });
+                }}
               >
                 <View
                   className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]"
