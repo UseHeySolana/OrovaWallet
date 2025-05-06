@@ -131,29 +131,6 @@ export default function Dashboard() {
     sessionManager?.sendTextMessage("this is new")
   }
 
-  // const toolTester = async () => {
-
-
-  //   try {
-
-
-  //     const response = await purchaseAirtime("08132532430", 100, "13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ");
-  //     if (!response.status) {
-  //       setLoading(false);
-  //       return
-  //     }
-
-  //     const res = await signTransactions(response.data.ix)
-  //     console.log(res)
-
-
-  //   } catch (e) {
-  //     console.error(e);
-  //   }
-
-
-  // }
-
 
 
 

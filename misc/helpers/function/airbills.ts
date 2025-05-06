@@ -6,7 +6,7 @@ import UserItem from "@/misc/store/userstore";
 import { fetchData, purchaseAirtime } from "../db";
 import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
-import { convertSpeech } from "../miscfunctions.ts/extrafunctions";
+import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
 
 export class AirBills {
     public buyAirtime: FunctionParams;
@@ -73,7 +73,6 @@ export class AirBills {
                 }
 
                 console.log("userWalletAddress", userWalletAddress);
-                console.log("keyPair", keyPair);
 
                 const response = await purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
 
@@ -84,21 +83,14 @@ export class AirBills {
 
                 const result = response.data;
 
-                const txBuffer = Buffer.from(result.Ix, "base64");
-                let transaction = Transaction.from(txBuffer);
-                transaction.sign(keyPair)
-
-
-                const txid = await this.session.connection.sendRawTransaction(transaction.serialize())
-
-                await this.session.connection.confirmTransaction(txid, "confirmed");
+                const res = await signTransactions(result.ix)
 
                 setTimeout(() => {
                     this.session.stopSession()
                     AppSettings.getState().setLoading(false)
                 }, 1000)
 
-                return "Airtime purchase was successful with transaction id: " + txid;
+                return res;
             }
         }
     }

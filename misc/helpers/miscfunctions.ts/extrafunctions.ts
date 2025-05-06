@@ -177,7 +177,7 @@ const signTransactions = async (tx: string) => {
         return txid;
     } catch (error) {
 
-        return error
+        return `Signing failed: ${error instanceof Error ? error.message : String(error)}`;
     }
 }
 export {
