@@ -9,7 +9,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Entypo from '@expo/vector-icons/Entypo';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
 import { useThemeContext } from '../context/ThemeContext';
-import { storage } from './storage';
+import { storage } from './storage/storage';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 type IconProps = {

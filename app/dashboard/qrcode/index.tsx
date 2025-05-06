@@ -15,7 +15,7 @@ import EvilIcons from "@expo/vector-icons/EvilIcons";
 import WalletItem from "@/misc/store/wallet";
 
 import * as Sharing from 'expo-sharing';
-import { copyItem } from "@/misc/helpers/functions";
+import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 import { captureRef } from 'react-native-view-shot';
 import RNFS from "react-native-fs"
 

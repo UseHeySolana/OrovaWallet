@@ -14,8 +14,8 @@ import { TouchableOpacity } from "react-native";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
-import { cleanNumber } from "@/misc/helpers/extrafunctions";
-import { delay } from "@/misc/helpers/functions";
+import { cleanNumber } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { delay } from "@/misc/helpers/miscfunctions.ts";
 import { BiometricAuth } from "@/app/requests/dashboard";
 
 /**

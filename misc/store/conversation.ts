@@ -9,8 +9,10 @@ export interface MessageType {
     id: string;
     conversation_id: string;
     tool?: {
+        owner?: string,
         action: string,
         link?: string,
+        status: 'pending' | 'failed' | 'complete',
         arguments?: any,
     }
 

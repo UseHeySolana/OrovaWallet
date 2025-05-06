@@ -12,6 +12,7 @@ export class EndStream {
     end_stream() {
         return {
             name: "end-stream",
+            owner: "HeySolana",
             description: "This function is used to close and end the stream",
             parameters: null,
             handler: async () => {

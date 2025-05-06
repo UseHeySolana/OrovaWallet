@@ -117,7 +117,7 @@ const AppSettings = create(
                     // Set a new timeout and store its ID
                     const timeoutId = setTimeout(() => {
                         set({ isLoading: false, loadingTimeout: null });
-                    }, 3000);
+                    }, 5000);
 
                     set({ loadingTimeout: timeoutId });
                 } else {

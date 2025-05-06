@@ -21,8 +21,6 @@ export const storage = {
     remove: async (name: string) => {
         try {
             const saved = await AsyncStorage.removeItem(name)
-
-
             return true
 
         } catch (e) {

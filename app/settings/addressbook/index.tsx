@@ -8,6 +8,7 @@ import IconLibrary from "@/misc/helpers/icons";
 import { fetchData } from "@/misc/helpers/db";
 import Buttons from "@/components/ButtonComp";
 import PhoneBook from "@/misc/store/phonebook";
+import { shortenPub } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 
 function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {
   const phoneC = new Set(phoneContacts.map((item: any) => item.phoneNumbers && item.phoneNumbers[0]?.number?.replace(/[-\s]/g, '')).filter(Boolean));
@@ -115,7 +116,9 @@ function AddressBook() {
                       </View>
                       <View className="flex-1 flex-col  justify-start gap-x-4  items-start">
                         <CText className="text-[1.45rem]">{item.item.name}</CText>
-                        <CText className="text-[1rem]">{item.item.walletAddress?.slice(0, 4) + '...' + item.item.walletAddress?.slice(-5)}</CText>
+                        <CText className="text-[1rem]">
+                          {shortenPub(item.item.walletAddress)}
+                        </CText>
 
                       </View>
                     </View>)

@@ -5,7 +5,7 @@ import { transferSol, transferToken } from "../transfers";
 import SessionManager from "../aistream/aistream";
 import GeminiSessionManager from "../gemini/StreamManager";
 import { FunctionParams } from "../types";
-import { convertSpeech } from "../extrafunctions";
+import { convertSpeech } from "../miscfunctions.ts/extrafunctions";
 
 const aiTransfer = async (userDetails: userWalletType, connection: Connection, args: { amount: number, token: string, recipient: string }) => {
     const { amount, token, recipient } = args;
@@ -63,6 +63,7 @@ export class TransferFunction {
     transfer_tokens() {
         return {
             name: "transfer_tokens",
+            owner: "HeySolana",
             description: "This function is used to transfer tokens from one user to another",
             parameters: {
                 type: "object",

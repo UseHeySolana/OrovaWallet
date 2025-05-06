@@ -10,7 +10,7 @@ import WalletItem from "@/misc/store/wallet";
 import { saveWalletAddress } from "@/misc/helpers/db";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
-import { pasteItem } from "@/misc/helpers/functions";
+import { pasteItem } from "@/misc/helpers/miscfunctions.ts";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import IconLibrary from "@/misc/helpers/icons";
 import { useKeyboard } from "@/misc/context/KeyboardContext";

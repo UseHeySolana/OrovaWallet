@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 // import QRCodeScanner from 'react-native-qrcode-scanner';
-import { RNCamera } from 'react-native-camera';
+
 import CText from "@/components/TextComp";
 import { router } from "expo-router";
 import IconLibrary from "@/misc/helpers/icons";
 import Buttons from "@/components/ButtonComp";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import WalletItem from "@/misc/store/wallet";
-import { copyItem } from "@/misc/helpers/functions";
+import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 
 
 

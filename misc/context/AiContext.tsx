@@ -9,6 +9,7 @@ import { prompB } from "../helpers/prompt";
 import { toolRouter } from "../helpers/toolsregistry";
 
 interface AIService {
+    connection: Connection | null;
     sessionManager: SessionManager | null,
     isSessionActive: boolean,
     startSession: (audio?: boolean) => void,
@@ -31,6 +32,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const [currentMode, setCurrentMode] = useState<'loading' | 'aispeaking' | 'human'>("loading");
 
     const [conversationId, setConversationId] = useState('');
+    const [connection, setConnection] = useState<Connection | null>(null)
 
     useEffect(() => {
         const checkPermissions = async () => {
@@ -52,6 +54,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         if (permissionGranted) {
             const connection = new Connection(`${network}${api_key}`)
             if (!connection) return;
+            setConnection(connection);
             if (isSessionActive || sessionManager) return;
 
             const manager = new SessionManager(userWallet, connection,
@@ -130,7 +133,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, [sessionManager]);
 
     return (
-        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId }}>
+        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId, connection }}>
             {children}
         </AiService.Provider>
     );

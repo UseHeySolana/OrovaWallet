@@ -3,9 +3,10 @@ import SessionManager from "../aistream/aistream";
 import GeminiSessionManager from "../gemini/StreamManager";
 import { FunctionParams } from "../types";
 import UserItem from "@/misc/store/userstore";
-import { purchaseAirtime } from "../db";
+import { fetchData, purchaseAirtime } from "../db";
 import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
+import { convertSpeech } from "../miscfunctions.ts/extrafunctions";
 
 export class AirBills {
     public buyAirtime: FunctionParams;
@@ -45,6 +46,25 @@ export class AirBills {
                     return "You do not have any USDC in your wallet, please swap some token and try again";
                 }
 
+                const user = UserItem.getState().user
+                let mobileNumber: string;
+
+                if (args.username === user?.username) {
+                    mobileNumber = user.mobileNumber;
+                } else {
+
+                    const users = await fetchData()
+                    const filtered = users.filter(
+                        (msg: any) =>
+                            msg.username.toLowerCase().includes(args.username.toLowerCase())
+                    );
+                    if (filtered.length < 1) {
+                        const response = await convertSpeech("Sorry there is no user on the Hey Solana App with that username")
+                        return response
+                    }
+                    mobileNumber = filtered[0].mobileNumber;
+                }
+
                 const userWalletAddress = WalletItem.getState().publicKey?.toString() || "";
                 const keyPair = WalletItem.getState().keypair || null;
                 if (!keyPair) {
@@ -55,17 +75,19 @@ export class AirBills {
                 console.log("userWalletAddress", userWalletAddress);
                 console.log("keyPair", keyPair);
 
-                const response = await purchaseAirtime(args.username, args.amount, userWalletAddress);
+                const response = await purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
 
                 if (!response.status) {
                     AppSettings.getState().setLoading(false)
                     return response.message;
                 }
+
                 const result = response.data;
 
                 const txBuffer = Buffer.from(result.Ix, "base64");
                 let transaction = Transaction.from(txBuffer);
                 transaction.sign(keyPair)
+
 
                 const txid = await this.session.connection.sendRawTransaction(transaction.serialize())
 

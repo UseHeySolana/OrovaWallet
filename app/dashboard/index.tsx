@@ -11,7 +11,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
 import UserItem from "@/misc/store/userstore";
-import { copyItem } from "@/misc/helpers/functions";
+import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 import setUserItems, { api_key } from "../requests/dashboard";
 import { router } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
@@ -20,11 +20,11 @@ import { useAi } from "@/misc/context/AiContext";
 
 import { Base } from "@/components/Navigation/Base";
 import { useThemeContext } from "@/misc/context/ThemeContext";
-import Animated from "react-native-reanimated";
 import Convo, { MessageType } from "@/misc/store/conversation";
 import { scale } from "react-native-size-matters";
-import { showToast } from "@/misc/helpers/extrafunctions";
-import { isToolCall } from "@/misc/types/multimodal-live-types";
+import { keypairSign, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { purchaseAirtime } from "@/misc/helpers/db";
+import { Connection, Keypair, Transaction } from "@solana/web3.js";
 
 
 const AiHelpers = [
@@ -67,8 +67,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('tokens')
   const { user, userWallet, updateUserWallet, logout } = UserItem();
   const { network, setLoading, aiName } = AppSettings();
-  const { sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId } = useAi()
-  const { publicKey } = WalletItem()
+  const { connection, sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId } = useAi()
+  const { publicKey, keypair } = WalletItem()
   const [refreshing, setRefreshing] = useState(false);
   const [update, setUpdate] = useState(0)
   const animation = useRef<LottieView>(null);
@@ -80,7 +80,9 @@ export default function Dashboard() {
   const [message, setMessage] = useState<MessageType[]>([])
 
   useEffect(() => {
-    const messageItem = getConversationMessages('1745755916570') || [];
+    // const messageItem = getConversationMessages('1745755916570') || [];
+    const messageItem = getConversationMessages(conversationId) || [];
+
     setMessage(messageItem);
 
   }, [conversationId, messages])
@@ -129,6 +131,30 @@ export default function Dashboard() {
     sessionManager?.sendTextMessage("this is new")
   }
 
+  // const toolTester = async () => {
+
+
+  //   try {
+
+
+  //     const response = await purchaseAirtime("08132532430", 100, "13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ");
+  //     if (!response.status) {
+  //       setLoading(false);
+  //       return
+  //     }
+
+  //     const res = await signTransactions(response.data.ix)
+  //     console.log(res)
+
+
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
+
+
+  // }
+
+
 
 
   return (
@@ -160,8 +186,6 @@ export default function Dashboard() {
       {showWallet ?
         <>
           {/* Top Icons */}
-
-
           <ScrollView
             className=""
             showsVerticalScrollIndicator={false}
@@ -258,7 +282,7 @@ export default function Dashboard() {
 
               </View>
 
-              <Animated.View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
+              <View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
                 <View className="flex flex-row items-center justify-between">
                   <TouchableNativeFeedback
                     background={TouchableNativeFeedback.Ripple('#971BB2', false)}
@@ -365,13 +389,12 @@ export default function Dashboard() {
                 }
 
 
-              </Animated.View>
+              </View>
             </View>
 
           </ScrollView>
 
         </>
-
         :
         <View className="flex-1 justify-start py-2  rounded-3xl overflow-hidden">
           {message.length > 0 &&

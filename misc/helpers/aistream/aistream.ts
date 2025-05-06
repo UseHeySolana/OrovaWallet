@@ -16,6 +16,7 @@ import { Audio } from "expo-av";
 import AppSettings from "@/misc/store/settingsstore";
 import Convo from "@/misc/store/conversation";
 import { toolRouter } from "../toolsregistry";
+import { FunctionParams } from "../types";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -27,7 +28,7 @@ class SessionManager {
     private memoryLimit: number = 7;
     private storageKey: string = "ai_session_memory";
     private systemInstructions: string = "";
-    private availableFunctions: any[] = [];
+    private availableFunctions: FunctionParams[] = [];
     private connectionEstablished: boolean = false;
     // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
     public callbacks: {
@@ -492,7 +493,7 @@ class SessionManager {
         }
     }
 
-    registerFunctions(functions: any[]): void {
+    registerFunctions(functions: FunctionParams[]): void {
         console.log("Registering functions:", functions.map(fn => fn.name).join(", "));
         this.availableFunctions = functions;
 
@@ -561,7 +562,9 @@ class SessionManager {
                     timestamp: new Date().getTime(),
                     conversation_id: this.conversation_id,
                     tool: {
-                        action: name,
+                        owner: functionDef.owner,
+                        status: "pending",
+                        action: functionDef.name,
                         arguments: args,
                     }
                 })
@@ -609,10 +612,11 @@ class SessionManager {
         }
     }
 
-    addFunction(name: string, description: string, parameters: any, handler: Function): void {
+    addFunction(name: string, owner: any, description: string, parameters: any, handler: () => Promise<any>): void {
         const functionDef = {
             name,
             description,
+            owner,
             parameters,
             handler
         };

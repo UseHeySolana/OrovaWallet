@@ -1,6 +1,7 @@
 import { Connection, Keypair, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import WalletItem from "../store/wallet";
+import { signTransactions } from "./miscfunctions.ts/extrafunctions";
 
 
 
@@ -28,14 +29,15 @@ export const transferSol = async (
         const { blockhash } = await connection.getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
 
-        // Sign the transaction
-        transaction.sign(fromWallet);
+        // Serialize the transaction to base64
+        const serialized = transaction.serialize({ requireAllSignatures: false }).toString("base64");
 
-        // Send and confirm the transaction
-        const signature = await sendAndConfirmTransaction(connection, transaction, [fromWallet]);
+        // Use the external signTransactions function
+        const txid = await signTransactions(serialized);
+        console.log(`Transaction submitted with signature: ${txid}`);
 
-        console.log(`Transaction successful with signature: ${signature}`);
-        return signature;
+        return txid;
+
     } catch (error) {
         console.error("Error transferring SOL:", error);
         throw error;
@@ -95,14 +97,15 @@ export const transferToken = async (
         // Sign the transaction
         transaction.sign(fromWallet);
 
-        // Send and confirm the transaction
-        try {
-        const signature = await sendAndConfirmTransaction(connection, transaction, [fromWallet]);
-        console.log(`Token transfer successful with signature: ${signature}`);
-        return signature;
-        } catch (e) {
-            console.log(e)
-        }
+        // Serialize the transaction to base64
+        const serialized = transaction.serialize({ requireAllSignatures: false }).toString("base64");
+
+        // Use the external signTransactions function
+        const txid = await signTransactions(serialized);
+        console.log(`Transaction submitted with signature: ${txid}`);
+
+        return txid;
+
     } catch (error) {
         console.error("Error transferring token:", error);
         throw error;

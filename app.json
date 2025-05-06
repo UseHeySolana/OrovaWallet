@@ -53,7 +53,7 @@
           "image": "./assets/images/splaash.gif",
           "imageWidth": 150,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#000000"
         }
       ],
       [
