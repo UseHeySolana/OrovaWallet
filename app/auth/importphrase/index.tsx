@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
-import EvilIcons from '@expo/vector-icons/EvilIcons';
 import Buttons from "@/components/ButtonComp";
-import { generateMnemonic, getKeypairFromMnemonic } from "@/misc/helpers/wallet";
-import * as Clipboard from 'expo-clipboard';
-import { isJson } from "@/misc/helpers/ai";
+import { getKeypairFromMnemonic, isJson } from "@/misc/helpers/wallet";
+
+
 import AppSettings from "@/misc/store/settingsstore";
 import WalletItem from "@/misc/store/wallet";
-import { fetchData, handleSearch, MessageData, saveWalletAddress } from "@/misc/helpers/db";
+import { saveWalletAddress } from "@/misc/helpers/db";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
-import { pasteItem } from "@/misc/helpers/functions";
+import { pasteItem } from "@/misc/helpers/miscfunctions.ts";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import IconLibrary from "@/misc/helpers/icons";
 import { useKeyboard } from "@/misc/context/KeyboardContext";

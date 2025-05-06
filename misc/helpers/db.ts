@@ -1,3 +1,5 @@
+import { cache } from "./storage/cache";
+
 export type MessageData = {
   id: string;
   userName: string;
@@ -7,7 +9,8 @@ export type MessageData = {
 };
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "";
-const AIRBILLS = process.env.EXPO_PUBLIC_API_URL || "";
+const AIRBILLS = process.env.EXPO_PUBLIC_AIR_BILLS || "";
+const HELIUS = process.env.EXPO_PUBLIC_HELIUS_API || "";
 
 
 const request = {
@@ -139,12 +142,7 @@ const fetchData = async () => {
   }
 };
 
-/**
- * 
- * @param query 
- * @param searchedItem 
- * @returns 
- */
+
 const handleSearch = (query: string, searchedItem: any[]) => {
   const lowerCaseQuery = query.toLowerCase();
   const filtered = searchedItem.filter(
@@ -230,16 +228,18 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
  * @returns 
  */
 const purchaseAirtime = async (phone_number: string, amount: number, userWalletAddress: string) => {
+
+
   const url = 'https://vendor.airbillspay.com/bills/airtime/paypoint'
-  const data =
-  {
+  const data = {
     "phoneNumber": phone_number,
     "amount": amount,
     "token": 'USDC',
     "user_address": userWalletAddress,
   }
-  console.log(data);
-  const response = await request.postJsonRan(data, url, { "secret-key": AIRBILLS });
+
+
+  const response = await request.postJsonRan(data, url, { "secretkey": AIRBILLS });
   if (!response.ok) {
     const result = await response.json();
     return {
@@ -261,6 +261,8 @@ const getCode = async (phone_number: string) => {
   console.log(item);
 
   const response = await request.postJson(item, "/v2/get-code");
+
+  console.log(response);
   if (!response.ok) {
     const result = await response.json();
     return {
@@ -271,11 +273,31 @@ const getCode = async (phone_number: string) => {
     return { status: true, data: result };
   }
 }
+
+
+/**
+ * @param publicKey
+ * @returns 
+ */
+const getTransactionHistory = async (publicKey: string) => {
+  const response = await request.getRan(`https://api.helius.xyz/v0/addresses/${publicKey}/transactions?api-key=${HELIUS}`)
+  if (!response.ok) {
+    const result = await response.json();
+    return {
+      status: false, message: result.message
+    }
+  }
+  //set Transaction History
+  return { status: true, data: await response.json() };
+}
+
+
 export {
   purchaseAirtime,
   verifyCode,
   getCode,
   saveWalletAddress,
+  getTransactionHistory,
   registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request
 };
 

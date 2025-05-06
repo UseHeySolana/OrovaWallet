@@ -18,7 +18,7 @@ const settingsMenu = [
   {
     title: "AI Assistant",
     route: "/aisetup",
-    subtitle: "Setup HeySolana AI",
+    subtitle: `${AppSettings.getState().aiName} -- ${AppSettings.getState().aiLanguage}`,
     icon: <View className="h-[18px] w-[18px]  rounded-full">
       <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
         contentFit="cover"

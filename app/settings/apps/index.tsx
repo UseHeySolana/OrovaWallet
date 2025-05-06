@@ -1,151 +1,263 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
-import CText from "@/components/TextComp";
-import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
-import AppSettings from "@/misc/store/settingsstore";
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { router } from "expo-router";
-import UserItem from "@/misc/store/userstore";
-
+import { router, useLocalSearchParams } from "expo-router";
+import { Pressable, ScrollView, View } from "react-native";
 import IconLibrary from "@/misc/helpers/icons";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import CText from "@/components/TextComp";
+import { Image, ImageBackground } from "expo-image";
+import Buttons from "@/components/ButtonComp";
+import SearchInput from "@/components/SearchInput/SearchInput";
 
-
-
-const settingsMenu2 = [
+const category = [
   {
-    title: "Biometric Signin",
-    route: 'dark',
-    type: 'toggle',
-    subtitle: "Use fingerprint and faceId to signin",
-    icon: <IconLibrary.lock />,
+    title: 'Devtools',
+    image: require('@/assets/apps/devtools.png'),
   },
   {
-    title: "Delete Account",
-    route: null,
-    subtitle: "Delete account from HeySolana",
-    icon: <IconLibrary.delete />,
+    title: 'Finance',
+    image: require('@/assets/apps/financial.png'),
   },
-]
-/*
-/**
-  * What should be done here
-  * 1. Updates Settings and Shows Settings and What to Change
-  */
-function Security() {
-  const [recording, setRecording] = useState(false);
-
-  const { isDarkMode, toggleTheme } = useThemeContext()
-  const { setDefault, openWithAuth, setOpenWithAuth, setToast } = AppSettings()
-  const { user, userWallet, logout } = UserItem()
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
-
-  const routeNavigation = (route: any, type?: string) => {
-    if (type == 'toggle') {
-      return;
-    }
-    if (route == null) {
-      return;
-    }
-    if (route == 'logout') {
-      logout();
-      router.replace('/');
-      return;
-    }
-    if (route !== null) {
-      router.push(route);
-    }
+  {
+    title: "Sports",
+    image: require('@/assets/apps/sports.png'),
+  },
+  {
+    title: 'Utilities',
+    icon: <IconLibrary.tools />,
 
   }
 
-  console.log(openWithAuth);
+]
+
+const sponsored = [
+
+  {
+    name: "Airbills",
+    title: 'Utilities',
+    image: require('@/assets/apps/airbillsbg.jpeg'),
+    icon: require('@/assets/apps/airbillslogo.jpg'),
+  },
+  {
+    name: "PajCash",
+    title: 'Finance',
+    image: require('@/assets/apps/pajbg.jpeg'),
+    icon: require('@/assets/apps/pajcas.jpg'),
+
+  },
+  {
+    name: "Airbills",
+    title: "Sports",
+    image: require('@/assets/apps/sports.png'),
+  },
+  {
+    name: "Airbills",
+    title: 'Utilities',
+    image: require('@/assets/apps/sports.png'),
+    // icon: <IconLibrary.tools />,
+  }
+]
+
+const recommended = [
+
+
+  {
+    name: "Airbills",
+    title: 'Utilities',
+    image: require('@/assets/apps/airbillsbg.jpeg'),
+    icon: require('@/assets/apps/airbillslogo.jpg'),
+    description: " Airbills is a logistics platform that allows you to send and receive packages globally. It provides a user-friendly interface for tracking shipments, managing orders, and accessing shipping rates.",
+  },
+  {
+    name: "PajCash",
+    title: 'Finance',
+    image: require('@/assets/apps/pajbg.jpeg'),
+    icon: require('@/assets/apps/pajcas.jpg'),
+    description: " PajCash is a financial management app that helps users track their expenses, manage budgets, and make informed financial decisions. It offers features like expense categorization, budgeting tools, and financial insights.",
+
+  },
+  {
+    name: "Airbills",
+    title: "Sports",
+    image: require('@/assets/apps/sports.png'),
+    description: " Sports app that provides live scores, news, and updates on various sports events. It offers features like personalized notifications, team tracking, and in-depth statistics.",
+  },
+  {
+    name: "Airbills",
+    title: 'Utilities',
+    image: require('@/assets/apps/sports.png'),
+    description: " Utility app that offers various tools and features to enhance productivity. It includes features like task management, note-taking, and reminders.",
+    // icon: <IconLibrary.tools />,
+  }
+]
+
+const freeTools = [
+
+]
+
+/**
+  * What should be done here
+  * Show AppStore
+  */
+function ConnectedApps() {
+
+
   return (
-    <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
-      <View className="w-full gap-y-6">
-
-        <View className="w-full px-4 flex flex-row justify-start items-center gap-x-5">
-          <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
-            <IconLibrary.back />
-          </Pressable>
-          <CText className="text-[1.4rem]">Security</CText>
-        </View>
-
-        {/* <View className="bg-white dark:bg-accent mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
-          <View className="flex flex-row justify-between items-center gap-x-2  ">
-            <View className="h-10 w-10  rounded-full">
-              <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
-                contentFit="contain"
-              />
-            </View>
-            <View className="">
-              <CText style={{ fontFamily: "bold" }} className="text-wrap">Account</CText>
-              <CText className="">${userWallet.totalUsdBalance.toFixed(2)}</CText>
-            </View>
-          </View>
-          <Pressable onPress={() => router.back()} className="p-3">
-            <IconLibrary.angle_right />
-          </Pressable>
-        </View> */}
-
-        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow  bg-white dark:bg-accent ">
-          {settingsMenu2.map((item, index) => {
-            return (
-              <Pressable onPress={() => {
-                routeNavigation(item.route, item.type)
-              }} key={index} className="py-1 flex flex-row justify-between items-center">
-                <View className="flex flex-row justify-start items-center gap-x-2">
-                  <View className="h-6 flex flex-row justify-center items-center w-6">
-                    {item.icon ? item.icon : <IconLibrary.angle_right />}
-                  </View>
-                  <View>
-                    <CText className="text-[1.2rem]">
-                      {item.title}
-                    </CText>
-                    <CText textColor="text-gray-400" className="text-[1rem] ">
-                      {item.subtitle}
-                    </CText>
-                  </View>
-                </View>
-
-                {item.route && item.route !== "logout" &&
-                  <>
-                    {item.type === 'toggle' ?
-                      <Switch
-                        trackColor={{ false: 'red', true: 'green' }}
-                        thumbColor={'white'}
-                        ios_backgroundColor="#3e3e3e"
-                        onValueChange={() => {
-                          setOpenWithAuth(!openWithAuth)
-                          if (!openWithAuth) {
-                            setToast('Biometric signin activated', 'success');
-                          } else {
-                            setToast('Biometric signin deactivated', 'info');
-                          }
-                        }}
-                        value={openWithAuth}
-                      />
-                      :
-                      <Pressable onPress={() => router.back()} className="p-3">
-                        <IconLibrary.angle_right />
-                      </Pressable>
-                    }
-                  </>
-
-                }
-              </Pressable>
-            )
-          })}
-        </View>
-
+    <View
+      className="relative w-full bg-grey dark:bg-dark flex-1 items-center"
+    >
+      <View className="w-full px-4 flex flex-row justify-start items-center gap-x-5">
+        <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
+          <IconLibrary.back />
+        </Pressable>
+        <CText className="text-[1.4rem]">Apps</CText>
       </View>
 
+      <ScrollView
+        className="w-full px-4 flex-1"
+      >
+        <View className="w-full flex flex-col justify-start items-start gap-y-4 mt-3">
+          <ScrollView
+            // style={{ height: 150 }}
+            nestedScrollEnabled={true}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingEnd: 10, }}
+            className="py-2"
+          >
+            <View className="flex flex-row justify-start items-center gap-x-2">
+              {category.map((item, index) => {
+                return (
+                  <Pressable key={index} className="flex bg-white dark:bg-accent py-3 px-2 w-[10rem] rounded-xl  flex-row justify-start items-center gap-x-3">
+                    <View className="h-10 w-10 rounded-lg bg-white dark:bg-accent2 flex items-center  justify-center">
+                      {item.icon ? item.icon :
+                        <Image source={item.image} style={{ width: "100%", height: "100%" }} contentFit="contain" />
+                      }
+                    </View>
+                    <CText style={{ fontFamily: "bold" }}>{item.title}</CText>
+                  </Pressable>
+                )
+              })}
+            </View>
+          </ScrollView>
+          <ScrollView
+            nestedScrollEnabled={true}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingEnd: 10, }}
+            className="py-2"
+          >
+            <View className="flex flex-row  justify-start items-center gap-x-2">
+              {sponsored.map((item, index) => {
+                return (
+                  <Pressable key={index} className="flex h-[10rem] w-[16rem] shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
+                    <Image source={item.image} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                    <View className="absolute bottom-[-2] rounded-2xl w-full p-3  bg-white dark:bg-accent flex flex-row items-center  justify-between gap-x-2">
+                      <View className="flex flex-row items-center gap-x-2">
+
+                        <View className="h-12 w-12 overflow-hidden rounded-full bg-white dark:bg-accent2 ">
+                          {item.icon ? <Image source={item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
+                            <Image source={item.image} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                          }
+                        </View>
+                        <View className="">
+                          <CText style={{ fontFamily: "bold" }}>{item.name}</CText>
+                          <CText style={{ fontFamily: "reg" }} textColor="text-white/50">{item.title}</CText>
+                        </View>
+                      </View>
+
+                      <Buttons type="primary" className="p-2 px-4 bg-accent2 rounded-3xl" text="Install" onPress={() => { }} />
+                    </View>
 
 
+                  </Pressable>
+                )
+              })}
+            </View>
+          </ScrollView>
+
+          <SearchInput />
+
+
+          <CText className="text-[1.7rem]" style={{ fontFamily: "bold" }}>Recomended</CText>
+          <ScrollView
+            nestedScrollEnabled={true}
+            contentContainerStyle={{ paddingEnd: 10, }}
+            className="py-2"
+          >
+            <View className="flex flex-col justify-start items-center gap-y-3">
+              {recommended.map((item, index) => {
+                return (
+                  <View key={index} className="flex w-full shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
+
+                    <View className="rounded-2xl w-full p-3  bg-white dark:bg-accent  flex-row items-center  justify-between gap-x-2">
+                      <View className="flex-1  flex-row items-center gap-x-2">
+                        <View className="h-12 w-12 overflow-hidden rounded-lg bg-white dark:bg-accent2 ">
+                          {item.icon ? <Image source={item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
+                            <Image source={item.image} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                          }
+                        </View>
+                        <View className="w-[80%]">
+                          <CText style={{ fontFamily: "bold" }} className="text-[1.23rem]">{item.name}</CText>
+                          <CText style={{ fontFamily: "reg" }} textColor="text-white/50 text-start">{item.description.slice(0, 50) + "..."}</CText>
+                        </View>
+                      </View>
+
+                      <Buttons type="primary" className="p-2 px-4 bg-accent2 rounded-3xl" text="Update" onPress={() => { }} />
+                    </View>
+
+
+                  </View>
+                )
+              })}
+            </View>
+          </ScrollView>
+
+
+
+          <CText className="text-[1.7rem]" style={{ fontFamily: "bold" }}>Free Tools</CText>
+          <ScrollView
+            nestedScrollEnabled={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingEnd: 10, }}
+            className="py-2"
+          >
+            <View className="flex flex-col justify-start items-center gap-y-3">
+              {recommended.map((item, index) => {
+                return (
+                  <View key={index} className="flex w-full shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
+
+                    <View className="rounded-2xl w-full p-3  bg-white dark:bg-accent  flex-row items-center  justify-between gap-x-2">
+                      <View className="flex-1  flex-row items-center gap-x-2">
+                        <View className="h-12 w-12 overflow-hidden rounded-lg bg-white dark:bg-accent2 ">
+                          {item.icon ? <Image source={item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
+                            <Image source={item.image} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                          }
+                        </View>
+                        <View className="w-[80%]">
+                          <CText style={{ fontFamily: "bold" }} className="text-[1.23rem]">{item.name}</CText>
+                          <CText style={{ fontFamily: "reg" }} textColor="text-white/50 text-start">{item.description.slice(0, 50) + "..."}</CText>
+                        </View>
+                      </View>
+
+                      <Buttons type="primary" className="p-2 px-4 bg-accent2 rounded-3xl" text="Update" onPress={() => { }} />
+                    </View>
+
+
+                  </View>
+                )
+              })}
+            </View>
+          </ScrollView>
+
+
+
+
+
+        </View>
+      </ScrollView>
 
     </View>
   );
 }
 
-export default Security
+export default ConnectedApps;
 

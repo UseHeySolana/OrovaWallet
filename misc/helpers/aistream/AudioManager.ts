@@ -1,4 +1,4 @@
-import {MediaStream } from 'react-native-webrtc';
+import { MediaStream } from 'react-native-webrtc';
 import { Audio } from 'expo-av';
 
 class AudioManager {
@@ -18,14 +18,14 @@ class AudioManager {
     private async setAudioMode(speakerOn: boolean): Promise<void> {
         try {
             await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
+                // allowsRecordingIOS: true,
                 // Use numeric values instead of constants
                 interruptionModeIOS: 1, // DO_NOT_MIX
                 playsInSilentModeIOS: true,
                 shouldDuckAndroid: true,
                 interruptionModeAndroid: 1, // DO_NOT_MIX
                 playThroughEarpieceAndroid: false, // This is the key setting!
-                staysActiveInBackground: true
+                staysActiveInBackground: true,
             });
 
             this.isSpeakerEnabled = true;

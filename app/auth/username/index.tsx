@@ -16,16 +16,16 @@ import { CountryPickerModal } from 'react-native-country-code-select';
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
-import { cleanNumber } from "@/misc/helpers/extrafunctions";
-import { delay } from "@/misc/helpers/functions";
-import {useKeyboard} from "@/misc/context/KeyboardContext";
+import { cleanNumber } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { delay } from "@/misc/helpers/miscfunctions.ts";
+import { useKeyboard } from "@/misc/context/KeyboardContext";
 /**
   * What should be done here
   * 1. Register User Voice for Authentication 
   * 2. Save User Voice and ask if to create wallet with their voice
   */
 function Voicereg() {
-const{isKeyboardVisible} =useKeyboard()
+  const { isKeyboardVisible } = useKeyboard()
 
   const [userDetails, setUserDetails] = useState({
     username: "",
@@ -54,7 +54,7 @@ const{isKeyboardVisible} =useKeyboard()
     }
   }, [user])
 
- 
+
 
   const saveUserToDB = async () => {
     const fields = [];

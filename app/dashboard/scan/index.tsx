@@ -1,22 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
+// import QRCodeScanner from 'react-native-qrcode-scanner';
+
 import CText from "@/components/TextComp";
-
 import { router } from "expo-router";
-
-
 import IconLibrary from "@/misc/helpers/icons";
-
-import QRCode from 'react-native-qrcode-svg';
 import Buttons from "@/components/ButtonComp";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import EvilIcons from "@expo/vector-icons/EvilIcons";
 import WalletItem from "@/misc/store/wallet";
+import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 
-import * as Sharing from 'expo-sharing';
-import { copyItem } from "@/misc/helpers/functions";
-
-import RNFS from "react-native-fs"
 
 
 function Scan() {
@@ -35,6 +28,10 @@ function Scan() {
     // console.log(available);
   }
 
+  const onSuccess = (e: any) => {
+    console.log(e)
+  }
+
   return (
     <View className="relative pt-3 px-4 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full gap-y-4">
@@ -47,12 +44,17 @@ function Scan() {
         <View className="flex bg-white shadow rounded-xl dark:bg-accent h-fit py-10 w-[370px] m-auto flex-row justify-center items-center ">
           <View className=" border border-purple/40 p-4 rounded-xl">
             <View className="h-[299] w-[299] overflow-hidden rounded-xl">
-              <QRCode
-                value={walletAddress}
-                size={300}
-                logo={require('@/assets/images/icon.png')}
-                logoBackgroundColor="transparent"
-              />
+              {/* <QRCodeScanner
+                onRead={onSuccess}
+                flashMode={RNCamera.Constants.FlashMode.torch}
+                topContent={
+                  <CText>
+                    Go to{' '}
+                    <CText>wikipedia.org/wiki/QR_code</CText> on
+                    your computer and scan the QR code.
+                  </CText>
+                }
+              /> */}
             </View>
 
             <View className="flex flex-row justify-between py-5">

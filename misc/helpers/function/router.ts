@@ -37,7 +37,9 @@ export class Routing {
     change_route() {
         return {
             name: "change_route",
+            owner: "HeySolana",
             description: "This function allows you to change route to the page you want to change to,",
+
             parameters: {
                 type: "object",
                 properties: {

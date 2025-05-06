@@ -16,6 +16,8 @@ import { Audio } from "expo-av";
 import AppSettings from "@/misc/store/settingsstore";
 import Convo from "@/misc/store/conversation";
 import { toolRouter } from "../toolsregistry";
+import { FunctionParams } from "../types";
+import PhoneBook from "@/misc/store/phonebook";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -27,7 +29,7 @@ class SessionManager {
     private memoryLimit: number = 7;
     private storageKey: string = "ai_session_memory";
     private systemInstructions: string = "";
-    private availableFunctions: any[] = [];
+    private availableFunctions: FunctionParams[] = [];
     private connectionEstablished: boolean = false;
     // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
     public callbacks: {
@@ -61,9 +63,16 @@ class SessionManager {
     }
 
     async startSession(systemInstructions?: string): Promise<void> {
+        AppSettings.getState().setLoading(true);
         // Set system instructions if provided
         if (systemInstructions) {
             const sysIns = `
+                These are the list of contacts I have on the App, 
+                ${JSON.stringify(PhoneBook.getState().contacts.map(item => ({
+                "username": item.name,
+            })))}
+            always map the username i am interacting to any of these, correct with right spelling always.
+
                 \n
                  these are the list of sub tools supported and parameters,
                 ${JSON.stringify(toolRouter(this).map(item => ({
@@ -93,21 +102,26 @@ class SessionManager {
             }
 
             //check if token is available then create
-            const ek = AppSettings.getState().ek;
+            // const ek = AppSettings.getState().ek;
+            // console.log("Stored expiry:", ek.expiry); // Should be something like 1746537093
+            // console.log("Current UTC time:", Math.floor(Date.now() / 1000));
 
             let EPHEMERAL_KEY: string;
-            function isClientSecretExpired(date: number) {
-                const currentTime = Math.floor(Date.now() / 1000); // Get current time in seconds
-                return date <= currentTime;
-            }
-            if (ek.value === "" || isClientSecretExpired(ek.expiry)) {
-                const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
-                const data = await tokenResponse.json();
-                EPHEMERAL_KEY = data.client_secret.value;
-                AppSettings.setState({ ek: { value: data.client_secret.value, expiry: data.client_secret.expires_at } })
-            } else {
-                EPHEMERAL_KEY = AppSettings.getState().ek.value;
-            }
+            // function isClientSecretExpired(date: number) {
+            //     const currentTime = Math.floor(Date.now() / 1000); // Get current time in seconds
+            //     return date <= currentTime;
+            // }
+
+
+            // if (ek.value === "" && !isClientSecretExpired(ek.expiry)) {
+            const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
+            const data = await tokenResponse.json();
+            EPHEMERAL_KEY = data.client_secret.value;
+            AppSettings.setState({ ek: { value: data.client_secret.value, expiry: data.client_secret.expires_at } })
+            // } else {
+            //     EPHEMERAL_KEY = AppSettings.getState().ek.value;
+            // }
+
 
 
             this.peerConnection = new RTCPeerConnection({
@@ -149,6 +163,7 @@ class SessionManager {
 
             await this.peerConnection.setLocalDescription(offer);
 
+
             // Send offer to API
             const baseUrl = "https://api.openai.com/v1/realtime";
             const model = "gpt-4o-mini-realtime-preview-2024-12-17";
@@ -187,9 +202,12 @@ class SessionManager {
             this.callbacks.setConversationId(this.conversation_id);
             Convo.getState().createConversation(this.conversation_id)
             console.log("Session started and ready for audio streaming.");
+            AppSettings.getState().setLoading(false);
+
         } catch (error) {
             console.error("Error starting session:", error);
             this.cleanupResources();
+            AppSettings.getState().setLoading(false);
             throw error;
         }
     }
@@ -310,18 +328,18 @@ class SessionManager {
                 this.registerFunctions(this.availableFunctions);
             }
 
-            // Step 3: Send an initial greeting to establish context
-            await this.sendWithDelay({
-                type: "conversation.item.create",
-                item: {
-                    type: "message",
-                    role: "system",
-                    content: [{
-                        type: "input_text",
-                        text: "Session initialized. System is ready for interaction."
-                    }],
-                }
-            }, 1000);
+            // // Step 3: Send an initial greeting to establish context
+            // await this.sendWithDelay({
+            //     type: "conversation.item.create",
+            //     item: {
+            //         type: "message",
+            //         role: "system",
+            //         content: [{
+            //             type: "input_text",
+            //             text: "Session initialized. System is ready for interaction."
+            //         }],
+            //     }
+            // }, 1000);
 
             console.log("Session fully initialized");
         } catch (error) {
@@ -471,28 +489,28 @@ class SessionManager {
             console.log("Sending system instructions event");
             this.sendClientEvent(event);
 
-            // Send a trigger for the model to acknowledge the new instructions
-            setTimeout(() => {
-                this.sendClientEvent({
-                    type: "conversation.item.create",
-                    item: {
-                        type: "message",
-                        role: "system",
-                        content: [{
-                            type: "input_text",
-                            text: "System instructions have been updated."
-                        }],
-                    }
-                });
+            // // Send a trigger for the model to acknowledge the new instructions
+            // setTimeout(() => {
+            //     this.sendClientEvent({
+            //         type: "conversation.item.create",
+            //         item: {
+            //             type: "message",
+            //             role: "system",
+            //             content: [{
+            //                 type: "input_text",
+            //                 text: "System instructions have been updated."
+            //             }],
+            //         }
+            //     });
 
-                this.sendClientEvent({ type: "response.create" });
-            }, 500);
+            //     this.sendClientEvent({ type: "response.create" });
+            // }, 500);
         } else {
             console.log("Session not active, instructions will be sent when session starts");
         }
     }
 
-    registerFunctions(functions: any[]): void {
+    registerFunctions(functions: FunctionParams[]): void {
         console.log("Registering functions:", functions.map(fn => fn.name).join(", "));
         this.availableFunctions = functions;
 
@@ -561,7 +579,9 @@ class SessionManager {
                     timestamp: new Date().getTime(),
                     conversation_id: this.conversation_id,
                     tool: {
-                        action: name,
+                        owner: functionDef.owner,
+                        status: "pending",
+                        action: functionDef.name,
                         arguments: args,
                     }
                 })
@@ -609,10 +629,11 @@ class SessionManager {
         }
     }
 
-    addFunction(name: string, description: string, parameters: any, handler: Function): void {
+    addFunction(name: string, owner: any, description: string, parameters: any, handler: () => Promise<any>): void {
         const functionDef = {
             name,
             description,
+            owner,
             parameters,
             handler
         };

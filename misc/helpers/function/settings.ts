@@ -13,6 +13,7 @@ export class Settings {
     set_voice() {
         return {
             name: "set_voice",
+            owner: "HeySolana",
             description: "This choose which voice to use for the AI",
             parameters: {
                 type: "object",
@@ -35,6 +36,7 @@ export class Settings {
     set_name() {
         return {
             name: "set_name",
+            owner: "HeySolana",
             description: "This choose a name for your personalized AI",
             parameters: {
                 type: "object",

@@ -2,7 +2,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 
 import { useColorScheme } from "nativewind";
-import { storage } from '../helpers/storage';
+import { storage } from '../helpers/storage/storage';
 import AppSettings from '../store/settingsstore';
 
 interface ColorScheme {

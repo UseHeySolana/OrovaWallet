@@ -3,7 +3,7 @@
     "name": "Heysolana",
     "slug": "heysolana",
     "owner": "yraylabs",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heysolana",
@@ -18,7 +18,7 @@
       }
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 5,
       "windowSoftInputMode": "adjustResize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -53,7 +53,7 @@
           "image": "./assets/images/splaash.gif",
           "imageWidth": 150,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#000000"
         }
       ],
       [
