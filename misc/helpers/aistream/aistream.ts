@@ -66,13 +66,7 @@ class SessionManager {
         AppSettings.getState().setLoading(true);
         // Set system instructions if provided
         if (systemInstructions) {
-            const sysIns = `
-                These are the list of contacts I have on the App, 
-                ${JSON.stringify(PhoneBook.getState().contacts.map(item => ({
-                "username": item.name,
-            })))}
-            always map the username i am interacting to any of these, correct with right spelling always.
-
+            const sysIns = ` 
                 \n
                  these are the list of sub tools supported and parameters,
                 ${JSON.stringify(toolRouter(this).map(item => ({
@@ -81,6 +75,15 @@ class SessionManager {
             })))}
              note always use the 'choose_tools' function to route to these.
                 `;
+
+            /**
+             * These are the list of contacts I have on the App, 
+            ${JSON.stringify(PhoneBook.getState().contacts.map(item => ({
+            "username": item.name,
+        })))}
+        always map the username i am interacting to any of these, correct with right spelling always.
+
+             */
 
 
             this.systemInstructions = systemInstructions + sysIns;
@@ -103,10 +106,10 @@ class SessionManager {
 
             //check if token is available then create
             // const ek = AppSettings.getState().ek;
-            // console.log("Stored expiry:", ek.expiry); // Should be something like 1746537093
-            // console.log("Current UTC time:", Math.floor(Date.now() / 1000));
 
             let EPHEMERAL_KEY: string;
+
+            // EPHEMERAL_KEY = ek.value;
             // function isClientSecretExpired(date: number) {
             //     const currentTime = Math.floor(Date.now() / 1000); // Get current time in seconds
             //     return date <= currentTime;
@@ -131,6 +134,7 @@ class SessionManager {
             // if (audio) {
             // Get media stream (different in React Native)
             const stream = await mediaDevices.getUserMedia({ audio: true });
+
             // Add tracks to peer connection
             stream.getTracks().forEach(track => {
                 this.peerConnection!.addTrack(track, stream);
@@ -202,7 +206,6 @@ class SessionManager {
             this.callbacks.setConversationId(this.conversation_id);
             Convo.getState().createConversation(this.conversation_id)
             console.log("Session started and ready for audio streaming.");
-            AppSettings.getState().setLoading(false);
 
         } catch (error) {
             console.error("Error starting session:", error);
@@ -328,22 +331,29 @@ class SessionManager {
                 this.registerFunctions(this.availableFunctions);
             }
 
-            // // Step 3: Send an initial greeting to establish context
-            // await this.sendWithDelay({
-            //     type: "conversation.item.create",
-            //     item: {
-            //         type: "message",
-            //         role: "system",
-            //         content: [{
-            //             type: "input_text",
-            //             text: "Session initialized. System is ready for interaction."
-            //         }],
-            //     }
-            // }, 1000);
+            // Step 3: Send an initial greeting to establish context
+            await this.sendWithDelay({
+                type: "conversation.item.create",
+                item: {
+                    type: "message",
+                    role: "system",
+                    content: [{
+                        type: "input_text",
+                        text: "Session initialized. System is ready for interaction."
+                    }],
+                },
+
+            }, 1000);
+
+            this.sendClientEvent({ type: "response.create" })
 
             console.log("Session fully initialized");
+            AppSettings.getState().setLoading(false);
+
         } catch (error) {
             console.error("Error during session initialization:", error);
+            AppSettings.getState().setLoading(false);
+
         }
     }
 
@@ -489,22 +499,6 @@ class SessionManager {
             console.log("Sending system instructions event");
             this.sendClientEvent(event);
 
-            // // Send a trigger for the model to acknowledge the new instructions
-            // setTimeout(() => {
-            //     this.sendClientEvent({
-            //         type: "conversation.item.create",
-            //         item: {
-            //             type: "message",
-            //             role: "system",
-            //             content: [{
-            //                 type: "input_text",
-            //                 text: "System instructions have been updated."
-            //             }],
-            //         }
-            //     });
-
-            //     this.sendClientEvent({ type: "response.create" });
-            // }, 500);
         } else {
             console.log("Session not active, instructions will be sent when session starts");
         }
@@ -531,23 +525,7 @@ class SessionManager {
             console.log("Sending function registration event");
             this.sendClientEvent(event);
 
-            // Confirm function registration
-            setTimeout(() => {
-                this.sendClientEvent({
-                    type: "conversation.item.create",
-                    item: {
-                        type: "message",
-                        role: "system",
-                        content: [{
-                            type: "input_text",
-                            text: `${functions.length} functions have been registered.`
-                        }],
-                    }
-                });
-                console.log("Function Registered");
 
-                this.sendClientEvent({ type: "response.create" });
-            }, 500);
         }
     }
 

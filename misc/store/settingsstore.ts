@@ -117,7 +117,8 @@ const AppSettings = create(
                     // Set a new timeout and store its ID
                     const timeoutId = setTimeout(() => {
                         set({ isLoading: false, loadingTimeout: null });
-                    }, 5000);
+                        get().setToast('An Error occured!!', 'error')
+                    }, 20000);
 
                     set({ loadingTimeout: timeoutId });
                 } else {

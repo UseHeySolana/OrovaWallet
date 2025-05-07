@@ -7,6 +7,7 @@ import UserItem from "../store/userstore";
 import { api_key } from "@/app/requests/dashboard";
 import { prompB } from "../helpers/prompt";
 import { toolRouter } from "../helpers/toolsregistry";
+import WalletItem from "../store/wallet";
 
 interface AIService {
     connection: Connection | null;
@@ -107,7 +108,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 sessionManager.stopSession();
             }
         };
-    }, [permissionGranted, refresh, user, userWallet]);
+    }, [permissionGranted, refresh, user, userWallet,]);
 
     const startSession = async () => {
         if (!sessionManager || isSessionActive) return;
