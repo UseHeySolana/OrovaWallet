@@ -66,6 +66,7 @@ You will be provided with a dynamic list of tools and their descriptions. Use th
 📌 Rules:
 
 - ONLY call \`choose_tools\`.
+- Make sure you call 'choose_tools for every intent, always call a function.
 - DO NOT generate or call any other tool directly.
 - DO NOT return raw tool results — your job is intent and parameter extraction.
 

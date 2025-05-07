@@ -5,6 +5,7 @@ import { getTransactionHistory } from "../db";
 import WalletItem from "@/misc/store/wallet";
 import { Connection, Keypair, Transaction } from "@solana/web3.js";
 import { api_key } from "@/app/requests/dashboard";
+import { Linking } from "react-native";
 
 const cleanNumber = (input: any) => {
     // Remove non-digit characters
@@ -173,13 +174,23 @@ const signTransactions = async (tx: string) => {
 
     try {
         const txid = await connection.sendRawTransaction(transaction.serialize());
-        const confirmation = await connection.confirmTransaction(txid, "confirmed");
+
         return txid;
     } catch (error) {
 
         return `Signing failed: ${error instanceof Error ? error.message : String(error)}`;
     }
 }
+
+const openURL = async (url: string) => {
+    const supported = await Linking.canOpenURL(url);
+
+    if (supported) {
+        await Linking.openURL(url);
+    } else {
+        console.warn(`Don't know how to open URI: ${url}`);
+    }
+};
 export {
     showToast,
     cleanNumber,
@@ -188,5 +199,6 @@ export {
     formatDate,
     shortenPub,
     keypairSign,
-    signTransactions
+    signTransactions,
+    openURL,
 }

@@ -31,12 +31,14 @@ class SessionManager {
     private systemInstructions: string = "";
     private availableFunctions: FunctionParams[] = [];
     private connectionEstablished: boolean = false;
+    private conversation_id: string | null = null;
+    public functionMessageId: string | null = null;
     // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
     public callbacks: {
         setMode: (mode: "loading" | "human" | "aispeaking") => void;
         setConversationId: (id: string) => void;
     };
-    private conversation_id: string | null = null;
+
 
     constructor(public userDetails: userWalletType, public connection: Connection,
         callbacks: {
@@ -67,20 +69,26 @@ class SessionManager {
         // Set system instructions if provided
         if (systemInstructions) {
             const sysIns = `
-                These are the list of contacts I have on the App, 
+                    These are the list of contacts I have on the App,
                 ${JSON.stringify(PhoneBook.getState().contacts.map(item => ({
                 "username": item.name,
             })))}
-            always map the username i am interacting to any of these, correct with right spelling always.
-
+            always map the username i am interacting to any of these, correct with right spelling always if the username doesn't fall you can use as provided.
                 \n
                  these are the list of sub tools supported and parameters,
                 ${JSON.stringify(toolRouter(this).map(item => ({
                 "toolName": item.name,
                 "toolParameters": item.parameters,
-            })))}
-             note always use the 'choose_tools' function to route to these.
+            })))}.
                 `;
+
+
+            /**
+             * 
+             *  
+             */
+
+
 
 
             this.systemInstructions = systemInstructions + sysIns;
@@ -102,25 +110,27 @@ class SessionManager {
             }
 
             //check if token is available then create
-            // const ek = AppSettings.getState().ek;
-            // console.log("Stored expiry:", ek.expiry); // Should be something like 1746537093
-            // console.log("Current UTC time:", Math.floor(Date.now() / 1000));
+            const ek = AppSettings.getState().ek;
 
             let EPHEMERAL_KEY: string;
-            // function isClientSecretExpired(date: number) {
-            //     const currentTime = Math.floor(Date.now() / 1000); // Get current time in seconds
-            //     return date <= currentTime;
-            // }
+
+            function isTokenExpired(expiry: number) {
+                const now = new Date();
+                const expiryDate = new Date(expiry * 1000);
+                return now >= expiryDate;
+            }
 
 
-            // if (ek.value === "" && !isClientSecretExpired(ek.expiry)) {
-            const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
-            const data = await tokenResponse.json();
-            EPHEMERAL_KEY = data.client_secret.value;
-            AppSettings.setState({ ek: { value: data.client_secret.value, expiry: data.client_secret.expires_at } })
-            // } else {
-            //     EPHEMERAL_KEY = AppSettings.getState().ek.value;
-            // }
+
+            if (ek.value === "" || !isTokenExpired(ek.expiry)) {
+                const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
+                const data = await tokenResponse.json();
+                EPHEMERAL_KEY = data.client_secret.value;
+                AppSettings.getState().setEk(data.client_secret.value, data.client_secret.expires_at)
+
+            } else {
+                EPHEMERAL_KEY = AppSettings.getState().ek.value;
+            }
 
 
 
@@ -131,6 +141,8 @@ class SessionManager {
             // if (audio) {
             // Get media stream (different in React Native)
             const stream = await mediaDevices.getUserMedia({ audio: true });
+
+
             // Add tracks to peer connection
             stream.getTracks().forEach(track => {
                 this.peerConnection!.addTrack(track, stream);
@@ -187,7 +199,7 @@ class SessionManager {
             await this.peerConnection.setRemoteDescription(answer);
 
             // Handle audio tracks with our AudioManager
-            //@ts-ignore            
+            // @ts-ignore            
             this.peerConnection.addEventListener('track', (event) => {
                 console.log("Track event received:", event.track?.kind);
                 if (event.streams && event.streams[0]) {
@@ -201,8 +213,6 @@ class SessionManager {
             this.conversation_id = new Date().getTime().toString();
             this.callbacks.setConversationId(this.conversation_id);
             Convo.getState().createConversation(this.conversation_id)
-            console.log("Session started and ready for audio streaming.");
-            AppSettings.getState().setLoading(false);
 
         } catch (error) {
             console.error("Error starting session:", error);
@@ -323,27 +333,38 @@ class SessionManager {
                 }, 0);
             }
 
+            //Step 2: set vad mode
+
+            this.setVadMode();
+
             // Step 2: Register functions after system instructions
             if (this.availableFunctions.length > 0) {
                 this.registerFunctions(this.availableFunctions);
             }
 
-            // // Step 3: Send an initial greeting to establish context
-            // await this.sendWithDelay({
-            //     type: "conversation.item.create",
-            //     item: {
-            //         type: "message",
-            //         role: "system",
-            //         content: [{
-            //             type: "input_text",
-            //             text: "Session initialized. System is ready for interaction."
-            //         }],
-            //     }
-            // }, 1000);
+            // Step 3: Send an initial greeting to establish context
+            await this.sendWithDelay({
+                type: "conversation.item.create",
+                item: {
+                    type: "message",
+                    role: "system",
+                    content: [{
+                        type: "input_text",
+                        text: "Session initialized. System is ready for interaction."
+                    }],
+                },
+
+            }, 1000);
+
+            this.sendClientEvent({ type: "response.create" })
 
             console.log("Session fully initialized");
+            AppSettings.getState().setLoading(false);
+
         } catch (error) {
             console.error("Error during session initialization:", error);
+            AppSettings.getState().setLoading(false);
+
         }
     }
 
@@ -354,6 +375,37 @@ class SessionManager {
                 resolve();
             }, delayMs);
         });
+    }
+
+    private async setVadMode(): Promise<void> {
+        const eventServer = {
+            "type": "session.update",
+            "session": {
+                "turn_detection": {
+                    "type": "server_vad",
+                    "threshold": 0.5,
+                    "prefix_padding_ms": 300,
+                    "silence_duration_ms": 500,
+                    "create_response": true, // only in conversation mode
+                    "interrupt_response": true, // only in conversation mode
+                }
+            }
+        }
+
+        const eventSemantic = {
+            "type": "session.update",
+            "session": {
+                "turn_detection": {
+                    "type": "semantic_vad",
+                    "eagerness": "auto", // optional
+                    "create_response": true, // only in conversation mode
+                    "interrupt_response": true, // only in conversation mode
+                }
+
+            }
+        }
+
+        await this.sendWithDelay(eventSemantic, 200);
     }
 
     private async requestAudioPermission(): Promise<boolean> {
@@ -406,7 +458,6 @@ class SessionManager {
         }
     }
 
-
     // Toggle speaker mode
     toggleSpeaker(speakerOn: boolean): void {
         console.log(`Toggling speaker mode to: ${speakerOn ? 'ON' : 'OFF'}`);
@@ -417,6 +468,8 @@ class SessionManager {
     private generateUUID(): string {
         return uuidv4();
     }
+
+
 
     sendClientEvent(message: any): void {
         if (this.dataChannel && this.dataChannel.readyState === 'open') {
@@ -489,22 +542,6 @@ class SessionManager {
             console.log("Sending system instructions event");
             this.sendClientEvent(event);
 
-            // // Send a trigger for the model to acknowledge the new instructions
-            // setTimeout(() => {
-            //     this.sendClientEvent({
-            //         type: "conversation.item.create",
-            //         item: {
-            //             type: "message",
-            //             role: "system",
-            //             content: [{
-            //                 type: "input_text",
-            //                 text: "System instructions have been updated."
-            //             }],
-            //         }
-            //     });
-
-            //     this.sendClientEvent({ type: "response.create" });
-            // }, 500);
         } else {
             console.log("Session not active, instructions will be sent when session starts");
         }
@@ -531,23 +568,7 @@ class SessionManager {
             console.log("Sending function registration event");
             this.sendClientEvent(event);
 
-            // Confirm function registration
-            setTimeout(() => {
-                this.sendClientEvent({
-                    type: "conversation.item.create",
-                    item: {
-                        type: "message",
-                        role: "system",
-                        content: [{
-                            type: "input_text",
-                            text: `${functions.length} functions have been registered.`
-                        }],
-                    }
-                });
-                console.log("Function Registered");
 
-                this.sendClientEvent({ type: "response.create" });
-            }, 500);
         }
     }
 
@@ -585,6 +606,7 @@ class SessionManager {
                         arguments: args,
                     }
                 })
+                this.functionMessageId = call_id;
             }
 
             // Execute the function

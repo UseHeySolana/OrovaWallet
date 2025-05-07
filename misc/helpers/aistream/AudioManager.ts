@@ -24,7 +24,7 @@ class AudioManager {
                 playsInSilentModeIOS: true,
                 shouldDuckAndroid: true,
                 interruptionModeAndroid: 1, // DO_NOT_MIX
-                playThroughEarpieceAndroid: false, // This is the key setting!
+                // playThroughEarpieceAndroid: true, // This is the key setting!
                 staysActiveInBackground: true,
             });
 

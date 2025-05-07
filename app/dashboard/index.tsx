@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import LottieView from 'lottie-react-native';
-import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity } from "react-native";
+import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity, Pressable, Linking, TouchableHighlight } from "react-native";
 import CText from "@/components/TextComp";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -22,9 +22,9 @@ import { Base } from "@/components/Navigation/Base";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Convo, { MessageType } from "@/misc/store/conversation";
 import { scale } from "react-native-size-matters";
-import { keypairSign, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
-import { purchaseAirtime } from "@/misc/helpers/db";
-import { Connection, Keypair, Transaction } from "@solana/web3.js";
+import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { transferSol, transferToken } from "@/misc/helpers/transfers";
+import IconLibrary from "@/misc/helpers/icons";
 
 
 const AiHelpers = [
@@ -79,6 +79,7 @@ export default function Dashboard() {
 
   const [message, setMessage] = useState<MessageType[]>([])
 
+
   useEffect(() => {
     // const messageItem = getConversationMessages('1745755916570') || [];
     const messageItem = getConversationMessages(conversationId) || [];
@@ -131,6 +132,19 @@ export default function Dashboard() {
     sessionManager?.sendTextMessage("this is new")
   }
 
+
+  const toolTester = async () => {
+
+    if (!connection) {
+      return;
+    }
+
+
+    const transfer = await transferSol("BuMdHPdiDgFn6LqVVdGAyas4JfyCHJFZSXaZwd8Xp991", 0.01, connection)
+
+    console.log(transfer)
+
+  }
 
 
 
@@ -207,7 +221,8 @@ export default function Dashboard() {
                   </View>
                   <View className="w-[40%]">
                     <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                      showToast("Kindly Use Voice to send tokens")
+                      toolTester()
+                      // showToast("Kindly Use Voice to send tokens")
 
                       // sendMessage()
                     }} type="secondary" text="Receive"
@@ -376,129 +391,152 @@ export default function Dashboard() {
         <View className="flex-1 justify-start py-2  rounded-3xl overflow-hidden">
           {message.length > 0 &&
 
-            <View className="h-[36rem]">
+            <View className="h-[36rem] z-50">
               <ScrollView
                 ref={scrollViewRef}
                 className=" py-2 relative h-[36rem] gap-y-4"
                 onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
               >
+
                 {message.map((item: any, index: number) => {
                   const isSystem = item.role === "system";
                   const toolCall = item.role === "tool";
                   const isUser = item.role === 'user';
-
                   const params = toolCall && Object.keys(item.tool?.arguments?.parameter) || [];
                   return (
+                    <View key={index + item.id} className="mb-3 relative">
+                      {toolCall ? (
+                        <>
+                          {/* Tool Call View */}
+                          <View className="py-4 shadow-sm px-4 flex flex-col items-start justify-center text-[1.14rem] bg-white dark:bg-dark dark:border border-accent rounded-xl gap-y-3">
+                            {/* Header */}
+                            <View className="flex flex-row items-center justify-between w-full bg-white dark:bg-accent2 p-1 rounded-full gap-x-3">
+                              <View className="flex-1 flex-row items-center gap-x-2 bg-grey dark:bg-accent p-2 rounded-full ">
+                                <Image
+                                  source={require('@/assets/images/icon.png')}
+                                  style={{ width: 30, height: 30 }}
+                                  contentFit="contain"
+                                  className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                                />
+                                <View>
+                                  <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
+                                    {item.tool?.arguments?.owner ? item?.tool?.argumnets?.owner : aiName}
+                                  </CText>
+                                  <CText>Tool Used</CText>
+                                </View>
+                              </View>
 
-                    <View
-                      className="mb-3"
-                      key={index + item.id
-                      }>
-                      {toolCall ?
-                        <View className="py-4 shadow-sm px-4  flex flex-col items-start justify-center text-[1.14rem] border border-accent2 rounded-xl gap-y-3">
-                          <View className="flex flex-row items-center justify-between w-full bg-white dark:bg-accent2 p-1 rounded-full gap-x-3">
-                            <View className="flex-1 flex-row items-center gap-x-2 bg-grey dark:bg-accent p-2 rounded-full ">
-                              <Image source={require('@/assets/images/icon.png')} style={{ width: 30, height: 30 }} contentFit="contain" className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`} />
-                              <View className="">
-
-                                <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
-                                  {item.tool?.arguments?.owner ? item?.tool?.argumnets?.owner : aiName}
-                                </CText>
-                                <CText>Tool Used</CText>
+                              <View>
+                                <View className="bg-grey dark:bg-accent p-2 w-10 h-10 rounded-full">
+                                  <Image
+                                    source={
+                                      item.tool?.status == 'pending'
+                                        ? require('@/assets/toolstatus/pending.png')
+                                        : item.tool?.status == 'complete'
+                                          ? require('@/assets/toolstatus/complete.png')
+                                          : require('@/assets/toolstatus/failed.png')
+                                    }
+                                    style={{ width: '100%', height: '100%' }}
+                                    contentFit="contain"
+                                    className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                                  />
+                                </View>
                               </View>
                             </View>
 
-                            <View>
-                              <View className="bg-grey dark:bg-accent p-2 w-10 h-10 rounded-full">
-                                <Image source={
-                                  item.tool?.status == 'pending' ?
-                                    require('@/assets/toolstatus/pending.png') :
-                                    item.tool?.status == 'compelete' ?
-                                      require('@/assets/toolstatus/complete.png')
-                                      : require('@/assets/toolstatus/failed.png')
-                                } style={{ width: '100%', height: '100%' }} contentFit="contain" className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`} />
+                            {/* Params and Link */}
+                            <View className="bg-white z- dark:bg-accent2 p-3 rounded-xl w-full">
+                              <CText className="uppercase text-[1.23rem]" style={{ fontFamily: "bold" }}>
+                                {item.tool.arguments.tool.replace('_', ' ').replace('-', ' ')}
+                              </CText>
+                              <View className="p-2 flex-1 flex-row justify-between">
+                                <View>
 
+                                  {params?.map((param: any, index: number) => (
+                                    <View key={index} className="flex flex-row items-center justify-start gap-x-4">
+                                      <CText className="text-[1rem] uppercase">{param}</CText>
+                                      <CText className="text-[1rem]">{item.tool.arguments?.parameter[param]}</CText>
+                                    </View>
+                                  ))}
+                                </View>
+
+
+                                {item?.tool?.link && (
+                                  <TouchableOpacity
+                                    style={{
+                                      zIndex: 99999999,
+                                    }}
+                                    onPress={() => openURL(item?.tool?.link)} className="p-3">
+                                    <IconLibrary.external />
+                                  </TouchableOpacity>
+                                )}
                               </View>
-
                             </View>
-
-
                           </View>
-
-                          <View className="bg-white dark:bg-accent2 p-3 rounded-xl w-full">
-                            <CText className="uppercase text-[1.23rem]" style={{ fontFamily: "bold" }}>{item.tool.arguments.tool.replace('_', ' ').replace('-', ' ')}</CText>
-                            <View className="flex-1 py-4">
-                              {params?.map((param: any, index: number) => {
-                                return (
-                                  <View key={index} className="flex flex-row  items-center  justify-start gap-x-4">
-                                    <CText className="text-[1rem] uppercase">{param}</CText>
-                                    <CText className="text-[1rem]">{item.tool.arguments?.parameter[param]}</CText>
-                                  </View>
-                                )
-                              }
-                              )}
-                            </View>
-
-                          </View>
-
-
-                        </View>
-                        :
+                        </>
+                      ) : (
                         <View
-                          className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"
-                            }`}
+                          className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
                         >
                           <View className="flex flex-row items-center gap-x-2 ">
-                            <Image source={require('@/assets/images/ai.png')} style={{ width: 30, height: 30 }} contentFit="contain" className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`} />
+                            <Image
+                              source={require('@/assets/images/ai.png')}
+                              style={{ width: 30, height: 30 }}
+                              contentFit="contain"
+                              className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                            />
                             <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
                               {isSystem ? aiName : `@${user?.username}`}
                             </CText>
                           </View>
                           <View
-                            className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"
-                              }`}
+                            className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
                           >
                             <View className="bg-grey dark:bg-accent p-2 rounded-lg">
                               <CText className="text-[12px]">{item.content}</CText>
                             </View>
                           </View>
                         </View>
-                      }
+                      )}
                     </View>
-
                   );
-                })
-                }
+                })}
+
               </ScrollView>
             </View>
 
           }
 
-          <LottieView
-            autoPlay={true}
-            loop
-            speed={10}
-            ref={animation}
-            style={{
-              position: "absolute",
-              bottom: -10,
-              zIndex: 99999,
-              width: 1000,
-              height: 500,
-            }}
-            resizeMode="cover"
-            colorFilters={[
-              {
-                keypath: "Shape Layer 2",
-                color: colors[currentMode].color1,
-              },
-              {
-                keypath: "Shape Layer 1",
-                color: colors[currentMode].color2,
-              },
-            ]}
-            source={require('@/assets/anim/lower.json')}
-          />
+          <View className="h-full w-full absolute z-1">
+
+            <LottieView
+              autoPlay={true}
+              loop
+              speed={10}
+              ref={animation}
+              style={{
+                position: "absolute",
+                bottom: -10,
+                // zIndex: 1,
+                width: 1000,
+                height: 500,
+
+              }}
+              resizeMode="cover"
+              colorFilters={[
+                {
+                  keypath: "Shape Layer 2",
+                  color: colors[currentMode].color1,
+                },
+                {
+                  keypath: "Shape Layer 1",
+                  color: colors[currentMode].color2,
+                },
+              ]}
+              source={require('@/assets/anim/lower.json')}
+            />
+          </View>
+
         </View>
       }
 

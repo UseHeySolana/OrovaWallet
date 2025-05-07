@@ -15,15 +15,18 @@ export interface MessageType {
         status: 'pending' | 'failed' | 'complete',
         arguments?: any,
     }
-
 }
+
+type ToolType = NonNullable<MessageType['tool']>;
+
 interface Conversation {
-    conversations: string[];//done
-    createConversation: (conversation: string) => void; //done
-    deleteConversation: (conversation: string) => void; //done
-    clearAll: () => void; //done
+    conversations: string[];
+    createConversation: (conversation: string) => void;
+    deleteConversation: (conversation: string) => void;
+    clearAll: () => void;
     messages: MessageType[];
     setMessages: (messages: MessageType) => void;
+    updateMessage: (messageId: string, toolUpdates: Partial<ToolType>) => void;
     getConversationMessages: (conversation: string) => MessageType[] | null;
 }
 
@@ -50,6 +53,24 @@ const Convo = create(
                 } else {
                     return null;
                 }
+            },
+            updateMessage: (
+                messageId: string,
+                toolUpdates: Partial<ToolType>
+            ) => {
+                set((state) => ({
+                    messages: state.messages.map((msg) => {
+                        if (msg.id !== messageId) return msg;
+
+                        return {
+                            ...msg,
+                            tool: {
+                                ...(msg.tool ?? {}), // fallback to empty object if tool is undefined
+                                ...toolUpdates,
+                            },
+                        } as MessageType;
+                    }),
+                }))
             }
         }),
         {

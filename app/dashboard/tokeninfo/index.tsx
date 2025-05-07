@@ -96,7 +96,7 @@ function TokenInfo() {
             </CText>
           </View>
           <CText style={{ fontFamily: "reg" }} className="text-[1.5rem]">
-            ${token?.usdc_price.toFixed(2) || "?"}
+            ${token?.usdc_price?.toFixed(2) || "?"}
           </CText>
 
           <View className="dark:bg-accent2 bg-white p-2 rounded-3xl">
