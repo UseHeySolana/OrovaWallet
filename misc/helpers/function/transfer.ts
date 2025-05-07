@@ -3,9 +3,10 @@ import { userWalletType } from "@/misc/store/userstore";
 import { fetchData } from "../db";
 import { transferSol, transferToken } from "../transfers";
 import SessionManager from "../aistream/aistream";
-import GeminiSessionManager from "../gemini/StreamManager";
 import { FunctionParams } from "../types";
 import { convertSpeech } from "../miscfunctions.ts/extrafunctions";
+import Convo from "@/misc/store/conversation";
+import AppSettings from "@/misc/store/settingsstore";
 
 const aiTransfer = async (userDetails: userWalletType, connection: Connection, args: { amount: number, token: string, recipient: string }) => {
     const { amount, token, recipient } = args;
@@ -15,41 +16,95 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
         (msg: any) =>
             msg.username.toLowerCase().includes(recipient.toLowerCase())
     );
+
     if (filtered.length < 1) {
         const response = await convertSpeech("Sorry there is no user on the Hey Solana App with that username")
-        return response
+        const data = {
+            status: false,
+            txId: '',
+            comment: response,
+        }
+        return data;
+
     }
     if (token.toLowerCase() == "sol") {
         let balance = userDetails?.solBalance
         //check if the balance is sufficient
         if (Number(balance?.toFixed(2)) < Number(amount)) {
             const response = await convertSpeech("You do not have sufficient SOL to perform this transaction!")
-            return response;
+            const data = {
+                status: false,
+                txId: '',
+                comment: response,
+            }
+            return data;
         }
 
         const transfer = await transferSol(filtered[0].wallet_address, amount, connection)
 
-        const transferRes = await convertSpeech(`You have transferred ${amount} SOL to ${recipient} Successfully`)
-        return transferRes;
+        const confirmation = await connection.confirmTransaction(transfer, "confirmed");
+
+        if (confirmation) {
+            const transferRes = await convertSpeech(`You have transferred ${amount} SOL to ${recipient} Successfully`)
+            const data = {
+                status: true,
+                txId: transfer,
+                comment: transferRes,
+            }
+            return data;
+        } else {
+            const transferRes = await convertSpeech(`Sorry, I couldn't perform the transfer as ${token} is not supported yet . Please try again.`)
+            const data = {
+                status: false,
+                txId: '',
+                comment: transferRes,
+            }
+            return data;
+        }
     } else {
         const tokens: any = userDetails.tokenAccounts.filter((item: any) => item?.symbol?.toLowerCase() === token.toLowerCase());
         if (tokens.length < 1) {
             const response = await convertSpeech(`You do not have ${token} in your account!`)
-            return response;
+            const data = {
+                status: false,
+                txId: '',
+                comment: response,
+            }
+
+            return data;
+
         } else {
             const balance = tokens[0].balance;
             if (Number(balance?.toFixed(2)) < Number(amount)) {
                 const response = await convertSpeech(`You do not have sufficient ${tokens[0].name} to perform this transaction!`)
-                return response;
+                const data = {
+                    status: false,
+                    txId: '',
+                    comment: response,
+                }
+                return data;
             }
             const transfer = await transferToken(filtered[0].wallet_address, tokens[0].mint, amount, tokens[0].decimals, connection)
 
-            if (transfer) {
+            const confirmation = await connection.confirmTransaction(transfer, "confirmed");
+
+            if (confirmation) {
+
                 const transferRes = await convertSpeech(`You have transferred ${amount} ${tokens[0].name} to ${recipient} Successfully`)
-                return transferRes;
+                const data = {
+                    status: true,
+                    txId: transfer,
+                    comment: transferRes,
+                }
+                return data;
             } else {
                 const transferRes = await convertSpeech(`Sorry, I couldn't perform the transfer as ${token} is not supported yet . Please try again.`)
-                return transferRes;
+                const data = {
+                    status: false,
+                    txId: '',
+                    comment: transferRes,
+                }
+                return data;
             }
         }
     }
@@ -57,7 +112,7 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
 export class TransferFunction {
     public transferFunction: FunctionParams;
 
-    constructor(public session: SessionManager | GeminiSessionManager) {
+    constructor(public session: SessionManager) {
         this.transferFunction = this.transfer_tokens()
     }
     transfer_tokens() {
@@ -85,6 +140,23 @@ export class TransferFunction {
             },
             handler: async (args: { amount: number, token: string, recipient: string }) => {
                 let response = await aiTransfer(this.session.userDetails, this.session.connection, args)
+                if (response.status) {
+                    const messageId = this.session.functionMessageId
+                    const network = AppSettings.getState().networkShort
+                    if (messageId !== null) {
+                        Convo.getState().updateMessage(messageId, {
+                            status: 'complete',
+                            link: `https://explorer.solana.com/tx/${response.txId}?cluster=${network}`
+                        })
+                    }
+                } else {
+                    const messageId = this.session.functionMessageId
+                    if (messageId !== null) {
+                        Convo.getState().updateMessage(messageId, {
+                            status: 'failed',
+                        })
+                    }
+                }
 
                 return response;
             }

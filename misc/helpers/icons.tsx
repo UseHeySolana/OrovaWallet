@@ -9,7 +9,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Entypo from '@expo/vector-icons/Entypo';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
 import { useThemeContext } from '../context/ThemeContext';
-import { storage } from './storage/storage';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 type IconProps = {
@@ -19,6 +18,16 @@ type IconProps = {
 
 // Create a context wrapper component that provides themed icons
 const IconLibrary = {
+    external: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <EvilIcons
+                name="external-link"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
     delete: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (

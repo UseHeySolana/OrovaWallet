@@ -1,7 +1,7 @@
-import { Connection, Keypair, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
+import { Connection, Keypair, ParsedAccountData, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import WalletItem from "../store/wallet";
-import { signTransactions } from "./miscfunctions.ts/extrafunctions";
+import { keypairSign, signTransactions } from "./miscfunctions.ts/extrafunctions";
 
 
 
@@ -11,14 +11,18 @@ export const transferSol = async (
     connection: Connection
 ) => {
     try {
-        let fromWallet = WalletItem.getState().keypair;
+        let fromWallet = await keypairSign();
         if (!fromWallet) throw Error;
         // Create the transaction
+
+        const tokenAmount = amount * Math.pow(10, 9);
+
+
         const transaction = new Transaction().add(
             SystemProgram.transfer({
                 fromPubkey: fromWallet.publicKey,
                 toPubkey: new PublicKey(toAddress),
-                lamports: amount * 10 ** 9, // Convert SOL to lamports
+                lamports: tokenAmount, // Convert SOL to lamports
             })
         );
 
@@ -46,6 +50,13 @@ export const transferSol = async (
 
 };
 
+
+async function getNumberDecimals(mintAddress: string, connection: Connection): Promise<number> {
+    const info = await connection.getParsedAccountInfo(new PublicKey(mintAddress));
+    const result = (info.value?.data as ParsedAccountData).parsed.info.decimals as number;
+    return result;
+}
+
 export const transferToken = async (
     toAddress: string,
     tokenMintAddress: string,
@@ -53,10 +64,14 @@ export const transferToken = async (
     decimals: number,
     connection: Connection
 ) => {
-    let fromWallet = WalletItem.getState().keypair;
+    let fromWallet = await keypairSign();
 
     if (!fromWallet) throw Error;
+
+
+
     try {
+
 
         // Derive the sender's associated token account
 
@@ -67,6 +82,8 @@ export const transferToken = async (
             fromWallet.publicKey,          // Owner of the sender's token account
         );
 
+
+
         // Derive the recipient's associated token account
         const toTokenAccount = await getOrCreateAssociatedTokenAccount(
             connection,
@@ -75,7 +92,11 @@ export const transferToken = async (
             new PublicKey(toAddress)
         );
 
-        const tokenAmount = amount * Math.pow(10, decimals);
+        // console.log(fromTokenAccount, toTokenAccount)
+
+        const numberDecimals = await getNumberDecimals(tokenMintAddress, connection);
+
+        const tokenAmount = amount * Math.pow(10, numberDecimals);
         // Create the transfer instruction
         const transferInstruction = createTransferInstruction(
             fromTokenAccount.address,         // Source token account
@@ -95,7 +116,6 @@ export const transferToken = async (
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = fromWallet.publicKey;
         // Sign the transaction
-        transaction.sign(fromWallet);
 
         // Serialize the transaction to base64
         const serialized = transaction.serialize({ requireAllSignatures: false }).toString("base64");

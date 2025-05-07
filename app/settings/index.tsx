@@ -85,7 +85,6 @@ const settingsMenu2 = [
     type: 'toggle',
     subtitle: "Change the app mode",
 
-    icon: <IconLibrary.moon />,
   },
   {
     title: "Logout",
@@ -103,7 +102,7 @@ function Settings() {
   const [recording, setRecording] = useState(false);
 
   const { isDarkMode, toggleTheme } = useThemeContext()
-  const { setDefault } = AppSettings()
+  const { setDefault, setLoading } = AppSettings()
   const { user, userWallet, logout } = UserItem()
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
@@ -211,6 +210,7 @@ function Settings() {
                         ios_backgroundColor="#3e3e3e"
                         onValueChange={() => {
                           toggleTheme(isDarkMode ? 'light' : 'dark')
+                          setLoading(false)
                         }}
                         value={isDarkMode}
                       />

@@ -7,10 +7,10 @@ export class toolManipulator {
     public chooseTools: any;
     public toolsDes: FunctionParams[];
 
+
     constructor(public session: SessionManager,) {
         this.toolsDes = toolRouter(session)
         this.chooseTools = this.choose_tools()
-
     }
 
     choose_tools() {

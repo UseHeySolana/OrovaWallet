@@ -6,8 +6,6 @@ import AppSettings from "../store/settingsstore";
 import UserItem from "../store/userstore";
 import { api_key } from "@/app/requests/dashboard";
 import { prompB } from "../helpers/prompt";
-import { toolRouter } from "../helpers/toolsregistry";
-import WalletItem from "../store/wallet";
 
 interface AIService {
     connection: Connection | null;
@@ -111,6 +109,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, [permissionGranted, refresh, user, userWallet,]);
 
     const startSession = async () => {
+        console.log('starting session');
         if (!sessionManager || isSessionActive) return;
         if (prompt == "") return;
 

@@ -49,6 +49,8 @@ function Security() {
   }
 
 
+
+
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full gap-y-6">

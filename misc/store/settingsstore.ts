@@ -14,6 +14,7 @@ interface Settings {
     aiLanguage: string;
     setAiLanguage: (language: string) => void;
     network: string;
+    networkShort: string;
     aiActive: boolean;
     setAiActive: (active: boolean) => void;
     changeNetwork: (network: string) => void;
@@ -68,9 +69,15 @@ const AppSettings = create(
             setAiActive: (active: boolean) => set({ aiActive: active }),
             network: "https://mainnet.helius-rpc.com/?api-key=",
             changeNetwork: (network: string) => {
+
                 const net = network == 'mainnet' ? "https://mainnet.helius-rpc.com/?api-key=" : "https://devnet.helius-rpc.com/?api-key="
                 set({ network: net })
+                set({ networkShort: network })
+
+
             },
+            networkShort: 'mainnet',
+
             alreadyOpened: false,
             skippedAiSettings: false,
             createdWallet: false,
@@ -105,27 +112,27 @@ const AppSettings = create(
             setLoading: async (state) => {
 
 
-                const previousTimeout = get().loadingTimeout;
-                if (previousTimeout) {
-                    clearTimeout(previousTimeout);
-                }
+                // const previousTimeout = get().loadingTimeout;
+                // if (previousTimeout) {
+                //     clearTimeout(previousTimeout);
+                // }
 
                 // Update loading state
                 set({ isLoading: state });
 
-                if (state) {
-                    // Set a new timeout and store its ID
-                    const timeoutId = setTimeout(() => {
-                        set({ isLoading: false, loadingTimeout: null });
-                        get().setToast('An Error occured!!', 'error')
-                    }, 20000);
+                // if (state) {
+                //     // Set a new timeout and store its ID
+                //     const timeoutId = setTimeout(() => {
+                //         set({ isLoading: false, loadingTimeout: null });
+                //         get().setToast('An Error occured!!', 'error')
+                //     }, 20000);
 
-                    set({ loadingTimeout: timeoutId });
-                } else {
-                    // If manually turning off loading, clear any pending timeout
-                    set({ loadingTimeout: null });
-                }
-                await new Promise(resolve => setTimeout(resolve, 100));
+                //     set({ loadingTimeout: timeoutId });
+                // } else {
+                //     // If manually turning off loading, clear any pending timeout
+                //     set({ loadingTimeout: null });
+                // }
+                // await new Promise(resolve => setTimeout(resolve, 100));
 
             }
 

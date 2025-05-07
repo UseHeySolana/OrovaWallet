@@ -6,6 +6,7 @@ import { AirBills } from "./function/airbills";
 
 const toolRouter = (SessionManager: SessionManager) => {
     return [
+
         new TransferFunction(SessionManager).transferFunction,
         new EndStream(SessionManager).endStream,
         new Settings(SessionManager).setVoice,
