@@ -69,7 +69,6 @@ const AppSettings = create(
             setAiActive: (active: boolean) => set({ aiActive: active }),
             network: "https://mainnet.helius-rpc.com/?api-key=",
             changeNetwork: (network: string) => {
-
                 const net = network == 'mainnet' ? "https://mainnet.helius-rpc.com/?api-key=" : "https://devnet.helius-rpc.com/?api-key="
                 set({ network: net })
                 set({ networkShort: network })
