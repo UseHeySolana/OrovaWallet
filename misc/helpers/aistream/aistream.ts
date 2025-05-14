@@ -110,29 +110,28 @@ class SessionManager {
             }
 
             //check if token is available then create
-            const ek = AppSettings.getState().ek;
+            // const ek = AppSettings.getState().ek;
 
-            let EPHEMERAL_KEY: string;
-
-            function isTokenExpired(expiry: number) {
-                const now = new Date();
-                const expiryDate = new Date(expiry * 1000);
-                return now >= expiryDate;
-            }
+            // let EPHEMERAL_KEY: string;
 
 
-
-            if (ek.value === "" || !isTokenExpired(ek.expiry)) {
-                const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
-                const data = await tokenResponse.json();
-                EPHEMERAL_KEY = data.client_secret.value;
-                AppSettings.getState().setEk(data.client_secret.value, data.client_secret.expires_at)
-
-            } else {
-                EPHEMERAL_KEY = AppSettings.getState().ek.value;
-            }
+            // function isTokenExpired(expiry: number) {
+            //     const now = new Date();
+            //     const expiryDate = new Date(expiry * 1000);
+            //     return now >= expiryDate;
+            // }
 
 
+
+            // if (ek.value === "" || !isTokenExpired(ek.expiry)) {
+            const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
+            const data = await tokenResponse.json();
+            const EPHEMERAL_KEY = data.client_secret.value;
+            AppSettings.getState().setEk(data.client_secret.value, data.client_secret.expires_at)
+
+            // } else {
+            //     EPHEMERAL_KEY = AppSettings.getState().ek.value;
+            // }
 
             this.peerConnection = new RTCPeerConnection({
                 iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Add STUN server for better connection
