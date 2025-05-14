@@ -1,50 +1,139 @@
-# Welcome to your Expo app 👋
+# HeySolana
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+HeySolana is a multilingual, AI assistant built with React Native and native Android services. It empowers users with real-time voice interactions to carry out solana transactions , GPT-4 integration, and floating UI components. Designed to be persistent, accessible, and contextually aware, HeySolana is the intelligent assistant you always wanted on mobile.
 
-## Get started
+## 🌟 Features
 
-1. Install dependencies
+- 🎤 **Voice Input** (WebRTC): Speak naturally to HeySolana in your preferred language.
+- 🧠 **GPT-4 Integration**: Smart responses powered by OpenAI's latest models.
+- 🔁 **Persistent Background Service**: Runs in the background without interruption.
+- 🌐 **Multilingual Support**: Understands and responds in multiple languages.
+- 🗂️ **Context Memory**: Optional short-term memory (can persist across sessions).
+- 🛠️ **Custom Commands**: Trigger device or app actions using your voice.
+- 🔒 **Privacy-First**: Audio streamed securely with minimal retention.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 📦 Tech Stack
 
-   ```bash
-    npx expo start
-   ```
+| Layer | Tech |
+|------|------|
+| Mobile Frontend | React Native + Reanimated |
+| Voice Handling | WebRTC + Custom Audio Worklet |
+| AI Backend | OpenAI GPT-4 via API |
+| State Management | Zustand / Redux |
+| Native Integration | Android Services (Java/Kotlin), iOS support (planned) |
+| Background Services | Foreground Service (Android) |
+| Assistant Core | Custom Task Dispatcher + GPT Tools |
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🚀 Getting Started
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### 1. Clone the repo
 
 ```bash
-npm run reset-project
+git clone https://github.com/UseHeySolana/HeySolanaWallet
+cd HeySolanaWallet
+````
+
+### 2. Install dependencies
+
+```bash
+npm install
+# or
+yarn
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 3. Add OpenAI API Key
 
-## Learn more
+Create a `.env` file:
 
-To learn more about developing your project with Expo, look at the following resources:
+```env
+OPENAI_API_KEY=your_openai_key_here
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+> You can also plug in your own LLM endpoint if self-hosting.
 
-## Join the community
+### 4. Run on Android
 
-Join our community of developers creating universal apps.
+```bash
+npx react-native run-android
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+> Ensure you’ve granted **overlay**, **microphone**, and **background activity** permissions.
+
+---
+
+## 🧠 Architecture Overview
+
+```
++-----------------------------+
+|     React Native App       |
++------------+----------------
+             |
+     Voice Overlay (Bubble)
+             |
+     Expandable Overlay Panel
+             |
+      Audio Input via WebRTC
+             |
+        Voice Transcriber
+             |
+          LLM Backend <----- Context Cache (Optional)
+             |
+    +--------+--------+
+    | Device Commands |
+    |   Web Search    |
+    |   Smart Tools   |
+    +-----------------+
+```
+
+
+## 🛡️ Permissions
+
+Make sure the following Android permissions are enabled:
+* `SYSTEM_ALERT_WINDOW`
+* `RECORD_AUDIO`
+* `FOREGROUND_SERVICE`
+* `INTERNET`
+* `WAKE_LOCK` (Optional for wake-word)
+
+---
+
+## 🔮 Future Plans
+
+* [ ] Wake Word ("Hey Solana") integration
+* [ ] Home automation plugin system
+* [ ] On-device LLM fallback (e.g., Whisper + local transformers)
+* [ ] iOS full parity
+* [ ] Vision mode using camera
+* [ ] Plugin SDK for devs to add custom tools
+
+---
+
+## 👨‍💻 Contributing
+
+Got an idea for a tool, overlay mod, or model integration?
+
+1. Fork the repo
+2. Create your feature branch (`git checkout -b feature/awesome-thing`)
+3. Commit your changes
+4. Push to the branch
+5. Open a pull request
+
+---
+
+## 📜 License
+
+MIT License. Use it. Remix it. Just don’t train your evil robot uprising on it without credit.
+
+---
+
+## 💬 Credits
+
+Built with love by Moses Erhinyodavwe (@YrayPixels)
+Powered by React Native, OpenAI, and caffeine.
+
+```
+
