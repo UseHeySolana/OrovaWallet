@@ -6,10 +6,5 @@ on:
 
 jobs:
   build:
-    if: ${{ contains(github.event.head_commit.message, 'buildlog:') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Build on EAS
-        params:
-        platform: android
-        profile: production
+    platform: android
+    profile: production
