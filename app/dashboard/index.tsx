@@ -25,6 +25,7 @@ import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import { transferSol, transferToken } from "@/misc/helpers/transfers";
 import IconLibrary from "@/misc/helpers/icons";
+import { purchaseAirtime } from "@/misc/helpers/db";
 
 
 const AiHelpers = [
@@ -81,7 +82,8 @@ export default function Dashboard() {
 
 
   useEffect(() => {
-    // const messageItem = getConversationMessages('1745755916570') || [];
+    // console.log(conversations)
+    // const messageItem = getConversationMessages('1747380640683') || [];
     const messageItem = getConversationMessages(conversationId) || [];
 
     setMessage(messageItem);
@@ -133,18 +135,6 @@ export default function Dashboard() {
   }
 
 
-  const toolTester = async () => {
-
-    if (!connection) {
-      return;
-    }
-
-
-    const transfer = await transferSol("BuMdHPdiDgFn6LqVVdGAyas4JfyCHJFZSXaZwd8Xp991", 0.01, connection)
-
-    console.log(transfer)
-
-  }
 
 
 
@@ -197,7 +187,7 @@ export default function Dashboard() {
 
                   </View>
                   <View className="flex flex-row justify-center items-center gap-2">
-                    <TouchableOpacity onPress={async () => await copyItem(publicKey?.toBase58() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
+                    <TouchableOpacity onPress={async () => await copyItem(publicKey?.toString() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
                       <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => router.push('/dashboard/qrcode')} className="p-3  rounded-full bg-grey dark:bg-accent2">
@@ -221,10 +211,7 @@ export default function Dashboard() {
                   </View>
                   <View className="w-[40%]">
                     <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                      toolTester()
-                      // showToast("Kindly Use Voice to send tokens")
-
-                      // sendMessage()
+                      showToast("Kindly Use Voice to send tokens")
                     }} type="secondary" text="Receive"
                       icon={
                         <View className="rotate-[40deg]">
@@ -402,7 +389,7 @@ export default function Dashboard() {
                   const isSystem = item.role === "system";
                   const toolCall = item.role === "tool";
                   const isUser = item.role === 'user';
-                  const params = toolCall && Object.keys(item.tool?.arguments?.parameter) || [];
+                  const params = item?.tool?.arguments?.parameter && Object.keys(item.tool?.arguments?.parameter) || item.tool?.arguments && Object.keys(item.tool?.arguments) || []
                   return (
                     <View key={index + item.id} className="mb-3 relative">
                       {toolCall ? (
@@ -419,10 +406,20 @@ export default function Dashboard() {
                                   className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
                                 />
                                 <View>
-                                  <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
-                                    {item.tool?.arguments?.owner ? item?.tool?.argumnets?.owner : aiName}
-                                  </CText>
+                                  {item.tool ?
+                                    <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
+
+                                      {item.tool?.arguments?.owner ? item?.tool?.arguments?.owner : aiName}
+                                    </CText>
+                                    :
+                                    <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
+
+                                      {item?.tool?.owner ? item?.tool?.owner : aiName}
+                                    </CText>
+
+                                  }
                                   <CText>Tool Used</CText>
+
                                 </View>
                               </View>
 
@@ -447,7 +444,13 @@ export default function Dashboard() {
                             {/* Params and Link */}
                             <View className="bg-white z- dark:bg-accent2 p-3 rounded-xl w-full">
                               <CText className="uppercase text-[1.23rem]" style={{ fontFamily: "bold" }}>
-                                {item.tool.arguments.tool.replace('_', ' ').replace('-', ' ')}
+
+                                {item?.tool?.arguments?.tool ?
+                                  item?.tool?.arguments?.tool?.replace('_', ' ').replace('-', ' ') :
+                                  item?.tool?.action?.replace('_', ' ').replace('-', ' ')
+                                }
+
+
                               </CText>
                               <View className="p-2 flex-1 flex-row justify-between">
                                 <View>
@@ -455,7 +458,13 @@ export default function Dashboard() {
                                   {params?.map((param: any, index: number) => (
                                     <View key={index} className="flex flex-row items-center justify-start gap-x-4">
                                       <CText className="text-[1rem] uppercase">{param}</CText>
-                                      <CText className="text-[1rem]">{item.tool.arguments?.parameter[param]}</CText>
+                                      <CText className="text-[1rem]">
+                                        {item?.tool?.arguments.parameter ?
+                                          item.tool.arguments?.parameter[param]
+                                          :
+                                          item.tool.arguments[param]
+
+                                        }</CText>
                                     </View>
                                   ))}
                                 </View>
