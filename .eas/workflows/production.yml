@@ -6,5 +6,7 @@ on:
 
 jobs:
   build:
-    platform: android
-    profile: production
+    type: build
+    params:
+      platform: android
+      profile: production
