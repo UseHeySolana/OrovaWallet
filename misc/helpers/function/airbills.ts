@@ -7,11 +7,12 @@ import { fetchData, purchaseAirtime } from "../db";
 import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
 import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
+import Convo from "@/misc/store/conversation";
 
 export class AirBills {
     public buyAirtime: FunctionParams;
 
-    constructor(public session: SessionManager | GeminiSessionManager) {
+    constructor(public session: SessionManager) {
         this.buyAirtime = this.buy_airtime()
     }
     buy_airtime() {
@@ -49,7 +50,7 @@ export class AirBills {
                 const user = UserItem.getState().user
                 let mobileNumber: string;
 
-                if (args.username === user?.username) {
+                if (args.username.toLowerCase() === user?.username.toLowerCase()) {
                     mobileNumber = user.mobileNumber;
                 } else {
 
@@ -74,23 +75,47 @@ export class AirBills {
 
                 console.log("userWalletAddress", userWalletAddress);
 
+                console.log(mobileNumber);
                 const response = await purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
-
-                if (!response.status) {
-                    AppSettings.getState().setLoading(false)
-                    return response.message;
-                }
 
                 const result = response.data;
 
                 const res = await signTransactions(result.ix)
+                const confirmation = await this.session.connection.confirmTransaction(res, "confirmed");
 
-                setTimeout(() => {
-                    this.session.stopSession()
-                    AppSettings.getState().setLoading(false)
-                }, 1000)
+                if (confirmation) {
+                    const messageId = this.session.functionMessageId
+                    const network = AppSettings.getState().networkShort
+                    if (messageId !== null) {
+                        Convo.getState().updateMessage(messageId, {
+                            status: 'complete',
+                            link: `https://explorer.solana.com/tx/${res}?cluster=${network}`
+                        })
+                    }
+                    setTimeout(() => {
+                        this.session.stopSession()
+                        AppSettings.getState().setLoading(false)
+                    }, 1000)
 
-                return res;
+                    return await convertSpeech('Your airtime purchase is successfull');
+
+                } else {
+                    const messageId = this.session.functionMessageId
+                    if (messageId !== null) {
+                        Convo.getState().updateMessage(messageId, {
+                            status: 'failed',
+                        })
+                    }
+                    setTimeout(() => {
+                        this.session.stopSession()
+                        AppSettings.getState().setLoading(false)
+                    }, 1000)
+
+                    return await convertSpeech('Airtime purchase failed!');
+                }
+
+
+
             }
         }
     }

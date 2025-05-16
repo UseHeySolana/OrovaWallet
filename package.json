@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
+    "submit-android": "eas submit --platform android",
     "auto-submit": "eas build --platform android --auto-submit",
     "dapp-store": "eas build -p android --profile dapp-store",
     "build:test": "eas build  -p android --profile test",

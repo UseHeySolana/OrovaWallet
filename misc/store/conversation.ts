@@ -26,7 +26,7 @@ interface Conversation {
     clearAll: () => void;
     messages: MessageType[];
     setMessages: (messages: MessageType) => void;
-    updateMessage: (messageId: string, toolUpdates: Partial<ToolType>) => void;
+    updateMessage: (messageId: string, toolUpdates?: Partial<ToolType>, content?: Partial<MessageType>,) => void;
     getConversationMessages: (conversation: string) => MessageType[] | null;
 }
 
@@ -56,7 +56,8 @@ const Convo = create(
             },
             updateMessage: (
                 messageId: string,
-                toolUpdates: Partial<ToolType>
+                toolUpdates?: Partial<ToolType>,
+                content?: Partial<MessageType>,
             ) => {
                 set((state) => ({
                     messages: state.messages.map((msg) => {
@@ -68,6 +69,7 @@ const Convo = create(
                                 ...(msg.tool ?? {}), // fallback to empty object if tool is undefined
                                 ...toolUpdates,
                             },
+                            ...content,
                         } as MessageType;
                     }),
                 }))

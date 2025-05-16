@@ -33,6 +33,7 @@ class SessionManager {
     private connectionEstablished: boolean = false;
     private conversation_id: string | null = null;
     public functionMessageId: string | null = null;
+    public activeMessageId: string | null = null;
     // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
     public callbacks: {
         setMode: (mode: "loading" | "human" | "aispeaking") => void;
@@ -61,7 +62,7 @@ class SessionManager {
             this.memory = memory;
         });
         // Pre-register functions but don't send them yet
-        this.availableFunctions = toolFunctions(this);
+        this.availableFunctions = toolRouter(this);
     }
 
     async startSession(systemInstructions?: string): Promise<void> {
@@ -229,8 +230,6 @@ class SessionManager {
             try {
                 const message = JSON.parse(e.data);
                 this.events.unshift(message);
-                this.updateMemory(message);
-
 
                 // if (message.type.includes('conversation')) {
                 //     console.log(message.type)
@@ -238,15 +237,16 @@ class SessionManager {
 
                 if (message.type === "input_audio_buffer.speech_started") {
                     this.callbacks.setMode('human');
+                    this.updateMemory(message);
                 }
-
-
 
                 if (message.type === "response.created") {
                     this.callbacks.setMode('aispeaking');
                 }
 
+
                 if (message.type == "conversation.item.input_audio_transcription.completed") {
+
                     const finalTranscript = !message.transcript || message.transcript === "\n"
                         ? "[inaudible]"
                         : message.transcript;
@@ -262,7 +262,10 @@ class SessionManager {
                 }
 
 
+
                 if (message.type === "response.audio_transcript.done") {
+                    this.updateMemory(message);
+
                     if (this.conversation_id !== null) {
                         Convo.getState().setMessages({
                             id: message.response_id,

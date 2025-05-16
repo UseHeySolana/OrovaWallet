@@ -158,7 +158,7 @@ export class TransferFunction {
                     }
                 }
 
-                return response;
+                return response.comment;
             }
         }
     }
