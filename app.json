@@ -3,7 +3,7 @@
     "name": "Heysolana",
     "slug": "heysolana",
     "owner": "yraylabs",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heysolana",
@@ -18,7 +18,7 @@
       }
     },
     "android": {
-      "versionCode": 8,
+      "versionCode": 9,
       "windowSoftInputMode": "adjustResize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

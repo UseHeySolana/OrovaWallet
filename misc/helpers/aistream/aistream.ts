@@ -635,6 +635,7 @@ class SessionManager {
         } catch (error: any) {
             console.error(`Error executing function ${name}:`, error);
 
+            AppSettings.getState().setLoading(false);
             // Send error back to the model
             const errorEvent = {
                 type: "conversation.item.create",

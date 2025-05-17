@@ -41,6 +41,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 if (status !== 'granted') {
                     await Audio.requestPermissionsAsync()
                 }
+
             } catch (error) {
                 console.error("Error checking permissions:", error);
             }
