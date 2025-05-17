@@ -25,7 +25,7 @@ import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import { transferSol, transferToken } from "@/misc/helpers/transfers";
 import IconLibrary from "@/misc/helpers/icons";
-import { purchaseAirtime } from "@/misc/helpers/db";
+import { completePurchase, purchaseAirtime } from "@/misc/helpers/db";
 
 
 const AiHelpers = [
@@ -133,6 +133,11 @@ export default function Dashboard() {
     if (!sessionManager) return
     sessionManager?.sendTextMessage("this is new")
   }
+  // const testFunctions = async () => {
+  //   const id = "d8153933-b508-4227-95a5-555d08a0da24"
+  //   const response = await completePurchase(id)
+  //   console.log(response)
+  // }
 
 
 
@@ -548,9 +553,9 @@ export default function Dashboard() {
 
         </View>
       }
-
-
       <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={startStreamingSession} isSessionActive={isSessionActive} />
+
+      {/* <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={testFunctions} isSessionActive={isSessionActive} /> */}
 
     </View >
   );

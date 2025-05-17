@@ -239,7 +239,7 @@ const purchaseAirtime = async (phone_number: string, amount: number, userWalletA
 
   try {
     const response = await request.postJsonRan(data, url, { "secretkey": AIRBILLS });
-    console.log(response)
+
     if (!response.ok) {
       const result = await response.json();
       return {
@@ -252,6 +252,37 @@ const purchaseAirtime = async (phone_number: string, amount: number, userWalletA
     return { status: false, message: error };
   }
 }
+
+/**
+ * 
+ * @param id 
+ * @returns 
+ */
+const completePurchase = async (id: string) => {
+  const url = "https://vendor.airbillspay.com/bills/airtime/paypoint/complete"
+
+  const data = {
+    "id": id,
+  }
+
+  try {
+    const response = await request.postJsonRan(data, url, { "secretkey": AIRBILLS });
+
+    const result = await response.json();
+    if (!result.success) {
+      return {
+        status: false, message: result.message
+      }
+    }
+    return { status: true, data: result };
+  } catch (error) {
+    console.log(error)
+    return { status: false, message: error };
+  }
+
+}
+
+
 
 /**
  * 
@@ -302,6 +333,6 @@ export {
   getCode,
   saveWalletAddress,
   getTransactionHistory,
-  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request
+  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, completePurchase
 };
 

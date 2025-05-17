@@ -3,7 +3,7 @@ import SessionManager from "../aistream/aistream";
 import GeminiSessionManager from "../gemini/StreamManager";
 import { FunctionParams } from "../types";
 import UserItem from "@/misc/store/userstore";
-import { fetchData, purchaseAirtime } from "../db";
+import { fetchData, purchaseAirtime, completePurchase } from "../db";
 import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
 import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
@@ -36,14 +36,14 @@ export class AirBills {
             },
 
             handler: async (args: { username: string, amount: number, }) => {
-                AppSettings.getState().setLoading(true)
+
 
                 const userDetails = this.session.userDetails;
                 // Check if the user has that token
                 const exist = userDetails.tokenAccounts.find((item: any) => item?.symbol?.toLowerCase() === "usdc");
 
                 if (!exist) {
-                    AppSettings.getState().setLoading(false)
+
                     return "You do not have any USDC in your wallet, please swap some token and try again";
                 }
 
@@ -69,36 +69,35 @@ export class AirBills {
                 const userWalletAddress = WalletItem.getState().publicKey?.toString() || "";
                 const keyPair = WalletItem.getState().keypair || null;
                 if (!keyPair) {
-                    AppSettings.getState().setLoading(false)
+
                     return "Please connect your wallet to proceed";
                 }
 
-                console.log("userWalletAddress", userWalletAddress);
 
-                console.log(mobileNumber);
                 const response = await purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
 
                 const result = response.data;
+                const dataId = result.id;
 
                 const res = await signTransactions(result.ix)
                 const confirmation = await this.session.connection.confirmTransaction(res, "confirmed");
 
                 if (confirmation) {
-                    const messageId = this.session.functionMessageId
-                    const network = AppSettings.getState().networkShort
-                    if (messageId !== null) {
-                        Convo.getState().updateMessage(messageId, {
-                            status: 'complete',
-                            link: `https://explorer.solana.com/tx/${res}?cluster=${network}`
-                        })
+                    const completePurchaseRes = await completePurchase(dataId)
+
+                    if (completePurchaseRes.status) {
+                        const messageId = this.session.functionMessageId
+                        const network = AppSettings.getState().networkShort
+                        if (messageId !== null) {
+                            Convo.getState().updateMessage(messageId, {
+                                status: 'complete',
+                                link: `https://explorer.solana.com/tx/${res}?cluster=${network}`
+                            })
+                        }
+                        return await convertSpeech('Your airtime purchase is successfull');
+                    } else {
+                        return await convertSpeech('Airtime purchase failed!');
                     }
-                    setTimeout(() => {
-                        this.session.stopSession()
-                        AppSettings.getState().setLoading(false)
-                    }, 1000)
-
-                    return await convertSpeech('Your airtime purchase is successfull');
-
                 } else {
                     const messageId = this.session.functionMessageId
                     if (messageId !== null) {
@@ -106,10 +105,6 @@ export class AirBills {
                             status: 'failed',
                         })
                     }
-                    setTimeout(() => {
-                        this.session.stopSession()
-                        AppSettings.getState().setLoading(false)
-                    }, 1000)
 
                     return await convertSpeech('Airtime purchase failed!');
                 }
