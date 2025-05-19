@@ -8,6 +8,7 @@ import UserItem from "@/misc/store/userstore";
 
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
+import * as Updates from 'expo-updates';
 
 const settingsMenu = [
   // {
@@ -230,6 +231,13 @@ function Settings() {
       </View>
 
 
+      <View className="w-full px-4">
+
+        <CText className="text-center">
+          Version: {" "}
+          {Updates.runtimeVersion}
+        </CText>
+      </View>
 
 
     </View>
