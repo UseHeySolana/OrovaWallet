@@ -6,7 +6,7 @@ import UserItem from "@/misc/store/userstore";
 import { fetchData, purchaseAirtime, completePurchase } from "../db";
 import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
-import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
+import { cleanNumber, convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
 import Convo from "@/misc/store/conversation";
 
 export class AirBills {
@@ -57,14 +57,16 @@ export class AirBills {
                     const users = await fetchData()
                     const filtered = users.filter(
                         (msg: any) =>
-                            msg.username.toLowerCase().includes(args.username.toLowerCase())
+                            msg.username.toLowerCase() === args.username.toLowerCase()
                     );
                     if (filtered.length < 1) {
                         const response = await convertSpeech("Sorry there is no user on the Hey Solana App with that username")
                         return response
                     }
-                    mobileNumber = filtered[0].mobileNumber;
+                    mobileNumber = cleanNumber(filtered[0].phone_number);
                 }
+
+
 
                 const userWalletAddress = WalletItem.getState().publicKey?.toString() || "";
                 const keyPair = WalletItem.getState().keypair || null;
@@ -72,7 +74,6 @@ export class AirBills {
 
                     return "Please connect your wallet to proceed";
                 }
-
 
                 const response = await purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
 
