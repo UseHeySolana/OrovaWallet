@@ -23,9 +23,10 @@ import { useThemeContext } from "@/misc/context/ThemeContext";
 import Convo, { MessageType } from "@/misc/store/conversation";
 import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
-import { transferSol, transferToken } from "@/misc/helpers/transfers";
+
 import IconLibrary from "@/misc/helpers/icons";
-import { completePurchase, purchaseAirtime } from "@/misc/helpers/db";
+import ToolItem from "@/components/ToolCall/ToolItem";
+
 
 
 const AiHelpers = [
@@ -83,7 +84,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // console.log(conversations)
-    // const messageItem = getConversationMessages('1747380640683') || [];
+    // const messageItem = getConversationMessages('1747650962928') || [];
     const messageItem = getConversationMessages(conversationId) || [];
 
     setMessage(messageItem);
@@ -393,100 +394,12 @@ export default function Dashboard() {
                 {message.map((item: any, index: number) => {
                   const isSystem = item.role === "system";
                   const toolCall = item.role === "tool";
-                  const isUser = item.role === 'user';
-                  const params = item?.tool?.arguments?.parameter && Object.keys(item.tool?.arguments?.parameter) || item.tool?.arguments && Object.keys(item.tool?.arguments) || []
+
                   return (
                     <View key={index + item.id} className="mb-3 relative">
                       {toolCall ? (
                         <>
-                          {/* Tool Call View */}
-                          <View className="py-4 shadow-sm px-4 flex flex-col items-start justify-center text-[1.14rem] bg-white dark:bg-dark dark:border border-accent rounded-xl gap-y-3">
-                            {/* Header */}
-                            <View className="flex flex-row items-center justify-between w-full bg-white dark:bg-accent2 p-1 rounded-full gap-x-3">
-                              <View className="flex-1 flex-row items-center gap-x-2 bg-grey dark:bg-accent p-2 rounded-full ">
-                                <Image
-                                  source={require('@/assets/images/icon.png')}
-                                  style={{ width: 30, height: 30 }}
-                                  contentFit="contain"
-                                  className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                                />
-                                <View>
-                                  {item.tool ?
-                                    <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
-
-                                      {item.tool?.arguments?.owner ? item?.tool?.arguments?.owner : aiName}
-                                    </CText>
-                                    :
-                                    <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
-
-                                      {item?.tool?.owner ? item?.tool?.owner : aiName}
-                                    </CText>
-
-                                  }
-                                  <CText>Tool Used</CText>
-
-                                </View>
-                              </View>
-
-                              <View>
-                                <View className="bg-grey dark:bg-accent p-2 w-10 h-10 rounded-full">
-                                  <Image
-                                    source={
-                                      item.tool?.status == 'pending'
-                                        ? require('@/assets/toolstatus/pending.png')
-                                        : item.tool?.status == 'complete'
-                                          ? require('@/assets/toolstatus/complete.png')
-                                          : require('@/assets/toolstatus/failed.png')
-                                    }
-                                    style={{ width: '100%', height: '100%' }}
-                                    contentFit="contain"
-                                    className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                                  />
-                                </View>
-                              </View>
-                            </View>
-
-                            {/* Params and Link */}
-                            <View className="bg-white z- dark:bg-accent2 p-3 rounded-xl w-full">
-                              <CText className="uppercase text-[1.23rem]" style={{ fontFamily: "bold" }}>
-
-                                {item?.tool?.arguments?.tool ?
-                                  item?.tool?.arguments?.tool?.replace('_', ' ').replace('-', ' ') :
-                                  item?.tool?.action?.replace('_', ' ').replace('-', ' ')
-                                }
-
-
-                              </CText>
-                              <View className="p-2 flex-1 flex-row justify-between">
-                                <View>
-
-                                  {params?.map((param: any, index: number) => (
-                                    <View key={index} className="flex flex-row items-center justify-start gap-x-4">
-                                      <CText className="text-[1rem] uppercase">{param}</CText>
-                                      <CText className="text-[1rem]">
-                                        {item?.tool?.arguments.parameter ?
-                                          item.tool.arguments?.parameter[param]
-                                          :
-                                          item.tool.arguments[param]
-
-                                        }</CText>
-                                    </View>
-                                  ))}
-                                </View>
-
-
-                                {item?.tool?.link && (
-                                  <TouchableOpacity
-                                    style={{
-                                      zIndex: 99999999,
-                                    }}
-                                    onPress={() => openURL(item?.tool?.link)} className="p-3">
-                                    <IconLibrary.external />
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-                            </View>
-                          </View>
+                          <ToolItem item={item} isSystem={isSystem} aiName={aiName} />
                         </>
                       ) : (
                         <View

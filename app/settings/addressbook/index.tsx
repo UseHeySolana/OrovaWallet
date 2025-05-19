@@ -109,15 +109,15 @@ function AddressBook() {
                   return (
                     <View
                       className=" bg-grey shadow dark:bg-accent mb-2 flex flex-row justify-start gap-x-2 items-center p-3 rounded-xl "
-                      key={item.item.walletAddress}
+                      key={item?.item?.walletAddress}
                     >
                       <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
                         <CText>+</CText>
                       </View>
                       <View className="flex-1 flex-col  justify-start gap-x-4  items-start">
-                        <CText className="text-[1.45rem]">{item.item.name}</CText>
+                        <CText className="text-[1.45rem]">{item?.item?.name}</CText>
                         <CText className="text-[1rem]">
-                          {shortenPub(item.item.walletAddress)}
+                          {shortenPub(item?.item?.walletAddress || "")}
                         </CText>
 
                       </View>
