@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import AppSettings from "@/misc/store/settingsstore";
@@ -126,13 +126,19 @@ function Settings() {
 
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
-      <View className="w-full gap-y-4">
-
         <View className="w-full px-4 flex flex-row justify-start">
           <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
             <IconLibrary.back />
           </Pressable>
         </View>
+      <ScrollView className="w-full"
+        contentContainerStyle={{
+          gap: 10,
+        }}
+      >
+
+
+      
 
         <View className="bg-white dark:bg-accent mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
           <View className="flex flex-row justify-between items-center gap-x-2  ">
@@ -227,7 +233,7 @@ function Settings() {
           })}
         </View>
 
-      </View>
+      </ScrollView>
 
 
 

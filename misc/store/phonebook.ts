@@ -3,7 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
 import { Keypair, PublicKey } from '@solana/web3.js';
 
-interface Wallet {
+interface Contact {
+
+
     addContact: (contact: { name: string; phoneNumber: string, walletAddress: string }) => void;
     addMultipleContacts: (contacts: { name: string; phoneNumber: string, walletAddress: string }[]) => void;
     contacts: { name: string; phoneNumber: string, walletAddress: string }[];
@@ -13,7 +15,7 @@ interface Wallet {
 }
 
 const PhoneBook = create(
-    persist<Wallet>(
+    persist<Contact>(
         (set, get) => ({
             contacts: [],
             addMultipleContacts: (contacts: { name: string; phoneNumber: string, walletAddress: string }[]) => {

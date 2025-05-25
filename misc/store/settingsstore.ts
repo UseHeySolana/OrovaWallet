@@ -104,7 +104,7 @@ const AppSettings = create(
             },
             setToast: (message: string, type: "success" | "error" | "info") => {
                 set({ toast: { message, type, show: true } })
-                setTimeout(() => set({ toast: { show: false, message: "", type: "success" } }), 1000);
+                setTimeout(() => set({ toast: { show: false, message: "", type: "success" } }), 2000);
             },
 
             setOpenWithAuth: (val: boolean) => set({ openWithAuth: val }),

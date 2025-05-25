@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
@@ -107,25 +107,25 @@ export default function SecretPhrase({ navigation }: any) {
   }
   const validatePhrase = async () => {
 
-    // if (userWords.some(word => !word.word.trim())) {
-    //   Alert.alert("Error", "Please fill in all the words");
-    //   return;
-    // }
+    if (userWords.some(word => !word.word.trim())) {
+      setToast("Please fill in all the words", "error");
+      return;
+    }
     setLoading(true)
     // Check if each entered word matches the corresponding verified word
-    // const isCorrect = userWords.every((userWord, index) => {
-    //   const verifiedWord = verifiedWords[index];
-    //   // Compare the words case-insensitively
-    //   return userWord.word.toLowerCase().trim() === verifiedWord.word.toLowerCase();
-    // });
+    const isCorrect = userWords.every((userWord, index) => {
+      const verifiedWord = verifiedWords[index];
+      // Compare the words case-insensitively
+      return userWord.word.toLowerCase().trim() === verifiedWord.word.toLowerCase();
+    });
 
 
 
-    // if (!isCorrect) {
-    //   Alert.alert("Error", "Some words don't match. Please check and try again.");
-    //   setLoading(false)
-    //   return;
-    // } else {
+    if (!isCorrect) {
+      setToast("Some words don't match. Please check and try again.", "error");
+      setLoading(false)
+      return;
+    } else {
 
     try {
       setCurrentState('set-pin');
@@ -147,15 +147,18 @@ export default function SecretPhrase({ navigation }: any) {
       setLoading(false)
       console.error("Error generating keypair:", error);
     }
-    // }
+    }
   }
+  /**
+   * sudo port install php82-cgi php82-gd php82-curl php82-intl php82-iconv php82-gettext php82-mbstring php82-imap php82-mcrypt php82-xmlrpc php82-mysql php82-openssl php82-sockets php82-zip php82-tidy php82-opcache php82-xsl php82-sqlite
+   */
 
   return (
     <View
       className="py-10 relative bg-grey dark:bg-dark  h-[100%]"
     >
       {!startWalletCreation ?
-        <View className="gap-y-5 ">
+        <ScrollView className="gap-y-5 ">
           <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl p-10">
             <View className="gap-x-5">
               <CText style={{ fontFamily: "bold" }} className="text-[24px] text-center">Your secret phrase is the master key to your wallet</CText>
@@ -184,7 +187,7 @@ export default function SecretPhrase({ navigation }: any) {
               )
             })}
           </View>
-        </View>
+        </ScrollView>
         :
         <View className="gap-y-5">
           <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl gap-y-4 px-4 py-3">

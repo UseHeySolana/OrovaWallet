@@ -15,7 +15,7 @@ const HELIUS = process.env.EXPO_PUBLIC_HELIUS_API || "";
 
 const request = {
   get: async (url: string) => {
-    console.log(BASE_URL + url)
+    console.log("called" + url)
 
     const response = await fetch(BASE_URL + url, {
       method: "GET",
@@ -26,7 +26,7 @@ const request = {
     return response;
   },
   post: async (data: FormData, url: string) => {
-    console.log(BASE_URL + url)
+    console.log("called" + url)
     const response = await fetch(BASE_URL + url, {
       method: "POST",
       headers: {
@@ -326,13 +326,66 @@ const getTransactionHistory = async (publicKey: string) => {
   return { status: true, data: await response.json() };
 }
 
+const getContacts = async (id: string) => {
+  const response = await request.get(`/v2/get-contacts/${id}`);
+  if (!response.ok) {
+    const result = await response.json();
+    return { status: false, message: result.message }
+  }
+  return { status: true, data: await response.json() };
+}
+
+
+const addContact = async (username: string, phone_number: string, wallet_address: string) => {
+  const item = {
+    "username": username,
+    "phone_number": phone_number,
+    "wallet_address": wallet_address,
+  }
+
+  const response = await request.postJson(item, "/v2/add-contact");
+  if (!response.ok) {
+    const result = await response.json();
+    return { status: false, message: result.message }
+  }
+  return { status: true, data: await response.json() };
+}
+
+
+const deleteContact = async (id: string) => {
+  const response = await request.get(`/v2/delete-contact/${id}`);
+  if (!response.ok) {
+    const result = await response.json();
+    return { status: false, message: result.message }
+  }
+}
+
+const updateContact = async (id: string, username: string, phone_number: string, wallet_address: string) => {
+  const item = {
+    "username": username,
+    "phone_number": phone_number,
+    "wallet_address": wallet_address,
+  }
+
+  const response = await request.postJson(item, "/v2/update-contact");
+  if (!response.ok) {
+    const result = await response.json();
+    return { status: false, message: result.message }
+  }
+  return { status: true, data: await response.json() }; 
+}
+
+
 
 export {
+  addContact,
+  deleteContact,
+  getContacts,
   purchaseAirtime,
   verifyCode,
   getCode,
   saveWalletAddress,
   getTransactionHistory,
-  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, completePurchase
+  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, completePurchase, updateContact      
 };
 
