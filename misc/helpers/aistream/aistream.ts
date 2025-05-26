@@ -18,6 +18,7 @@ import Convo from "@/misc/store/conversation";
 import { toolRouter } from "../toolsregistry";
 import { FunctionParams } from "../types";
 import PhoneBook from "@/misc/store/phonebook";
+import { transcribeAudio } from "../db";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -234,6 +235,29 @@ class SessionManager {
                 // if (message.type.includes('conversation')) {
                 //     console.log(message.type)
                 // }
+
+
+                // conversation.item.retrieved
+
+                // if(message.type === "input_audio_buffer.speech_stopped"){
+
+                //     this.sendClientEvent( {
+                //             "event_id": message.event_id,
+                //             "type": "conversation.item.retrieve",
+                //             "item_id": message.item_id
+                //         })
+
+                // }
+
+                // if(message.type === "conversation.item.retrieved"){
+                //     console.log('message', message.item.content[0]);
+                //     // (async () => {
+                //     //     const response = await transcribeAudio(message.item.content[0].audio)
+                //     //     console.log('response', response)
+                //     // })()
+
+                // }
+
 
                 if (message.type === "input_audio_buffer.speech_started") {
                     this.callbacks.setMode('human');

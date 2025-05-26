@@ -383,9 +383,18 @@ const updateContact = async (id: string, username: string, phone_number: string,
   return { status: true, data: await response.json() }; 
 }
 
+const transcribeAudio = async (audio: string) => {
+  const response = await request.postJson({ audio }, "/v2/transcribe");
+  if (!response.ok) {
+    const result = await response.json();
+    return { status: false, message: result.message }
+  }
+  return { status: true, data: await response.json() };
+}
 
 
 export {
+  transcribeAudio ,
   addContact,
   deletePersonalContact,
   getContacts,
