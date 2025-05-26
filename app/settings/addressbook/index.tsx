@@ -224,7 +224,7 @@ function AddressBook() {
           </View>
 
 
-          {showContactonHey &&
+
             <View>
               <FlatList
                 contentContainerStyle={{ paddingBottom: 80 }}
@@ -274,10 +274,14 @@ function AddressBook() {
                     </View>)
                 }
                 }
+                ListEmptyComponent={
+                  <View className="flex-1 justify-center items-center">
+                    <CText>No Contacts added yet!</CText>
+                  </View>
+                }
                 keyExtractor={item => item.name}
               />
             </View>
-          }
 
         </View>
 
