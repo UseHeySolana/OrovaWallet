@@ -1,3 +1,4 @@
+import WalletItem from "../store/wallet";
 import { cache } from "./storage/cache";
 
 export type MessageData = {
@@ -337,10 +338,15 @@ const getContacts = async (id: string) => {
 
 
 const addContact = async (username: string, phone_number: string, wallet_address: string) => {
+  const userId = WalletItem.getState().publicKey?.toString()
+  if(!userId){
+    return { status: false, message: "User not found" }
+  }
   const item = {
     "username": username,
     "phone_number": phone_number,
     "wallet_address": wallet_address,
+    "user_id": userId,
   }
 
   const response = await request.postJson(item, "/v2/add-contact");
@@ -352,12 +358,13 @@ const addContact = async (username: string, phone_number: string, wallet_address
 }
 
 
-const deleteContact = async (id: string) => {
+const deletePersonalContact = async (id: string) => {
   const response = await request.get(`/v2/delete-contact/${id}`);
   if (!response.ok) {
     const result = await response.json();
     return { status: false, message: result.message }
   }
+  return { status: true, data: await response.json() };
 }
 
 const updateContact = async (id: string, username: string, phone_number: string, wallet_address: string) => {
@@ -365,6 +372,7 @@ const updateContact = async (id: string, username: string, phone_number: string,
     "username": username,
     "phone_number": phone_number,
     "wallet_address": wallet_address,
+    "contact_id": id,
   }
 
   const response = await request.postJson(item, "/v2/update-contact");
@@ -379,7 +387,7 @@ const updateContact = async (id: string, username: string, phone_number: string,
 
 export {
   addContact,
-  deleteContact,
+  deletePersonalContact,
   getContacts,
   purchaseAirtime,
   verifyCode,

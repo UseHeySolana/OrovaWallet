@@ -164,9 +164,9 @@ export default function Dashboard() {
           <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
             <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
+          {/* <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
             <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
       </View>
@@ -205,7 +205,7 @@ export default function Dashboard() {
                 <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
                 <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
-                  <View className="w-[40%]">
+                  <View className="flex-1">
                     <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
                       //  router.push('/dashboard/send') 
                       showToast("Kindly Use Voice to send tokens")
@@ -215,7 +215,7 @@ export default function Dashboard() {
                       </View>
                     } />
                   </View>
-                  <View className="w-[40%]">
+                  <View className="flex-1">
                     <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
                       showToast("Kindly Use Voice to send tokens")
                     }} type="secondary" text="Receive"
@@ -226,11 +226,11 @@ export default function Dashboard() {
                       }
                     />
                   </View>
-                  <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
+                  {/* <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
                     <TouchableOpacity className="p-2 flex justify-center items-center">
                       <FontAwesome6 name="arrows-rotate" size={16} color={isDarkMode ? "white" : "black"} />
                     </TouchableOpacity>
-                  </View>
+                  </View> */}
                 </View>
 
               </View>

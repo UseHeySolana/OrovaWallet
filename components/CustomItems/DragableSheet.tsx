@@ -9,9 +9,10 @@ interface DragableSheetProps {
     child: React.ReactNode;
     snapPoints?: string[] | null
     close?: () => void;
+    panClose?: boolean;
 }
 const DragableSheet = (props: DragableSheetProps) => {
-    const { child, snapPoints, close } = props;
+    const { child, snapPoints, close, panClose } = props;
     const [resetView, setResetView] = useState(true)
     const bottomSheetRef = useRef<BottomSheet>(null);
 
@@ -42,7 +43,7 @@ const DragableSheet = (props: DragableSheetProps) => {
         <BottomSheet
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
-            onClose={() => { }}
+            onClose={() => close && close()}
             ref={bottomSheetRef}
             backgroundStyle={{
                 backgroundColor: isDarkMode ? '#131313' : 'white',
@@ -62,7 +63,7 @@ const DragableSheet = (props: DragableSheetProps) => {
                     }}
                 />
             }
-            enablePanDownToClose={false}
+            enablePanDownToClose={panClose ?? false}
         >
             <BottomSheetView className="h-full px-4 rounded-t-3xl" >
                 {child}

@@ -5,13 +5,15 @@ import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import * as Contacts from 'expo-contacts';
 import IconLibrary from "@/misc/helpers/icons";
-import { fetchData, getContacts } from "@/misc/helpers/db";
+import { deletePersonalContact, fetchData, getContacts } from "@/misc/helpers/db";
 import Buttons from "@/components/ButtonComp";
 import PhoneBook from "@/misc/store/phonebook";
 import { shortenPub } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import AddContactSheet from "@/components/Sheets/AddContactSheet";
 import PersonalContacts from "@/misc/store/personalcontacts";
 import WalletItem from "@/misc/store/wallet";
+import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
+import { useAi } from "@/misc/context/AiContext";
 
 function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {
   const phoneC = new Set(phoneContacts.map((item: any) => item.phoneNumbers && item.phoneNumbers[0]?.number?.replace(/[-\s]/g, '')).filter(Boolean));
@@ -41,17 +43,22 @@ function AddressBook() {
   const [contactsOnHeySolana, setContactsOnHeySolana] = useState<any[]>([])
   const [showContactonHey, setShowContactOnHey] = useState(true)
 
-  const { contacts, addContact } = PhoneBook()
-  const { personalContacts, addPersonalContact } = PersonalContacts()
-  const [addContactModal, setAddContactModal] = useState(false)
+  const { contacts, addContact } = PhoneBook();
+  const { personalContacts, addPersonalContact, deletePersonalContact:deleteAppContact, refreshPersonalContacts } = PersonalContacts();
 
-  const [editedContact, setEditedContact] = useState<any>(null)
+  const { refresher } = AppSettings()
+
+  const [addContactModal, setAddContactModal] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const [selectedContact, setSelectedContact] = useState<any>(null)
+
 
   useEffect(() => {
     getPersonalContacts()
 
     mathchingContacts()
-  }, [contactsPhone, users])
+  }, [contactsPhone, users, refresher])
 
 
   const mathchingContacts = () => {
@@ -75,8 +82,14 @@ function AddressBook() {
   const getPersonalContacts = async () => {
     const response = await getContacts(publicKey?.toString() || "")
     if (response?.status) {
+      
+      if(response.data.data?.length <= 0){
+        refreshPersonalContacts()
+      }
+
       response.data.data?.forEach((item: any) => {
         const contactFetched = {
+          id: item.id as string,
           name: item.username as string,
           phoneNumber: item.mobile_number as string,
           walletAddress: item.wallet_address as string,
@@ -84,6 +97,8 @@ function AddressBook() {
         }
         addPersonalContact(contactFetched)
       })
+    }else{
+      refreshPersonalContacts()
     }
   }
 
@@ -107,7 +122,21 @@ function AddressBook() {
     }
   };
 
-  console.log(personalContacts)
+  const deleteContact = async (contact: any) => {
+    setLoading(true)
+    const response  = await deletePersonalContact(contact.id)
+    if (response?.status) {
+      deleteAppContact(contact.id)
+      setToast("Contact deleted successfully", "success")
+      setConfirmOpen(false)
+      setLoading(false)
+    } else {
+      setToast("Failed to delete contact", "error")
+      setConfirmOpen(false)
+      setLoading(false)
+    }
+  }
+
 
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark px-4  w-100 flex-1 items-start justify-start gap-y-4">
@@ -148,7 +177,6 @@ function AddressBook() {
                 className=" rounded-xl gap-x-2  "
                 data={contactsOnHeySolana}
                 renderItem={(item: any) => {
-                  console.log(item?.item?.type)
                   return (
                     <View
                       className="bg-grey shadow dark:bg-accent  mb-2 flex flex-row justify-start gap-x-2 items-center p-3 rounded-xl "
@@ -189,7 +217,7 @@ function AddressBook() {
             </View>
 
             <Buttons loading={isLoading}
-              onPress={() => setAddContactModal(true)}
+              onPress={() => {setAddContactModal(true); setSelectedContact(null)}}
               type="primary" className="p-2 rounded-xl" text="Add Contact" />
 
 
@@ -210,7 +238,6 @@ function AddressBook() {
                 className="rounded-xl gap-x-2  "
                 data={personalContacts}
                 renderItem={(item: any) => {
-                  console.log(item?.item?.type)
                   return (
                     <View
                       className="bg-grey shadow dark:bg-accent  mb-2 flex flex-row justify-start gap-x-2 items-center p-3 rounded-xl "
@@ -232,12 +259,15 @@ function AddressBook() {
                         <View className="flex flex-row justify-start items-center gap-x-2">
                           <TouchableOpacity onPress={() => {
                             setAddContactModal(true)
-                            setEditedContact(item?.item)}} className="rounded-full border bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
+                            setSelectedContact(item?.item)}} className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
                             <IconLibrary.edit />
                           </TouchableOpacity>
-                          <View className="rounded-full border bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
+                          <TouchableOpacity onPress={() => {
+                            setConfirmOpen(true)
+                            setSelectedContact(item?.item)
+                          }} className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
                             <IconLibrary.delete />
-                          </View>
+                          </TouchableOpacity>
                         </View>
 
                       }
@@ -255,14 +285,24 @@ function AddressBook() {
 
       </View>
 
-
+      <ConfirmActionSheet
+        title="Are you sure you want to delete this contact?"
+        open={confirmOpen}
+        close={setConfirmOpen}
+        actionNo={() => {setConfirmOpen(false)}}
+        actionYes={() => {
+          deleteContact(selectedContact)
+        }}
+      />
 
       <AddContactSheet
         open={addContactModal}
         setOpen={setAddContactModal}
-        data={editedContact}
+        data={selectedContact}
         setToast={(message, type) => setToast(message, type)}
       />
+
+    
     </View>
   );
 }
