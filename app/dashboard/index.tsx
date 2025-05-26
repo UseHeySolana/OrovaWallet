@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import LottieView from 'lottie-react-native';
 import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity, Pressable, Linking, TouchableHighlight } from "react-native";
 import CText from "@/components/TextComp";

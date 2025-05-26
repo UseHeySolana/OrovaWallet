@@ -1,7 +1,6 @@
 import { Connection } from "@solana/web3.js";
 import { userWalletType } from "@/misc/store/userstore";
 import { fetchData } from "../db";
-import { transferSol, transferToken } from "../transfers";
 import SessionManager from "../aistream/aistream";
 import { FunctionParams } from "../types";
 import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
@@ -69,6 +68,45 @@ const performSwap = async (quoteResponse: any, userPublicKey: string) => {
 
     return ({ status: true, data: swapResponse });
 }
+
+export const verifiedTokens = [
+    {
+        "name": "Solana",
+        "address": "So11111111111111111111111111111111111111112",
+        "symbol": "SOL",
+        "decimals": 9,
+        "logo": "https://assets.coingecko.com/coins/images/4128/large/solana.png?1640133422"
+    },
+    {
+        "name": "USDC",
+        "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "USDC",
+        "decimals": 6,
+        "logo": "https://assets.coingecko.com/coins/images/6319/large/USD_Coin_icon.png?1547042194"
+    },
+    {
+        "name": "USDT",
+        "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+        "symbol": "USDT",
+        "decimals": 6,
+        "logo": "https://assets.coingecko.com/coins/images/325/large/Tether.png?1696501580"
+    },
+    {
+        "name": "Bonk",
+        "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+        "symbol": "Bonk",
+        "decimals": 5,
+        "logo": "https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
+    },
+    {
+        "name": "Metaplex Token",
+        "address": "METAewgxyPbgwsseH8T16a39CQ5VyVxZi9zXiDPY18m",
+        "symbol": "MPLX",
+        "decimals": 6,
+        "logo": "https://arweave.net/VRKOcXIvCxqp35RZ9I0-bDGk5qNfT46OTho-2oP9iGc"
+    }
+]
+
 export class SwapFunction {
     public swapFunction: FunctionParams;
 

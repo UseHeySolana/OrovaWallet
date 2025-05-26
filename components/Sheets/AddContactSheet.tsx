@@ -3,7 +3,7 @@ import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Buttons from "../ButtonComp";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { addContact, updateContact } from "@/misc/helpers/db";
 import AppSettings from "@/misc/store/settingsstore";
 import ConfirmActionSheet from "./ConfirmationSheet";

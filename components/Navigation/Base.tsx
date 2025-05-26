@@ -1,9 +1,4 @@
-
-
 import IconLibrary from '@/misc/helpers/icons'
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6'
-import Ionicons from '@expo/vector-icons/Ionicons'
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 import { Image } from 'expo-image'
 import React from 'react'
 import { Pressable, TouchableOpacity, View } from 'react-native'
@@ -15,8 +10,9 @@ interface BASENAV {
   isAiActive?: boolean,
   showWallet?: boolean,
   setShowWallet?: (showWallet: boolean) => void
-
 }
+
+
 export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, setShowWallet, showWallet }: BASENAV) => {
   return (
     <View className="absolute w-screen flex flex-row justify-center items-center bottom-5 px-2">
@@ -26,8 +22,10 @@ export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, s
         {/* <View className="h-[56] w-[56] border border-purple flex items-center justify-center rounded-full">
             <Ionicons name="wallet-outline" size={24} color="#971BB2" />
           </View> */}
+          
         <TouchableOpacity onPress={() => setShowWallet && setShowWallet(true)} className="h-[56] w-[56] border bg-[#666666] dark:bg-accent border-white dark:border-dark flex items-center justify-center rounded-full">
           <IconLibrary.wallet />
+
           {/* <Ionicons name="color-palette-outline" size={24} color="white" /> */}
 
         </TouchableOpacity>
@@ -44,9 +42,7 @@ export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, s
           :
           <TouchableOpacity className="h-[56] w-[56] flex items-center justify-center rounded-full">
             <IconLibrary.arrow_rotate />
-
           </TouchableOpacity>
-
         }
         {/* <View className="h-[56] w-[56] flex items-center justify-center rounded-full">
             <MaterialCommunityIcons name="web" size={24} color="black" />
