@@ -18,7 +18,6 @@ const cleanNumber = (input: any) => {
 }
 
 const showToast = (message: string) => {
-
     AppSettings.getState().setToast(message, 'info')
 }
 
@@ -140,6 +139,9 @@ function formatDate(input: DateInput, options: FormatOptions = {}): string {
 }
 
 const shortenPub = (pub: string) => {
+    if (!pub) {
+        return "N/A";
+    }
     return pub.slice(0, 4) + "..." + pub.slice(-4)
 }
 

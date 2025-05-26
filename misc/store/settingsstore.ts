@@ -40,13 +40,17 @@ interface Settings {
         type: "success" | "error" | "info",
     },
     setToast: (message: string, type: "success" | "error" | "info") => void
-    setOpenWithAuth: (val: boolean) => void
+    setOpenWithAuth: (val: boolean) => void,
+    refresher: number, 
+    setRefresher: (refresher: number) => void
 }
 
 
 const AppSettings = create(
     persist<Settings>(
         (set, get) => ({
+            refresher: 0,
+            setRefresher: (refresher: number) => set({ refresher: refresher }),
             openWithAuth: false,
             ek: {
                 value: "",
@@ -104,7 +108,7 @@ const AppSettings = create(
             },
             setToast: (message: string, type: "success" | "error" | "info") => {
                 set({ toast: { message, type, show: true } })
-                setTimeout(() => set({ toast: { show: false, message: "", type: "success" } }), 1000);
+                setTimeout(() => set({ toast: { show: false, message: "", type: "success" } }), 2000);
             },
 
             setOpenWithAuth: (val: boolean) => set({ openWithAuth: val }),
