@@ -1,4 +1,5 @@
-
+import React from "react";
+import ConfirmActionSheetGlobal from "@/components/Sheets/ConfirmationSheetGlobal";
 import CText from "@/components/TextComp";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import IconLibrary from "@/misc/helpers/icons";
@@ -57,6 +58,7 @@ export default function StackView() {
             </Stack>
             {toast.show && <ToastModal type={toast.type} message={toast.message} />}
             {isLoading && <LoadingScreen />}
+            <ConfirmActionSheetGlobal />
         </>
 
     );

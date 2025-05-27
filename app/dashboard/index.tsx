@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import LottieView from 'lottie-react-native';
-import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity, Pressable, Linking, TouchableHighlight } from "react-native";
+import { ScrollView, TouchableNativeFeedback, RefreshControl, View, TouchableOpacity, } from "react-native";
 import CText from "@/components/TextComp";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from "expo-image";
@@ -23,9 +22,9 @@ import { useThemeContext } from "@/misc/context/ThemeContext";
 import Convo, { MessageType } from "@/misc/store/conversation";
 import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import ToolItem from "@/components/ChatItems/ToolItem";
+import ChatBox from "@/components/ChatItems/ChatBox";
 
-import IconLibrary from "@/misc/helpers/icons";
-import ToolItem from "@/components/ToolCall/ToolItem";
 
 
 
@@ -216,9 +215,7 @@ export default function Dashboard() {
                     } />
                   </View>
                   <View className="flex-1">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                      showToast("Kindly Use Voice to send tokens")
-                    }} type="secondary" text="Receive"
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => router.push('/dashboard/qrcode')} type="secondary" text="Receive"
                       icon={
                         <View className="rotate-[40deg]">
                           <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
@@ -402,28 +399,29 @@ export default function Dashboard() {
                           <ToolItem item={item} isSystem={isSystem} aiName={aiName} />
                         </>
                       ) : (
-                        <View
-                          className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
-                        >
-                          <View className="flex flex-row items-center gap-x-2 ">
-                            <Image
-                              source={require('@/assets/images/ai.png')}
-                              style={{ width: 30, height: 30 }}
-                              contentFit="contain"
-                              className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                            />
-                            <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
-                              {isSystem ? aiName : `@${user?.username}`}
-                            </CText>
-                          </View>
-                          <View
-                            className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
-                          >
-                            <View className="bg-grey dark:bg-accent p-2 rounded-lg">
-                              <CText className="text-[12px]">{item.content}</CText>
-                            </View>
-                          </View>
-                        </View>
+                        <ChatBox item={item} isSystem={isSystem} aiName={aiName} />
+                          // <View
+                          //   className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
+                          // >
+                          //   <View className="flex flex-row items-center gap-x-2 ">
+                          //     <Image
+                          //       source={require('@/assets/images/ai.png')}
+                          //       style={{ width: 30, height: 30 }}
+                          //       contentFit="contain"
+                          //       className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                          //     />
+                          //     <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
+                          //       {isSystem ? aiName : `@${user?.username}`}
+                          //     </CText>
+                          //   </View>
+                          //   <View
+                          //     className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
+                          //   >
+                          //     <View className="bg-grey dark:bg-accent p-2 rounded-lg">
+                          //       <CText className="text-[12px]">{item.content}</CText>
+                          //     </View>
+                          //   </View>
+                          // </View>
                       )}
                     </View>
                   );

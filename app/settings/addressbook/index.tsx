@@ -14,6 +14,7 @@ import PersonalContacts from "@/misc/store/personalcontacts";
 import WalletItem from "@/misc/store/wallet";
 import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import { useAi } from "@/misc/context/AiContext";
+import { confirm } from "@/misc/helpers/service/confirmation";
 
 function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {
   const phoneC = new Set(phoneContacts.map((item: any) => item.phoneNumbers && item.phoneNumbers[0]?.number?.replace(/[-\s]/g, '')).filter(Boolean));
@@ -263,8 +264,17 @@ function AddressBook() {
                             <IconLibrary.edit />
                           </TouchableOpacity>
                           <TouchableOpacity onPress={() => {
-                            setConfirmOpen(true)
-                            setSelectedContact(item?.item)
+                            confirm({
+                              message: "Are you sure you want to delete this contact?",
+                              type: AppSettings.getState().openWithAuth ?'fingerprint' : undefined
+                            })
+                            .then((response) => {
+                              console.log(response)
+                              if(response){
+                                deleteContact(item?.item)
+                              }
+                            })
+                            
                           }} className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
                             <IconLibrary.delete />
                           </TouchableOpacity>

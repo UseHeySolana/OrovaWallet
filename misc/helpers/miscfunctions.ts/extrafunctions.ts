@@ -3,9 +3,10 @@ import AppSettings from "../../store/settingsstore";
 import { cache } from "../storage/cache";
 import { getTransactionHistory } from "../db";
 import WalletItem from "@/misc/store/wallet";
-import { Connection, Keypair, SystemProgram, Transaction, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, SystemProgram, Transaction, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { api_key } from "@/app/requests/dashboard";
 import { Linking } from "react-native";
+import { confirm } from "../service/confirmation";
 
 const cleanNumber = (input: any) => {
     // Remove non-digit characters
@@ -158,7 +159,7 @@ const keypairSign = async () => {
 }
 
 
-const signTransactions = async (tx: string, feeAmount?: number) => {
+const signTransactions = async ({tx, feeAmount, type}: {tx: string, feeAmount?: number, type?: string}) => {
     const network = AppSettings.getState().network;
     const connection = new Connection(`${network}${api_key}`)
 
@@ -168,26 +169,44 @@ const signTransactions = async (tx: string, feeAmount?: number) => {
 
     }
 
-    const txBuffer = Buffer.from(tx, "base64"); ``
+    const txBuffer = Buffer.from(tx, "base64");
 
-    let transaction = Transaction.from(txBuffer);
 
-    const feeHolder = process.env.EXPO_FEE_HOLDER || "HeycuCVbaKuUXizfw8fQDuNadJu23igfK6G3ZomEwNmP"
+    let transaction: Transaction | VersionedTransaction;
 
-    if (feeAmount) {
-        transaction.add(
-            SystemProgram.transfer({
-                fromPubkey: keyPair.publicKey,
-                toPubkey: new PublicKey(feeHolder),
-                lamports: feeAmount
-            })
-        )
+    if (type === "versioned") {
+        transaction = VersionedTransaction.deserialize(txBuffer);
+        transaction.sign([keyPair]);
+    } else {
+        transaction = Transaction.from(txBuffer);
+        const feeHolder = process.env.EXPO_FEE_HOLDER || "13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ"
+        // "HeycuCVbaKuUXizfw8fQDuNadJu23igfK6G3ZomEwNmP"
+        if (feeAmount) {
+            transaction.add(
+                SystemProgram.transfer({
+                    fromPubkey: keyPair.publicKey,
+                    toPubkey: new PublicKey(feeHolder),
+                    lamports: feeAmount
+                })
+            )
+        }
+
+        // Correct way to sign
+        transaction.partialSign(keyPair);
+    
     }
 
-    // Correct way to sign
-    transaction.partialSign(keyPair);
 
+    
     try {
+        const response = await confirm({
+            message: "Are you sure you want to send this transaction?",
+            type: AppSettings.getState().openWithAuth ? 'fingerprint' : undefined
+        })
+
+        if (!response) {
+            return "Transaction cancelled"
+        }
         const txid = await connection.sendRawTransaction(transaction.serialize());
 
         return txid;
@@ -199,7 +218,6 @@ const signTransactions = async (tx: string, feeAmount?: number) => {
 
 const openURL = async (url: string) => {
     const supported = await Linking.canOpenURL(url);
-
     if (supported) {
         await Linking.openURL(url);
     } else {
