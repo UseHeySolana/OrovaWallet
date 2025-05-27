@@ -86,15 +86,14 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                     `this is the user details ${"UserName: " +
                     user?.username +
                     "," +
-                    "Total Balance : " +
+                    "Total Balance in SOL : " + "\n" +
                     userWallet?.balance +
                     ", Total Balance in USD/Dollars:" +
-                    userWallet?.totalUsdBalance +
-                    ", Sol Balance " +
+                    userWallet?.totalUsdBalance + "\n" +
+                    ", Sol token balance alone " + "\n" +
                     userWallet?.solBalance
                     }
                     `
-
                     ;
                 setPrompt(newPrompt)
             } else {

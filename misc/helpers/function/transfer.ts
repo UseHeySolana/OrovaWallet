@@ -4,9 +4,9 @@ import { fetchData } from "../db";
 import { transferSol, transferToken } from "../transfers";
 import SessionManager from "../aistream/aistream";
 import { FunctionParams } from "../types";
-import { convertSpeech } from "../miscfunctions.ts/extrafunctions";
-import Convo from "@/misc/store/conversation";
+import { convertSpeech } from "../miscfunctions.ts/extrafunctions"; 
 import AppSettings from "@/misc/store/settingsstore";
+import { completeConversation } from "../miscfunctions.ts";
 
 const aiTransfer = async (userDetails: userWalletType, connection: Connection, args: { amount: number, token: string, recipient: string }) => {
     const { amount, token, recipient } = args;
@@ -139,22 +139,16 @@ export class TransferFunction {
                 required: ["amount", "recipient", "token"],
             },
             handler: async (args: { amount: number, token: string, recipient: string }) => {
+                const messageId = this.session.functionMessageId
                 let response = await aiTransfer(this.session.userDetails, this.session.connection, args)
                 if (response.status) {
-                    const messageId = this.session.functionMessageId
                     const network = AppSettings.getState().networkShort
                     if (messageId !== null) {
-                        Convo.getState().updateMessage(messageId, {
-                            status: 'complete',
-                            link: `https://explorer.solana.com/tx/${response.txId}?cluster=${network}`
-                        })
+                        completeConversation(messageId, 'complete', `https://explorer.solana.com/tx/${response.txId}?cluster=${network}`)
                     }
                 } else {
-                    const messageId = this.session.functionMessageId
                     if (messageId !== null) {
-                        Convo.getState().updateMessage(messageId, {
-                            status: 'failed',
-                        })
+                        completeConversation(messageId, 'failed')
                     }
                 }
 

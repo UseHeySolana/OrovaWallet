@@ -16,7 +16,8 @@ const toolRouter = (SessionManager: SessionManager) => {
         // new Routing(SessionManager).goBack,
         // new Routing(SessionManager).qrCode,
         new AirBills(SessionManager).buyAirtime,
-        new SwapFunction(SessionManager).swapFunction
+        new SwapFunction(SessionManager).swapFunction,
+        new SwapFunction(SessionManager).checkPrice
     ]
 }
 

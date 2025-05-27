@@ -1,3 +1,5 @@
+import Convo from '@/misc/store/conversation';
+import AppSettings from '@/misc/store/settingsstore';
 import * as Clipboard from 'expo-clipboard';
 
 const copyItem = async (text: string) => {
@@ -32,9 +34,19 @@ const delay = (delay: number) => {
     }, delay);
 }
 
+const completeConversation = async (messageId: string | null, status: "complete" | "failed" | "pending", link?: string) => {
+    if (messageId !== null) {
+        Convo.getState().updateMessage(messageId, {
+            status: status,
+            link: link
+        })
+    }
+}
+
 
 export {
     copyItem,
     pasteItem,
-    delay
+    delay,
+    completeConversation
 }

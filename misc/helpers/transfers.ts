@@ -37,7 +37,7 @@ export const transferSol = async (
         const serialized = transaction.serialize({ requireAllSignatures: false }).toString("base64");
 
         // Use the external signTransactions function
-        const txid = await signTransactions(serialized);
+        const txid = await signTransactions({tx: serialized});
         console.log(`Transaction submitted with signature: ${txid}`);
 
         return txid;
@@ -121,7 +121,7 @@ export const transferToken = async (
         const serialized = transaction.serialize({ requireAllSignatures: false }).toString("base64");
 
         // Use the external signTransactions function
-        const txid = await signTransactions(serialized);
+        const txid = await signTransactions({tx: serialized});
         console.log(`Transaction submitted with signature: ${txid}`);
 
         return txid;

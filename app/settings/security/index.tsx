@@ -1,10 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import React,{ useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
-import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
 import AppSettings from "@/misc/store/settingsstore";
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 

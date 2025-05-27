@@ -8,6 +8,7 @@ import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
 import { cleanNumber, convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
 import Convo from "@/misc/store/conversation";
+import { completeConversation } from "../miscfunctions.ts";
 
 export class AirBills {
     public buyAirtime: FunctionParams;
@@ -80,7 +81,7 @@ export class AirBills {
                 const result = response.data;
                 const dataId = result.id;
 
-                const res = await signTransactions(result.ix)
+                const res = await signTransactions({tx: result.ix})
                 const confirmation = await this.session.connection.confirmTransaction(res, "confirmed");
 
                 if (confirmation) {
@@ -90,10 +91,9 @@ export class AirBills {
                         const messageId = this.session.functionMessageId
                         const network = AppSettings.getState().networkShort
                         if (messageId !== null) {
-                            Convo.getState().updateMessage(messageId, {
-                                status: 'complete',
-                                link: `https://explorer.solana.com/tx/${res}?cluster=${network}`
-                            })
+
+                            completeConversation(messageId, 'complete', `https://explorer.solana.com/tx/${res}?cluster=${network}`)
+                          
                         }
                         return await convertSpeech('Your airtime purchase is successfull');
                     } else {
@@ -102,9 +102,7 @@ export class AirBills {
                 } else {
                     const messageId = this.session.functionMessageId
                     if (messageId !== null) {
-                        Convo.getState().updateMessage(messageId, {
-                            status: 'failed',
-                        })
+                        completeConversation(messageId, 'failed')
                     }
 
                     return await convertSpeech('Airtime purchase failed!');
