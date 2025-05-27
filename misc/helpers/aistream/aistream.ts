@@ -20,6 +20,7 @@ import { FunctionParams } from "../types";
 import PhoneBook from "@/misc/store/phonebook";
 import PersonalContacts from "@/misc/store/personalcontacts";
 import { verifiedTokens } from "../function/swap";
+import { summarizeConversation } from "../miscfunctions.ts/extrafunctions";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -216,7 +217,10 @@ class SessionManager {
             });
             this.conversation_id = new Date().getTime().toString();
             this.callbacks.setConversationId(this.conversation_id);
-            Convo.getState().createConversation(this.conversation_id)
+            Convo.getState().createConversation({
+                id: this.conversation_id,
+                summary: ""
+            })
 
         } catch (error) {
             console.error("Error starting session:", error);
@@ -429,9 +433,14 @@ class SessionManager {
         }
     }
 
-    stopSession(): void {
+    async stopSession(): Promise<void> {
         this.cleanupResources();
         this.callbacks.setMode('loading');
+        if (this.conversation_id !== null) {
+            const messages = Convo.getState().getConversationMessages(this.conversation_id)?.map((message) => message.content).join("\n")
+            const summary = await summarizeConversation(messages || "")
+            Convo.getState().updateConversation(this.conversation_id, summary || "")
+        }
         console.log("Session stopped and resources cleaned up.");
     }
 

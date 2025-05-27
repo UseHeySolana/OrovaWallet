@@ -1,5 +1,6 @@
 import IconLibrary from '@/misc/helpers/icons'
 import { Image } from 'expo-image'
+import { router } from 'expo-router'
 import React from 'react'
 import { Pressable, TouchableOpacity, View } from 'react-native'
 
@@ -15,7 +16,7 @@ interface BASENAV {
 
 export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, setShowWallet, showWallet }: BASENAV) => {
   return (
-    <View className="absolute w-screen flex flex-row justify-center items-center bottom-5 px-2">
+    <View className="absolute w-screen flex flex-row justify-center items-center bottom-10 px-2">
 
       <View className="w-fit gap-x-4 bg-[#E1E1E1]/60 dark:bg-accent2 p-2 h-[75] rounded-full flex flex-row justify-between items-center ">
 
@@ -40,8 +41,8 @@ export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, s
 
           </TouchableOpacity>
           :
-          <TouchableOpacity className="h-[56] w-[56] flex items-center justify-center rounded-full">
-            <IconLibrary.arrow_rotate />
+          <TouchableOpacity onPress={() => router.push('/dashboard/chat')} className="h-[56] w-[56] flex items-center justify-center rounded-full">
+            <IconLibrary.chat />
           </TouchableOpacity>
         }
         {/* <View className="h-[56] w-[56] flex items-center justify-center rounded-full">
