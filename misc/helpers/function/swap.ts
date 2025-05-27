@@ -190,7 +190,7 @@ export class SwapFunction {
 
                 const userPublicKey = WalletItem.getState().publicKey;
 
-                const quoteResponse = await getQuote(fromMint?.address || '', toMint?.address || '', amount * (10 ** fromMint?.decimals || 0));
+                const quoteResponse = await getQuote(fromMint?.address || '', toMint?.address || '', amount * Math.pow(10, toMint.decimals));
                 if (!quoteResponse.status) {
                     if (messageId !== null) {
                         completeConversation(messageId, 'failed')

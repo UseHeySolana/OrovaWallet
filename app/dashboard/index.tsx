@@ -215,9 +215,7 @@ export default function Dashboard() {
                     } />
                   </View>
                   <View className="flex-1">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                      showToast("Kindly Use Voice to send tokens")
-                    }} type="secondary" text="Receive"
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => router.push('/dashboard/qrcode')} type="secondary" text="Receive"
                       icon={
                         <View className="rotate-[40deg]">
                           <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />

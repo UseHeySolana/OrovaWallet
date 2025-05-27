@@ -207,10 +207,7 @@ const signTransactions = async ({tx, feeAmount, type}: {tx: string, feeAmount?: 
         if (!response) {
             return "Transaction cancelled"
         }
-        const txid = await connection.sendRawTransaction(transaction.serialize(), {
-            maxRetries: 2,
-            skipPreflight: true
-        });
+        const txid = await connection.sendRawTransaction(transaction.serialize());
 
         return txid;
     } catch (error) {
