@@ -258,6 +258,16 @@ const IconLibrary = {
             />
         );
     },
+    chat: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Entypo
+                name="chat"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
     tools: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (

@@ -12,7 +12,7 @@ import Buttons from "@/components/ButtonComp";
 import UserItem from "@/misc/store/userstore";
 import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 import setUserItems, { api_key } from "../requests/dashboard";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import AppSettings from "@/misc/store/settingsstore";
 import { useAi } from "@/misc/context/AiContext";
@@ -63,6 +63,7 @@ const colors = {
   * 2. AI interactions can also be done Here
   */
 export default function Dashboard() {
+  const { convoId } = useLocalSearchParams();
   const [activeItems, setActiveItems] = useState([0, 1])
   const { messages, getConversationMessages, conversations } = Convo()
   const [activeTab, setActiveTab] = useState('tokens')
@@ -82,13 +83,16 @@ export default function Dashboard() {
 
 
   useEffect(() => {
+    if (convoId) {
+      const messageItem = getConversationMessages(convoId as string) || [];
+      setMessage(messageItem);
+    } else {
+      // const messageItem = getConversationMessages('1747650962928') || [];
+      const messageItem = getConversationMessages(conversationId) || [];
+      setMessage(messageItem);
+    }
     // console.log(conversations)
-    // const messageItem = getConversationMessages('1747650962928') || [];
-    const messageItem = getConversationMessages(conversationId) || [];
-
-    setMessage(messageItem);
-
-  }, [conversationId, messages])
+  }, [conversationId, messages, convoId])
 
   useEffect(() => {
     if (currentMode === "aispeaking" || currentMode === "human") {
@@ -378,7 +382,7 @@ export default function Dashboard() {
 
         </>
         :
-        <View className="flex-1 justify-start py-2  rounded-3xl overflow-hidden">
+        <View className="flex-1 justify-start py-2  overflow-hidden  rounded-3xl">
           {message.length > 0 &&
 
             <View className="h-[36rem] z-50">
@@ -400,28 +404,28 @@ export default function Dashboard() {
                         </>
                       ) : (
                         <ChatBox item={item} isSystem={isSystem} aiName={aiName} />
-                          // <View
-                          //   className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
-                          // >
-                          //   <View className="flex flex-row items-center gap-x-2 ">
-                          //     <Image
-                          //       source={require('@/assets/images/ai.png')}
-                          //       style={{ width: 30, height: 30 }}
-                          //       contentFit="contain"
-                          //       className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                          //     />
-                          //     <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
-                          //       {isSystem ? aiName : `@${user?.username}`}
-                          //     </CText>
-                          //   </View>
-                          //   <View
-                          //     className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
-                          //   >
-                          //     <View className="bg-grey dark:bg-accent p-2 rounded-lg">
-                          //       <CText className="text-[12px]">{item.content}</CText>
-                          //     </View>
-                          //   </View>
-                          // </View>
+                        // <View
+                        //   className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
+                        // >
+                        //   <View className="flex flex-row items-center gap-x-2 ">
+                        //     <Image
+                        //       source={require('@/assets/images/ai.png')}
+                        //       style={{ width: 30, height: 30 }}
+                        //       contentFit="contain"
+                        //       className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                        //     />
+                        //     <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
+                        //       {isSystem ? aiName : `@${user?.username}`}
+                        //     </CText>
+                        //   </View>
+                        //   <View
+                        //     className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
+                        //   >
+                        //     <View className="bg-grey dark:bg-accent p-2 rounded-lg">
+                        //       <CText className="text-[12px]">{item.content}</CText>
+                        //     </View>
+                        //   </View>
+                        // </View>
                       )}
                     </View>
                   );
@@ -432,7 +436,7 @@ export default function Dashboard() {
 
           }
 
-          <View className="h-full w-full absolute z-1">
+          <View className="flex-1 h-full w-full absolute bottom-0 z-1">
 
             <LottieView
               autoPlay={true}

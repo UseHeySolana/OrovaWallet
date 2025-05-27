@@ -17,42 +17,62 @@ export interface MessageType {
     }
 }
 
+export interface ConversationType {
+    id: string;
+    summary: string;
+}
+
 type ToolType = NonNullable<MessageType['tool']>;
 
 interface Conversation {
-    conversations: string[];
-    createConversation: (conversation: string) => void;
+    conversations: ConversationType[];
+    createConversation: (conversation: ConversationType) => void;
     deleteConversation: (conversation: string) => void;
     clearAll: () => void;
     messages: MessageType[];
     setMessages: (messages: MessageType) => void;
     updateMessage: (messageId: string, toolUpdates?: Partial<ToolType>, content?: Partial<MessageType>,) => void;
     getConversationMessages: (conversation: string) => MessageType[] | null;
+    updateConversation: (conversationId: string, summary: string) => void;
+    deleteAllConversations: () => void;
 }
 
 const Convo = create(
     persist<Conversation>(
         (set, get) => ({
+            deleteAllConversations: () => {
+                set({ conversations: [] })
+            },
             conversations: [],
-            createConversation: (conversation: string) => set({ conversations: [...get().conversations, conversation] }),
+            createConversation: (conversation: ConversationType) => set({ conversations: [...get().conversations, conversation] }),
             messages: [],
             clearAll: () => {
                 set({ messages: [] })
                 set({ conversations: [] })
             },
-            deleteConversation: (conversation: string) => {
-                const filteredConvo = get().conversations.filter(convo => convo !== conversation);
+            deleteConversation: (conversation:string) => {
+                const filteredConvo = get().conversations.filter(convo => convo.id !== conversation);
                 set({ conversations: filteredConvo })
             },
             setMessages: (message) => set({ messages: [...get().messages, message] }),
             getConversationMessages: (conversation: string) => {
-                const result = get().conversations.find(item => item === conversation) || null
+                const result = get().conversations.find(item => item.id === conversation) || null
                 if (result) {
                     const messages = get().messages.filter(messages => messages.conversation_id === conversation)
                     return messages || [];
                 } else {
                     return null;
                 }
+            },
+            updateConversation: (conversationId:string, summary:string) => {
+                set((state) => ({
+                    conversations: state.conversations.map((convo) => {
+                        if (convo.id === conversationId) {
+                            return { ...convo, summary: summary }
+                        }
+                        return convo
+                    })
+                }))
             },
             updateMessage: (
                 messageId: string,

@@ -36,6 +36,15 @@ const convertSpeech = async (sentence: any) => {
     return result.response.text();
 };
 
+const summarizeConversation = async (sentence: any) => {
+    const result = await model.generateContent([
+        `"${sentence} "Can you summarize this conversation in a single sentence. just what happend keep it very short and coincise 100 characters max eg. Airtime Purchase, amount and recipient, give similar examples for other actions, if failed, just use e.g Failed Airtime purchase.
+        `,
+    ]);
+    return result.response.text();
+};
+
+
 
 const getTokenTransactions = async (mintAddress: string) => {
     const response = {
@@ -228,6 +237,7 @@ export {
     showToast,
     cleanNumber,
     convertSpeech,
+    summarizeConversation,
     getTokenTransactions,
     formatDate,
     shortenPub,
