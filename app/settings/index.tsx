@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
+import * as Updates from 'expo-updates';
 
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
@@ -126,11 +127,11 @@ function Settings() {
 
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
-        <View className="w-full px-4 flex flex-row justify-start">
-          <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
-            <IconLibrary.back />
-          </Pressable>
-        </View>
+      <View className="w-full px-4 flex flex-row justify-start">
+        <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
+          <IconLibrary.back />
+        </Pressable>
+      </View>
       <ScrollView className="w-full"
         contentContainerStyle={{
           gap: 10,
@@ -138,7 +139,7 @@ function Settings() {
       >
 
 
-      
+
 
         <View className="bg-white dark:bg-accent mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
           <View className="flex flex-row justify-between items-center gap-x-2  ">
@@ -233,6 +234,15 @@ function Settings() {
           })}
         </View>
 
+
+
+        <View className="w-full px-4">
+
+          <CText className="text-center">
+            Version: {" "}
+            {Updates.runtimeVersion}
+          </CText>
+        </View>
       </ScrollView>
 
 
