@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import LottieView from 'lottie-react-native';
-import { ScrollView, TouchableNativeFeedback, RefreshControl, View, Alert, TouchableOpacity, Pressable, Linking, TouchableHighlight } from "react-native";
+import { ScrollView, TouchableNativeFeedback, RefreshControl, View, TouchableOpacity, } from "react-native";
 import CText from "@/components/TextComp";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from "expo-image";
@@ -13,7 +12,7 @@ import Buttons from "@/components/ButtonComp";
 import UserItem from "@/misc/store/userstore";
 import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 import setUserItems, { api_key } from "../requests/dashboard";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import AppSettings from "@/misc/store/settingsstore";
 import { useAi } from "@/misc/context/AiContext";
@@ -23,9 +22,9 @@ import { useThemeContext } from "@/misc/context/ThemeContext";
 import Convo, { MessageType } from "@/misc/store/conversation";
 import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import ToolItem from "@/components/ChatItems/ToolItem";
+import ChatBox from "@/components/ChatItems/ChatBox";
 
-import IconLibrary from "@/misc/helpers/icons";
-import ToolItem from "@/components/ToolCall/ToolItem";
 
 
 
@@ -64,6 +63,7 @@ const colors = {
   * 2. AI interactions can also be done Here
   */
 export default function Dashboard() {
+  const { convoId } = useLocalSearchParams();
   const [activeItems, setActiveItems] = useState([0, 1])
   const { messages, getConversationMessages, conversations } = Convo()
   const [activeTab, setActiveTab] = useState('tokens')
@@ -83,13 +83,16 @@ export default function Dashboard() {
 
 
   useEffect(() => {
+    if (convoId) {
+      const messageItem = getConversationMessages(convoId as string) || [];
+      setMessage(messageItem);
+    } else {
+      // const messageItem = getConversationMessages('1747650962928') || [];
+      const messageItem = getConversationMessages(conversationId) || [];
+      setMessage(messageItem);
+    }
     // console.log(conversations)
-    // const messageItem = getConversationMessages('1747650962928') || [];
-    const messageItem = getConversationMessages(conversationId) || [];
-
-    setMessage(messageItem);
-
-  }, [conversationId, messages])
+  }, [conversationId, messages, convoId])
 
   useEffect(() => {
     if (currentMode === "aispeaking" || currentMode === "human") {
@@ -164,9 +167,9 @@ export default function Dashboard() {
           <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
             <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
+          {/* <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
             <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
       </View>
@@ -205,7 +208,7 @@ export default function Dashboard() {
                 <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
                 <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
-                  <View className="w-[40%]">
+                  <View className="flex-1">
                     <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
                       //  router.push('/dashboard/send') 
                       showToast("Kindly Use Voice to send tokens")
@@ -215,10 +218,8 @@ export default function Dashboard() {
                       </View>
                     } />
                   </View>
-                  <View className="w-[40%]">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                      showToast("Kindly Use Voice to send tokens")
-                    }} type="secondary" text="Receive"
+                  <View className="flex-1">
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => router.push('/dashboard/qrcode')} type="secondary" text="Receive"
                       icon={
                         <View className="rotate-[40deg]">
                           <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
@@ -226,11 +227,11 @@ export default function Dashboard() {
                       }
                     />
                   </View>
-                  <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
+                  {/* <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
                     <TouchableOpacity className="p-2 flex justify-center items-center">
                       <FontAwesome6 name="arrows-rotate" size={16} color={isDarkMode ? "white" : "black"} />
                     </TouchableOpacity>
-                  </View>
+                  </View> */}
                 </View>
 
               </View>
@@ -381,7 +382,7 @@ export default function Dashboard() {
 
         </>
         :
-        <View className="flex-1 justify-start py-2  rounded-3xl overflow-hidden">
+        <View className="flex-1 justify-start py-2  overflow-hidden  rounded-3xl">
           {message.length > 0 &&
 
             <View className="h-[36rem] z-50">
@@ -402,28 +403,29 @@ export default function Dashboard() {
                           <ToolItem item={item} isSystem={isSystem} aiName={aiName} />
                         </>
                       ) : (
-                        <View
-                          className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
-                        >
-                          <View className="flex flex-row items-center gap-x-2 ">
-                            <Image
-                              source={require('@/assets/images/ai.png')}
-                              style={{ width: 30, height: 30 }}
-                              contentFit="contain"
-                              className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                            />
-                            <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
-                              {isSystem ? aiName : `@${user?.username}`}
-                            </CText>
-                          </View>
-                          <View
-                            className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
-                          >
-                            <View className="bg-grey dark:bg-accent p-2 rounded-lg">
-                              <CText className="text-[12px]">{item.content}</CText>
-                            </View>
-                          </View>
-                        </View>
+                        <ChatBox item={item} isSystem={isSystem} aiName={aiName} />
+                        // <View
+                        //   className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
+                        // >
+                        //   <View className="flex flex-row items-center gap-x-2 ">
+                        //     <Image
+                        //       source={require('@/assets/images/ai.png')}
+                        //       style={{ width: 30, height: 30 }}
+                        //       contentFit="contain"
+                        //       className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                        //     />
+                        //     <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
+                        //       {isSystem ? aiName : `@${user?.username}`}
+                        //     </CText>
+                        //   </View>
+                        //   <View
+                        //     className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
+                        //   >
+                        //     <View className="bg-grey dark:bg-accent p-2 rounded-lg">
+                        //       <CText className="text-[12px]">{item.content}</CText>
+                        //     </View>
+                        //   </View>
+                        // </View>
                       )}
                     </View>
                   );
@@ -434,7 +436,7 @@ export default function Dashboard() {
 
           }
 
-          <View className="h-full w-full absolute z-1">
+          <View className="flex-1 h-full w-full absolute bottom-0 z-1">
 
             <LottieView
               autoPlay={true}

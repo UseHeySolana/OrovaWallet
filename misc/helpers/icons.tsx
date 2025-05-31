@@ -188,6 +188,16 @@ const IconLibrary = {
             />
         );
     },
+    edit: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Feather
+                name="edit-3"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
     currency: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (
@@ -243,6 +253,16 @@ const IconLibrary = {
         return (
             <FontAwesome
                 name="commenting-o"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    chat: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Entypo
+                name="chat"
                 size={props.size || 18}
                 color={props.color || (isDarkMode ? "white" : "black")}
             />

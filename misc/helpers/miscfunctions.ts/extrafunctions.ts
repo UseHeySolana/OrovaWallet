@@ -3,9 +3,10 @@ import AppSettings from "../../store/settingsstore";
 import { cache } from "../storage/cache";
 import { getTransactionHistory } from "../db";
 import WalletItem from "@/misc/store/wallet";
-import { Connection, Keypair, SystemProgram, Transaction, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, SystemProgram, Transaction, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { api_key } from "@/app/requests/dashboard";
 import { Linking } from "react-native";
+import { confirm } from "../service/confirmation";
 
 const cleanNumber = (input: any) => {
     // Remove non-digit characters
@@ -18,7 +19,6 @@ const cleanNumber = (input: any) => {
 }
 
 const showToast = (message: string) => {
-
     AppSettings.getState().setToast(message, 'info')
 }
 
@@ -35,6 +35,15 @@ const convertSpeech = async (sentence: any) => {
     ]);
     return result.response.text();
 };
+
+const summarizeConversation = async (sentence: any) => {
+    const result = await model.generateContent([
+        `"${sentence} "Can you summarize this conversation in a single sentence. just what happend keep it very short and coincise 100 characters max eg. Airtime Purchase, amount and recipient, give similar examples for other actions, if failed, just use e.g Failed Airtime purchase.
+        `,
+    ]);
+    return result.response.text();
+};
+
 
 
 const getTokenTransactions = async (mintAddress: string) => {
@@ -140,6 +149,9 @@ function formatDate(input: DateInput, options: FormatOptions = {}): string {
 }
 
 const shortenPub = (pub: string) => {
+    if (!pub) {
+        return "N/A";
+    }
     return pub.slice(0, 4) + "..." + pub.slice(-4)
 }
 
@@ -156,7 +168,7 @@ const keypairSign = async () => {
 }
 
 
-const signTransactions = async (tx: string, feeAmount?: number) => {
+const signTransactions = async ({tx, feeAmount, type}: {tx: string, feeAmount?: number, type?: string}) => {
     const network = AppSettings.getState().network;
     const connection = new Connection(`${network}${api_key}`)
 
@@ -166,26 +178,44 @@ const signTransactions = async (tx: string, feeAmount?: number) => {
 
     }
 
-    const txBuffer = Buffer.from(tx, "base64"); ``
+    const txBuffer = Buffer.from(tx, "base64");
 
-    let transaction = Transaction.from(txBuffer);
 
-    const feeHolder = process.env.EXPO_FEE_HOLDER || "HeycuCVbaKuUXizfw8fQDuNadJu23igfK6G3ZomEwNmP"
+    let transaction: Transaction | VersionedTransaction;
 
-    if (feeAmount) {
-        transaction.add(
-            SystemProgram.transfer({
-                fromPubkey: keyPair.publicKey,
-                toPubkey: new PublicKey(feeHolder),
-                lamports: feeAmount
-            })
-        )
+    if (type === "versioned") {
+        transaction = VersionedTransaction.deserialize(txBuffer);
+        transaction.sign([keyPair]);
+    } else {
+        transaction = Transaction.from(txBuffer);
+        const feeHolder = process.env.EXPO_FEE_HOLDER || "13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ"
+        // "HeycuCVbaKuUXizfw8fQDuNadJu23igfK6G3ZomEwNmP"
+        if (feeAmount) {
+            transaction.add(
+                SystemProgram.transfer({
+                    fromPubkey: keyPair.publicKey,
+                    toPubkey: new PublicKey(feeHolder),
+                    lamports: feeAmount
+                })
+            )
+        }
+
+        // Correct way to sign
+        transaction.partialSign(keyPair);
+    
     }
 
-    // Correct way to sign
-    transaction.partialSign(keyPair);
 
+    
     try {
+        const response = await confirm({
+            message: "Are you sure you want to send this transaction?",
+            type: AppSettings.getState().openWithAuth ? 'fingerprint' : undefined
+        })
+
+        if (!response) {
+            return "Transaction cancelled"
+        }
         const txid = await connection.sendRawTransaction(transaction.serialize());
 
         return txid;
@@ -197,7 +227,6 @@ const signTransactions = async (tx: string, feeAmount?: number) => {
 
 const openURL = async (url: string) => {
     const supported = await Linking.canOpenURL(url);
-
     if (supported) {
         await Linking.openURL(url);
     } else {
@@ -208,6 +237,7 @@ export {
     showToast,
     cleanNumber,
     convertSpeech,
+    summarizeConversation,
     getTokenTransactions,
     formatDate,
     shortenPub,

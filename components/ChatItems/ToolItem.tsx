@@ -1,5 +1,3 @@
-import { useThemeContext } from "@/misc/context/ThemeContext";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Easing, StatusBar, TouchableOpacity } from "react-native";
@@ -44,8 +42,6 @@ const ToolItem = (props: ItemProps) => {
         outputRange: ['0deg', '360deg'],
     });
 
-
-
     return (
         <View className="py-4 shadow-sm px-4 flex flex-col items-start justify-center text-[1.14rem]  bg-white dark:bg-dark dark:border border-accent rounded-xl gap-y-3" >
             < View className="flex flex-row items-center justify-between w-full bg-white dark:bg-accent2 p-1 rounded-full gap-x-3" >
@@ -60,22 +56,31 @@ const ToolItem = (props: ItemProps) => {
                                     className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
                                 />
                             </View>
-                            :
-                            <View className="w-10 h-10 rounded-full overflow-hidden">
-                                <Image
-                                    source={require('@/assets/images/icon.png')}
-                                    style={{ width: "100%", height: '100%' }}
-                                    contentFit="contain"
-                                    className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                                />
-                            </View>
+                            : item?.tool?.action?.includes('swap') || item?.tool?.action?.includes('price') ?
+                                <View className="w-10 h-10 rounded-full overflow-hidden">
+                                    <Image
+                                        source={require('@/assets/apps/jup.png')}
+                                        style={{ width: "100%", height: '100%' }}
+                                        contentFit="contain"
+                                        className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                                    />
+                                </View>
+                                :
+                                <View className="w-10 h-10 rounded-full overflow-hidden">
+                                    <Image
+                                        source={require('@/assets/images/icon.png')}
+                                        style={{ width: "100%", height: '100%' }}
+                                        contentFit="contain"
+                                        className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+                                    />
+                                </View>
 
 
                     }
                     <View>
                         {item.tool ?
                             <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
-                                {item?.tool?.action?.includes('airtime') ? "AirBills" : item.tool?.arguments?.owner ? item?.tool?.arguments?.owner : aiName}
+                                {item?.tool?.action?.includes('airtime') ? "AirBills" : item?.tool?.action?.includes('swap') || item?.tool?.action?.includes('price') ? "Jupiter" : item.tool?.arguments?.owner ? item?.tool?.arguments?.owner : aiName}
 
                             </CText>
                             :

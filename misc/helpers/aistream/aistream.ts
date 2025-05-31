@@ -18,6 +18,9 @@ import Convo from "@/misc/store/conversation";
 import { toolRouter } from "../toolsregistry";
 import { FunctionParams } from "../types";
 import PhoneBook from "@/misc/store/phonebook";
+import PersonalContacts from "@/misc/store/personalcontacts";
+import { verifiedTokens } from "../function/swap";
+import { summarizeConversation } from "../miscfunctions.ts/extrafunctions";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -69,11 +72,22 @@ class SessionManager {
         AppSettings.getState().setLoading(true);
         // Set system instructions if provided
         if (systemInstructions) {
+            const contacts = [...PhoneBook.getState().contacts, ...PersonalContacts.getState().personalContacts]
+            const supportedTokens = verifiedTokens.map(item => ({
+                "name": item.symbol,
+            }))
             const sysIns = `
-                    These are the list of contacts I have on the App,
-                ${JSON.stringify(PhoneBook.getState().contacts.map(item => ({
+            These are the list of contacts I have on the App,
+                ${JSON.stringify(contacts.map(item => ({
                 "username": item.name,
             })))}
+            \n
+            These are the list of supported tokens for swaps,
+                ${JSON.stringify(supportedTokens)} always map the token to the correct symbol, correct with right spelling always if the token doesn't fall you can use as provided.
+
+                \n 
+                to swap first get the quote of the tokens and then respond to the user with the quote and then ask for confirmation to swap.
+                \n
             always map the username i am interacting to any of these, correct with right spelling always if the username doesn't fall you can use as provided.
                 \n
                  these are the list of sub tools supported and parameters,
@@ -82,15 +96,6 @@ class SessionManager {
                 "toolParameters": item.parameters,
             })))}.
                 `;
-
-
-            /**
-             * 
-             *  
-             */
-
-
-
 
             this.systemInstructions = systemInstructions + sysIns;
         }
@@ -212,7 +217,10 @@ class SessionManager {
             });
             this.conversation_id = new Date().getTime().toString();
             this.callbacks.setConversationId(this.conversation_id);
-            Convo.getState().createConversation(this.conversation_id)
+            Convo.getState().createConversation({
+                id: this.conversation_id,
+                summary: ""
+            })
 
         } catch (error) {
             console.error("Error starting session:", error);
@@ -425,9 +433,14 @@ class SessionManager {
         }
     }
 
-    stopSession(): void {
+    async stopSession(): Promise<void> {
         this.cleanupResources();
         this.callbacks.setMode('loading');
+        if (this.conversation_id !== null) {
+            const messages = Convo.getState().getConversationMessages(this.conversation_id)?.map((message) => message.content).join("\n")
+            const summary = await summarizeConversation(messages || "")
+            Convo.getState().updateConversation(this.conversation_id, summary || "")
+        }
         console.log("Session stopped and resources cleaned up.");
     }
 
