@@ -245,16 +245,6 @@ function Settings() {
         </View>
       </ScrollView>
 
-
-      <View className="w-full px-4">
-
-        <CText className="text-center">
-          Version: {" "}
-          {Updates.runtimeVersion}
-        </CText>
-      </View>
-
-
     </View>
   );
 }
