@@ -168,13 +168,14 @@ const keypairSign = async () => {
 }
 
 
-const signTransactions = async ({tx, feeAmount, type}: {tx: string, feeAmount?: number, type?: string}) => {
+const signTransactions = async ({ tx, feeAmount, type }: { tx: string, feeAmount?: number, type?: string }) => {
     const network = AppSettings.getState().network;
     const connection = new Connection(`${network}${api_key}`)
 
     const keyPair = await keypairSign();
     if (!keyPair || !connection) {
-        return 'Keypair not initialized or connection failed!'
+
+        return {status: false, message: 'Keypair not initialized or connection failed!'}
 
     }
 
@@ -202,11 +203,11 @@ const signTransactions = async ({tx, feeAmount, type}: {tx: string, feeAmount?: 
 
         // Correct way to sign
         transaction.partialSign(keyPair);
-    
+
     }
 
 
-    
+
     try {
         const response = await confirm({
             message: "Are you sure you want to send this transaction?",
@@ -214,14 +215,15 @@ const signTransactions = async ({tx, feeAmount, type}: {tx: string, feeAmount?: 
         })
 
         if (!response) {
-            return "Transaction cancelled"
-        }
-        const txid = await connection.sendRawTransaction(transaction.serialize());
+            return {status: false, message: "You cancelled the transaction"}
+        } else {
+            const txid = await connection.sendRawTransaction(transaction.serialize());
 
-        return txid;
+            return {status: true, message: txid};
+        }
     } catch (error) {
 
-        return `Signing failed: ${error instanceof Error ? error.message : String(error)}`;
+        return {status: false, message: `Signing failed: ${error instanceof Error ? error.message : String(error)}`};
     }
 }
 

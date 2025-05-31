@@ -5,10 +5,19 @@ import { UserType } from '../types/usertypes';
 import AppSettings from './settingsstore';
 import WalletItem from './wallet';
 
+interface TokenAccount {
+  symbol: string;
+  balance: number;
+  decimals: number;
+  image: string;
+  mint: string;
+  name: string;
+}
+
 export interface userWalletType {
   balance: number;
   solBalance: number;
-  tokenAccounts: [];
+  tokenAccounts: TokenAccount[];
   totalUsdBalance: number;
 }
 export interface Userstore {

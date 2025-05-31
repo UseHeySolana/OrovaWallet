@@ -47,9 +47,9 @@ const AddContactSheet = ({
     useEffect(() => {
         if (data) {
             setContact({
-                username: data.name,
-                phoneNumber: cleanNumber(data.phoneNumber),
-                walletAddress: data.walletAddress,
+                username: data.username,
+                phoneNumber: cleanNumber(data.phone_number),
+                walletAddress: data.wallet_address,
             })
         }
     }, [data])
@@ -66,7 +66,7 @@ const AddContactSheet = ({
             const response = await updateContact(data.id, contact.username, phoneNumber, contact.walletAddress)
             if (response?.status) {
                 setToast("Contact updated successfully", "success")
-                PersonalContacts.getState().editPersonalContact(data.id, contact.username, phoneNumber, contact.walletAddress)
+                PersonalContacts.getState().editPersonalContact(data.id, contact.username, phoneNumber, contact.walletAddress, 'personal')
                 setOpen(false)
                 AppSettings.getState().setLoading(false)
             } else {

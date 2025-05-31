@@ -10,17 +10,19 @@ import { Platform } from 'react-native';
 import 'react-native-get-random-values'; // Required for crypto operations
 import { v4 as uuidv4 } from 'uuid'; // Import UUID v4 generator
 import AudioManager from './AudioManager';
-import { userWalletType } from "@/misc/store/userstore";
+import UserItem, { userWalletType } from "@/misc/store/userstore";
 import { toolFunctions } from "../tools";
 import { Audio } from "expo-av";
 import AppSettings from "@/misc/store/settingsstore";
 import Convo from "@/misc/store/conversation";
 import { toolRouter } from "../toolsregistry";
 import { FunctionParams } from "../types";
-import PhoneBook from "@/misc/store/phonebook";
-import PersonalContacts from "@/misc/store/personalcontacts";
-import { verifiedTokens } from "../function/swap";
+
+
 import { summarizeConversation } from "../miscfunctions.ts/extrafunctions";
+import { AgentContacts, supportedTokens } from "../miscfunctions.ts";
+import setUserItems from "@/app/requests/dashboard";
+import WalletItem from "@/misc/store/wallet";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -72,15 +74,9 @@ class SessionManager {
         AppSettings.getState().setLoading(true);
         // Set system instructions if provided
         if (systemInstructions) {
-            const contacts = [...PhoneBook.getState().contacts, ...PersonalContacts.getState().personalContacts]
-            const supportedTokens = verifiedTokens.map(item => ({
-                "name": item.symbol,
-            }))
             const sysIns = `
             These are the list of contacts I have on the App,
-                ${JSON.stringify(contacts.map(item => ({
-                "username": item.name,
-            })))}
+                ${JSON.stringify(AgentContacts())}
             \n
             These are the list of supported tokens for swaps,
                 ${JSON.stringify(supportedTokens)} always map the token to the correct symbol, correct with right spelling always if the token doesn't fall you can use as provided.
@@ -588,6 +584,7 @@ class SessionManager {
     }
 
     private async handleFunctionCall(functionCall: any): Promise<void> {
+        console.log("Handling function call", functionCall.name)
         const { name, arguments: argsJson, call_id } = functionCall;
         try {
             // Find the registered function handler
@@ -664,6 +661,13 @@ class SessionManager {
             setTimeout(() => {
                 this.sendClientEvent({ type: "response.create" });
             }, 300);
+        }
+
+        const userItem = UserItem.getState()
+        const publicKey = WalletItem.getState().publicKey
+        if(userItem.user && publicKey){
+            console.log("Updating user items")
+            await setUserItems(userItem.user, userItem.updateUserWallet, publicKey, AppSettings.getState().network);
         }
     }
 

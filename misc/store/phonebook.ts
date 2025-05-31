@@ -24,8 +24,6 @@ const PhoneBook = create(
             addContact: (contact: { name: string; phoneNumber: string, walletAddress: string }) => {
                 const result = get().contacts.find(item => item.name === contact.name) || null
 
-                console.log(contact)
-
                 if (!result) {
                     set({ contacts: [...get().contacts, contact] });
                 } else {

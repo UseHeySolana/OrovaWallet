@@ -144,7 +144,6 @@ const AppSettings = create(
             name: 'settings', // Storage key
             storage: createJSONStorage(() => AsyncStorage), // Use AsyncStorage for React Native
             onRehydrateStorage: () => (state) => {
-                console.log("Rehydrating:", state?.ek);
             }
         }
     )

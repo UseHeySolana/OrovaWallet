@@ -245,9 +245,6 @@ function Settings() {
         </View>
       </ScrollView>
 
-
-
-
     </View>
   );
 }

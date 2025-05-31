@@ -10,7 +10,7 @@ interface BASENAV {
   stopSession: () => void,
   isAiActive?: boolean,
   showWallet?: boolean,
-  setShowWallet?: (showWallet: boolean) => void
+  setShowWallet: (showWallet: boolean) => void
 }
 
 
@@ -30,7 +30,7 @@ export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, s
           {/* <Ionicons name="color-palette-outline" size={24} color="white" /> */}
 
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => isSessionActive ? stopSession() : startSession()} className="h-[100]  w-[100] bg-grey dark:bg-accent  rounded-full">
+        <TouchableOpacity onPress={() => showWallet ? setShowWallet(false) :isSessionActive ? stopSession() : startSession()} className="h-[100]  w-[100] bg-grey dark:bg-accent  rounded-full">
           <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
