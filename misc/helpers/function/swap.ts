@@ -7,7 +7,7 @@ import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafuncti
 import Convo from "@/misc/store/conversation";
 import AppSettings from "@/misc/store/settingsstore";
 import WalletItem from "@/misc/store/wallet";
-import { completeConversation } from "../miscfunctions.ts";
+import { completeConversation, supportedTokens, verifiedTokens, } from "../miscfunctions.ts";
 
 /**
  * 
@@ -104,43 +104,7 @@ const getPrice = async (fromMint: string, toMint: string) => {
     }
 }
 
-export const verifiedTokens = [
-    {
-        "name": "Solana",
-        "address": "So11111111111111111111111111111111111111112",
-        "symbol": "SOL",
-        "decimals": 9,
-        "logo": "https://assets.coingecko.com/coins/images/4128/large/solana.png?1640133422"
-    },
-    {
-        "name": "USDC",
-        "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        "symbol": "USDC",
-        "decimals": 6,
-        "logo": "https://assets.coingecko.com/coins/images/6319/large/USD_Coin_icon.png?1547042194"
-    },
-    {
-        "name": "USDT",
-        "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-        "symbol": "USDT",
-        "decimals": 6,
-        "logo": "https://assets.coingecko.com/coins/images/325/large/Tether.png?1696501580"
-    },
-    {
-        "name": "Bonk",
-        "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-        "symbol": "Bonk",
-        "decimals": 5,
-        "logo": "https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
-    },
-    {
-        "name": "Metaplex Token",
-        "address": "METAewgxyPbgwsseH8T16a39CQ5VyVxZi9zXiDPY18m",
-        "symbol": "MPLX",
-        "decimals": 6,
-        "logo": "https://arweave.net/VRKOcXIvCxqp35RZ9I0-bDGk5qNfT46OTho-2oP9iGc"
-    }
-]
+
 
 export class SwapFunction {
     public swapFunction: FunctionParams;
@@ -207,8 +171,10 @@ export class SwapFunction {
                 }
 
                 const txid = await signTransactions({tx: swapResponse.data.swapTransaction, type: "versioned"});
-                console.log(`Transaction submitted with signature: ${txid}`);
-                const confirmation = await this.session.connection.confirmTransaction(txid, "confirmed");
+                if(!txid.status){
+                    return txid.message;
+                }
+                const confirmation = await this.session.connection.confirmTransaction(txid.message, "confirmed");
 
                 if (confirmation) {
                     const network = AppSettings.getState().networkShort

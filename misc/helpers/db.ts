@@ -55,11 +55,12 @@ const request = {
   },
 
 
-  getRan: async (url: string) => {
+  getRan: async (url: string, headers?: object) => {
     const response = await fetch(url, {
       method: "GET",
       headers: {
         'Content-Type': 'application/json',
+        ...headers,
       },
     });
     return response;
@@ -241,6 +242,7 @@ const purchaseAirtime = async (phone_number: string, amount: number, userWalletA
   try {
     const response = await request.postJsonRan(data, url, { "secretkey": AIRBILLS });
 
+    console.log(await response.json())
     if (!response.ok) {
       const result = await response.json();
       return {
@@ -252,6 +254,16 @@ const purchaseAirtime = async (phone_number: string, amount: number, userWalletA
     console.log(error)
     return { status: false, message: error };
   }
+}
+
+const getAirtimePrice = async(amount:number) =>{
+  const url =`https://vendor.airbillspay.com/bills/amount/usd?amount=${amount}`
+  const response = await request.getRan(url, { "secretkey": AIRBILLS })
+  if(!response.ok){
+    const result = await response.json()
+    return { status: false, message: result.message }
+  }
+  return { status: true, data: await response.json() };
 }
 
 /**
@@ -394,6 +406,6 @@ export {
   getCode,
   saveWalletAddress,
   getTransactionHistory,
-  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, completePurchase, updateContact      
+  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, completePurchase, updateContact   , getAirtimePrice
 };
 

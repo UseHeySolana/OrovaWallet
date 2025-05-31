@@ -1,4 +1,4 @@
-// ThemeContext.js
+// KeyboardContext.tsx
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Keyboard } from "react-native";
 

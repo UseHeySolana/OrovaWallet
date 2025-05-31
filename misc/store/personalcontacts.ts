@@ -3,11 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
 
 interface PersonalContact {
-    addPersonalContact: (contact: { id: string; name: string; phoneNumber: string, walletAddress: string }) => void;
-    addMultiplePersonalContacts: (contacts: { id: string; name: string; phoneNumber: string, walletAddress: string }[]) => void;
-    personalContacts: { id: string; name: string; phoneNumber: string, walletAddress: string, type?: "personal" }[];
+    addPersonalContact: (contact: { id: string; username: string; phone_number: string, wallet_address: string, type?: "personal" | "business" }) => void;
+    addMultiplePersonalContacts: (contacts: { id: string; username: string; phone_number: string, wallet_address: string, type?: "personal" | "business" }[]) => void;
+    personalContacts: { id: string; username: string; phone_number: string, wallet_address: string, type?: "personal" | "business" }[];
     deletePersonalContact: (id: string) => void;
-    editPersonalContact: (id: string, newName: string, newPhoneNumber: string, newWalletAddress: string) => void;
+        editPersonalContact: (id: string, newUsername: string, newPhoneNumber: string, newWalletAddress: string, newType: "personal" | "business") => void;
     refreshPersonalContacts: () => void;
 }
 
@@ -15,15 +15,15 @@ const PersonalContacts = create(
     persist<PersonalContact>(
         (set, get) => ({
             personalContacts: [],
-            addMultiplePersonalContacts: (contacts: { id: string; name: string; phoneNumber: string, walletAddress: string, type?: "personal" }[]) => {
+            addMultiplePersonalContacts: (contacts: { id: string; username: string; phone_number: string, wallet_address: string, type?: "personal" | "business" }[]) => {
                 // remove duplicates
                 const uniqueContacts = contacts.filter((contact, index, self) =>
-                    index === self.findIndex((t) => t.name === contact.name)
+                    index === self.findIndex((t) => t.username === contact.username)
                 );
                 set({ personalContacts: [...uniqueContacts] });
             },
-            addPersonalContact: (contact: { id: string; name: string; phoneNumber: string, walletAddress: string, type?: "personal" }) => {
-                const result = get().personalContacts.find(item => item.name === contact.name) || null;
+            addPersonalContact: (contact: { id: string; username: string; phone_number: string, wallet_address: string, type?: "personal" | "business" }) => {
+                const result = get().personalContacts.find(item => item.username === contact.username) || null;
 
                 if (!result) {
                     set({ personalContacts: [...get().personalContacts, contact] });
@@ -35,14 +35,15 @@ const PersonalContacts = create(
                 const filteredContacts = get().personalContacts.filter(contact => contact.id !== id);
                 set({ personalContacts: filteredContacts });
             },
-            editPersonalContact: (id: string, newName: string, newPhoneNumber: string, newWalletAddress: string) => {
+            editPersonalContact: (id: string, newUsername: string, newPhoneNumber: string, newWalletAddress: string, newType: "personal" | "business") => {
                 const updatedContacts = get().personalContacts.map(contact => {
                     if (contact.id === id) {
                         return {
                             ...contact,
-                            name: newName,
-                            phoneNumber: newPhoneNumber, 
-                            walletAddress: newWalletAddress
+                            username: newUsername,
+                            phone_number: newPhoneNumber,
+                            wallet_address: newWalletAddress,
+                            type: newType
                         };
                     }
                     return contact;
@@ -58,7 +59,6 @@ const PersonalContacts = create(
             name: 'personalcontacts', // Storage key
             storage: createJSONStorage(() => AsyncStorage), // Use AsyncStorage for React Native
             onRehydrateStorage: () => (state) => {
-                console.log(state?.personalContacts)
             }
         }
     )

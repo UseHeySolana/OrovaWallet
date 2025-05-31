@@ -9,7 +9,6 @@ import * as Updates from 'expo-updates';
 
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
-import * as Updates from 'expo-updates';
 
 const settingsMenu = [
   // {

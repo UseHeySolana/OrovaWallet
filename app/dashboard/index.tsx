@@ -10,7 +10,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
 import UserItem from "@/misc/store/userstore";
-import { copyItem } from "@/misc/helpers/miscfunctions.ts";
+import { AgentContacts, copyItem, getInTokenBalance, getUserDetails, supportedTokens } from "@/misc/helpers/miscfunctions.ts";
 import setUserItems, { api_key } from "../requests/dashboard";
 import { router, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
@@ -24,6 +24,7 @@ import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
+import { getAirtimePrice, purchaseAirtime } from "@/misc/helpers/db";
 
 
 
@@ -68,7 +69,7 @@ export default function Dashboard() {
   const { messages, getConversationMessages, conversations } = Convo()
   const [activeTab, setActiveTab] = useState('tokens')
   const { user, userWallet, updateUserWallet, logout } = UserItem();
-  const { network, setLoading, aiName } = AppSettings();
+  const { network, setLoading, aiName, refresher } = AppSettings();
   const { connection, sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId } = useAi()
   const { publicKey, keypair } = WalletItem()
   const [refreshing, setRefreshing] = useState(false);
@@ -139,8 +140,25 @@ export default function Dashboard() {
   }
   // const testFunctions = async () => {
   //   const id = "d8153933-b508-4227-95a5-555d08a0da24"
-  //   const response = await completePurchase(id)
+    
+  //   const usdcBalance = getInTokenBalance("usdc")
+
+  //   const airtimePrice = await getAirtimePrice(100)
+
+  //   if (!airtimePrice.status) return
+  //   const amount = airtimePrice.data.usd
+  //   console.log(amount)
+  //   if(amount > usdcBalance) {
+  //     showToast("Insufficient balance")
+  //     return;
+  //   }
+  
+  //   const response =await purchaseAirtime('08132532430', amount, '13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ');
+
+
+  // // const userCheck = await getUserDetails('Danny')
   //   console.log(response)
+
   // }
 
 
@@ -219,7 +237,10 @@ export default function Dashboard() {
                     } />
                   </View>
                   <View className="flex-1">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => router.push('/dashboard/qrcode')} type="secondary" text="Receive"
+                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
+                      // testFunctions()
+                      router.push('/dashboard/qrcode')
+                    }} type="secondary" text="Receive"
                       icon={
                         <View className="rotate-[40deg]">
                           <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />

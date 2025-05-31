@@ -6,18 +6,13 @@ import SessionManager from "../aistream/aistream";
 import { FunctionParams } from "../types";
 import { convertSpeech } from "../miscfunctions.ts/extrafunctions"; 
 import AppSettings from "@/misc/store/settingsstore";
-import { completeConversation } from "../miscfunctions.ts";
+import { completeConversation, getUserDetails } from "../miscfunctions.ts";
 
 const aiTransfer = async (userDetails: userWalletType, connection: Connection, args: { amount: number, token: string, recipient: string }) => {
     const { amount, token, recipient } = args;
     //check if the user exist on app
-    const users = await fetchData()
-    const filtered = users.filter(
-        (msg: any) =>
-            msg.username.toLowerCase().includes(recipient.toLowerCase())
-    );
-
-    if (filtered.length < 1) {
+    const userCheck = await getUserDetails(recipient)
+    if (!userCheck) {
         const response = await convertSpeech("Sorry there is no user on the Hey Solana App with that username")
         const data = {
             status: false,
@@ -25,8 +20,8 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
             comment: response,
         }
         return data;
-
     }
+
     if (token.toLowerCase() == "sol") {
         let balance = userDetails?.solBalance
         //check if the balance is sufficient
@@ -40,15 +35,24 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
             return data;
         }
 
-        const transfer = await transferSol(filtered[0].wallet_address, amount, connection)
+        const transfer = await transferSol(userCheck.wallet_address, amount, connection)
 
-        const confirmation = await connection.confirmTransaction(transfer, "confirmed");
+        if(!transfer.status){
+            return{
+                status: false,
+                txId: '',
+                comment: transfer.message,
+            }
+        }
+        
+
+        const confirmation = await connection.confirmTransaction(transfer.message, "confirmed");
 
         if (confirmation) {
             const transferRes = await convertSpeech(`You have transferred ${amount} SOL to ${recipient} Successfully`)
             const data = {
                 status: true,
-                txId: transfer,
+                txId: transfer.message,
                 comment: transferRes,
             }
             return data;
@@ -84,16 +88,23 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
                 }
                 return data;
             }
-            const transfer = await transferToken(filtered[0].wallet_address, tokens[0].mint, amount, tokens[0].decimals, connection)
+                const transfer = await transferToken(userCheck.wallet_address, tokens[0].mint, amount, tokens[0].decimals, connection)
 
-            const confirmation = await connection.confirmTransaction(transfer, "confirmed");
+            if(!transfer.status){
+                return{
+                    status: false,
+                    txId: '',
+                    comment: transfer.message,
+                }
+            }
+            const confirmation = await connection.confirmTransaction(transfer.message, "confirmed");
 
             if (confirmation) {
 
                 const transferRes = await convertSpeech(`You have transferred ${amount} ${tokens[0].name} to ${recipient} Successfully`)
                 const data = {
                     status: true,
-                    txId: transfer,
+                    txId: transfer.message,
                     comment: transferRes,
                 }
                 return data;

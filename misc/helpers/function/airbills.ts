@@ -3,12 +3,13 @@ import SessionManager from "../aistream/aistream";
 import GeminiSessionManager from "../gemini/StreamManager";
 import { FunctionParams } from "../types";
 import UserItem from "@/misc/store/userstore";
-import { fetchData, purchaseAirtime, completePurchase } from "../db";
+import { fetchData, purchaseAirtime, completePurchase, getAirtimePrice } from "../db";
 import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
 import { cleanNumber, convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
 import Convo from "@/misc/store/conversation";
-import { completeConversation } from "../miscfunctions.ts";
+import { completeConversation, getInTokenBalance, getUserDetails } from "../miscfunctions.ts";
+import PersonalContacts from "@/misc/store/personalcontacts";
 
 export class AirBills {
     public buyAirtime: FunctionParams;
@@ -43,10 +44,18 @@ export class AirBills {
                 // Check if the user has that token
                 const exist = userDetails.tokenAccounts.find((item: any) => item?.symbol?.toLowerCase() === "usdc");
 
-                if (!exist) {
 
+                if (!exist) {
                     return "You do not have any USDC in your wallet, please swap some token and try again";
                 }
+
+
+                const usdcBalance = getInTokenBalance("usdc")
+                const airtimePrice = await getAirtimePrice(args.amount)
+                if(!airtimePrice.status) return "Airtime price is not available"
+
+                if(airtimePrice.data.usd > usdcBalance) return "Insufficient balance to purchase airtime";
+
 
                 const user = UserItem.getState().user
                 let mobileNumber: string;
@@ -55,19 +64,15 @@ export class AirBills {
                     mobileNumber = user.mobileNumber;
                 } else {
 
-                    const users = await fetchData()
-                    const filtered = users.filter(
-                        (msg: any) =>
-                            msg.username.toLowerCase() === args.username.toLowerCase()
-                    );
-                    if (filtered.length < 1) {
+                    const userCheck = await getUserDetails(args.username)
+
+                    if (!userCheck) {
                         const response = await convertSpeech("Sorry there is no user on the Hey Solana App with that username")
                         return response
                     }
-                    mobileNumber = cleanNumber(filtered[0].phone_number);
+                    mobileNumber = cleanNumber(userCheck.phoneNumber);
+
                 }
-
-
 
                 const userWalletAddress = WalletItem.getState().publicKey?.toString() || "";
                 const keyPair = WalletItem.getState().keypair || null;
@@ -78,11 +83,16 @@ export class AirBills {
 
                 const response = await purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
 
+                if(!response.status) return "Airtime purchase failed, please try again";
+
                 const result = response.data;
                 const dataId = result.id;
 
                 const res = await signTransactions({tx: result.ix})
-                const confirmation = await this.session.connection.confirmTransaction(res, "confirmed");
+                if(!res.status){
+                    return res.message;
+                } 
+                const confirmation = await this.session.connection.confirmTransaction(res.message, "confirmed");
 
                 if (confirmation) {
                     const completePurchaseRes = await completePurchase(dataId)
