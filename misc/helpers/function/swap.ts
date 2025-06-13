@@ -1,6 +1,6 @@
 import { Connection } from "@solana/web3.js";
 import { userWalletType } from "@/misc/store/userstore";
-import { fetchData } from "../db";
+import { fetchData } from "../db/db";
 import SessionManager from "../aistream/aistream";
 import { FunctionParams } from "../types";
 import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";

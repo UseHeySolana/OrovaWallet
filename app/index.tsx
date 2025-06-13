@@ -10,6 +10,7 @@ import UserItem from "@/misc/store/userstore";
 import CText from "@/components/TextComp";
 import { startUpdateFlow, UpdateFlow } from '@gurukumparan/react-native-android-inapp-updates';
 import * as Updates from 'expo-updates';
+import tracker from "@/misc/helpers/db/tracker";
 
 const screens = [
   {
@@ -76,6 +77,9 @@ export default function Index() {
   };
 
   useEffect(() => {
+    (async () => {
+      const response = await tracker.app_open_count();
+    })();
     // Delay navigation to make sure the layout is initialized
     const timeout = setTimeout(() => {
       const destination = getDestination();

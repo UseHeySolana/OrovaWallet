@@ -23,6 +23,7 @@ import { summarizeConversation } from "../miscfunctions.ts/extrafunctions";
 import { AgentContacts, supportedTokens } from "../miscfunctions.ts";
 import setUserItems from "@/app/requests/dashboard";
 import WalletItem from "@/misc/store/wallet";
+import tracker from "../db/tracker";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -585,6 +586,7 @@ class SessionManager {
 
     private async handleFunctionCall(functionCall: any): Promise<void> {
         console.log("Handling function call", functionCall.name)
+
         const { name, arguments: argsJson, call_id } = functionCall;
         try {
             // Find the registered function handler
@@ -625,6 +627,7 @@ class SessionManager {
             const result = await functionDef.handler(args);
             console.log(`Function ${name} result:`, result);
 
+            tracker.tool_calls(name, 1);
             // Send the result back to the model
             const resultEvent = {
                 type: "conversation.item.create",

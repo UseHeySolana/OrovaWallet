@@ -24,7 +24,7 @@ import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
-import { getAirtimePrice, purchaseAirtime } from "@/misc/helpers/db";
+import { getAirtimePrice, purchaseAirtime } from "@/misc/helpers/db/db";
 
 
 

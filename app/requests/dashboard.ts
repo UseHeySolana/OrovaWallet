@@ -56,9 +56,6 @@ const setUserItems = async (user: UserType, updateUserWallet: any, publicKey: Pu
                 tokenAccounts: tokens ? fungible : [sol],
                 totalUsdBalance: usdBalance,
             });
-
-
-
         }
 
     } catch (error) {

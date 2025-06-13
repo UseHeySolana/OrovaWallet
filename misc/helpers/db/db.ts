@@ -1,5 +1,5 @@
-import WalletItem from "../store/wallet";
-import { cache } from "./storage/cache";
+import WalletItem from "../../store/wallet";
+import { cache } from "../storage/cache";
 
 export type MessageData = {
   id: string;
@@ -65,6 +65,7 @@ const request = {
     });
     return response;
   },
+  
   postRan: async (data: FormData, url: string) => {
 
     const response = await fetch(url, {
@@ -242,7 +243,6 @@ const purchaseAirtime = async (phone_number: string, amount: number, userWalletA
   try {
     const response = await request.postJsonRan(data, url, { "secretkey": AIRBILLS });
 
-    console.log(await response.json())
     if (!response.ok) {
       const result = await response.json();
       return {

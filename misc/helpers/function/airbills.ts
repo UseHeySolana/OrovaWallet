@@ -3,7 +3,7 @@ import SessionManager from "../aistream/aistream";
 import GeminiSessionManager from "../gemini/StreamManager";
 import { FunctionParams } from "../types";
 import UserItem from "@/misc/store/userstore";
-import { fetchData, purchaseAirtime, completePurchase, getAirtimePrice } from "../db";
+import { fetchData, purchaseAirtime, completePurchase, getAirtimePrice } from "../db/db";
 import WalletItem from "@/misc/store/wallet";
 import { Transaction } from "@solana/web3.js";
 import { cleanNumber, convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
@@ -65,6 +65,8 @@ export class AirBills {
                 } else {
 
                     const userCheck = await getUserDetails(args.username)
+
+                    console.log(userCheck);
 
                     if (!userCheck) {
                         const response = await convertSpeech("Sorry there is no user on the Hey Solana App with that username")

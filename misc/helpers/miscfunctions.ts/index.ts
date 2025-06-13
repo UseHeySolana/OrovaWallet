@@ -1,7 +1,7 @@
 import Convo from '@/misc/store/conversation';
 import AppSettings from '@/misc/store/settingsstore';
 import * as Clipboard from 'expo-clipboard';
-import { fetchData } from '../db';
+import { fetchData } from '../db/db';
 import PersonalContacts from '@/misc/store/personalcontacts';
 import PhoneBook from '@/misc/store/phonebook';
 import UserItem from '@/misc/store/userstore';

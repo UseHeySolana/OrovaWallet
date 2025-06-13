@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import AppSettings from "../../store/settingsstore";
 import { cache } from "../storage/cache";
-import { getTransactionHistory } from "../db";
+import { getTransactionHistory } from "../db/db";
 import WalletItem from "@/misc/store/wallet";
 import { Connection, Keypair, SystemProgram, Transaction, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { api_key } from "@/app/requests/dashboard";

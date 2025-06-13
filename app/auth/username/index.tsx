@@ -9,7 +9,7 @@ import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 import { TextInput } from "react-native";
 import Buttons from "@/components/ButtonComp";
-import { registerUser, verifyCode } from "@/misc/helpers/db";
+import { registerUser, verifyCode } from "@/misc/helpers/db/db";
 import { OtpInput } from "react-native-otp-entry";
 import WalletItem from "@/misc/store/wallet";
 import { CountryPickerModal } from 'react-native-country-code-select';

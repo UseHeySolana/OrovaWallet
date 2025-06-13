@@ -1,5 +1,7 @@
+import React, { useEffect } from "react"; 
 import { ActivityIndicator, Pressable, Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import CText from "./TextComp";
+import tracker from "@/misc/helpers/db/tracker";
 
 interface Buttons {
   loading?: boolean
@@ -32,6 +34,11 @@ export default function Buttons(props: Buttons) {
 
   const buttonColor = type == "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
 
+  const trackPress = () => {
+    tracker.buttons(text, 1);
+    onPress();
+  }
+
 
   return (
     <>
@@ -45,7 +52,7 @@ export default function Buttons(props: Buttons) {
             <TouchableNativeFeedback
               style={{ ...style }}
               background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-              onPress={onPress}>
+              onPress={trackPress}>
               <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}>
                 {props.icon}
                 <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[1rem]  text-center"} ${type === "primary" ?
