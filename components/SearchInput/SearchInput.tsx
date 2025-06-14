@@ -2,8 +2,12 @@ import { useThemeContext } from "@/misc/context/ThemeContext";
 import IconLibrary from "@/misc/helpers/icons";
 import { TextInput, View } from "react-native";
 
+interface SearchInputProps {
+    onSearch: (text: string) => void;
+    value: string;
+}
 
-export default function SearchInput() {
+export default function SearchInput({ onSearch, value }: SearchInputProps) {
     const { isDarkMode } = useThemeContext()
 
     return (
@@ -14,13 +18,12 @@ export default function SearchInput() {
                 <IconLibrary.search />
                 <TextInput
                     style={{ fontFamily: "bold", fontSize: 15 }}
-                    // value={""}
+                    value={value}
                     placeholder="Search"
                     className="w-full text-black dark:text-white"
                     placeholderTextColor={isDarkMode ? 'white' : 'black'}
                     numberOfLines={100}
-                    onChangeText={(text) => {
-                    }}
+                    onChangeText={onSearch}
                 />
 
             </View>

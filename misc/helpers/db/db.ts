@@ -1,5 +1,5 @@
 import WalletItem from "../../store/wallet";
-import { cache } from "../storage/cache";
+import { BASE_URL, HELIUS } from "./constant";
 
 export type MessageData = {
   id: string;
@@ -9,9 +9,7 @@ export type MessageData = {
   addPin: string;
 };
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "";
-const AIRBILLS = process.env.EXPO_PUBLIC_AIR_BILLS || "";
-const HELIUS = process.env.EXPO_PUBLIC_HELIUS_API || "";
+
 
 
 const request = {
@@ -222,79 +220,6 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
   return { status: true, data: await response.json() };
 }
 
-/**
- * 
- * @param phone_number 
- * @param amount 
- * @param token 
- * @param userWalletAddress 
- * @returns 
- */
-const purchaseAirtime = async (phone_number: string, amount: number, userWalletAddress: string) => {
-
-  const url = 'https://vendor.airbillspay.com/bills/airtime/paypoint'
-  const data = {
-    "phoneNumber": phone_number,
-    "amount": amount,
-    "token": 'USDC',
-    "user_address": userWalletAddress,
-  }
-
-  try {
-    const response = await request.postJsonRan(data, url, { "secretkey": AIRBILLS });
-
-    if (!response.ok) {
-      const result = await response.json();
-      return {
-        status: false, message: result.message
-      }
-    }
-    return { status: true, data: await response.json() };
-  } catch (error) {
-    console.log(error)
-    return { status: false, message: error };
-  }
-}
-
-const getAirtimePrice = async(amount:number) =>{
-  const url =`https://vendor.airbillspay.com/bills/amount/usd?amount=${amount}`
-  const response = await request.getRan(url, { "secretkey": AIRBILLS })
-  if(!response.ok){
-    const result = await response.json()
-    return { status: false, message: result.message }
-  }
-  return { status: true, data: await response.json() };
-}
-
-/**
- * 
- * @param id 
- * @returns 
- */
-const completePurchase = async (id: string) => {
-  const url = "https://vendor.airbillspay.com/bills/airtime/paypoint/complete"
-
-  const data = {
-    "id": id,
-  }
-
-  try {
-    const response = await request.postJsonRan(data, url, { "secretkey": AIRBILLS });
-
-    const result = await response.json();
-    if (!result.success) {
-      return {
-        status: false, message: result.message
-      }
-    }
-    return { status: true, data: result };
-  } catch (error) {
-    console.log(error)
-    return { status: false, message: error };
-  }
-
-}
-
 
 
 /**
@@ -329,6 +254,7 @@ const getCode = async (phone_number: string) => {
  */
 const getTransactionHistory = async (publicKey: string) => {
   const response = await request.getRan(`https://api.helius.xyz/v0/addresses/${publicKey}/transactions?api-key=${HELIUS}`)
+
   if (!response.ok) {
     const result = await response.json();
     return {
@@ -401,11 +327,10 @@ export {
   addContact,
   deletePersonalContact,
   getContacts,
-  purchaseAirtime,
   verifyCode,
   getCode,
   saveWalletAddress,
   getTransactionHistory,
-  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, completePurchase, updateContact   , getAirtimePrice
+  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, updateContact ,
 };
 

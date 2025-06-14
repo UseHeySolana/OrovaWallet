@@ -19,6 +19,19 @@ const settingsMenu2 = [
     icon: <IconLibrary.lock />,
   },
   {
+    title: "Set PIN",
+    route: 'dark',
+    type: 'activate',
+    subtitle: "Set a PIN to secure your account",
+    icon: <IconLibrary.password />,
+  },
+  {
+    title: "Private Key",
+    route: '/settings/security/private',
+    subtitle: "View your private key/key phrases",
+    icon: <IconLibrary.security />,
+  },
+  {
     title: "Delete Account",
     route: null,
     subtitle: "Delete account from HeySolana",
@@ -37,6 +50,7 @@ function Security() {
   const { setDefault, openWithAuth, setOpenWithAuth, setToast } = AppSettings()
   const { user, userWallet, logout } = UserItem()
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
+  const [setPinOpen, setSetPinOpen] = useState<boolean>(false);
 
   const routeNavigation = (route: any, type?: string) => {
     if (type == 'toggle') {
@@ -56,7 +70,6 @@ function Security() {
 
   }
 
-  console.log(openWithAuth);
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full gap-y-6">
@@ -91,6 +104,11 @@ function Security() {
 
                 {item.route && item.route !== "logout" &&
                   <>
+                    {item.type === 'activate' &&
+                      <Pressable onPress={() => setSetPinOpen(true)} className="p-3">
+                        <IconLibrary.angle_right />
+                      </Pressable>
+          }
                     {item.type === 'toggle' ?
                       <Switch
                         trackColor={{ false: 'red', true: 'green' }}

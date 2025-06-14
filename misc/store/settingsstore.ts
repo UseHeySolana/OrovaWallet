@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
 
 interface Settings {
+    pin: string;
+    setPin: (pin: string) => void;
     openWithAuth: boolean;
     ek: {
         value: string;
@@ -49,6 +51,8 @@ interface Settings {
 const AppSettings = create(
     persist<Settings>(
         (set, get) => ({
+            pin: "",
+            setPin: (pin: string) => set({ pin: pin }),
             refresher: 0,
             setRefresher: (refresher: number) => set({ refresher: refresher }),
             openWithAuth: false,

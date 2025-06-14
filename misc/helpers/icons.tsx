@@ -118,6 +118,16 @@ const IconLibrary = {
             />
         );
     },
+    password: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <MaterialIcons
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+                name="password"
+            />
+        );
+    },
     error: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (

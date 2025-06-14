@@ -24,7 +24,6 @@ import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
-import { getAirtimePrice, purchaseAirtime } from "@/misc/helpers/db/db";
 
 
 
@@ -175,7 +174,7 @@ export default function Dashboard() {
         </TouchableOpacity> */}
         <View className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1">
           <View className="h-6 w-6  rounded-full">
-            <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+            <Image source={require('@/assets/images/ballicon.png')} style={{ width: "100%", height: "100%" }}
               contentFit="contain"
             />
           </View>
@@ -270,7 +269,7 @@ export default function Dashboard() {
 
                       <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
                         <View className="h-8 w-8 rounded-full">
-                          <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+                          <Image source={require('@/assets/images/ballicon.png')} style={{ width: "100%", height: "100%" }}
                             contentFit="contain"
                           />
                         </View>

@@ -1,21 +1,48 @@
 import AppSettings from "@/misc/store/settingsstore";
 import SessionManager from "../aistream/aistream";
-import GeminiSessionManager from "../gemini/StreamManager";
 import { FunctionParams } from "../types";
 import UserItem from "@/misc/store/userstore";
-import { fetchData, purchaseAirtime, completePurchase, getAirtimePrice } from "../db/db";
+import { fetchData } from "../db/db";
 import WalletItem from "@/misc/store/wallet";
-import { Transaction } from "@solana/web3.js";
 import { cleanNumber, convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
-import Convo from "@/misc/store/conversation";
 import { completeConversation, getInTokenBalance, getUserDetails } from "../miscfunctions.ts";
-import PersonalContacts from "@/misc/store/personalcontacts";
+import { airBills } from "../db/airbills";
+import ToolsItem from "@/misc/store/toolsitems";
 
 export class AirBills {
     public buyAirtime: FunctionParams;
+    public buyElectricityBill: FunctionParams;
 
     constructor(public session: SessionManager) {
         this.buyAirtime = this.buy_airtime()
+        this.buyElectricityBill = this.buy_electricity_bill()
+    }
+
+    buy_electricity_bill() {
+        return {
+            name: "buy-electricity-bill",
+            description: "This function is used to purchase electricity bill for myself",
+            parameters: {
+                type: "object",
+                properties: {
+                    amount: {
+                        type: "number",
+                        description: "This is the amount of electricity bill you want to purchase, it should be a number and in Naira."
+                    },
+                },
+                required: ["amount"],
+            },
+            handler: async (args: { amount: number }) => {
+
+                const meter_number = ToolsItem.getState().getToolValue("meter_number")
+
+                if(!meter_number) return "You have not set your meter number, please set your meter number first";
+
+
+
+                return "Electricity bill purchase is not available yet";
+            }
+        }
     }
     buy_airtime() {
         return {
@@ -51,7 +78,7 @@ export class AirBills {
 
 
                 const usdcBalance = getInTokenBalance("usdc")
-                const airtimePrice = await getAirtimePrice(args.amount)
+                const airtimePrice = await airBills.getAirtimePrice(args.amount)
                 if(!airtimePrice.status) return "Airtime price is not available"
 
                 if(airtimePrice.data.usd > usdcBalance) return "Insufficient balance to purchase airtime";
@@ -83,7 +110,7 @@ export class AirBills {
                     return "Please connect your wallet to proceed";
                 }
 
-                const response = await purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
+                const response = await airBills.purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
 
                 if(!response.status) return "Airtime purchase failed, please try again";
 
@@ -97,7 +124,7 @@ export class AirBills {
                 const confirmation = await this.session.connection.confirmTransaction(res.message, "confirmed");
 
                 if (confirmation) {
-                    const completePurchaseRes = await completePurchase(dataId)
+                    const completePurchaseRes = await airBills.completePurchase(dataId)
 
                     if (completePurchaseRes.status) {
                         const messageId = this.session.functionMessageId

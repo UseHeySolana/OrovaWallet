@@ -85,6 +85,7 @@ const settingsMenu2 = [
     route: 'dark',
     type: 'toggle',
     subtitle: "Change the app mode",
+    icon: <IconLibrary.moon />
 
   },
   {
@@ -144,7 +145,7 @@ function Settings() {
         <View className="bg-white dark:bg-accent mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
           <View className="flex flex-row justify-between items-center gap-x-2  ">
             <View className="h-10 w-10  rounded-full">
-              <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+              <Image source={require('@/assets/images/ballicon.png')} style={{ width: "100%", height: "100%" }}
                 contentFit="contain"
               />
             </View>
