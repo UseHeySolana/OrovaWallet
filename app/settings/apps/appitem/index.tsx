@@ -64,7 +64,7 @@ function AppItems() {
 
         const allParamsSet = appData?.tools?.every((tool: any) => {
             // Find the corresponding config by tool name
-            const config = configs?.find((item: any) => item.type === tool.name);
+            const config = configs?.find((item: any) => item?.type === tool.name);
 
             // If no config or no parameters, consider it incomplete
             if (!config || !config.parameters) return false;
@@ -72,7 +72,7 @@ function AppItems() {
             // Check that every param in the tool has a matching param with a value in the config
             return tool.params?.every((param: any) => {
                 const matchingParam = config?.parameters?.find(
-                    (p: any) => p.type === param.name
+                    (p: any) => p?.type === param.name
                 );
                 return matchingParam && matchingParam.value?.trim();
             });
@@ -86,11 +86,6 @@ function AppItems() {
         } else {
             setSetUpParams(false)
         }
-
-
-
-
-
 
         if (tool) {
             setActivated(true)
@@ -235,7 +230,7 @@ function AppItems() {
                                    
                                    <View>
                                     {item?.params?.map((param: any, index: number) => {
-                                        return <CText key={index} style={{ fontFamily: "reg" }} className="text-[1.2rem] capitalize">{param.name.split("_").join(" ")} - {param?.options?.find((item: any) => item.value === toolConfig?.find((item: any) => item.type === param.name)?.value)?.name || toolConfig?.find((item: any) => item.type === param.name)?.value || "Not set"}</CText>
+                                        return <CText key={index} style={{ fontFamily: "reg" }} className="text-[1.2rem] capitalize">{param?.name?.split("_").join(" ")} - {param?.options?.find((item: any) => item?.value === toolConfig?.find((item: any) => item?.type === param?.name)?.value)?.name || toolConfig?.find((item: any) => item?.type === param?.name)?.value || "Not set"}</CText>
                                     })}
                                     </View>
 
@@ -341,7 +336,7 @@ function AppItems() {
 
                                                         >
                                                             <CText className="text-[1rem] text-black dark:text-grey">
-                                                                {param?.options?.find((item: any) => item.value === toolConfig?.find((item: any) => item.type === param.name)?.value)?.name || param.name.split("_").join(" ")}
+                                                                {param?.options?.find((item: any) => item.value === toolConfig?.find((item: any) => item?.type === param.name)?.value)?.name || param.name.split("_").join(" ")}
                                                             </CText>
                                                             <IconLibrary.arrowdown size={12} />
                                                         </Pressable>
@@ -392,7 +387,7 @@ function AppItems() {
                                                         className="w-full h-[40px] text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 p-2"
                                                         editable={!param?.name?.includes("phone_number")}
                                                         value={
-                                                            toolConfig?.find((item: any) => item.type === param.name)?.value || ""}
+                                                            toolConfig?.find((item: any) => item?.type === param.name)?.value || ""}
                                                         placeholder={param?.name?.split("_").join(" ")}
                                                         placeholderTextColor="grey"
                                                         onChangeText={(text) => {
@@ -411,12 +406,12 @@ function AppItems() {
                                         })}
                                     </View>
 
-                                    {item.action &&
+                                    {item?.action &&
                                         <View className="w-full flex flex-row justify-start items-center gap-x-2">
                                             <Buttons type="primary"
-                                                text={item.action.type} onPress={async () => {
+                                                text={item?.action?.type} onPress={async () => {
                                                     const params = item.action.params.map((param: any) => {
-                                                        return toolConfig?.find((item: any) => item.type === param.name)?.value
+                                                        return toolConfig?.find((item: any) => item?.type === param.name)?.value
                                                     })
                                                     setLoading(true)
                                                     const result = await item.action.url(...params)
@@ -424,6 +419,7 @@ function AppItems() {
                                                     if (res.status) {
                                                         setResult(res.data)
                                                         setToast(res.message + " " + res.name, "success")
+                                                        setSetUpParams(false)
                                                     } else {
                                                         setToast(res.message, "error")
                                                     }
