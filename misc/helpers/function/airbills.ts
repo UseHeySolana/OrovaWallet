@@ -34,9 +34,8 @@ export class AirBills {
             },
             handler: async (args: { amount: number }) => {
 
-                const meter_number = ToolsItem.getState().getToolValue("meter_number")
 
-                if(!meter_number) return "You have not set your meter number, please set your meter number first";
+                // if(!meter_number) return "You have not set your meter number, please set your meter number first";
 
 
 
@@ -78,7 +77,7 @@ export class AirBills {
 
 
                 const usdcBalance = getInTokenBalance("usdc")
-                const airtimePrice = await airBills.getAirtimePrice(args.amount)
+                const airtimePrice = await airBills.airtime.getAirtimePrice(args.amount)
                 if(!airtimePrice.status) return "Airtime price is not available"
 
                 if(airtimePrice.data.usd > usdcBalance) return "Insufficient balance to purchase airtime";
@@ -110,7 +109,7 @@ export class AirBills {
                     return "Please connect your wallet to proceed";
                 }
 
-                const response = await airBills.purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
+                const response = await airBills.airtime.purchaseAirtime(mobileNumber, args.amount, userWalletAddress);
 
                 if(!response.status) return "Airtime purchase failed, please try again";
 
@@ -124,7 +123,7 @@ export class AirBills {
                 const confirmation = await this.session.connection.confirmTransaction(res.message, "confirmed");
 
                 if (confirmation) {
-                    const completePurchaseRes = await airBills.completePurchase(dataId)
+                    const completePurchaseRes = await airBills.airtime.completePurchase(dataId)
 
                     if (completePurchaseRes.status) {
                         const messageId = this.session.functionMessageId

@@ -7,6 +7,7 @@ import UserItem from "@/misc/store/userstore";
 
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
+import SetPin from "@/components/Sheets/SetPinSheet";
 
 
 
@@ -44,16 +45,18 @@ const settingsMenu2 = [
   * 1. Updates Settings and Shows Settings and What to Change
   */
 function Security() {
-  const [recording, setRecording] = useState(false);
-
   const { isDarkMode, toggleTheme } = useThemeContext()
   const { setDefault, openWithAuth, setOpenWithAuth, setToast } = AppSettings()
   const { user, userWallet, logout } = UserItem()
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
   const [setPinOpen, setSetPinOpen] = useState<boolean>(false);
+
 
   const routeNavigation = (route: any, type?: string) => {
     if (type == 'toggle') {
+      return;
+    }
+    if (type == 'activate') {
+      setSetPinOpen(!setPinOpen)
       return;
     }
     if (route == null) {
@@ -104,11 +107,6 @@ function Security() {
 
                 {item.route && item.route !== "logout" &&
                   <>
-                    {item.type === 'activate' &&
-                      <Pressable onPress={() => setSetPinOpen(true)} className="p-3">
-                        <IconLibrary.angle_right />
-                      </Pressable>
-          }
                     {item.type === 'toggle' ?
                       <Switch
                         trackColor={{ false: 'red', true: 'green' }}
@@ -138,6 +136,9 @@ function Security() {
         </View>
 
       </View>
+
+      <SetPin open={setPinOpen} setOpen={setSetPinOpen} />
+
 
 
 

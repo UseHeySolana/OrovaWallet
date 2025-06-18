@@ -4,7 +4,7 @@ import CText from "../TextComp";
 import { OtpInput } from "react-native-otp-entry";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Buttons from "../ButtonComp";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AppSettings from "@/misc/store/settingsstore";
 
 interface SetPinSheet {
@@ -19,22 +19,24 @@ const SetPin = ({ open, setOpen }: SetPinSheet) => {
     const { setToast, } = AppSettings.getState();
     const [pin, setPin] = useState("");
     const [confirmPin, setConfirmPin] = useState("");
+    const otpRef = useRef<any>(null);
 
     useEffect(() => {
         if (pin.length == 4) {
             setStage(1)
+            otpRef.current.clear()
         }
-    }, [])
+    }, [pin])
 
     const handlePinChange = () => {
         if (confirmPin == pin) {
             AppSettings.getState().setPin(pin)
+            AppSettings.getState().setOpenWithAuth(true)
             setToast("PIN set successfully", "success")
             setOpen(false)
+
         } else {
-            setPin("")
-            setConfirmPin("")
-            setToast("PINs do not match", "error")
+            setToast("Pin provided does not match", "error")
         }
     }
 
@@ -42,9 +44,10 @@ const SetPin = ({ open, setOpen }: SetPinSheet) => {
 
         <DragableSheet
             close={() => setOpen(false)}
+            panClose={true}
             snapPoints={["60%"]}
             child={
-                <View className=" py-4 w-full h-fit gap-y-10 flex-1 flex-col justify-between ">
+                <View className=" py-4 w-full h-fit gap-y-10 flex-1 flex-col justify-start ">
                     <View className="w-8/12 m-auto">
                         <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">
                             {stage === 0 ? "Enter PIN" : "Confirm PIN"}</CText>
@@ -57,6 +60,8 @@ const SetPin = ({ open, setOpen }: SetPinSheet) => {
                         <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 px-4 py-5">
                             <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl" >
                                 <OtpInput
+                                    ref={otpRef}
+                                    secureTextEntry={true}
                                     focusColor={'purple'}
                                     textProps={{
                                         style: {
@@ -73,11 +78,18 @@ const SetPin = ({ open, setOpen }: SetPinSheet) => {
 
                     <Buttons buttonType="pressable" onPress={() => {
                         if (stage === 0) {
-                            setStage(1);
+                            if (pin.length <= 4) {
+                                setToast("PIN must be 4 digits", "error")
+                            } else {
+                                setStage(1);
+                            }
                         } else {
                             handlePinChange()
                         }
                     }} className="" text={stage === 0 ? "Next" : "Saved"} type="primary" />
+                      <Buttons buttonType="pressable" onPress={() => {
+                        setStage(0)
+                    }} className="" text="Back" type="secondary" />
                 </View>
             }
         />

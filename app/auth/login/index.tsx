@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
@@ -17,6 +17,7 @@ import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import { delay } from "@/misc/helpers/miscfunctions.ts";
 import { BiometricAuth } from "@/app/requests/dashboard";
+import { OtpInput } from "react-native-otp-entry";
 
 /**
   * What should be done here
@@ -33,7 +34,7 @@ function Login() {
   const [otpValue, setOtpValue] = useState('')
   const { setUser, user, session } = UserItem();
   const { keypair, updateKeypair, publicKey } = WalletItem()
-  const { setLoading, isLoading, setToast, openWithAuth } = AppSettings()
+  const { setLoading, isLoading, setToast, openWithAuth, pin } = AppSettings()
   const [currentState, setCurrentState] = useState<'verify-phrase' | "start-wallet" | "sign-up" | "set-pin" | "">('')
 
   const [selectedValue, setSelectedValue] = useState(
@@ -41,8 +42,11 @@ function Login() {
   );
 
   const [fingerPrintSigning, setFingerPrintSigning] = useState(false)
+  const [pinSignin, setPinSignin] = useState(false)
   const [isVisible, setIsVisible] = useState(false);
   const { isDarkMode } = useThemeContext()
+
+  const [pinValue, setPinValue] = useState('')
 
 
   useEffect(() => {
@@ -53,7 +57,9 @@ function Login() {
           mobileNumber: user.mobileNumber
         })
 
-        if (openWithAuth) {
+        if (openWithAuth && pin.length>0 ) {
+          setPinSignin(true)}
+          else if(openWithAuth){
           setFingerPrintSigning(true)
           setTimeout(() => {
             BiometricAuth()
@@ -137,6 +143,8 @@ function Login() {
       <View className=" py-5 w-full px-4 gap-y-10 flex-col justify-center ">
 
 
+
+
         {!fingerPrintSigning ?
           <>
 
@@ -201,6 +209,16 @@ function Login() {
 
             </View>
           </>
+          : pinSignin ?
+            <View>
+              <CText>Enter your pin</CText>
+              <OtpInput
+                numberOfDigits={4}
+                onTextChange={(text) => {
+                  setPinValue(text)
+                }}
+              />
+            </View>
           :
           <>
             <View className="flex flex-col justify-center items-center gap-y-2">
@@ -233,8 +251,6 @@ function Login() {
             </View>
 
           </>
-
-
         }
       </View >
 

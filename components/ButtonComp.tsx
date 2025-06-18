@@ -64,7 +64,7 @@ export default function Buttons(props: Buttons) {
         </>
       ) :
         <TouchableOpacity onPress={onPress}>
-          <View className={`${buttonColor} ${className ? className : "py-5  rounded-full"}  flex flex-row justify-center items-center gap-x-2`}>
+          <View className={`${buttonColor} ${className ? className : "py-5  rounded-full"}  flex flex-row justify-center items-center gap-x-2 `}>
             {props.icon}
             <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[1rem]  text-center"} ${type === "primary" ?
               "text-white" : "text-black"

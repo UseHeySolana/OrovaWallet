@@ -1,45 +1,154 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
-interface Tool {
-    name: string;
+interface ToolParameters {
+    type: string;
     value: string;
 }
 
+interface ToolConfig {
+    type: string;
+    parameters?: ToolParameters[];
+}
+
+interface Tool {
+    name: string;
+    value: 'active' | 'inactive';
+    config?: ToolConfig[];
+}
 
 interface ToolsStore {
     tools: Tool[];
-    addTool: (tool: any) => void;
-    removeTool: (tool: any) => void;
-    getTool: (tool: any) => any;
-    getToolValue: (tool: any) => any;
+    clearTools: () => void;
+    addTool: (tool: Tool) => void;
+    removeTool: (toolName: string) => void;
+    updateToolStatus: (toolName: string, status: 'active' | 'inactive') => void;
+
+    addToolConfig: (toolName: string, config: ToolConfig) => void;
+    updateToolConfig: (toolName: string, configType: string, newConfig: ToolConfig) => void;
+    removeToolConfig: (toolName: string, configType: string) => void;
+    updateToolParameter: (toolName: string, configType: string, paramUpdate: ToolParameters) => void;
 }
 
-const ToolsItem = create(
-    persist<ToolsStore>(
+const ToolsItem = create<ToolsStore>()(
+    persist(
         (set, get) => ({
             tools: [],
-            addTool: (tool: Tool) => {
-                const existingTool = get().tools.find((t) => t.name === tool.name);
-                if (existingTool) {
-                    set((state) => ({ tools: state.tools.map((t) => t.name === tool.name ? tool : t) }))
+
+            clearTools: () => {
+                set({ tools: [] });
+            },
+
+            addTool: (tool) => {
+                const exists = get().tools.some((t) => t.name === tool.name);
+                if (exists) {
+                    set((state) => ({
+                        tools: state.tools.map((t) => t.name === tool.name ? tool : t),
+                    }));
                 } else {
-                    set((state) => ({ tools: [...state.tools, tool] }))
+                    set((state) => ({ tools: [...state.tools, tool] }));
                 }
             },
-            removeTool: (tool: string) => set((state) => ({ tools: state.tools.filter((t) => t.name !== tool) })),
 
-            getTool: (tool: string) => get().tools.find((t) => t.name === tool),
+            removeTool: (toolName) => {
+                set((state) => ({
+                    tools: state.tools.filter((t) => t.name !== toolName),
+                }));
+            },
 
-            getToolValue: (tool: string) => get().tools.find((t) => t.name === tool)?.value,
-        }),
-        {
-            name: 'tools', // Storage key
-            storage: createJSONStorage(() => AsyncStorage), // Use AsyncStorage for React Native
-            onRehydrateStorage: () => (state) => {
-                // console.log("Rehydrating:", state);
+            updateToolStatus: (toolName, status) => {
+                set((state) => ({
+                    tools: state.tools.map((t) =>
+                        t.name === toolName ? { ...t, value: status } : t
+                    ),
+                }));
+            },
+
+            addToolConfig: (toolName, config) => {
+                //check if config already exists
+                const exists = get().tools.some((t) => t.name === toolName && t.config?.some((c) => c.type === config.type));
+                if (exists) {
+                    return;
+                }
+                set((state) => ({
+                    tools: state.tools.map((t) =>
+                        t.name === toolName
+                            ? { ...t, config: [...(t.config || []), config] }
+                            : t
+                    ),
+                }));
+            },
+
+            updateToolConfig: (toolName, configType, newConfig) => {
+                set((state) => ({
+                    tools: state.tools.map((t) =>
+                        t.name === toolName
+                            ? {
+                                ...t,
+                                config: (t.config || []).map((c) =>
+                                    c.type === configType ? newConfig : c
+                                ),
+                            }
+                            : t
+                    ),
+                }));
+            },
+
+            removeToolConfig: (toolName, configType) => {
+                set((state) => ({
+                    tools: state.tools.map((t) =>
+                        t.name === toolName
+                            ? {
+                                ...t,
+                                config: (t.config || []).filter(
+                                    (c) => c.type !== configType
+                                ),
+                            }
+                            : t
+                    ),
+                }));
+            },
+
+            updateToolParameter: (toolName, configType, paramUpdate) => {
+                set((state) => {
+                    const updatedTools = state.tools.map((tool) => {
+                        if (tool.name !== toolName) return tool;
+
+                        const configList = tool.config ?? [];
+
+                        const updatedConfigList = configList.some((config) => config.type === configType)
+                            ? configList.map((config) => {
+                                if (config.type !== configType) return config;
+
+                                const existingParams = config.parameters ?? [];
+                                const paramIndex = existingParams.findIndex(
+                                    (param) => param.type === paramUpdate.type
+                                );
+
+                                const updatedParams =
+                                    paramIndex !== -1
+                                        ? existingParams.map((param, i) =>
+                                            i === paramIndex ? { ...param, value: paramUpdate.value } : param
+                                        )
+                                        : [...existingParams, paramUpdate];
+
+                                return { ...config, parameters: updatedParams };
+                            })
+                            : [...configList, { type: configType, parameters: [paramUpdate] }];
+
+                        return { ...tool, config: updatedConfigList };
+                    });
+
+                    return { tools: updatedTools };
+                });
             }
+        }),
+
+
+        {
+            name: 'tools',
+            storage: createJSONStorage(() => AsyncStorage),
         }
     )
 );

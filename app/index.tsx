@@ -36,7 +36,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function Index() {
 
-  const { alreadyOpened, markOpened, openWithAuth } = AppSettings()
+  const { alreadyOpened, markOpened, openWithAuth, pin, setLoading } = AppSettings()
   const { publicKey } = WalletItem()
   const { user, session } = UserItem()
   const scrollRef = useRef<ScrollView>(null);
@@ -57,7 +57,7 @@ export default function Index() {
     }
 
     //Go to verification if verification is enabled
-    if (openWithAuth && !session) {
+    if ((openWithAuth && !session) || pin.length >= 4) {
       return '/auth/login';
     }
 
@@ -80,12 +80,20 @@ export default function Index() {
     (async () => {
       const response = await tracker.app_open_count();
     })();
+    setLoading(true)
     // Delay navigation to make sure the layout is initialized
     const timeout = setTimeout(() => {
+
       const destination = getDestination();
       if (destination) {
         router.replace(destination);
+
+          // router.push({
+          //   pathname: '/settings/apps/appitem',
+          //   params: { app: "Airbills" },
+          // });
       }
+      setLoading(false)
     }, 100); // Delay by 500ms, adjust if needed
 
     return () => clearTimeout(timeout); // Cleanup timeout on component unmount

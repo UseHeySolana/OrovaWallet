@@ -132,7 +132,7 @@ const AppSettings = create(
                 //     const timeoutId = setTimeout(() => {
                 //         set({ isLoading: false, loadingTimeout: null });
                 //         get().setToast('An Error occured!!', 'error')
-                //     }, 20000);
+                //     }, 10000);
 
                 //     set({ loadingTimeout: timeoutId });
                 // } else {

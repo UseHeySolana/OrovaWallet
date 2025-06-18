@@ -85,6 +85,7 @@ class SessionManager {
                 \n 
                 to swap first get the quote of the tokens and then respond to the user with the quote and then ask for confirmation to swap.
                 \n
+
             always map the username i am interacting to any of these, correct with right spelling always if the username doesn't fall you can use as provided.
                 \n
                  these are the list of sub tools supported and parameters,
@@ -124,10 +125,9 @@ class SessionManager {
             //     return now >= expiryDate;
             // }
 
-
-
             // if (ek.value === "" || !isTokenExpired(ek.expiry)) {
             const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
+
             const data = await tokenResponse.json();
             const EPHEMERAL_KEY = data.client_secret.value;
             AppSettings.getState().setEk(data.client_secret.value, data.client_secret.expires_at)
@@ -668,7 +668,7 @@ class SessionManager {
 
         const userItem = UserItem.getState()
         const publicKey = WalletItem.getState().publicKey
-        if(userItem.user && publicKey){
+        if (userItem.user && publicKey) {
             console.log("Updating user items")
             await setUserItems(userItem.user, userItem.updateUserWallet, publicKey, AppSettings.getState().network);
         }

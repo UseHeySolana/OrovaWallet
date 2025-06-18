@@ -278,6 +278,16 @@ const IconLibrary = {
             />
         );
     },
+    star: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Entypo
+                name="star"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
     tools: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (
@@ -293,6 +303,16 @@ const IconLibrary = {
         return (
             <Entypo
                 name="moon"
+                size={props.size || 18}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    users: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Entypo
+                name="users"
                 size={props.size || 18}
                 color={props.color || (isDarkMode ? "white" : "black")}
             />
