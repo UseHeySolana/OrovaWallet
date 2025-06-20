@@ -103,6 +103,7 @@ export default function ImportPhrase({ navigation }: any) {
                 <TextInput
                   style={{ fontFamily: "bold", }}
                   multiline
+                  returnKeyType="done"
 
                   value={mnemonic}
                   numberOfLines={100}
@@ -143,7 +144,7 @@ export default function ImportPhrase({ navigation }: any) {
           <Buttons onPress={importWallet} text="Import Wallet" />
           <Buttons buttonType="feedback" type="secondary" onPress={() => router.push("/auth/secretphrase")} text="I don't know what a secret phrase is" />
         </View>
-      }
+     } 
 
     </View>
   );

@@ -88,6 +88,7 @@ function Login() {
       phone_number: "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber)
     }
     const response = await getCode(data.phone_number)
+    console.log(response)
     if (response.status !== false) {
 
       setUserDetails({ ...userDetails, username: response.data.username, wallet_address: response.data.wallet_address })
@@ -152,7 +153,7 @@ function Login() {
 
               <View className="w-full flex justify-center items-center">
                 <View className="h-[3.125em] w-[3.125em]  rounded-full">
-                  <Image source={require('@/assets/images/icon.png')} style={{ width: "100%", height: "100%" }}
+                  <Image source={require('@/assets/images/ballicon.png')} style={{ width: "100%", height: "100%" }}
                     contentFit="contain"
                   />
                 </View>

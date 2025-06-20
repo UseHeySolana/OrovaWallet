@@ -231,11 +231,9 @@ const getCode = async (phone_number: string) => {
   const item = {
     "phone_number": phone_number
   }
-  console.log(item);
 
   const response = await request.postJson(item, "/v2/get-code");
 
-  console.log(response);
   if (!response.ok) {
     const result = await response.json();
     return {

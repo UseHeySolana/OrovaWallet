@@ -55,7 +55,6 @@ function ConnectedApps() {
                     <View className="h-10 w-10 rounded-lg bg-white dark:bg-accent2 flex items-center  justify-center">
                       {item.icon &&
                         <Image source={item?.icon instanceof String ? { uri: item.icon } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="contain" />
-
                       }
                     </View>
                     <CText style={{ fontFamily: "bold" }}>{item.name}</CText>
@@ -107,7 +106,14 @@ function ConnectedApps() {
                         </View>
                       </View>
 
-                      <Buttons type="primary" className="p-2 px-4 bg-grey dark:bg-accent2 rounded-3xl" text={tool ? "Activated" : "Activate"} onPress={() => { }} />
+                      <Buttons type="primary" className="p-2 px-4 dark:bg-accent2 rounded-3xl" text={tool ? "Activated" : "Activate"} onPress={() => 
+                        {
+                          router.push({
+                            pathname: '/settings/apps/appitem',
+                            params: { app: item.name },
+                          })
+                        }
+                      } />
                     </View>
 
 
