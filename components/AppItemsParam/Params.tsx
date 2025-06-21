@@ -1,5 +1,4 @@
 import { View, Text, ScrollView } from "react-native";
-
 import { Pressable } from "react-native";
 import CText from "../TextComp";
 import IconLibrary from "@/misc/helpers/icons";
@@ -8,6 +7,7 @@ import Buttons from "../ButtonComp";
 import AppSettings from "@/misc/store/settingsstore";
 import { TouchableNativeFeedback } from "react-native";
 import ToolsItem from "@/misc/store/toolsitems";
+import { delayPromise } from "@/misc/helpers/miscfunctions.ts";
 
 interface ParamsComponentProps {
   appData: any;
@@ -30,6 +30,7 @@ const ParamsComponent = ({
 }: ParamsComponentProps) => {
   const { updateToolParameter } = ToolsItem();
   const { setToast, setLoading } = AppSettings();
+
   return (
     <View className="absolute top-0 py-5 left-0 right-0 z-50 px-4 bg-black/90 h-[100%] flex-1 flex flex-col justify-center items-center gap-y-2">
       {/* this is a popup that will allow users to set up toools and fill the fields that they want to setup */}
@@ -46,7 +47,7 @@ const ParamsComponent = ({
             return (
               <View
                 key={index}
-                className="w-full flex flex-col justify-start items-start gap-x-2 border-b border-grey dark:border-accent2 pb-4"
+                className="w-full flex flex-col justify-start items-start gap-x-2 border-b border-grey dark:border-accent2 "
               >
                 <CText
                   style={{ fontFamily: "reg" }}
@@ -147,7 +148,7 @@ const ParamsComponent = ({
                   })}
                 </View>
 
-                {item?.action && (
+                {item?.action ? (
                   <View className="w-full flex flex-row justify-center py-3 items-center gap-x-2">
                     <Buttons
                       type="primary"
@@ -160,6 +161,7 @@ const ParamsComponent = ({
                           )?.value;
                         });
                         setLoading(true);
+
                         const result = await item.action.url(...params);
                         const res = result.data;
                         console.log(result);
@@ -170,6 +172,21 @@ const ParamsComponent = ({
                         } else {
                           setToast(res.message, "error");
                         }
+                        setLoading(false);
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <View className="w-full flex flex-row justify-center py-3 items-center gap-x-2">
+                    <Buttons
+                      type="primary"
+                      className="w-full py-4 px-4 rounded-3xl"
+                      text={"Save"}
+                      onPress={async () => {
+                        setLoading(true);
+                        await delayPromise(1000);
+                        setToast("Tool saved", "success");
+                        setSetUpParams(false);
                         setLoading(false);
                       }}
                     />

@@ -24,9 +24,7 @@ import { scale } from "react-native-size-matters";
 import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
-
-
-
+import { toolRouter } from "@/misc/helpers/toolsregistry";
 
 const AiHelpers = [
   {
@@ -35,13 +33,13 @@ const AiHelpers = [
   },
   {
     title: " AI Assistant",
-    caption: "Smart Ledging & transaction analysis"
+    caption: "Smart Ledging & transaction analysis",
   },
   {
     title: " AI Assistant",
-    caption: "Smart Ledging & transaction analysis"
-  }
-]
+    caption: "Smart Ledging & transaction analysis",
+  },
+];
 
 const colors = {
   loading: {
@@ -55,91 +53,106 @@ const colors = {
   human: {
     color1: "#1BB296", // teal (fresh, natural contrast to purple)
     color2: "#A3F3E4", // minty highlight for friendliness
-  }
-}
+  },
+};
 /**
-  * What should be done here
-  * 1. Get User Tokens and Balance
-  * 2. AI interactions can also be done Here
-  */
+ * What should be done here
+ * 1. Get User Tokens and Balance
+ * 2. AI interactions can also be done Here
+ */
 export default function Dashboard() {
   const { convoId } = useLocalSearchParams();
-  const [activeItems, setActiveItems] = useState([0, 1])
-  const { messages, getConversationMessages, conversations } = Convo()
-  const [activeTab, setActiveTab] = useState('tokens')
+  const [activeItems, setActiveItems] = useState([0, 1]);
+  const { messages, getConversationMessages, conversations } = Convo();
+  const [activeTab, setActiveTab] = useState("tokens");
   const { user, userWallet, updateUserWallet, logout } = UserItem();
   const { network, setLoading, aiName, refresher } = AppSettings();
-  const { connection, sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId } = useAi()
-  const { publicKey, keypair } = WalletItem()
+  const {
+    connection,
+    sessionManager,
+    isSessionActive,
+    startSession,
+    stopSession,
+    currentMode,
+    conversationId,
+  } = useAi();
+  const { publicKey, keypair } = WalletItem();
   const [refreshing, setRefreshing] = useState(false);
-  const [update, setUpdate] = useState(0)
+  const [update, setUpdate] = useState(0);
   const animation = useRef<LottieView>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const [showWallet, setShowWallet] = useState(false)
-  const { isDarkMode } = useThemeContext()
+  const [showWallet, setShowWallet] = useState(false);
+  const { isDarkMode } = useThemeContext();
 
-  const [message, setMessage] = useState<MessageType[]>([])
-
+  const [message, setMessage] = useState<MessageType[]>([]);
 
   useEffect(() => {
     if (convoId) {
       const messageItem = getConversationMessages(convoId as string) || [];
       setMessage(messageItem);
     } else {
-      // const messageItem = getConversationMessages('1747650962928') || [];
-      const messageItem = getConversationMessages(conversationId) || [];
+      const messageItem =
+        getConversationMessages(conversations[conversations.length - 1].id) ||
+        [];
+      // const messageItem = getConversationMessages(conversationId) || [];
       setMessage(messageItem);
     }
     // console.log(conversations)
-  }, [conversationId, messages, convoId])
+  }, [conversationId, messages, convoId]);
 
   useEffect(() => {
     if (currentMode === "aispeaking" || currentMode === "human") {
-      animation.current?.play()
+      animation.current?.play();
     } else if (currentMode === "loading") {
-      animation.current?.pause()
+      animation.current?.pause();
     }
+  }, [currentMode]);
 
-  }, [currentMode])
+  useEffect(() => {
+    if (sessionManager) {
+      const tools = toolRouter(sessionManager);
+      // console.log(tools);
+    }
+  }, [sessionManager]);
 
   useEffect(() => {
     const getUser = async () => {
-      await setLoading(true)
-      if (!user || !publicKey) return
+      await setLoading(true);
+      if (!user || !publicKey) return;
       await setUserItems(user, updateUserWallet, publicKey, network);
-      setLoading(false)
-    }
+      setLoading(false);
+    };
 
     getUser();
-  }, [user, network, updateUserWallet, publicKey, update])
+  }, [user, network, updateUserWallet, publicKey, update]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setUpdate(Math.random())
-    setShowWallet(false)
+    setUpdate(Math.random());
+    setShowWallet(false);
     setRefreshing(false);
   };
 
   const startStreamingSession = async () => {
-    if (!sessionManager) return
-    startSession()
-    setShowWallet(false)
-  }
+    if (!sessionManager) return;
+    startSession();
+    setShowWallet(false);
+  };
 
   const stopStreamingSession = async () => {
-    if (!sessionManager) return
-    stopSession()
-    setShowWallet(true)
-  }
+    if (!sessionManager) return;
+    stopSession();
+    setShowWallet(true);
+  };
 
   const sendMessage = async () => {
-    if (!sessionManager) return
-    sessionManager?.sendTextMessage("this is new")
-  }
+    if (!sessionManager) return;
+    sessionManager?.sendTextMessage("this is new");
+  };
   // const testFunctions = async () => {
   //   const id = "d8153933-b508-4227-95a5-555d08a0da24"
-    
+
   //   const usdcBalance = getInTokenBalance("usdc")
 
   //   const airtimePrice = await getAirtimePrice(100)
@@ -151,54 +164,61 @@ export default function Dashboard() {
   //     showToast("Insufficient balance")
   //     return;
   //   }
-  
-  //   const response =await purchaseAirtime('08132532430', amount, '13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ');
 
+  //   const response =await purchaseAirtime('08132532430', amount, '13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ');
 
   // // const userCheck = await getUserDetails('Danny')
   //   console.log(response)
 
   // }
 
-
-
-
-
   return (
-    <View
-      className="pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark "
-    >
+    <View className="pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark ">
       <View className="flex  flex-row justify-between items-center">
         {/* <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
           <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
         </TouchableOpacity> */}
         <View className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1">
           <View className="h-6 w-6  rounded-full">
-            <Image source={require('@/assets/images/ballicon.png')} style={{ width: "100%", height: "100%" }}
+            <Image
+              source={require("@/assets/images/ballicon.png")}
+              style={{ width: "100%", height: "100%" }}
               contentFit="contain"
             />
           </View>
-          <CText style={{ fontFamily: 'md' }} className="text-dark dark:text-white">@{user?.username}</CText>
+          <CText
+            style={{ fontFamily: "md" }}
+            className="text-dark dark:text-white"
+          >
+            @{user?.username}
+          </CText>
         </View>
         <View className="flex flex-row gap-x-2">
-          <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
-            <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
+          <TouchableOpacity
+            onPress={() => router.push("/settings")}
+            className="p-3  rounded-full bg-white dark:bg-accent "
+          >
+            <Feather
+              name="settings"
+              size={16}
+              color={isDarkMode ? "white" : "black"}
+            />
           </TouchableOpacity>
           {/* <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
             <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
           </TouchableOpacity> */}
         </View>
-
       </View>
-      {showWallet ?
+      {showWallet ? (
         <>
           {/* Top Icons */}
           <ScrollView
             className=""
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
           >
             <View className=" min-h-[50px] gap-y-3">
               <View className="m-auto  w-full shadow-md bg-white dark:bg-transparent rounded-3xl py-4">
@@ -210,14 +230,29 @@ export default function Dashboard() {
                     <CText className="text-[45px]">
                       ${userWallet?.totalUsdBalance.toFixed(2)}
                     </CText>
-
                   </View>
                   <View className="flex flex-row justify-center items-center gap-2">
-                    <TouchableOpacity onPress={async () => await copyItem(publicKey?.toString() || "")} className="p-3  rounded-full bg-grey dark:bg-accent2">
-                      <Ionicons name="copy-outline" size={16} color={isDarkMode ? "white" : "black"} />
+                    <TouchableOpacity
+                      onPress={async () =>
+                        await copyItem(publicKey?.toString() || "")
+                      }
+                      className="p-3  rounded-full bg-grey dark:bg-accent2"
+                    >
+                      <Ionicons
+                        name="copy-outline"
+                        size={16}
+                        color={isDarkMode ? "white" : "black"}
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => router.push('/dashboard/qrcode')} className="p-3  rounded-full bg-grey dark:bg-accent2">
-                      <AntDesign name="qrcode" size={16} color={isDarkMode ? "white" : "black"} />
+                    <TouchableOpacity
+                      onPress={() => router.push("/dashboard/qrcode")}
+                      className="p-3  rounded-full bg-grey dark:bg-accent2"
+                    >
+                      <AntDesign
+                        name="qrcode"
+                        size={16}
+                        color={isDarkMode ? "white" : "black"}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -226,23 +261,43 @@ export default function Dashboard() {
 
                 <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
                   <View className="flex-1">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                      //  router.push('/dashboard/send') 
-                      showToast("Kindly Use Voice to send tokens")
-                    }} type="secondary" text="Send" icon={
-                      <View className="rotate-[230deg]">
-                        <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
-                      </View>
-                    } />
+                    <Buttons
+                      buttonType="feedback"
+                      className="py-4 rounded-full"
+                      onPress={() => {
+                        //  router.push('/dashboard/send')
+                        showToast("Kindly Use Voice to send tokens");
+                      }}
+                      type="secondary"
+                      text="Send"
+                      icon={
+                        <View className="rotate-[230deg]">
+                          <AntDesign
+                            name="arrowdown"
+                            size={16}
+                            color={isDarkMode ? "white" : "black"}
+                          />
+                        </View>
+                      }
+                    />
                   </View>
                   <View className="flex-1">
-                    <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={() => {
-                      // testFunctions()
-                      router.push('/dashboard/qrcode')
-                    }} type="secondary" text="Receive"
+                    <Buttons
+                      buttonType="feedback"
+                      className="py-4 rounded-full"
+                      onPress={() => {
+                        // testFunctions()
+                        router.push("/dashboard/qrcode");
+                      }}
+                      type="secondary"
+                      text="Receive"
                       icon={
                         <View className="rotate-[40deg]">
-                          <AntDesign name="arrowdown" size={16} color={isDarkMode ? "white" : "black"} />
+                          <AntDesign
+                            name="arrowdown"
+                            size={16}
+                            color={isDarkMode ? "white" : "black"}
+                          />
                         </View>
                       }
                     />
@@ -253,165 +308,205 @@ export default function Dashboard() {
                     </TouchableOpacity>
                   </View> */}
                 </View>
-
               </View>
 
               <View className="h-[90px] relative w-full">
                 {AiHelpers.map((item, index) => {
                   return (
-                    <View key={index} style={{
-                      display: activeItems.includes(index) ? "flex" : "none",
-                      position: "relative",
-                      bottom: index * 70,
-                      zIndex: index * -1,
-                      width: `${100 - index * 4}%`
-                    }} className="h-[80px] m-auto" >
-
+                    <View
+                      key={index}
+                      style={{
+                        display: activeItems.includes(index) ? "flex" : "none",
+                        position: "relative",
+                        bottom: index * 70,
+                        zIndex: index * -1,
+                        width: `${100 - index * 4}%`,
+                      }}
+                      className="h-[80px] m-auto"
+                    >
                       <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
                         <View className="h-8 w-8 rounded-full">
-                          <Image source={require('@/assets/images/ballicon.png')} style={{ width: "100%", height: "100%" }}
+                          <Image
+                            source={require("@/assets/images/ballicon.png")}
+                            style={{ width: "100%", height: "100%" }}
                             contentFit="contain"
                           />
                         </View>
                         <View>
-                          <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">{item.title}</CText>
+                          <CText
+                            style={{ fontFamily: "bold" }}
+                            className="text-[1.1rem]"
+                          >
+                            {item.title}
+                          </CText>
                           <CText className="text-[1rem]">{item.caption}</CText>
                         </View>
-
                       </View>
-                      <TouchableOpacity className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white" onPress={() => { }}>
-                        <MaterialCommunityIcons name="greater-than" size={12} color={isDarkMode ? "white" : "black"} />
+                      <TouchableOpacity
+                        className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white"
+                        onPress={() => {}}
+                      >
+                        <MaterialCommunityIcons
+                          name="greater-than"
+                          size={12}
+                          color={isDarkMode ? "white" : "black"}
+                        />
                       </TouchableOpacity>
                     </View>
-                  )
+                  );
                 })}
-
               </View>
 
               <View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
                 <View className="flex flex-row items-center justify-between">
                   <TouchableNativeFeedback
-                    background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                    onPress={() => setActiveTab('tokens')}>
-
-                    <View className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"} `}>
-                      <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]  text-center">Tokens</CText>
+                    background={TouchableNativeFeedback.Ripple(
+                      "#971BB2",
+                      false
+                    )}
+                    onPress={() => setActiveTab("tokens")}
+                  >
+                    <View
+                      className={`w-[50%] py-5 border-b-2 ${
+                        activeTab == "tokens" ? "border-purple" : "border-grey"
+                      } `}
+                    >
+                      <CText
+                        style={{ fontFamily: "bold" }}
+                        className="text-[1.1rem]  text-center"
+                      >
+                        Tokens
+                      </CText>
                     </View>
                   </TouchableNativeFeedback>
                   <TouchableNativeFeedback
-                    background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                    onPress={() => setActiveTab('history')}>
-                    <View className={`w-[50%] py-5 border-b-2 ${activeTab == "history" ? "border-purple" : "border-grey dark:border-dark"} `}>
-
-                      <CText className="text-[1.1rem] text-center">History</CText>
+                    background={TouchableNativeFeedback.Ripple(
+                      "#971BB2",
+                      false
+                    )}
+                    onPress={() => setActiveTab("history")}
+                  >
+                    <View
+                      className={`w-[50%] py-5 border-b-2 ${
+                        activeTab == "history"
+                          ? "border-purple"
+                          : "border-grey dark:border-dark"
+                      } `}
+                    >
+                      <CText className="text-[1.1rem] text-center">
+                        History
+                      </CText>
                     </View>
                   </TouchableNativeFeedback>
-
                 </View>
 
-                {activeTab == "tokens" ?
-
+                {activeTab == "tokens" ? (
                   <View className="flex-1">
-
                     <View className="py-5 w-full">
                       <TouchableOpacity className="bg-grey dark:bg-accent2 rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
                         <FontAwesome name="sliders" size={14} color="black" />
-                        <CText>
-                          Manage tokens
-                        </CText>
+                        <CText>Manage tokens</CText>
                       </TouchableOpacity>
                     </View>
-                    {userWallet?.tokenAccounts?.map((token: any, index: number) => {
-                      return (
-                        <View key={index}>
-                          <TouchableNativeFeedback
-                            key={index}
-                            background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-                            onPress={() => {
-                              router.push({
-                                pathname: '/dashboard/tokeninfo',
-                                params: { mint: token.mint },
-                              });
-                            }}
-                          >
-                            <View
-                              className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[1.14rem]"
+                    {userWallet?.tokenAccounts?.map(
+                      (token: any, index: number) => {
+                        return (
+                          <View key={index}>
+                            <TouchableNativeFeedback
+                              key={index}
+                              background={TouchableNativeFeedback.Ripple(
+                                "#971BB2",
+                                false
+                              )}
+                              onPress={() => {
+                                router.push({
+                                  pathname: "/dashboard/tokeninfo",
+                                  params: { mint: token.mint },
+                                });
+                              }}
                             >
-                              <View className="flex flex-row items-start gap-x-2">
-                                <View
-                                  style={{
-                                    width: scale(30),
-                                    height: scale(30),
+                              <View className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[1.14rem]">
+                                <View className="flex flex-row items-start gap-x-2">
+                                  <View
+                                    style={{
+                                      width: scale(30),
+                                      height: scale(30),
+                                    }}
+                                    className="overflow-hidden rounded-full"
+                                  >
+                                    <Image
+                                      source={
+                                        token?.image ??
+                                        require("@/assets/images/icon.png")
+                                      }
+                                      alt={token?.name}
+                                      style={{ height: "100%", width: "100%" }}
+                                      contentFit="cover"
+                                    />
+                                  </View>
 
-                                  }}
-
-                                  className="overflow-hidden rounded-full">
-                                  <Image source={token?.image ?? require('@/assets/images/icon.png')} alt={token?.name} style={{ height: "100%", width: "100%" }} contentFit="cover" />
+                                  <View className="text-[14px]">
+                                    <CText
+                                      style={{ fontFamily: "bold" }}
+                                      className="text-[1rem]"
+                                    >
+                                      {token?.name || "?"}
+                                    </CText>
+                                    <CText
+                                      style={{ fontFamily: "reg" }}
+                                      className="text-[1rem]"
+                                    >
+                                      {token?.balance < 1
+                                        ? token?.balance?.toFixed(
+                                            Math.min(token?.decimals, 5)
+                                          )
+                                        : token?.balance.toFixed(
+                                            Math.min(token?.decimals, 3)
+                                          )}
+                                    </CText>
+                                  </View>
                                 </View>
-
-                                <View className="text-[14px]">
-                                  <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
-                                    {token?.name || "?"}
-                                  </CText>
-                                  <CText style={{ fontFamily: "reg" }} className="text-[1rem]">
-                                    {token?.balance < 1 ?
-                                      token?.balance?.toFixed(Math.min(token?.decimals, 5))
-                                      : token?.balance.toFixed(Math.min(token?.decimals, 3))
-                                    }
-                                  </CText>
-                                </View>
-                              </View>
-                              <View className="flex flex-col justify-end">
-                                {/* <CText className="text-[14px]">
+                                <View className="flex flex-col justify-end">
+                                  {/* <CText className="text-[14px]">
                             {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
                           </CText> */}
-                                <CText style={{ fontFamily: "bold" }} className="text-[16px]">
-                                  {token?.usdc_price
-                                    ? "$" + token?.usdc_price?.toFixed(2)
-                                    : ""}
-                                </CText>
+                                  <CText
+                                    style={{ fontFamily: "bold" }}
+                                    className="text-[16px]"
+                                  >
+                                    {token?.usdc_price
+                                      ? "$" + token?.usdc_price?.toFixed(2)
+                                      : ""}
+                                  </CText>
+                                </View>
                               </View>
-                            </View>
-                          </TouchableNativeFeedback>
-                          <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
-                        </View>
-
-                      );
-                    })}
-
-
-
+                            </TouchableNativeFeedback>
+                            <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
+                          </View>
+                        );
+                      }
+                    )}
                   </View>
-
-                  :
-
+                ) : (
                   <View className="flex-1 justify-center items-center">
-
-                    <CText>
-                      No Transaction History yet!
-                    </CText>
+                    <CText>No Transaction History yet!</CText>
                   </View>
-
-                }
-
-
+                )}
               </View>
             </View>
-
           </ScrollView>
-
         </>
-        :
+      ) : (
         <View className="flex-1 justify-start py-2  overflow-hidden  rounded-3xl">
-          {message.length > 0 &&
-
+          {message.length > 0 && (
             <View className="h-[36rem] z-50">
               <ScrollView
                 ref={scrollViewRef}
                 className=" py-2 relative h-[36rem] gap-y-4"
-                onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                onContentSizeChange={() =>
+                  scrollViewRef.current?.scrollToEnd({ animated: true })
+                }
               >
-
                 {message.map((item: any, index: number) => {
                   const isSystem = item.role === "system";
                   const toolCall = item.role === "tool";
@@ -420,10 +515,18 @@ export default function Dashboard() {
                     <View key={index + item.id} className="mb-3 relative">
                       {toolCall ? (
                         <>
-                          <ToolItem item={item} isSystem={isSystem} aiName={aiName} />
+                          <ToolItem
+                            item={item}
+                            isSystem={isSystem}
+                            aiName={aiName}
+                          />
                         </>
                       ) : (
-                        <ChatBox item={item} isSystem={isSystem} aiName={aiName} />
+                        <ChatBox
+                          item={item}
+                          isSystem={isSystem}
+                          aiName={aiName}
+                        />
                         // <View
                         //   className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
                         // >
@@ -450,14 +553,11 @@ export default function Dashboard() {
                     </View>
                   );
                 })}
-
               </ScrollView>
             </View>
-
-          }
+          )}
 
           <View className="flex-1 h-full w-full absolute bottom-0 z-1">
-
             <LottieView
               autoPlay={true}
               loop
@@ -469,7 +569,6 @@ export default function Dashboard() {
                 // zIndex: 1,
                 width: 1000,
                 height: 500,
-
               }}
               resizeMode="cover"
               colorFilters={[
@@ -482,17 +581,21 @@ export default function Dashboard() {
                   color: colors[currentMode].color2,
                 },
               ]}
-              source={require('@/assets/anim/lower.json')}
+              source={require("@/assets/anim/lower.json")}
             />
           </View>
-
         </View>
-      }
-      <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={startStreamingSession} isSessionActive={isSessionActive} />
+      )}
+      <Base
+        showWallet={showWallet}
+        setShowWallet={setShowWallet}
+        stopSession={stopStreamingSession}
+        startSession={startStreamingSession}
+        isSessionActive={isSessionActive}
+      />
 
       {/* <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={testFunctions} isSessionActive={isSessionActive} /> */}
-
-    </View >
+    </View>
   );
 }
 

@@ -29,6 +29,9 @@ interface ToolsStore {
     updateToolConfig: (toolName: string, configType: string, newConfig: ToolConfig) => void;
     removeToolConfig: (toolName: string, configType: string) => void;
     updateToolParameter: (toolName: string, configType: string, paramUpdate: ToolParameters) => void;
+    getToolConfig: (toolName: string) => ToolConfig[];
+    getToolParameters: (toolName: string, configType: string) => ToolParameters[];
+    getParameterValue: (toolName: string, configType: string, paramType: string) => string;
 }
 
 const ToolsItem = create<ToolsStore>()(
@@ -112,6 +115,7 @@ const ToolsItem = create<ToolsStore>()(
 
             updateToolParameter: (toolName, configType, paramUpdate) => {
                 set((state) => {
+
                     const updatedTools = state.tools.map((tool) => {
                         if (tool.name !== toolName) return tool;
 
@@ -142,6 +146,15 @@ const ToolsItem = create<ToolsStore>()(
 
                     return { tools: updatedTools };
                 });
+            },
+            getToolConfig: (toolName: string) => {
+                return get().tools.find((tool: any) => tool?.name === toolName)?.config || [];
+            },
+            getToolParameters: (toolName:string, configType:string) => {
+                return get().tools.find((tool: any) => tool?.name === toolName)?.config?.find((config: any) => config?.type === configType)?.parameters || [];
+            },
+            getParameterValue: (toolName: string, configType: string, paramType: string) => {
+                return get().tools.find((tool: any) => tool?.name === toolName)?.config?.find((config: any) => config?.type === configType)?.parameters?.find((param: any) => param?.type === paramType)?.value || "";
             }
         }),
 

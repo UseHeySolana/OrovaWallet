@@ -50,7 +50,7 @@ const apps: App[] = [
         ratings: 4.5,
         tools: [
             {
-                name: "electricty",
+                name: "electricity",
                 params: [
                     {
                         name: "meter_number",

@@ -9,6 +9,7 @@ import { completeConversation, getInTokenBalance, getUserDetails } from "../misc
 import { pajcash } from "../db/pajcash";
 import { TransferFunction } from "./transfer";
 import { transferSol, transferToken } from "../transfers";
+import ToolsItem from "@/misc/store/toolsitems";
 
 
 
@@ -53,6 +54,10 @@ export class PajCash {
 
 
                 if (tokenBalance < args.amount) return `Insufficient ${args.token} balance to offramp`;
+
+                const accountNumber = ToolsItem.getState().getParameterValue("Pajcash", "offramp", 'account_number');
+                
+                if(!accountNumber) return "You have not set your account number, please set your account number first";
 
                 const recipient = "PAJiUaKgxTBJVADc1wdiUygLd51biQPVB8KkJqYu53L"
 

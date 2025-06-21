@@ -11,18 +11,13 @@ interface ParamsInputProps {
 const ParamsInput = ({ param, appData, item }: ParamsInputProps) => {
   const [inputValue, setInputValue] = useState<string>("");
   const { updateToolParameter } = ToolsItem();
-
-
-
-  useEffect(() => {
-    if (param?.name?.includes("phone_number")) {
-      return;
-    }
+  const handleChangeText = (text: string) => {
+    setInputValue(text);
     updateToolParameter(appData?.name, item?.name, {
       type: param?.name,
-      value: inputValue,
+      value: text,
     });
-  }, [param, appData, item]);
+  };
 
   return (
     <TextInput
@@ -31,9 +26,7 @@ const ParamsInput = ({ param, appData, item }: ParamsInputProps) => {
       value={inputValue}
       placeholder={param?.name?.split("_").join(" ")}
       placeholderTextColor="grey"
-      onChangeText={(text) => {
-        setInputValue(text);
-      }}
+      onChangeText={handleChangeText}
     />
   );
 };

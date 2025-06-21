@@ -36,10 +36,57 @@ export class AirBills {
 
 
                 // if(!meter_number) return "You have not set your meter number, please set your meter number first";
+                const meter_number = ToolsItem.getState().getParameterValue("Airbills", "electricty", 'meter_number');
+                const elect_id = ToolsItem.getState().getParameterValue("Airbills", "electricty", 'elect_id');
+                const type = ToolsItem.getState().getParameterValue("Airbills", "electricty", 'meter_type');
+                
+                if(meter_number === "" || !meter_number) return "You have not set your meter number, please set your meter number first";
+                if(elect_id === "" || !elect_id) return "You have not set your Electricy Provider yet, please set your electricity provider first";
+                if(type === "" || !type) return "You have not set your meter type, please set your meter type first";
 
 
+                const response = await airBills.electricity.purchaseElectricity({
+                    amount: args.amount, token: "usdc", fee: 0, 
+                    user_address: WalletItem.getState().publicKey?.toString() || "",
+                    meterNo: meter_number, 
+                    electId: elect_id, 
+                    prodId: type})
+                if(!response.status) return "Electricity bill purchase failed, please try again";
+                const result = response.data;
+                const dataId = result.data.id;
 
-                return "Electricity bill purchase is not available yet";
+                const res = await signTransactions({tx: result.data.ix})
+                if(!res.status){
+                    return res.message;
+                } 
+                const confirmation = await this.session.connection.confirmTransaction(res.message, "confirmed");
+
+                if(confirmation){
+                    const completePurchaseRes = await airBills.electricity.completePurchase(dataId)
+                    if(completePurchaseRes.status){
+                        const messageId = this.session.functionMessageId
+                        const network = AppSettings.getState().networkShort
+                        if (messageId !== null) {
+
+                            completeConversation(messageId, 'complete', `https://explorer.solana.com/tx/${res}?cluster=${network}`)
+                          
+                        }
+                        return await convertSpeech('Your electricity bill purchase is successfull');
+                    } else {
+                        const messageId = this.session.functionMessageId
+                        if (messageId !== null) {
+                            completeConversation(messageId, 'failed')
+                        }
+                        return await convertSpeech('Electricity bill purchase failed!');
+                    }
+                } else {
+                    const messageId = this.session.functionMessageId
+                    if (messageId !== null) {
+                        completeConversation(messageId, 'failed')
+                    }
+                    return await convertSpeech('Electricity bill purchase failed!');
+                }
+                
             }
         }
     }
