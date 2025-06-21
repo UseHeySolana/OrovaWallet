@@ -92,10 +92,10 @@ export default function Dashboard() {
       const messageItem = getConversationMessages(convoId as string) || [];
       setMessage(messageItem);
     } else {
-      const messageItem =
-        getConversationMessages(conversations[conversations.length - 1].id) ||
-        [];
-      // const messageItem = getConversationMessages(conversationId) || [];
+      // const messageItem =
+      //   getConversationMessages(conversations[conversations.length - 1].id) ||
+      //   [];
+      const messageItem = getConversationMessages(conversationId) || [];
       setMessage(messageItem);
     }
     // console.log(conversations)

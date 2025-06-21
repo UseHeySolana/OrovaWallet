@@ -36,7 +36,7 @@ function AppItems() {
   const [activated, setActivated] = useState(false);
   const { isLoading, setToast, setLoading } = AppSettings();
   const [activeParams, setActiveParams] = useState<any>(null);
-  const [setUpParams, setSetUpParams] = useState<boolean>(false);
+  const [setUpParams, setSetUpParams] = useState<boolean | null>(null);
 
   const [activatedConfigs, setActivatedConfigs] = useState<any>(null);
   const [toolConfig, setToolConfig] = useState<any>(null);
@@ -238,7 +238,7 @@ function AppItems() {
         contentContainerStyle={{ paddingBottom: 100 }}
         className="w-full px-4 top-[10%] bg-grey dark:bg-black py-5 rounded-t-3xl flex-1"
       >
-        <View className="w-full h-fit p-4 rounded-3xl dark:shadow-none shadow bg-white dark:bg-accent">
+        <View className="w-full  h-fit p-4 rounded-3xl dark:shadow-none shadow bg-white dark:bg-accent">
           <View className="flex-1 gap-x-2 flex-row justify-start items-center">
             <View className="flex flex-row justify-start items-center gap-x-2 bg-white dark:bg-dark  rounded-3xl w-[75px] h-[75px] overflow-hidden">
               <Image
@@ -251,7 +251,7 @@ function AppItems() {
                 contentFit="cover"
               />
             </View>
-            <View className="flex flex-col justify-start items-start gap-y-1  ">
+            <View className="flex-1 flex-col justify-start items-start gap-y-1  ">
               <CText style={{ fontFamily: "bold" }} className="text-[1.81rem]">
                 {appData?.name}
                 {appData?.is_active ? "" : " (Coming Soon)"}
@@ -266,18 +266,20 @@ function AppItems() {
               </View>
             </View>
 
-            <View className="absolute top-0 right-0 flex-1 h-full">
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#0000ff" />
-              ) : (
-                <Buttons
-                  type={activated ? "primary" : "secondary"}
-                  className="py-2 px-12 rounded-3xl"
-                  text={activated ? "Uninstall" : "Install"}
-                  onPress={activated ? deactivateTool : activateTool}
-                />
-              )}
-            </View>
+            {appData?.is_active && (
+              <View className="absolute top-0 right-0 flex-1 h-full">
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#0000ff" />
+                ) : (
+                  <Buttons
+                    type={activated ? "primary" : "secondary"}
+                    className="py-2 px-12 rounded-3xl"
+                    text={activated ? "Uninstall" : "Install"}
+                    onPress={activated ? deactivateTool : activateTool}
+                  />
+                )}
+              </View>
+            )}
           </View>
         </View>
 
@@ -477,6 +479,7 @@ function AppItems() {
           activeParams={activeParams}
           toolConfig={toolConfig}
           setSetUpParams={setSetUpParams}
+          tutorial={appData?.tutorial}
         />
       )}
     </View>

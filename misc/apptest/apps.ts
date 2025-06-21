@@ -8,6 +8,7 @@ export interface App {
     banner: string | ImageSource;
     icon: string | ImageSource;
     description: string;
+    tutorial?: string;
     url: string;
     tags: string[];
     descriptionImages: string[];
@@ -36,6 +37,7 @@ const apps: App[] = [
         banner: require('@/assets/apps/airbillsbg.jpeg'),
         icon: require('@/assets/apps/airbillslogo.jpg'),
         description: "Airbills is a platform that allows you to get utility such as airtime and electricity bill with solana tokens.",
+        
         url: "https://airbills.com",
         tags: ["Tools"],
         descriptionImages: [
@@ -150,6 +152,7 @@ const apps: App[] = [
         banner: require('@/assets/apps/pajbg.jpeg'),
         icon: require('@/assets/apps/pajcas.jpg'),
         description: "Pajcash is a platform that allows you to offramp your solana tokens to naira.",
+        tutorial: "To use this tool, you need to connect your solana wallet on paj.cash, and then fill the details here!.",
         url: "https://paj.cash",
         tags: ["Finance", "Offramping", "Solana", "USDC"],
         descriptionImages: [
@@ -237,7 +240,7 @@ Talk, ask, command, and get things done with just your voice. From managing your
             require('@/assets/apps/nexumint/des1.jpeg'),
             require('@/assets/apps/nexumint/des2.jpeg'),
         ],
-        is_active: true,
+        is_active: false,
         is_featured: false,
         is_new: true,
         ratings: 0,

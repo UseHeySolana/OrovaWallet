@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Linking } from "react-native";
 import { Pressable } from "react-native";
 import CText from "../TextComp";
 import IconLibrary from "@/misc/helpers/icons";
@@ -8,6 +8,7 @@ import AppSettings from "@/misc/store/settingsstore";
 import { TouchableNativeFeedback } from "react-native";
 import ToolsItem from "@/misc/store/toolsitems";
 import { delayPromise } from "@/misc/helpers/miscfunctions.ts";
+import { openURL } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 
 interface ParamsComponentProps {
   appData: any;
@@ -16,7 +17,8 @@ interface ParamsComponentProps {
   setActiveParams: (activeParams: any) => void;
   activeParams: any;
   toolConfig: any;
-  setSetUpParams: (setSetUpParams: boolean) => void;
+  setSetUpParams: (setSetUpParams: boolean | null) => void;
+  tutorial?: string;
 }
 
 const ParamsComponent = ({
@@ -27,14 +29,39 @@ const ParamsComponent = ({
   activeParams,
   toolConfig,
   setSetUpParams,
+  tutorial,
 }: ParamsComponentProps) => {
   const { updateToolParameter } = ToolsItem();
   const { setToast, setLoading } = AppSettings();
 
   return (
     <View className="absolute top-0 py-5 left-0 right-0 z-50 px-4 bg-black/90 h-[100%] flex-1 flex flex-col justify-center items-center gap-y-2">
+      {/* close button */}
+
       {/* this is a popup that will allow users to set up toools and fill the fields that they want to setup */}
       <View className="w-full h-fit bg-white dark:bg-accent p-4 rounded-2xl py-8 flex flex-col justify-start items-start">
+        <Pressable
+          className="absolute top-0 right-0 p-2"
+          onPress={() => setSetUpParams(null)}
+        >
+          <IconLibrary.cancel size={20} />
+        </Pressable>
+        {tutorial && (
+          <View className="w-full h-fit bg-white dark:bg-accent p-4 rounded-2xl py-8 flex flex-col justify-center items-center">
+            <CText
+              style={{ fontFamily: "reg" }}
+              className="text-[1.2rem] text-center"
+            >
+              {tutorial}
+            </CText>
+            <Pressable
+              onPress={async () => await openURL(appData?.url)}
+              className="w-full flex flex-row justify-center py-3 items-center gap-x-2"
+            >
+              <IconLibrary.external size={20} />
+            </Pressable>
+          </View>
+        )}
         {result && (
           <View className="w-full h-fit bg-white dark:bg-accent p-4 rounded-2xl py-8 flex flex-col justify-start items-start">
             <CText style={{ fontFamily: "reg" }} className="text-[1.2rem]">
@@ -164,15 +191,17 @@ const ParamsComponent = ({
 
                         const result = await item.action.url(...params);
                         const res = result.data;
-                        console.log(result);
+
                         if (res.status) {
                           setResult(res.data);
-                          setToast(res.message + " " + res.name, "success");
-                          setSetUpParams(false);
+                          setToast(res.message, "success");
+                          setSetUpParams(null);
                         } else {
                           setToast(res.message, "error");
+                          setSetUpParams(null);
                         }
                         setLoading(false);
+                        setSetUpParams(null);
                       }}
                     />
                   </View>
@@ -186,7 +215,7 @@ const ParamsComponent = ({
                         setLoading(true);
                         await delayPromise(1000);
                         setToast("Tool saved", "success");
-                        setSetUpParams(false);
+                        setSetUpParams(null);
                         setLoading(false);
                       }}
                     />
