@@ -7,6 +7,7 @@ import UserItem from "@/misc/store/userstore";
 
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
+import SetPin from "@/components/Sheets/SetPinSheet";
 
 
 
@@ -17,6 +18,19 @@ const settingsMenu2 = [
     type: 'toggle',
     subtitle: "Use fingerprint and faceId to signin",
     icon: <IconLibrary.lock />,
+  },
+  {
+    title: "Set PIN",
+    route: 'dark',
+    type: 'activate',
+    subtitle: "Set a PIN to secure your account",
+    icon: <IconLibrary.password />,
+  },
+  {
+    title: "Private Key",
+    route: '/settings/security/private',
+    subtitle: "View your private key/key phrases",
+    icon: <IconLibrary.security />,
   },
   {
     title: "Delete Account",
@@ -31,15 +45,18 @@ const settingsMenu2 = [
   * 1. Updates Settings and Shows Settings and What to Change
   */
 function Security() {
-  const [recording, setRecording] = useState(false);
-
   const { isDarkMode, toggleTheme } = useThemeContext()
   const { setDefault, openWithAuth, setOpenWithAuth, setToast } = AppSettings()
   const { user, userWallet, logout } = UserItem()
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
+  const [setPinOpen, setSetPinOpen] = useState<boolean>(false);
+
 
   const routeNavigation = (route: any, type?: string) => {
     if (type == 'toggle') {
+      return;
+    }
+    if (type == 'activate') {
+      setSetPinOpen(!setPinOpen)
       return;
     }
     if (route == null) {
@@ -56,7 +73,6 @@ function Security() {
 
   }
 
-  console.log(openWithAuth);
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full gap-y-6">
@@ -120,6 +136,9 @@ function Security() {
         </View>
 
       </View>
+
+      <SetPin open={setPinOpen} setOpen={setSetPinOpen} />
+
 
 
 

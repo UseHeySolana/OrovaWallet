@@ -73,7 +73,7 @@ function Scan() {
               <QRCode
                 value={walletAddress}
                 size={scale(249)}
-                logo={require('@/assets/images/icon.png')}
+                logo={require('@/assets/images/ballicon.png')}
                 logoBackgroundColor="transparent"
               />
             </View>

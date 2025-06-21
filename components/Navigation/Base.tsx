@@ -1,3 +1,4 @@
+import tracker from '@/misc/helpers/db/tracker'
 import IconLibrary from '@/misc/helpers/icons'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
@@ -24,24 +25,37 @@ export const Base = ({ isSessionActive, startSession, stopSession, isAiActive, s
             <Ionicons name="wallet-outline" size={24} color="#971BB2" />
           </View> */}
           
-        <TouchableOpacity onPress={() => setShowWallet && setShowWallet(true)} className="h-[56] w-[56] border bg-[#666666] dark:bg-accent border-white dark:border-dark flex items-center justify-center rounded-full">
+        <TouchableOpacity onPress={
+          () => {
+            tracker.buttons('wallet', 1);
+            setShowWallet && setShowWallet(true)
+          }} className="h-[56] w-[56] border bg-[#666666] dark:bg-accent border-white dark:border-dark flex items-center justify-center rounded-full">
           <IconLibrary.wallet />
 
           {/* <Ionicons name="color-palette-outline" size={24} color="white" /> */}
 
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => showWallet ? setShowWallet(false) :isSessionActive ? stopSession() : startSession()} className="h-[100]  w-[100] bg-grey dark:bg-accent  rounded-full">
+        <TouchableOpacity onPress={() => {
+          tracker.buttons( showWallet ?'start_ai' : "initialise_ai", 1);
+          showWallet ? setShowWallet(false) : isSessionActive ? stopSession() : startSession()
+        }} className="h-[100]  w-[100] bg-grey dark:bg-accent  rounded-full">
           <Image source={require('@/assets/images/ai.png')} style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
         </TouchableOpacity>
         {isSessionActive ?
-          <TouchableOpacity onPress={() => stopSession()} className="h-[56] w-[56] flex items-center justify-center rounded-full">
+          <TouchableOpacity onPress={() => {
+            tracker.buttons('stop_ai', 1);
+            stopSession()
+          }} className="h-[56] w-[56] flex items-center justify-center rounded-full">
             <IconLibrary.cancel color='red' size={30} />
 
           </TouchableOpacity>
           :
-          <TouchableOpacity onPress={() => router.push('/dashboard/chat')} className="h-[56] w-[56] flex items-center justify-center rounded-full">
+          <TouchableOpacity onPress={() => {
+            tracker.buttons('conversations', 1);
+            router.push('/dashboard/chat')
+          }} className="h-[56] w-[56] flex items-center justify-center rounded-full">
             <IconLibrary.chat />
           </TouchableOpacity>
         }

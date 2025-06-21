@@ -4,7 +4,7 @@ import CText from "../TextComp";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import Buttons from "../ButtonComp";
 import React, { useEffect, useState } from "react";
-import { addContact, updateContact } from "@/misc/helpers/db";
+import { addContact, updateContact } from "@/misc/helpers/db/db";
 import AppSettings from "@/misc/store/settingsstore";
 import ConfirmActionSheet from "./ConfirmationSheet";
 import { cleanNumber, shortenPub } from "@/misc/helpers/miscfunctions.ts/extrafunctions";

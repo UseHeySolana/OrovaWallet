@@ -1,7 +1,7 @@
 import Convo from '@/misc/store/conversation';
 import AppSettings from '@/misc/store/settingsstore';
 import * as Clipboard from 'expo-clipboard';
-import { fetchData } from '../db';
+import { fetchData } from '../db/db';
 import PersonalContacts from '@/misc/store/personalcontacts';
 import PhoneBook from '@/misc/store/phonebook';
 import UserItem from '@/misc/store/userstore';
@@ -31,12 +31,22 @@ const pasteItem = async () => {
     }
 }
 
-const delay = (delay: number) => {
-
+const delay = async(delay: number) => {
+    AppSettings.getState().setLoading(true)
     setTimeout(() => {
-
+        AppSettings.getState().setLoading(false)
     }, delay);
 }
+
+const delayPromise = (ms: number): Promise<void> => {
+    AppSettings.getState().setLoading(true);
+    return new Promise(resolve => {
+        setTimeout(() => {
+            AppSettings.getState().setLoading(false);
+            resolve();
+        }, ms);
+    });
+};
 
 const completeConversation = async (messageId: string | null, status: "complete" | "failed" | "pending", link?: string) => {
     if (messageId !== null) {
@@ -68,7 +78,7 @@ const getUserDetails = async (username: string) => {
 }
 
 
-const AgentContacts = () =>{
+const AgentContacts = () => {
 
     const phoneBookContacts = PhoneBook.getState().contacts.map(item => ({
         "name": item.name,
@@ -77,7 +87,7 @@ const AgentContacts = () =>{
         "name": item.username,
     }))
     return [...phoneBookContacts, ...personalContacts]
-    
+
 }
 
 
@@ -137,6 +147,7 @@ export {
     copyItem,
     pasteItem,
     delay,
+    delayPromise,
     completeConversation,
     getUserDetails,
     AgentContacts,

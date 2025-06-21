@@ -23,6 +23,7 @@ import { summarizeConversation } from "../miscfunctions.ts/extrafunctions";
 import { AgentContacts, supportedTokens } from "../miscfunctions.ts";
 import setUserItems from "@/app/requests/dashboard";
 import WalletItem from "@/misc/store/wallet";
+import tracker from "../db/tracker";
 
 class SessionManager {
     private isSessionActive: boolean;
@@ -84,6 +85,7 @@ class SessionManager {
                 \n 
                 to swap first get the quote of the tokens and then respond to the user with the quote and then ask for confirmation to swap.
                 \n
+
             always map the username i am interacting to any of these, correct with right spelling always if the username doesn't fall you can use as provided.
                 \n
                  these are the list of sub tools supported and parameters,
@@ -123,10 +125,9 @@ class SessionManager {
             //     return now >= expiryDate;
             // }
 
-
-
             // if (ek.value === "" || !isTokenExpired(ek.expiry)) {
             const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
+
             const data = await tokenResponse.json();
             const EPHEMERAL_KEY = data.client_secret.value;
             AppSettings.getState().setEk(data.client_secret.value, data.client_secret.expires_at)
@@ -585,6 +586,7 @@ class SessionManager {
 
     private async handleFunctionCall(functionCall: any): Promise<void> {
         console.log("Handling function call", functionCall.name)
+
         const { name, arguments: argsJson, call_id } = functionCall;
         try {
             // Find the registered function handler
@@ -625,6 +627,7 @@ class SessionManager {
             const result = await functionDef.handler(args);
             console.log(`Function ${name} result:`, result);
 
+            tracker.tool_calls(name, 1);
             // Send the result back to the model
             const resultEvent = {
                 type: "conversation.item.create",
@@ -665,7 +668,7 @@ class SessionManager {
 
         const userItem = UserItem.getState()
         const publicKey = WalletItem.getState().publicKey
-        if(userItem.user && publicKey){
+        if (userItem.user && publicKey) {
             console.log("Updating user items")
             await setUserItems(userItem.user, userItem.updateUserWallet, publicKey, AppSettings.getState().network);
         }

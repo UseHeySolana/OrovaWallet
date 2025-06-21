@@ -70,7 +70,7 @@ const ConfirmActionSheetGlobal = () => {
         <DragableSheet
             close={() => setVisible(false)}
             panClose={true}
-            snapPoints={["40%", "50%"]}
+            snapPoints={["50%", "70%"]}
             child={
                 <View className=" py-5 w-full gap-y-5 flex flex-col justify-end ">
                     <View className="w-10/12 m-auto">

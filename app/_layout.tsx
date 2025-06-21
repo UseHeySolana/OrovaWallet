@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../global.css'
-import { SplashScreen, Stack } from "expo-router";
+import { SplashScreen, Stack, useNavigationContainerRef, useRootNavigationState } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";
@@ -13,6 +13,8 @@ import { KeyboardProvider } from '@/misc/context/KeyboardContext';
 
 import { ThemeProvider, useThemeContext } from '@/misc/context/ThemeContext';
 import StackView from './stack';
+import { useRouteTracking } from '@/components/hooks/navigation';
+import tracker from '@/misc/helpers/db/tracker';
 
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
@@ -20,12 +22,16 @@ SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
 
+
   const [loaded, error] = useFonts({
     reg: DMSans_400Regular,
     md: DMSans_500Medium,
     bold: DMSans_700Bold,
   });
 
+  useRouteTracking((routeName:any) => {
+    tracker.page_open_count(routeName, 1);
+  });
 
   useEffect(() => {
     async function prepare() {
@@ -71,6 +77,7 @@ export default function RootLayout() {
             <SafeAreaView style={{ flex: 1 }}>
               <StackView />
             </SafeAreaView>
+
           </AiServiceProvider>
         </ThemeProvider>
       </KeyboardProvider>

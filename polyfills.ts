@@ -26,3 +26,7 @@ if (!hasInbuiltWebCrypto) {
         get: () => webCrypto,
     });
 }
+
+
+
+// "sudo port install php82-cgi php82-gd php82-curl php82-intl php82-iconv php82-gettext php82-mbstring php82-imap php82-mcrypt php82-xmlrpc php82-mysql php82-openssl php82-sockets php82-zip php82-tidy php82-opcache php82-xsl php82-sqlite"

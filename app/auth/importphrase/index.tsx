@@ -7,7 +7,7 @@ import { getKeypairFromMnemonic, isJson } from "@/misc/helpers/wallet";
 
 import AppSettings from "@/misc/store/settingsstore";
 import WalletItem from "@/misc/store/wallet";
-import { saveWalletAddress } from "@/misc/helpers/db";
+import { saveWalletAddress } from "@/misc/helpers/db/db";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 import { pasteItem } from "@/misc/helpers/miscfunctions.ts";
@@ -103,6 +103,7 @@ export default function ImportPhrase({ navigation }: any) {
                 <TextInput
                   style={{ fontFamily: "bold", }}
                   multiline
+                  returnKeyType="done"
 
                   value={mnemonic}
                   numberOfLines={100}
@@ -143,7 +144,7 @@ export default function ImportPhrase({ navigation }: any) {
           <Buttons onPress={importWallet} text="Import Wallet" />
           <Buttons buttonType="feedback" type="secondary" onPress={() => router.push("/auth/secretphrase")} text="I don't know what a secret phrase is" />
         </View>
-      }
+     } 
 
     </View>
   );
