@@ -173,7 +173,7 @@ export default function Dashboard() {
   // }
 
   return (
-    <View className="pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark ">
+    <View className="flex-1 pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark ">
       <View className="flex  flex-row justify-between items-center">
         {/* <TouchableOpacity onPress={() => router.push('/settings')} className="p-3  rounded-full bg-white dark:bg-accent ">
           <Feather name="settings" size={16} color={isDarkMode ? "white" : "black"} />
