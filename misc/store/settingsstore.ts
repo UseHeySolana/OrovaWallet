@@ -45,12 +45,16 @@ interface Settings {
     setOpenWithAuth: (val: boolean) => void,
     refresher: number, 
     setRefresher: (refresher: number) => void
+    pinReminder: number | null,
+    setPinReminder: (reminder: number) => void
 }
 
 
 const AppSettings = create(
     persist<Settings>(
         (set, get) => ({
+            pinReminder: null,
+            setPinReminder: (reminder: number) => set({ pinReminder: reminder }),
             pin: "",
             setPin: (pin: string) => set({ pin: pin }),
             refresher: 0,

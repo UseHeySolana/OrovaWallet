@@ -47,9 +47,8 @@ export const getKeypairFromMnemonic = async (mnemonic: string): Promise<Keypair>
 
 
 export const fetchConversionRate = async (fromCurrency: string) => {
-
     try {
-        let data = await fetch(`https://api.jup.ag/price/v2?ids=${fromCurrency}`)
+        let data = await fetch(`https://lite-api.jup.ag/price/v2?ids=${fromCurrency}`)
         let jsonData = await data.json();
         return jsonData.data[fromCurrency].price;
 

@@ -24,7 +24,7 @@ export interface Userstore {
   session: string | null;
   clearData: () => void;
   user: UserType | null;
-  setUser: (user: UserType) => void;
+  setUser: (user: UserType| null) => void;
   logout: () => void;
   userWallet: userWalletType
   updateUserWallet: (userWallet: userWalletType) => void;
@@ -42,7 +42,7 @@ const UserItem = create(
         tokenAccounts: [],
         totalUsdBalance: 0,
       },
-      setUser: (user: UserType) => set({ user }),
+      setUser: (user: UserType | null) => set({ user }),
       updateUserWallet: (userWallet: userWalletType) => set({ userWallet }),
       createSession: () => {
         const session = `${Math.random()}${new Date().getTime()}${Math.random()}`;

@@ -119,16 +119,17 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
 
     const stopSession = useCallback(() => {
         setLoading(true);
+        setConversationId("");
         setTimeout(() => {
+          if (sessionManager) {
+            sessionManager.stopSession();
+            setIsSessionActive(false);
+            setSessionManager(null);
+          }
+          setRefresh(Math.random());
+          setLoading(false);
+        }, 500);
 
-            if (sessionManager) {
-                sessionManager.stopSession();
-                setIsSessionActive(false);
-                setSessionManager(null);
-            }
-            setRefresh(Math.random());
-            setLoading(false);
-        }, 500)
 
     }, [sessionManager]);
 

@@ -6,13 +6,17 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 interface Wallet {
     keypair: Keypair | null;
     publicKey: PublicKey | null;
+    passphrase: string | null;
     updateKeypair: (keypair: Keypair |null) => void;
     setDefault: () => void;
+    updatePassphrase: (passphrase: string|null) => void;
 }
 
 const WalletItem = create(
     persist<Wallet>(
         (set, get) => ({
+            passphrase: null,
+            updatePassphrase: (passphrase: string|null) => set({ passphrase }),
             publicKey: null,
             keypair: null,
             updateKeypair: (keypair: Keypair|null) => set({ keypair, publicKey: keypair?.publicKey }),

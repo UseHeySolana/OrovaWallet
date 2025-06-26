@@ -25,6 +25,7 @@ import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helper
 import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
 import { toolRouter } from "@/misc/helpers/toolsregistry";
+import SetPin from "@/components/Sheets/SetPinSheet";
 
 const AiHelpers = [
   {
@@ -62,11 +63,13 @@ const colors = {
  */
 export default function Dashboard() {
   const { convoId } = useLocalSearchParams();
+
   const [activeItems, setActiveItems] = useState([0, 1]);
   const { messages, getConversationMessages, conversations } = Convo();
   const [activeTab, setActiveTab] = useState("tokens");
   const { user, userWallet, updateUserWallet, logout } = UserItem();
-  const { network, setLoading, aiName, refresher } = AppSettings();
+  const { network, setLoading, aiName, refresher, pin, pinReminder } =
+    AppSettings();
   const {
     connection,
     sessionManager,
@@ -86,19 +89,24 @@ export default function Dashboard() {
   const { isDarkMode } = useThemeContext();
 
   const [message, setMessage] = useState<MessageType[]>([]);
+  const [setPinOpen, setSetPinOpen] = useState(false);
 
   useEffect(() => {
-    if (convoId) {
-      const messageItem = getConversationMessages(convoId as string) || [];
-      setMessage(messageItem);
+    if (pin.length > 0) {
+      setSetPinOpen(false);
     } else {
-      // const messageItem =
-      //   getConversationMessages(conversations[conversations.length - 1].id) ||
-      //   [];
+      setSetPinOpen(true);
+    }
+  }, [pin]);
+
+  useEffect(() => {
+    if (conversationId !== "") {
       const messageItem = getConversationMessages(conversationId) || [];
       setMessage(messageItem);
+    } else if (convoId || !(convoId != undefined)) {
+      const messageItem = getConversationMessages(convoId as string) || [];
+      setMessage(messageItem);
     }
-    // console.log(conversations)
   }, [conversationId, messages, convoId]);
 
   useEffect(() => {
@@ -112,7 +120,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (sessionManager) {
       const tools = toolRouter(sessionManager);
-      // console.log(tools);
     }
   }, [sessionManager]);
 
@@ -138,6 +145,9 @@ export default function Dashboard() {
     if (!sessionManager) return;
     startSession();
     setShowWallet(false);
+    router.setParams({
+      convoId: null,
+    });
   };
 
   const stopStreamingSession = async () => {
@@ -593,6 +603,8 @@ export default function Dashboard() {
         startSession={startStreamingSession}
         isSessionActive={isSessionActive}
       />
+
+      <SetPin open={setPinOpen} setOpen={setSetPinOpen} usage="first-time" />
 
       {/* <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={testFunctions} isSessionActive={isSessionActive} /> */}
     </View>
