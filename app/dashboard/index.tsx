@@ -62,6 +62,7 @@ const colors = {
  */
 export default function Dashboard() {
   const { convoId } = useLocalSearchParams();
+
   const [activeItems, setActiveItems] = useState([0, 1]);
   const { messages, getConversationMessages, conversations } = Convo();
   const [activeTab, setActiveTab] = useState("tokens");
@@ -88,17 +89,13 @@ export default function Dashboard() {
   const [message, setMessage] = useState<MessageType[]>([]);
 
   useEffect(() => {
-    if (convoId) {
-      const messageItem = getConversationMessages(convoId as string) || [];
-      setMessage(messageItem);
-    } else {
-      // const messageItem =
-      //   getConversationMessages(conversations[conversations.length - 1].id) ||
-      //   [];
+    if (conversationId !== "") {
       const messageItem = getConversationMessages(conversationId) || [];
       setMessage(messageItem);
+    } else if (convoId || !(convoId != undefined)) {
+      const messageItem = getConversationMessages(convoId as string) || [];
+      setMessage(messageItem);
     }
-    // console.log(conversations)
   }, [conversationId, messages, convoId]);
 
   useEffect(() => {
@@ -112,7 +109,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (sessionManager) {
       const tools = toolRouter(sessionManager);
-      // console.log(tools);
     }
   }, [sessionManager]);
 
@@ -138,6 +134,9 @@ export default function Dashboard() {
     if (!sessionManager) return;
     startSession();
     setShowWallet(false);
+    router.setParams({
+      convoId: null,
+    });
   };
 
   const stopStreamingSession = async () => {

@@ -1,5 +1,11 @@
-import React,{ useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import CText from "@/components/TextComp";
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
@@ -8,37 +14,23 @@ import UserItem from "@/misc/store/userstore";
 import IconLibrary from "@/misc/helpers/icons";
 import { useThemeContext } from "@/misc/context/ThemeContext";
 import SetPin from "@/components/Sheets/SetPinSheet";
+import PrivateKeySheet from "@/components/Sheets/PrivateKeySheet";
 
-
-
-const settingsMenu2 = [
+const privateMenu = [
   {
-    title: "Biometric Signin",
-    route: 'dark',
-    type: 'toggle',
-    subtitle: "Use fingerprint and faceId to signin",
+    title: "Show Private Key",
+    route: "dark",
+    subtitle: "Show your private key/key phrases",
     icon: <IconLibrary.lock />,
   },
   {
-    title: "Set PIN",
-    route: 'dark',
-    type: 'activate',
-    subtitle: "Set a PIN to secure your account",
+    title: "Show Passphrase",
+    route: "dark",
+    type: "activate",
+    subtitle: "Show your passphrase",
     icon: <IconLibrary.password />,
   },
-  {
-    title: "Private Key",
-    route: '/settings/security/private',
-    subtitle: "View your private key/key phrases",
-    icon: <IconLibrary.security />,
-  },
-  {
-    title: "Delete Account",
-    route: null,
-    subtitle: "Delete account from HeySolana",
-    icon: <IconLibrary.delete />,
-  },
-]
+];
 /*
 /**
   * What should be done here
@@ -47,108 +39,114 @@ const settingsMenu2 = [
 function Security() {
   const [recording, setRecording] = useState(false);
 
-  const { isDarkMode, toggleTheme } = useThemeContext()
-  const { setDefault, openWithAuth, setOpenWithAuth, setToast } = AppSettings()
-  const { user, userWallet, logout } = UserItem()
+  const { isDarkMode, toggleTheme } = useThemeContext();
+  const { setDefault, openWithAuth, setOpenWithAuth, setToast } = AppSettings();
+  const { user, userWallet, logout } = UserItem();
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
-  const [setPinOpen, setSetPinOpen] = useState<boolean>(false);
-
+  const [setPinOpen, setSetPinOpen] = useState<boolean>(true);
 
   const routeNavigation = (route: any, type?: string) => {
-    if (type == 'toggle') {
+    if (type == "toggle") {
       return;
     }
-    if (type == 'activate') {
-      setSetPinOpen(!setPinOpen)
+    if (type == "activate") {
+      setSetPinOpen(!setPinOpen);
       return;
     }
     if (route == null) {
       return;
     }
-    if (route == 'logout') {
+    if (route == "logout") {
       logout();
-      router.replace('/');
+      router.replace("/");
       return;
     }
     if (route !== null) {
       router.push(route);
     }
-
-  }
+  };
 
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark  w-100 flex-1 items-start justify-start gap-y-4">
       <View className="w-full gap-y-6">
-
         <View className="w-full px-4 flex flex-row justify-start items-center gap-x-5">
-          <Pressable onPress={() => router.back()} className="p-3 rounded-full bg-white dark:bg-accent">
+          <Pressable
+            onPress={() => router.back()}
+            className="p-3 rounded-full bg-white dark:bg-accent"
+          >
             <IconLibrary.back />
           </Pressable>
-          <CText className="text-[1.4rem]">Security</CText>
+          <CText className="text-[1.4rem]">Private Key</CText>
         </View>
 
-
         <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow  bg-white dark:bg-accent ">
-          {settingsMenu2.map((item, index) => {
+          {privateMenu.map((item, index) => {
             return (
-              <Pressable onPress={() => {
-                routeNavigation(item.route, item.type)
-              }} key={index} className="py-1 flex flex-row justify-between items-center">
+              <Pressable
+                onPress={() => {
+                  routeNavigation(item.route, item.type);
+                }}
+                key={index}
+                className="py-1 flex flex-row justify-between items-center"
+              >
                 <View className="flex-1 flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
                     {item.icon ? item.icon : <IconLibrary.angle_right />}
                   </View>
                   <View className="flex-1">
-                    <CText className="text-[1.2rem]">
-                      {item.title}
-                    </CText>
+                    <CText className="text-[1.2rem]">{item.title}</CText>
                     <CText textColor="text-gray-400" className="text-[1rem] ">
                       {item.subtitle}
                     </CText>
                   </View>
                 </View>
 
-                {item.route && item.route !== "logout" &&
+                {item.route && item.route !== "logout" && (
                   <>
-                    {item.type === 'toggle' ?
+                    {item.type === "toggle" ? (
                       <Switch
-                        trackColor={{ false: 'red', true: 'green' }}
-                        thumbColor={'white'}
+                        trackColor={{ false: "red", true: "green" }}
+                        thumbColor={"white"}
                         ios_backgroundColor="#3e3e3e"
                         onValueChange={() => {
-                          setOpenWithAuth(!openWithAuth)
+                          setOpenWithAuth(!openWithAuth);
                           if (!openWithAuth) {
-                            setToast('Biometric signin activated', 'success');
+                            setToast("Biometric signin activated", "success");
                           } else {
-                            setToast('Biometric signin deactivated', 'info');
+                            setToast("Biometric signin deactivated", "info");
                           }
                         }}
                         value={openWithAuth}
                       />
-                      :
+                    ) : (
                       <Pressable onPress={() => router.back()} className="p-3">
                         <IconLibrary.angle_right />
                       </Pressable>
-                    }
+                    )}
                   </>
-
-                }
+                )}
               </Pressable>
-            )
+            );
           })}
         </View>
-
       </View>
 
-      <SetPin open={setPinOpen} setOpen={setSetPinOpen} />
+      <SetPin
+        open={setPinOpen}
+        setOpen={setSetPinOpen}
+        usage="verify"
+        onSuccess={() => {
+          console.log("success");
+        }}
+      />
 
-
-
-
-
+      <PrivateKeySheet
+        open={setPinOpen}
+        setOpen={setSetPinOpen}
+        type="private-key"
+      />
     </View>
   );
 }
 
-export default Security
-
+export default Security;

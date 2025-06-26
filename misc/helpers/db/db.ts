@@ -208,7 +208,6 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
     "wallet_address": walletAddress,
     "username": username,
   }
-  console.log(item);
 
   const response = await request.postJson(item, "/v2/add-walletaddress");
   if (!response.ok) {
