@@ -95,6 +95,7 @@ function Login() {
         "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber),
     };
     const response = await getCode(data.phone_number);
+    console.log(response);
     if (response.status !== false) {
       setUserDetails({
         ...userDetails,
@@ -132,7 +133,6 @@ function Login() {
         setToast("You have reached the maximum number of attempts", "error");
         setCurrentState("");
         clearData();
-
         if (Platform.OS === "ios") {
           BackHandler.exitApp();
         } else {

@@ -15,19 +15,18 @@ import AppSettings from "@/misc/store/settingsstore";
 interface SetPinSheet {
   open: boolean;
   setOpen: (open: boolean) => void;
-  usage?: "verify";
+  usage?: "verify" | "first-time";
   onSuccess?: () => void;
 }
 const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
   const { isDarkMode } = useThemeContext();
   if (!open) return null;
 
-  const { pin: previousPin } = AppSettings.getState();
+  const { pin: previousPin, setToast, setPinReminder } = AppSettings();
 
   const [attempts, setAttempts] = useState(0);
 
   const [stage, setStage] = useState("new-pin");
-  const { setToast } = AppSettings.getState();
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const otpRef = useRef<any>(null);
@@ -76,10 +75,26 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
   };
 
   const verifyPin = () => {
+    if (attempts >= 3) {
+      setToast("You have reached the maximum number of attempts", "error");
+      setOpen(false);
+      if (Platform.OS === "ios") {
+        BackHandler.exitApp();
+      } else {
+        BackHandler.exitApp();
+      }
+      return;
+    }
+    console.log(pin, previousPin);
     if (pin == previousPin) {
       onSuccess?.();
+      setOpen(false);
+    } else {
+      setAttempts(attempts + 1);
+      setToast("Pin provided does not match", "error");
     }
   };
+  console.log(stage);
 
   return (
     <DragableSheet
@@ -94,13 +109,13 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                 style={{ fontFamily: "bold" }}
                 className="text-[20px] text-center"
               >
-                Kindly enter your PIN to continue
+                Enter your PIN
               </CText>
             </View>
 
             <View className="flex-1">
-              <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 px-4 py-5">
-                <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
+              <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 py-5">
+                <View className="w-10/12 m-auto bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
                   <OtpInput
                     ref={otpRef}
                     secureTextEntry={true}
@@ -113,7 +128,7 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                     }}
                     blurOnFilled={true}
                     numberOfDigits={4}
-                    onFilled={(text) => setEnterPreviousPin(text)}
+                    onFilled={(text) => setPin(text)}
                   />
                 </View>
               </KeyboardAvoidingView>
@@ -157,7 +172,7 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
 
             <View className="flex-1">
               <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 px-4 py-5">
-                <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
+                <View className="bg-white w-10/12 m-auto dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
                   <OtpInput
                     ref={otpRef}
                     secureTextEntry={true}
@@ -213,6 +228,23 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                   text={stage === "new-pin" ? "Next" : "Saved"}
                   type="primary"
                 />
+                {usage == "first-time" && stage == "new-pin" && (
+                  <Buttons
+                    buttonType="pressable"
+                    onPress={() => {
+                      setOpen(false);
+                      // setPinReminder(new Date().getTime() + 1000 * 60 * 60 * 24 * 30);
+                      setPinReminder(new Date().getTime() + 1000 * 30);
+                      setStage("new-pin");
+                      otpRef.current.clear();
+                      setPin("");
+                      setConfirmPin("");
+                    }}
+                    className=""
+                    text="Cancel"
+                    type="secondary"
+                  />
+                )}
                 {stage === "confirm-pin" && (
                   <Buttons
                     buttonType="pressable"

@@ -25,6 +25,7 @@ import { keypairSign, openURL, showToast, signTransactions } from "@/misc/helper
 import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
 import { toolRouter } from "@/misc/helpers/toolsregistry";
+import SetPin from "@/components/Sheets/SetPinSheet";
 
 const AiHelpers = [
   {
@@ -67,7 +68,8 @@ export default function Dashboard() {
   const { messages, getConversationMessages, conversations } = Convo();
   const [activeTab, setActiveTab] = useState("tokens");
   const { user, userWallet, updateUserWallet, logout } = UserItem();
-  const { network, setLoading, aiName, refresher } = AppSettings();
+  const { network, setLoading, aiName, refresher, pin, pinReminder } =
+    AppSettings();
   const {
     connection,
     sessionManager,
@@ -87,6 +89,15 @@ export default function Dashboard() {
   const { isDarkMode } = useThemeContext();
 
   const [message, setMessage] = useState<MessageType[]>([]);
+  const [setPinOpen, setSetPinOpen] = useState(false);
+
+  useEffect(() => {
+    if (pin.length > 0) {
+      setSetPinOpen(false);
+    } else {
+      setSetPinOpen(true);
+    }
+  }, [pin]);
 
   useEffect(() => {
     if (conversationId !== "") {
@@ -592,6 +603,8 @@ export default function Dashboard() {
         startSession={startStreamingSession}
         isSessionActive={isSessionActive}
       />
+
+      <SetPin open={setPinOpen} setOpen={setSetPinOpen} usage="first-time" />
 
       {/* <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={testFunctions} isSessionActive={isSessionActive} /> */}
     </View>

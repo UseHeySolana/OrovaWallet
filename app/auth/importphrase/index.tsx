@@ -26,60 +26,64 @@ export default function ImportPhrase({ navigation }: any) {
   const { isKeyboardVisible } = useKeyboard()
   const [mnemonic, setMnemonic] = useState("");
   const { isLoading, setLoading, setToast } = AppSettings()
-  const { updateKeypair } = WalletItem()
-  const { setUser, user } = UserItem()
-
-
+  const { updateKeypair, updatePassphrase } = WalletItem();
+  const { setUser, user } = UserItem();
 
   const importWallet = async () => {
     if (mnemonic == "") {
-      setToast("No Phrase Imported", "error")
-      setLoading(false)
+      setToast("No Phrase Imported", "error");
+      setLoading(false);
       return;
     }
 
     if (isJson(mnemonic)) {
       if (JSON.parse(mnemonic).length != 64) {
-        setToast("Awwn! this is not a valid private key!", "error")
-        setLoading(false)
+        setToast("Awwn! this is not a valid private key!", "error");
+        setLoading(false);
 
         return;
       }
     } else {
       if (mnemonic.trim().split(/\s+/).length != 12) {
-        setToast("Invalid phrase!, phrase must be 12.", "error")
-        setLoading(false)
+        setToast("Invalid phrase!, phrase must be 12.", "error");
+        setLoading(false);
         return;
       }
     }
-    setLoading(true)
+    setLoading(true);
 
     try {
       const keyPair = await getKeypairFromMnemonic(mnemonic.trim());
       console.log(keyPair.publicKey, user);
+      updatePassphrase(mnemonic.trim());
       // Only proceed once keypair is available
       if (keyPair && keyPair.publicKey && user) {
         try {
-          const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
+          const response = await saveWalletAddress(
+            keyPair.publicKey.toBase58(),
+            user.username
+          );
           if (response.status !== false) {
             updateKeypair(keyPair);
-            setToast("Wallet Created", 'success')
-            router.replace('/dashboard')
-            setLoading(false)
+            setToast("Wallet Created", "success");
+            router.replace("/dashboard");
+            setLoading(false);
           }
         } catch (error) {
-          setLoading(false)
+          setLoading(false);
           console.error("Error saving wallet address:", error);
         }
       } else {
         setLoading(false);
-        console.error("Failed to generate keypair: keypair is null or undefined");
+        console.error(
+          "Failed to generate keypair: keypair is null or undefined"
+        );
       }
     } catch (error) {
-      setLoading(false)
+      setLoading(false);
       console.error("Error generating keypair:", error);
     }
-  }
+  };
   return (
     <View className="pt-4 relative bg-gray dark:bg-dark h-[100%]">
       <View className="gap-y-5 w-full px-4 flex flex-1 flex-col justify-start ">

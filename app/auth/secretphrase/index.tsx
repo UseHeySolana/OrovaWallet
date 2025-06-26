@@ -75,7 +75,7 @@ export default function SecretPhrase({ navigation }: any) {
     ]
   )
 
-  const { keypair, updateKeypair, publicKey } = WalletItem()
+  const { keypair, updateKeypair, publicKey, updatePassphrase } = WalletItem();
   const { user } = UserItem();
   const { setLoading, isLoading, setToast } = AppSettings()
 
@@ -131,6 +131,7 @@ export default function SecretPhrase({ navigation }: any) {
       setCurrentState('set-pin');
       const keyPair = await getKeypairFromMnemonic(mnemonic);
       updateKeypair(keyPair)
+      updatePassphrase(mnemonic);
 
       if (!user) {
         router.replace('/auth/username')

@@ -22,13 +22,14 @@ const privateMenu = [
     route: "dark",
     subtitle: "Show your private key/key phrases",
     icon: <IconLibrary.lock />,
+    type: "private-key",
   },
   {
     title: "Show Passphrase",
     route: "dark",
-    type: "activate",
     subtitle: "Show your passphrase",
     icon: <IconLibrary.password />,
+    type: "passphrase",
   },
 ];
 /*
@@ -44,6 +45,10 @@ function Security() {
   const { user, userWallet, logout } = UserItem();
   const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
   const [setPinOpen, setSetPinOpen] = useState<boolean>(true);
+  const [showPrivateKey, setShowPrivateKey] = useState<boolean>(false);
+  const [privateKeyType, setPrivateKeyType] = useState<
+    "private-key" | "passphrase"
+  >("private-key");
 
   const routeNavigation = (route: any, type?: string) => {
     if (type == "toggle") {
@@ -84,7 +89,8 @@ function Security() {
             return (
               <Pressable
                 onPress={() => {
-                  routeNavigation(item.route, item.type);
+                  setShowPrivateKey(true);
+                  setPrivateKeyType(item.type as "private-key" | "passphrase");
                 }}
                 key={index}
                 className="py-1 flex flex-row justify-between items-center"
@@ -100,31 +106,9 @@ function Security() {
                     </CText>
                   </View>
                 </View>
-
-                {item.route && item.route !== "logout" && (
-                  <>
-                    {item.type === "toggle" ? (
-                      <Switch
-                        trackColor={{ false: "red", true: "green" }}
-                        thumbColor={"white"}
-                        ios_backgroundColor="#3e3e3e"
-                        onValueChange={() => {
-                          setOpenWithAuth(!openWithAuth);
-                          if (!openWithAuth) {
-                            setToast("Biometric signin activated", "success");
-                          } else {
-                            setToast("Biometric signin deactivated", "info");
-                          }
-                        }}
-                        value={openWithAuth}
-                      />
-                    ) : (
-                      <Pressable onPress={() => router.back()} className="p-3">
-                        <IconLibrary.angle_right />
-                      </Pressable>
-                    )}
-                  </>
-                )}
+                <Pressable onPress={() => {}} className="p-3">
+                  <IconLibrary.angle_right />
+                </Pressable>
               </Pressable>
             );
           })}
@@ -141,9 +125,9 @@ function Security() {
       />
 
       <PrivateKeySheet
-        open={setPinOpen}
-        setOpen={setSetPinOpen}
-        type="private-key"
+        open={showPrivateKey}
+        setOpen={setShowPrivateKey}
+        type={privateKeyType}
       />
     </View>
   );

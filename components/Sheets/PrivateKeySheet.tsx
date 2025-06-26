@@ -13,6 +13,8 @@ import React, { useEffect, useRef, useState } from "react";
 import AppSettings from "@/misc/store/settingsstore";
 import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 import WalletItem from "@/misc/store/wallet";
+import { keypairSign } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { Keypair } from "@solana/web3.js";
 
 interface PrivateKeySheetTypes {
   open: boolean;
@@ -23,14 +25,29 @@ interface PrivateKeySheetTypes {
 const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
   const { isDarkMode } = useThemeContext();
   if (!open) return null;
+  const [privateKey, setPrivateKey] = useState<any | null>(null);
+  const { setToast } = AppSettings();
 
-  const { keypair } = WalletItem();
+  useEffect(() => {
+    (async () => {
+      if (type === "private-key") {
+        const sign = await keypairSign();
+        if (sign) {
+          const key = Array.from(sign.secretKey);
+          setPrivateKey(key);
+        }
+      } else {
+        setPrivateKey(WalletItem.getState().passphrase);
+      }
+    })();
+  }, []);
 
   const copyValue = () => {
     if (type === "private-key") {
-      copyItem(keypair?.secretKey.toString() || "");
+      copyItem(privateKey?.secretKey || "");
+      setToast("Copied to clipboard", "success");
     } else {
-      copyItem(keypair?.secretKey.toString() || "");
+      copyItem(privateKey?.secretKey.toString() || "");
     }
   };
 
@@ -46,17 +63,21 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
               style={{ fontFamily: "bold" }}
               className="text-[20px] text-center"
             >
-              Kindly enter your PIN to continue
+              {type === "private-key" ? "Your Private Key" : "Your Passphrase"}
             </CText>
           </View>
 
           <View className="flex-1">
             <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 px-4 py-5">
-              <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
-                <CText className="text-[1.2rem]">
+              <View className="bg-white dark:bg-accent2 h-fit p-5 rounded-2xl">
+                <CText
+                  selectable={true}
+                  style={{ fontFamily: "bold" }}
+                  className="text-[1.55rem] "
+                >
                   {type === "private-key"
-                    ? keypair?.secretKey
-                    : keypair?.secretKey}
+                    ? JSON.stringify(privateKey)
+                    : privateKey}
                 </CText>
               </View>
             </KeyboardAvoidingView>
@@ -68,7 +89,7 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
               copyValue();
             }}
             className=""
-            text={"Confirm"}
+            text={"Copy"}
             type="primary"
           />
         </View>
