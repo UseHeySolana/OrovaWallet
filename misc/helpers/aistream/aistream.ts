@@ -105,120 +105,133 @@ class SessionManager {
 
 
         try {
-            // Request permissions first (important for React Native)
-            if (Platform.OS === 'android') {
-                const granted = await this.requestAudioPermission();
-                if (!granted) {
-                    throw new Error('Audio permission denied');
-                }
+          // Request permissions first (important for React Native)
+          if (Platform.OS === "android") {
+            const granted = await this.requestAudioPermission();
+            if (!granted) {
+              throw new Error("Audio permission denied");
             }
+          }
 
-            //check if token is available then create
-            // const ek = AppSettings.getState().ek;
+          //check if token is available then create
+          // const ek = AppSettings.getState().ek;
 
-            // let EPHEMERAL_KEY: string;
+          // let EPHEMERAL_KEY: string;
 
+          // function isTokenExpired(expiry: number) {
+          //     const now = new Date();
+          //     const expiryDate = new Date(expiry * 1000);
+          //     return now >= expiryDate;
+          // }
 
-            // function isTokenExpired(expiry: number) {
-            //     const now = new Date();
-            //     const expiryDate = new Date(expiry * 1000);
-            //     return now >= expiryDate;
-            // }
+          // if (ek.value === "" || !isTokenExpired(ek.expiry)) {
+          const tokenResponse = await fetch(
+            "https://speeh-to-text-service.vercel.app/api/open-token"
+          );
 
-            // if (ek.value === "" || !isTokenExpired(ek.expiry)) {
-            const tokenResponse = await fetch("https://speeh-to-text-service.vercel.app/api/open-token");
+          const data = await tokenResponse.json();
+          const EPHEMERAL_KEY = data.client_secret.value;
+          AppSettings.getState().setEk(
+            data.client_secret.value,
+            data.client_secret.expires_at
+          );
 
-            const data = await tokenResponse.json();
-            const EPHEMERAL_KEY = data.client_secret.value;
-            AppSettings.getState().setEk(data.client_secret.value, data.client_secret.expires_at)
+          // } else {
+          //     EPHEMERAL_KEY = AppSettings.getState().ek.value;
+          // }
 
-            // } else {
-            //     EPHEMERAL_KEY = AppSettings.getState().ek.value;
-            // }
+          this.peerConnection = new RTCPeerConnection({
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // Add STUN server for better connection
+          });
 
-            this.peerConnection = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Add STUN server for better connection
-            });
+          // if (audio) {
+          // Get media stream (different in React Native)
+          const stream = await mediaDevices.getUserMedia({ audio: true });
 
-            // if (audio) {
-            // Get media stream (different in React Native)
-            const stream = await mediaDevices.getUserMedia({ audio: true });
+          this.peerConnection.addTrack(stream.getTracks()[0], stream);
 
-
-            // Add tracks to peer connection
-            stream.getTracks().forEach(track => {
-                this.peerConnection!.addTrack(track, stream);
-            });
-            // }
-            // Setup connection state tracking
-            //@ts-ignore
-            this.peerConnection.addEventListener('connectionstatechange', () => {
-                console.log(`Connection state changed: ${this.peerConnection?.connectionState}`);
-                if (this.peerConnection?.connectionState === 'connected') {
-                    this.connectionEstablished = true;
-                }
-            });
-
-            // Create data channel with more reliable options
-            this.dataChannel = this.peerConnection.createDataChannel("oai-events", {
-                ordered: true,
-                maxRetransmits: 3
-            });
-
-            // Setup event handlers before creating offer
-            this.setupDataChannelEventHandlers();
-
-            // Create offer with required options parameter
-            const offer = await this.peerConnection.createOffer({
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: false,
-                voiceActivityDetection: true
-            });
-
-            await this.peerConnection.setLocalDescription(offer);
-
-
-            // Send offer to API
-            const baseUrl = "https://api.openai.com/v1/realtime";
-            const model = "gpt-4o-mini-realtime-preview-2024-12-17";
-            const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
-                method: "POST",
-                body: offer.sdp,
-                headers: {
-                    Authorization: `Bearer ${EPHEMERAL_KEY}`,
-                    "Content-Type": "application/sdp",
-                },
-            });
-
-            if (!sdpResponse.ok) {
-                const errorText = await sdpResponse.text();
-                throw new Error(`Failed to establish session: ${errorText}`);
+          // Add tracks to peer connection
+          // stream.getTracks().forEach(track => {
+          //     this.peerConnection!.addTrack(track, stream);
+          // });
+          // }
+          // Setup connection state tracking
+          //@ts-ignore
+          this.peerConnection.addEventListener("connectionstatechange", () => {
+            console.log(
+              `Connection state changed: ${this.peerConnection?.connectionState}`
+            );
+            if (this.peerConnection?.connectionState === "connected") {
+              this.connectionEstablished = true;
             }
+          });
 
-            // Set remote description
-            const answerSdp = await sdpResponse.text();
-            const answer = new RTCSessionDescription({ type: "answer", sdp: answerSdp });
-            await this.peerConnection.setRemoteDescription(answer);
+          // Create data channel with more reliable options
+          this.dataChannel = this.peerConnection.createDataChannel(
+            "oai-events",
+            {
+              ordered: true,
+              maxRetransmits: 3,
+            }
+          );
 
-            // Handle audio tracks with our AudioManager
-            // @ts-ignore            
-            this.peerConnection.addEventListener('track', (event) => {
-                console.log("Track event received:", event.track?.kind);
-                if (event.streams && event.streams[0]) {
-                    // Only handle audio tracks
-                    if (event.track && event.track.kind === 'audio') {
-                        console.log("Audio track received - handling with AudioManager");
-                        this.audioManager.handleRemoteStream(event.streams[0]);
-                    }
-                }
-            });
-            this.conversation_id = new Date().getTime().toString();
-            this.callbacks.setConversationId(this.conversation_id);
-            Convo.getState().createConversation({
-                id: this.conversation_id,
-                summary: ""
-            })
+          // Setup event handlers before creating offer
+          this.setupDataChannelEventHandlers();
 
+          // Create offer with required options parameter
+          const offer = await this.peerConnection.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: false,
+            voiceActivityDetection: true,
+          });
+
+          await this.peerConnection.setLocalDescription(offer);
+
+          // Send offer to API
+          const baseUrl = "https://api.openai.com/v1/realtime";
+          const model = "gpt-4o-mini-realtime-preview-2024-12-17";
+          const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
+            method: "POST",
+            body: offer.sdp,
+            headers: {
+              Authorization: `Bearer ${EPHEMERAL_KEY}`,
+              "Content-Type": "application/sdp",
+            },
+          });
+
+          if (!sdpResponse.ok) {
+            const errorText = await sdpResponse.text();
+            throw new Error(`Failed to establish session: ${errorText}`);
+          }
+
+          // Set remote description
+          const answerSdp = await sdpResponse.text();
+          const answer = new RTCSessionDescription({
+            type: "answer",
+            sdp: answerSdp,
+          });
+          await this.peerConnection.setRemoteDescription(answer);
+
+          // Handle audio tracks with our AudioManager
+          // @ts-ignore
+          this.peerConnection.addEventListener("track", (event) => {
+            console.log("Track event received:", event.track?.kind);
+            if (event.streams && event.streams[0]) {
+              // Only handle audio tracks
+              if (event.track && event.track.kind === "audio") {
+                console.log(
+                  "Audio track received - handling with AudioManager"
+                );
+                this.audioManager.handleRemoteStream(event.streams[0]);
+              }
+            }
+          });
+          this.conversation_id = new Date().getTime().toString();
+          this.callbacks.setConversationId(this.conversation_id);
+          Convo.getState().createConversation({
+            id: this.conversation_id,
+            summary: "",
+          });
         } catch (error) {
             console.error("Error starting session:", error);
             this.cleanupResources();
