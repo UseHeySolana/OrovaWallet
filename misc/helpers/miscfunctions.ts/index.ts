@@ -50,10 +50,13 @@ const delayPromise = (ms: number): Promise<void> => {
 
 const completeConversation = async (messageId: string | null, status: "complete" | "failed" | "pending", link?: string) => {
     if (messageId !== null) {
-        Convo.getState().updateMessage(messageId, {
+        Convo.getState().updateMessage({
+          messageId,
+          toolUpdates: {
             status: status,
-            link: link
-        })
+            link: link,
+          },
+        });
     }
 }
 

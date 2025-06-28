@@ -35,6 +35,7 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
         if (sign) {
           const key = Array.from(sign.secretKey);
           setPrivateKey(key);
+          console.log(key);
         }
       } else {
         setPrivateKey(WalletItem.getState().passphrase);
@@ -44,10 +45,10 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
 
   const copyValue = () => {
     if (type === "private-key") {
-      copyItem(privateKey?.secretKey || "");
+      copyItem(JSON.stringify(privateKey || ""));
       setToast("Copied to clipboard", "success");
     } else {
-      copyItem(privateKey?.secretKey.toString() || "");
+      copyItem(JSON.stringify(privateKey || ""));
     }
   };
 
