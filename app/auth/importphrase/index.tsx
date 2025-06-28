@@ -149,17 +149,17 @@ export default function ImportPhrase({ navigation }: any) {
           </View>
         </View>
       </View>
-      {!isKeyboardVisible && (
-        <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 relative">
-          <Buttons onPress={importWallet} text="Import Wallet" />
-          <Buttons
-            buttonType="feedback"
-            type="secondary"
-            onPress={() => router.push("/auth/secretphrase")}
-            text="I don't know what a secret phrase is"
-          />
-        </View>
-      )}
+      {/* {!isKeyboardVisible && ( */}
+      <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 relative">
+        <Buttons onPress={importWallet} text="Import Wallet" />
+        <Buttons
+          buttonType="feedback"
+          type="secondary"
+          onPress={() => router.push("/auth/secretphrase")}
+          text="I don't know what a secret phrase is"
+        />
+      </View>
+      {/* )} */}
     </View>
   );
 }

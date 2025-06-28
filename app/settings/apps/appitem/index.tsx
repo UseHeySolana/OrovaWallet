@@ -251,7 +251,7 @@ function AppItems() {
                 contentFit="cover"
               />
             </View>
-            <View className="flex-1 flex-col justify-start items-start gap-y-1  ">
+            <View className="flex-1 flex-col justify-start items-start gap-y-2  ">
               <CText style={{ fontFamily: "bold" }} className="text-[1.81rem]">
                 {appData?.name}
                 {appData?.is_active ? "" : " (Coming Soon)"}
@@ -273,7 +273,7 @@ function AppItems() {
                 ) : (
                   <Buttons
                     type={activated ? "primary" : "secondary"}
-                    className="py-2 px-12 rounded-3xl"
+                    className="py-2 px-5 rounded-3xl"
                     text={activated ? "Uninstall" : "Install"}
                     onPress={activated ? deactivateTool : activateTool}
                   />
@@ -295,18 +295,24 @@ function AppItems() {
             </Pressable>
             <View className="w-full flex flex-row gap-x-2 justify-start items-start gap-y-2">
               {appData?.tools?.map((item: any, index: number) => {
+                const brandColors = appData?.brand_colors?.primary
+                  ? `bg-[${appData?.brand_colors?.primary}]`
+                  : "bg-purple";
                 return (
                   <View key={index} className="gap-y-2">
-                    <View className="bg-purple p-2 px-3 rounded-full justify-center items-center">
+                    <View
+                      className={`bg-purple p-2 px-3 rounded-full justify-center items-center`}
+                    >
                       <CText
                         style={{ fontFamily: "reg" }}
-                        className="capitalize text-[1.2rem]"
+                        className="capitalize text-[1rem]"
+                        textColor={"text-white"}
                       >
                         {item.name}
                       </CText>
                     </View>
 
-                    <View>
+                    <View className="ps-4">
                       {item?.params?.map((param: any, index: number) => {
                         return (
                           <CText

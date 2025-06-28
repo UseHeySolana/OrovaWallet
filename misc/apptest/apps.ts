@@ -17,6 +17,10 @@ export interface App {
     is_new: boolean;
     ratings: number;
     short_des: string;
+    brand_colors?: {
+        primary: string,
+        secondary: string,
+    };
     tools?: {
         name: string,
         params: any[],
@@ -30,6 +34,61 @@ export interface App {
 }
 
 const apps: App[] = [
+    {
+        name: "Crossmint",
+        category: "Tools",
+        short_des: "Agentic commerce at your tips.",
+        icon: require('@/assets/apps/crossmint/logo.png'),
+        description: "Shop from a wide range of products on the solana blockchain with ease, you can use your usdc to pay for items on Amazon and Shopify.",
+        banner: require('@/assets/apps/crossmint/banner.png'),
+        url: "https://www.crossmint.com/",
+        tags: ["Commerce", "Stablecoin", "Solana", "Agentic"],
+        descriptionImages: [
+            // require('@/assets/apps/crossmint/badge/mint.webp'),
+            // require('@/assets/apps/crossmint/badge/onramp.png'),
+            // require('@/assets/apps/crossmint/badge/paid.png'),
+        ],
+        brand_colors: {
+            primary: "#00C768",
+            secondary: "#0A1825",
+        },
+        is_active: true,
+        is_featured: false,
+        is_new: true,
+        ratings: 4.5,
+        tools: [
+            {
+                name: "Agentic Commerce",
+                params: [
+                    {
+                        name: "name",
+                        type: "string",
+                    },
+                    {
+                        name: "line1",
+                        type: "string",
+                    },
+                    {
+                        name: "city",
+                        type: "string",
+                    },
+                    {
+                        name: "state",
+                        type: "string",
+                    },
+                    {
+                        name: "postalCode",
+                        type: "string",
+                    },
+                    {
+                        name: "country",
+                        type: "string",
+                    },
+
+                ],
+            },
+        ]
+    },
     {
         name: "Airbills",
         category: "Tools",
