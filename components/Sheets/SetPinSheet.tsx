@@ -84,17 +84,17 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
         BackHandler.exitApp();
       }
       return;
-    }
-    console.log(pin, previousPin);
-    if (pin == previousPin) {
-      onSuccess?.();
-      setOpen(false);
     } else {
-      setAttempts(attempts + 1);
-      setToast("Pin provided does not match", "error");
+      console.log(pin, previousPin);
+      if (pin == previousPin) {
+        onSuccess?.();
+        setOpen(false);
+      } else {
+        setAttempts(attempts + 1);
+        setToast("Pin provided does not match", "error");
+      }
     }
   };
-  console.log(stage);
 
   return (
     <DragableSheet

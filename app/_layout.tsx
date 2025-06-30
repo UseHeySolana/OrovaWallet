@@ -73,11 +73,9 @@ export default function RootLayout() {
       <KeyboardProvider>
         <ThemeProvider>
           <AiServiceProvider>
-
-            <SafeAreaView style={{ flex: 1 }}>
+            <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
               <StackView />
             </SafeAreaView>
-
           </AiServiceProvider>
         </ThemeProvider>
       </KeyboardProvider>

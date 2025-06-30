@@ -61,8 +61,8 @@ export default function WalletScreen({
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View className=" min-h-[50px] gap-y-3">
-        <View className="m-auto  w-full shadow-md bg-white dark:bg-transparent rounded-3xl py-4">
+      <View className=" min-h-[50px] gap-y-3 px-1">
+        <View className="m-auto  w-full shadow-sm bg-white dark:bg-transparent rounded-3xl py-4">
           <View className="flex flex-row  justify-between items-center px-5 py-3">
             <View className="">
               <View>
@@ -165,7 +165,7 @@ export default function WalletScreen({
                 }}
                 className="h-[80px] m-auto"
               >
-                <View className="flex flex-row shadow justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
+                <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
                   <View className="h-8 w-8 rounded-full">
                     <Image
                       source={require("@/assets/images/ballicon.png")}

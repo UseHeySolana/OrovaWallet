@@ -140,7 +140,7 @@ export default function Index() {
   return (
     <View
       // onLayout={onLayoutRootView}
-      className="relative bg-white dark:bg-dark"
+      className="relative flex-1 bg-white dark:bg-dark"
     >
       <View className="absolute top-10  z-50 flex-row self-center">
         {screens.map((_, index) => (
@@ -168,7 +168,7 @@ export default function Index() {
           <View
             key={index}
             style={{ width, height }}
-            className="flex items-center justify-start gap-y-3 relative"
+            className="flex flex-1 border border-black top-[-100] items-center justify-start gap-y-3 relative"
           >
             <View className="relative top-0  h-full w-full">
               <Image
@@ -210,3 +210,4 @@ export default function Index() {
     </View>
   );
 }
+
