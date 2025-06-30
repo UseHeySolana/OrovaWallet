@@ -15,7 +15,7 @@
     "dapp-store": "eas build -p android --profile dapp-store",
     "build:test": "eas build  -p android --profile test",
     "build:test-local": "eas build --local -p android --profile test",
-    "build:iostest-local": "eas build --local -p ios --profile test",
+    "build:iostest": "npx expo run:ios",
     "build:ios": "eas build --local -p ios --profile production",
     "build:ios-local": "eas build --local -p ios --profile production",
     "build:android": "eas build -p android --profile production",
