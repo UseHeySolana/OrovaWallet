@@ -137,6 +137,7 @@ export default function Index() {
     runComboUpdateFlow();
   }, []);
 
+  console.log(height);
   return (
     <View
       // onLayout={onLayoutRootView}
@@ -165,21 +166,28 @@ export default function Index() {
         className=""
       >
         {screens.map((screen, index) => (
-          <View
+          <ImageBackground
+            source={screen.image}
+            contentFit="contain"
+            contentPosition="top center"
             key={index}
             style={{ width, height }}
-            className="flex flex-1 border border-black top-[-100] items-center justify-start gap-y-3 relative"
+            className="flex flex-1 items-center justify-start gap-y-3 relative"
           >
-            <View className="relative top-0  h-full w-full">
+            {/* <View className="flex-1 relative top-0 h-full w-full">
               <Image
                 source={screen.image}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="contain"
                 contentPosition="top center"
               />
-            </View>
+            </View> */}
 
-            <View className="items-center mt-5 absolute bottom-[15%] px-6">
+            <View
+              className={`items-center mt-5 absolute ${
+                height > 700 ? "bottom-[25%]" : "bottom-[15%]"
+              } flex-1 px-6`}
+            >
               <CText className="text-[1.2rem]  text-center font-bold text-primary dark:text-white">
                 {screen.title}
               </CText>
@@ -188,7 +196,11 @@ export default function Index() {
               </CText>
             </View>
 
-            <View className="px-3 w-full absolute h-fit bottom-10 left-0">
+            <View
+              className={`px-3 w-full absolute h-fit ${
+                height > 700 ? "bottom-[15%]" : "bottom-[5%]"
+              } left-0`}
+            >
               <Buttons
                 className=""
                 text="Next"
@@ -204,7 +216,7 @@ export default function Index() {
                 }}
               />
             </View>
-          </View>
+          </ImageBackground>
         ))}
       </ScrollView>
     </View>

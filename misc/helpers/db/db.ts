@@ -14,22 +14,23 @@ export type MessageData = {
 
 const request = {
   get: async (url: string) => {
-    console.log("called" + url)
+    console.log("called" + " " + BASE_URL + url);
 
     const response = await fetch(BASE_URL + url, {
       method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
     return response;
   },
+
   post: async (data: FormData, url: string) => {
-    console.log("called" + url)
+    console.log("called" + url);
     const response = await fetch(BASE_URL + url, {
       method: "POST",
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
       body: data,
     });
@@ -38,13 +39,12 @@ const request = {
   },
 
   postJson: async (data: any, url: string) => {
-
     const response = await fetch(BASE_URL + url, {
       method: "POST",
       headers: {
-        "Accept": "*/*",
+        Accept: "*/*",
         // "User-Agent": "Thunder Client (https://www.thunderclient.com)",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
@@ -52,24 +52,24 @@ const request = {
     return response;
   },
 
-
   getRan: async (url: string, headers?: object) => {
+    console.log("called" + url);
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...headers,
       },
     });
+    console.log("response", response);
     return response;
   },
-  
-  postRan: async (data: FormData, url: string) => {
 
+  postRan: async (data: FormData, url: string) => {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
       body: data,
     });
@@ -78,11 +78,10 @@ const request = {
   },
 
   postJsonRan: async (data: any, url: string, headers?: object) => {
-
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Accept": "*/*",
+        Accept: "*/*",
         "Content-Type": "application/json",
         ...headers,
       },

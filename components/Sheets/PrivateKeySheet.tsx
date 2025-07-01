@@ -1,20 +1,12 @@
-import {
-  BackHandler,
-  KeyboardAvoidingView,
-  Platform,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, View } from "react-native";
 import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
-import { OtpInput } from "react-native-otp-entry";
-import { useThemeContext } from "@/misc/context/ThemeContext";
 import Buttons from "../ButtonComp";
 import React, { useEffect, useRef, useState } from "react";
 import AppSettings from "@/misc/store/settingsstore";
 import { copyItem } from "@/misc/helpers/miscfunctions.ts";
 import WalletItem from "@/misc/store/wallet";
 import { keypairSign } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
-import { Keypair } from "@solana/web3.js";
 
 interface PrivateKeySheetTypes {
   open: boolean;
@@ -23,7 +15,6 @@ interface PrivateKeySheetTypes {
   type: "private-key" | "passphrase";
 }
 const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
-  const { isDarkMode } = useThemeContext();
   if (!open) return null;
   const [privateKey, setPrivateKey] = useState<any | null>(null);
   const { setToast } = AppSettings();
@@ -35,7 +26,6 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
         if (sign) {
           const key = Array.from(sign.secretKey);
           setPrivateKey(key);
-          console.log(key);
         }
       } else {
         setPrivateKey(WalletItem.getState().passphrase);
@@ -49,6 +39,7 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
       setToast("Copied to clipboard", "success");
     } else {
       copyItem(JSON.stringify(privateKey || ""));
+      setToast("Copied to clipboard", "success");
     }
   };
 

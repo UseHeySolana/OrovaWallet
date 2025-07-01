@@ -80,6 +80,7 @@ function Login() {
   }, [user]);
 
   const Login = async () => {
+
     const fields = [];
     if (userDetails.mobileNumber === "") {
       fields.push("Mobile Number");
@@ -95,6 +96,8 @@ function Login() {
         "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber),
     };
     const response = await getCode(data.phone_number);
+    console.log(data.phone_number);
+
     console.log(response);
     if (response.status !== false) {
       setUserDetails({

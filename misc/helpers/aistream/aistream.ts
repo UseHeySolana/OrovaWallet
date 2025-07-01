@@ -23,6 +23,7 @@ import { AgentContacts, supportedTokens } from "../miscfunctions.ts";
 import setUserItems from "@/app/requests/dashboard";
 import WalletItem from "@/misc/store/wallet";
 import tracker from "../db/tracker";
+import { request } from "../db/db";
 
 class SessionManager {
   private isSessionActive: boolean;
@@ -39,6 +40,7 @@ class SessionManager {
   private conversation_id: string | null = null;
   public functionMessageId: string | null = null;
   public activeMessageId: string | null = null;
+  public token: string | null = null;
   // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
   public callbacks: {
     setMode: (mode: "loading" | "human" | "aispeaking") => void;
@@ -69,6 +71,14 @@ class SessionManager {
     });
     // Pre-register functions but don't send them yet
     this.availableFunctions = toolRouter(this);
+  }
+
+  async getToken() {
+    const url = "/open-token";
+    const tokenResponse = await request.get(url);
+    const data = await tokenResponse.json();
+    this.token = data.client_secret.value;
+    return this.token;
   }
 
   async startSession(systemInstructions?: string): Promise<void> {
@@ -102,6 +112,8 @@ class SessionManager {
       this.systemInstructions = systemInstructions + sysIns;
     }
 
+    const EPHEMERAL_KEY = await this.getToken();
+
     if (this.isSessionActive || this.peerConnection || this.dataChannel) {
       console.warn(
         "Previous session detected – cleaning up before starting a new one."
@@ -110,7 +122,6 @@ class SessionManager {
     }
 
     try {
-      console.log(Platform.OS);
       // Request permissions first (important for React Native)
       if (Platform.OS === "android") {
         const granted = await this.requestAudioPermission();
@@ -124,34 +135,6 @@ class SessionManager {
         }
       }
 
-      //check if token is available then create
-      // const ek = AppSettings.getState().ek;
-
-      // let EPHEMERAL_KEY: string;
-
-      // function isTokenExpired(expiry: number) {
-      //     const now = new Date();
-      //     const expiryDate = new Date(expiry * 1000);
-      //     return now >= expiryDate;
-      // }
-
-      // if (ek.value === "" || !isTokenExpired(ek.expiry)) {
-      const tokenResponse = await fetch(
-        "https://speeh-to-text-service.vercel.app/api/open-token"
-      );
-
-      const data = await tokenResponse.json();
-      console.log("data", data);
-      const EPHEMERAL_KEY = data.client_secret.value;
-      AppSettings.getState().setEk(
-        data.client_secret.value,
-        data.client_secret.expires_at
-      );
-
-      // } else {
-      //     EPHEMERAL_KEY = AppSettings.getState().ek.value;
-      // }
-
       this.peerConnection = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // Add STUN server for better connection
       });
@@ -161,9 +144,13 @@ class SessionManager {
       const stream = await mediaDevices.getUserMedia({ audio: true });
 
       // Add tracks to peer connection
-      stream.getTracks().forEach((track) => {
-        this.peerConnection!.addTrack(track, stream);
-      });
+      //   stream.getTracks().forEach((track) => {
+      //     this.peerConnection!.addTrack(track, stream);
+      //   });
+
+      //pick only one track
+      this.peerConnection!.addTrack(stream.getTracks()[0], stream);
+
       // }
       // Setup connection state tracking
       //@ts-ignore
