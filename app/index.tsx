@@ -98,7 +98,6 @@ export default function Index() {
       const destination = getDestination();
       if (destination) {
         router.replace(destination);
-
         // router.push({
         //   pathname: '/settings/apps/appitem',
         //   params: { app: "Airbills" },
@@ -137,7 +136,6 @@ export default function Index() {
     runComboUpdateFlow();
   }, []);
 
-  console.log(height);
   return (
     <View
       // onLayout={onLayoutRootView}
@@ -185,7 +183,7 @@ export default function Index() {
 
             <View
               className={`items-center mt-5 absolute ${
-                height > 700 ? "bottom-[25%]" : "bottom-[15%]"
+                height > 891 ? "bottom-[25%]" : "bottom-[15%]"
               } flex-1 px-6`}
             >
               <CText className="text-[1.2rem]  text-center font-bold text-primary dark:text-white">
@@ -198,7 +196,7 @@ export default function Index() {
 
             <View
               className={`px-3 w-full absolute h-fit ${
-                height > 700 ? "bottom-[15%]" : "bottom-[5%]"
+                height > 891 ? "bottom-[15%]" : "bottom-[5%]"
               } left-0`}
             >
               <Buttons

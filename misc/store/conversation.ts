@@ -24,14 +24,15 @@ export interface MessageType {
     link: string;
     rating: number;
   }[];
+  product_details?: any;
 }
 
 export interface ConversationType {
-    id: string;
-    summary: string;
+  id: string;
+  summary: string;
 }
 
-type ToolType = NonNullable<MessageType['tool']>;
+type ToolType = NonNullable<MessageType["tool"]>;
 
 interface Conversation {
   conversations: ConversationType[];
@@ -125,6 +126,17 @@ const Convo = create(
                 ...productUpdates,
               },
               ...content,
+            } as MessageType;
+          }),
+        }));
+      },
+      updateProductDetails: (messageId: string, productDetails: any) => {
+        set((state) => ({
+          messages: state.messages.map((msg) => {
+            if (msg.id !== messageId) return msg;
+            return {
+              ...msg,
+              product_details: productDetails,
             } as MessageType;
           }),
         }));

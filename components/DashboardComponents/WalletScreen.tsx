@@ -69,7 +69,10 @@ export default function WalletScreen({
                 <CText className="text-[12px]">Wallet balance</CText>
               </View>
               <CText className="text-[45px]">
-                ${userWallet?.totalUsdBalance.toFixed(2)}
+                $
+                <CText className="text-[45px]">
+                  {Number(userWallet?.totalUsdBalance.toFixed(2))}
+                </CText>
               </CText>
             </View>
             <View className="flex flex-row justify-center items-center gap-2">
@@ -306,9 +309,15 @@ export default function WalletScreen({
                             style={{ fontFamily: "bold" }}
                             className="text-[16px]"
                           >
-                            {token?.usdc_price
-                              ? "$" + token?.usdc_price?.toFixed(2)
-                              : ""}
+                            $
+                            <CText
+                              style={{ fontFamily: "bold" }}
+                              className="text-[16px]"
+                            >
+                              {token?.usdc_price
+                                ? token?.usdc_price?.toFixed(2)
+                                : ""}
+                            </CText>
                           </CText>
                         </View>
                       </View>

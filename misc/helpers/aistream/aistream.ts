@@ -143,13 +143,13 @@ class SessionManager {
       // Get media stream (different in React Native)
       const stream = await mediaDevices.getUserMedia({ audio: true });
 
-      // Add tracks to peer connection
-      //   stream.getTracks().forEach((track) => {
-      //     this.peerConnection!.addTrack(track, stream);
-      //   });
+      const devices = await mediaDevices.enumerateDevices();
+      console.log("devices", devices);
 
-      //pick only one track
-      this.peerConnection!.addTrack(stream.getTracks()[0], stream);
+      // Add tracks to peer connection
+      stream.getTracks().forEach((track) => {
+        this.peerConnection!.addTrack(track, stream);
+      });
 
       // }
       // Setup connection state tracking

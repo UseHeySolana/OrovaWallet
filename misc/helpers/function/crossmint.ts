@@ -3,7 +3,12 @@ import SessionManager from "../aistream/aistream";
 import { FunctionParams } from "../types";
 import UserItem from "@/misc/store/userstore";
 import WalletItem from "@/misc/store/wallet";
-import { cleanNumber, convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
+import {
+  cleanNumber,
+  convertSpeech,
+  signTransactions,
+  summarizeProduct,
+} from "../miscfunctions.ts/extrafunctions";
 import Convo from "@/misc/store/conversation";
 import {
   completeConversation,
@@ -17,10 +22,14 @@ import { crossmint } from "../db/crossmint";
 export class Crossmint {
   public searchProductsAmazon: FunctionParams;
   public createAmazonOrder: FunctionParams;
+  public selectProduct: FunctionParams;
+  public productDetails: FunctionParams;
 
   constructor(public session: SessionManager) {
     this.createAmazonOrder = this.create_order();
     this.searchProductsAmazon = this.search_product();
+    this.selectProduct = this.select_product();
+    this.productDetails = this.product_details();
   }
 
   create_order() {
@@ -123,10 +132,9 @@ export class Crossmint {
       },
 
       handler: async (args: { name: string }) => {
-        const userDetails = this.session.userDetails;
         const messageId = this.session.functionMessageId;
         if (!messageId) return "No message id found";
-        const response = await crossmint.search.amazon(args.name);
+        const response = await crossmint.search.amazon.search(args.name);
         const items = response.data.results;
 
         const products = items.map((item: any) => ({
@@ -144,9 +152,75 @@ export class Crossmint {
           productUpdates: products,
         });
 
+        completeConversation(messageId, "complete");
+
         return convertSpeech(
           `Kindly choose which of the products you want to purchase from.`
         );
+      },
+    };
+  }
+
+  select_product() {
+    return {
+      name: "select-product",
+      description:
+        "This function is used to select a product from the list of products and return the product details",
+      parameters: {
+        type: "object",
+        properties: {
+          product_id: {
+            type: "string",
+            description:
+              "This is the product id you want to get the details of, it should be a string",
+          },
+        },
+        required: ["product_id"],
+      },
+      handler: async (args: { product_id: string }) => {
+        const messageId = this.session.functionMessageId;
+        if (!messageId) return "No message id found";
+        const response = await crossmint.search.amazon.get(args.product_id);
+        const items = response.data;
+
+        const product = items;
+
+        return convertSpeech(
+          `The product you selected is ${product.name} and the price is ${product.price}
+          The details are above, do let me know if you want to proceed with the purchase
+          `
+        );
+      },
+    };
+  }
+
+  product_details() {
+    return {
+      name: "product-details",
+      description:
+        "This function is used to get the details of a product and give short summary of the product if it is a great product",
+      parameters: {
+        type: "object",
+        properties: {
+          product_id: {
+            type: "string",
+            description:
+              "This is the product id you want to get the details of, it should be a string",
+          },
+        },
+        required: ["product_id"],
+      },
+      handler: async (args: { product_id: string }) => {
+        const messageId = this.session.functionMessageId;
+        if (!messageId) return "No message id found";
+        const response = await crossmint.search.amazon.get(args.product_id);
+        const items = response.data;
+
+        const product = items.product_information;
+
+        const summary = await summarizeProduct(product);
+        completeConversation(messageId, "complete");
+        return summary;
       },
     };
   }

@@ -11,6 +11,8 @@ import { Pressable, View } from "react-native";
 import CText from "../TextComp";
 import { openURL } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import IconLibrary from "@/misc/helpers/icons";
+import Buttons from "../ButtonComp";
+import { useAi } from "@/misc/context/AiContext";
 
 interface ItemProps {
   item: any;
@@ -20,6 +22,7 @@ interface ItemProps {
 const ToolItem = (props: ItemProps) => {
   const { item, isSystem, aiName } = props;
   const isUser = item.role === "user";
+  const { sessionManager } = useAi();
   const params =
     (item?.tool?.arguments?.parameter &&
       Object.keys(item.tool?.arguments?.parameter)) ||
@@ -50,6 +53,7 @@ const ToolItem = (props: ItemProps) => {
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
+  // console.log(item?.product[0]);
 
   return (
     <View className="py-4 shadow-sm px-4 flex flex-col items-start justify-center text-[1.14rem]  bg-white dark:bg-dark dark:border border-accent rounded-xl gap-y-3">
@@ -230,7 +234,9 @@ const ToolItem = (props: ItemProps) => {
                       style={{ fontFamily: "bold" }}
                     >
                       {product.currency}
-                      {product.price}
+                      <CText style={{ fontFamily: "bold" }}>
+                        {product.price}
+                      </CText>
                     </CText>
 
                     <View className="flex flex-row justify-start items-center ">
@@ -257,6 +263,15 @@ const ToolItem = (props: ItemProps) => {
                       </CText>
                     </View>
                   </View>
+
+                  <Buttons
+                    text="Select"
+                    onPress={() => {
+                      sessionManager?.sendTextMessage(
+                        `Select product ${product.asin} and fetch the details`
+                      );
+                    }}
+                  />
                 </View>
               </View>
             ))}
