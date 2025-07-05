@@ -53,39 +53,49 @@ const crossmint = {
 
   orders: {
     createOrder: async ({
-      email,
       payerAddress,
-      currency,
       asin,
     }: {
       asin: string;
-      email: string;
       payerAddress: string;
-      currency: string;
     }) => {
       const url = `${crossmint.baseUrl}/orders`;
 
-      const address = ToolsItem.getState().getParameterValue(
+      const params = ToolsItem.getState().getToolParameters(
         "Crossmint",
-        "address",
-        "address"
+        "Agentic Commerce"
       );
+
+      const email = ToolsItem.getState()
+        .getToolParameters("Crossmint", "tracking email")[0]
+        ?.value.toLowerCase();
+
+      let address = {
+        name: "",
+        line1: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+      };
+
+      for (const param of params) {
+        if (param.value === "") {
+          return {
+            status: false,
+            message: `Your ${param.type} for your delivery address is not set, please set it first`,
+          };
+        }
+        address[param.type as keyof typeof address] = param.value;
+      }
 
       const data = {
         recipient: {
-          email: email,
-          physicalAddress: {
-            name: "Filippos L",
-            line1: "14 ABC Street",
-            city: "New York City",
-            state: "NY",
-            postalCode: "10007",
-            country: "US",
-          },
+          email,
+          physicalAddress: address,
         },
         payment: {
           method: "solana",
-          currency: currency,
           payerAddress: payerAddress,
         },
         lineItems: [
@@ -93,6 +103,14 @@ const crossmint = {
             productLocator: `amazon:${asin}`,
           },
         ],
+      };
+
+      console.log(data);
+      return {
+        status: true,
+        data,
+        message: "Order created successfully",
+        orderId: "1234567890",
       };
 
       try {

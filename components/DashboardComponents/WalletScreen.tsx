@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CText from "../TextComp";
+import CText, { CNumber } from "../TextComp";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -71,7 +71,10 @@ export default function WalletScreen({
               <CText className="text-[45px]">
                 $
                 <CText className="text-[45px]">
-                  {Number(userWallet?.totalUsdBalance.toFixed(2))}
+                  <CNumber
+                    value={Number(userWallet?.totalUsdBalance.toFixed(2))}
+                    className="text-[45px]"
+                  />
                 </CText>
               </CText>
             </View>
@@ -310,14 +313,14 @@ export default function WalletScreen({
                             className="text-[16px]"
                           >
                             $
-                            <CText
-                              style={{ fontFamily: "bold" }}
+                            <CNumber
+                              value={
+                                token?.usdc_price
+                                  ? token?.usdc_price?.toFixed(2)
+                                  : 0
+                              }
                               className="text-[16px]"
-                            >
-                              {token?.usdc_price
-                                ? token?.usdc_price?.toFixed(2)
-                                : ""}
-                            </CText>
+                            />
                           </CText>
                         </View>
                       </View>

@@ -10,8 +10,6 @@ import { Crossmint } from "./function/crossmint";
 
 const toolRouter = (SessionManager: SessionManager) => {
 
-
-    
     return [
       new TransferFunction(SessionManager).transferFunction,
       new AirBills(SessionManager).buyAirtime,
@@ -23,6 +21,9 @@ const toolRouter = (SessionManager: SessionManager) => {
 
       //crossmint
       new Crossmint(SessionManager).searchProductsAmazon,
+      new Crossmint(SessionManager).createAmazonOrder,
+      new Crossmint(SessionManager).selectProduct,
+      new Crossmint(SessionManager).productDetails,
     ];
 }
 

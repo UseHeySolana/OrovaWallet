@@ -18,6 +18,7 @@ import { toolRouter } from "@/misc/helpers/toolsregistry";
 import SetPin from "@/components/Sheets/SetPinSheet";
 import WalletScreen from "@/components/DashboardComponents/WalletScreen";
 import ChatInterface from "@/components/DashboardComponents/Chatinterface";
+import ToolsItem from "@/misc/store/toolsitems";
 
 const colors = {
   loading: {
@@ -61,6 +62,14 @@ export default function Dashboard() {
 
   const [message, setMessage] = useState<MessageType[]>([]);
   const [setPinOpen, setSetPinOpen] = useState(false);
+
+  useEffect(() => {
+    console.log(
+      ToolsItem.getState()
+        .getToolParameters("Crossmint", "tracking email")[0]
+        ?.value.toLowerCase()
+    );
+  }, []);
 
   useEffect(() => {
     if (pin.length > 0) {
@@ -125,11 +134,6 @@ export default function Dashboard() {
     if (!sessionManager) return;
     stopSession();
     setShowWallet(true);
-  };
-
-  const sendMessage = async () => {
-    if (!sessionManager) return;
-    sessionManager?.sendTextMessage("this is new");
   };
 
   return (

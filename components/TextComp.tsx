@@ -1,158 +1,45 @@
-// import { Text, TextProps } from "react-native";
-// import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-
-// interface CustomTextProps extends TextProps {
-//   children: React.ReactNode;
-//   textColor?: string;
-// }
-
-// const CText: React.FC<CustomTextProps> = ({
-//   style,
-//   children,
-//   className,
-//   textColor,
-//   ...props
-// }) => (
-//   <Animated.Text
-//     entering={FadeIn.duration(200).delay(100)}
-//     {...props}
-//     className={`${
-//       textColor ? textColor : "text-[1rem] text-dark dark:text-white"
-//     } ${className}`}
-//     style={[{ fontFamily: "reg" }, style]}
-//   >
-//     {children}
-//   </Animated.Text>
-// );
-
-// export default CText;
-
-// import React, { useEffect, useState } from "react";
-// import { TextProps } from "react-native";
-// import Animated, {
-//   FadeIn,
-//   useSharedValue,
-//   withTiming,
-//   useAnimatedReaction,
-//   runOnJS,
-// } from "react-native-reanimated";
-
-// interface CustomTextProps extends TextProps {
-//   children: React.ReactNode;
-//   textColor?: string;
-//   className?: string;
-// }
-
-// const isNumeric = (value: any): boolean => {
-//   if (typeof value === "number") return true;
-//   if (typeof value === "string") return /^-?\d+(\.\d+)?$/.test(value);
-//   return false;
-// };
-
-// const formatNumber = (num: number): string => {
-//   if (Math.abs(num) < 1 && num !== 0) {
-//     return num.toString();
-//   }
-//   return new Intl.NumberFormat(undefined, {
-//     minimumFractionDigits: 0,
-//     maximumFractionDigits: 10,
-//   }).format(num);
-// };
-
-// const CText: React.FC<CustomTextProps> = ({
-//   style,
-//   children,
-//   className,
-//   textColor,
-//   ...props
-// }) => {
-//   const isNumber = isNumeric(children);
-//   const [displayText, setDisplayText] = useState<React.ReactNode>(children);
-//   const animatedValue = useSharedValue(0);
-
-//   useEffect(() => {
-//     if (isNumber) {
-//       const target =
-//         typeof children === "number"
-//           ? children
-//           : parseFloat(children as string);
-//       animatedValue.value = withTiming(target, { duration: 600 });
-//     }
-//   }, [children]);
-
-//   // Safe handler to be passed to runOnJS
-//   const updateDisplayText = (value: number) => {
-//     const formatted = formatNumber(value);
-//     setDisplayText(formatted);
-//   };
-
-//   const showThreshold = 0.02; // Only show numbers above this
-//   const minDisplayDelta = 0.03; // Prevent flicker near 0
-
-//   useAnimatedReaction(
-//     () => animatedValue.value,
-//     (currentValue, prevValue) => {
-//       if (
-//         isNumber &&
-//         currentValue !== prevValue &&
-//         (currentValue > showThreshold ||
-//           Math.abs(currentValue - prevValue!) > minDisplayDelta)
-//       ) {
-//         runOnJS(updateDisplayText)(currentValue);
-//       }
-//     },
-//     []
-//   );
-
-//   // useAnimatedReaction(
-//   //   () => animatedValue.value,
-//   //   (currentValue, prevValue) => {
-//   //     if (isNumber && currentValue !== prevValue) {
-//   //       runOnJS(updateDisplayText)(currentValue);
-//   //     }
-//   //   },
-//   //   []
-//   // );
-
-//   return (
-//     <Animated.Text
-//       entering={FadeIn.duration(200).delay(100)}
-//       {...props}
-//       className={`${textColor ?? "text-[1rem] text-dark dark:text-white"} ${
-//         className ?? ""
-//       }`}
-//       style={[{ fontFamily: "reg" }, style]}
-//     >
-//       {isNumber ? displayText : children}
-//     </Animated.Text>
-//   );
-// };
-
-// export default CText;
-
 import React, { useEffect, useState } from "react";
 import { TextProps } from "react-native";
 import Animated, {
   FadeIn,
   useSharedValue,
   withTiming,
-  useAnimatedReaction,
-  runOnJS,
-  Easing,
-  withSpring,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolate,
 } from "react-native-reanimated";
 
 interface CustomTextProps extends TextProps {
   children: React.ReactNode;
   textColor?: string;
-  className?: string;
 }
 
-const isNumeric = (value: any): boolean => {
-  if (typeof value === "number") return true;
-  if (typeof value === "string") return /^-?\d+(\.\d+)?$/.test(value);
-  return false;
-};
+const CText: React.FC<CustomTextProps> = ({
+  style,
+  children,
+  className,
+  textColor,
+  ...props
+}) => (
+  <Animated.Text
+    entering={FadeIn.duration(200).delay(100)}
+    {...props}
+    className={`${
+      textColor ? textColor : "text-[1rem] text-dark dark:text-white"
+    } ${className}`}
+    style={[{ fontFamily: "reg" }, style]}
+  >
+    {children}
+  </Animated.Text>
+);
+
+export default CText;
+
+interface CNumberProps extends TextProps {
+  value: number;
+  textColor?: string;
+  className?: string;
+}
 
 const formatNumber = (num: number): string => {
   if (Math.abs(num) < 1 && num !== 0) {
@@ -164,70 +51,59 @@ const formatNumber = (num: number): string => {
   }).format(num);
 };
 
-const CText: React.FC<CustomTextProps> = ({
+const CNumber: React.FC<CNumberProps> = ({
   style,
-  children,
-  className,
+  value,
   textColor,
+  className,
   ...props
 }) => {
-  const isNumber = isNumeric(children);
-  const [displayText, setDisplayText] = useState<React.ReactNode>(
-    isNumber ? null : children
-  );
-  const animatedValue = useSharedValue(0);
+  const [displayText, setDisplayText] = useState(formatNumber(0));
+  const animatedValue = useSharedValue(value * 0.6);
+  const flipProgress = useSharedValue(0);
 
   useEffect(() => {
-    if (isNumber) {
-      const finalValue =
-        typeof children === "number"
-          ? children
-          : parseFloat(children as string);
+    animatedValue.value = withTiming(value, { duration: 1000 });
 
-      const startFrom = finalValue * 0.9;
+    flipProgress.value = 0;
+    flipProgress.value = withTiming(1, { duration: 800 });
+  }, [value]);
 
-      animatedValue.value = startFrom;
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDisplayText(formatNumber(Number(value)));
+    }, 500); // wait for half the flip to change number
 
-      animatedValue.value = withSpring(finalValue, {
-        // duration: 800,
-        damping: 15,
-        stiffness: 1000,
-        // easing: Easing.bezier(0.16, 1, 0.3, 1),
-      });
-    }
-  }, [children]);
+    return () => clearTimeout(timeout);
+  }, [value]);
 
-  const updateDisplayText = (val: number) => {
-    const finalValue =
-      typeof children === "number" ? children : parseFloat(children as string);
+  const animatedStyle = useAnimatedStyle(() => {
+    const rotateX = interpolate(
+      flipProgress.value,
+      [0, 0.5, 1],
+      [0, 90, 0],
+      Extrapolate.CLAMP
+    );
 
-    if (val >= 0.0001 || val >= finalValue * 0.95) {
-      setDisplayText(formatNumber(val));
-    }
-  };
-
-  useAnimatedReaction(
-    () => animatedValue.value,
-    (current, prev) => {
-      if (isNumber && current !== prev) {
-        runOnJS(updateDisplayText)(current);
-      }
-    },
-    []
-  );
+    return {
+      transform: [{ rotateX: `${rotateX}deg` }],
+    };
+  });
 
   return (
     <Animated.Text
-      // entering={FadeIn.duration(200).delay(100)}
       {...props}
       className={`${textColor ?? "text-[1rem] text-dark dark:text-white"} ${
         className ?? ""
       }`}
-      style={[{ fontFamily: "reg" }, style]}
+      style={[
+        animatedStyle,
+        { fontFamily: "reg", backfaceVisibility: "hidden" },
+        style,
+      ]}
     >
-      {displayText ?? ""}
+      {displayText}
     </Animated.Text>
   );
 };
-
-export default CText;
+export { CText, CNumber };

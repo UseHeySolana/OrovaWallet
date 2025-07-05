@@ -277,6 +277,12 @@ const ToolItem = (props: ItemProps) => {
             ))}
         </ScrollView>
       )}
+
+      {item?.productDetails && (
+        <View>
+          <CText>Product Details</CText>
+        </View>
+      )}
     </View>
   );
 };

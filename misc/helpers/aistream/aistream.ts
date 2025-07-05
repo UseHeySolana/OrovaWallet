@@ -145,6 +145,7 @@ class SessionManager {
 
       const devices = await mediaDevices.enumerateDevices();
       console.log("devices", devices);
+      console.log("stream", stream);
 
       // Add tracks to peer connection
       stream.getTracks().forEach((track) => {
@@ -370,7 +371,7 @@ class SessionManager {
             ],
           },
         },
-        1000
+        3000
       );
 
       this.sendClientEvent({ type: "response.create" });

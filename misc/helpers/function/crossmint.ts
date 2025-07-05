@@ -40,73 +40,34 @@ export class Crossmint {
         type: "object",
         properties: {
           amount: {
-            type: "number",
+            type: "product_id",
             description:
-              "This is the amount of solana tokens you want to offramp, it should be a number",
-          },
-          token: {
-            type: "string",
-            description:
-              "This is the token you want to offramp, it should be a string",
+              "This is the id of the product you want to purchase, it should be a string",
           },
         },
-        required: ["amount", "token"],
+        required: ["asin"],
       },
 
-      handler: async (args: { amount: number; token: string }) => {
-        const tokenBalance = getInTokenBalance(args.token);
+      handler: async (args: { product_id: string }) => {
+        const response = await crossmint.orders.createOrder({
+          asin: args.product_id,
+          payerAddress: WalletItem.getState().publicKey?.toString() ?? "",
+        });
 
-        const tokens: any = this.session.userDetails.tokenAccounts.filter(
-          (item: any) =>
-            item?.symbol?.toLowerCase() === args.token.toLowerCase()
-        );
+        if (!response.status) return response.message;
 
-        if (tokenBalance < args.amount)
-          return `Insufficient ${args.token} balance to offramp`;
+        return response.message;
 
-        const accountNumber = ToolsItem.getState().getParameterValue(
-          "Pajcash",
-          "offramp",
-          "account_number"
-        );
+        // const   confirmation = await this.session.connection.confirmTransaction(
+        //     transfer.message,
+        //     "confirmed"
+        //   );
 
-        if (!accountNumber)
-          return "You have not set your account number, please set your account number first";
-
-        const recipient = "PAJiUaKgxTBJVADc1wdiUygLd51biQPVB8KkJqYu53L";
-
-        let confirmation = null;
-
-        if (args.token.toLowerCase() == "sol") {
-          const transfer = await transferSol(
-            recipient,
-            args.amount,
-            this.session.connection
-          );
-
-          confirmation = await this.session.connection.confirmTransaction(
-            transfer.message,
-            "confirmed"
-          );
-        } else {
-          const transfer = await transferToken(
-            recipient,
-            tokens[0].mint,
-            args.amount,
-            tokens[0].decimals,
-            this.session.connection
-          );
-          confirmation = await this.session.connection.confirmTransaction(
-            transfer.message,
-            "confirmed"
-          );
-        }
-
-        if (confirmation) {
-          return `You have successfully Paj ${args.amount} ${args.token} to Naira`;
-        } else {
-          return `Failed to Paj ${args.amount} ${args.token} to Naira`;
-        }
+        // if (confirmation) {
+        //   return `You have successfully Paj ${args.amount} ${args.token} to Naira`;
+        // } else {
+        //   return `Failed to Paj ${args.amount} ${args.token} to Naira`;
+        // }
       },
     };
   }
