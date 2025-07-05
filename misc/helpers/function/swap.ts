@@ -21,33 +21,39 @@ import { completeConversation, supportedTokens, verifiedTokens, } from "../miscf
  * }
  */
 
-const getQuote = async (inputMint: string, outputMint: string, amount: number) => {
+const getQuote = async (
+  inputMint: string,
+  outputMint: string,
+  amount: number
+) => {
+  if (inputMint === "" || outputMint === "" || amount <= 0) {
+    return { status: false, message: "Invalid input" };
+  }
 
-    if(inputMint === "" || outputMint === "" || amount <= 0){
-        return ({ status: false, message: 'Invalid input' });
+  try {
+    // Get quote for ExactOut swap to USDC
+    const quoteUrl = `https://lite-api.jup.ag/swap/v1/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&swapMode=ExactOut&slippageBps=50`;
+    const response = await fetch(quoteUrl);
+    const quoteData = await response.json();
+
+    if (response.status !== 200) {
+      return {
+        status: false,
+        message: quoteData.error || "Failed to get quote",
+      };
     }
 
-    try {
-        // Get quote for ExactOut swap to USDC
-        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&swapMode=ExactOut&slippageBps=50`;
-        const response = await fetch(quoteUrl);
-        const quoteData = await response.json();
-
-        if (response.status !== 200) {
-            return ({ status: false, message: quoteData.error || 'Failed to get quote' });
-        }
-
-        return ({ status: true, data: quoteData });
-    } catch (error) {
-        console.error('Error getting quote:', error);
-        return ({ status: false, message: 'Failed to get quote' });
-    }
-}
+    return { status: true, data: quoteData };
+  } catch (error) {
+    console.error("Error getting quote:", error);
+    return { status: false, message: "Failed to get quote" };
+  }
+};
 
 /**
- * 
- * @param quoteResponse 
- * @param userPublicKey 
+ *
+ * @param quoteResponse
+ * @param userPublicKey
  * @returns {
  * status: boolean,
  * data?: any,
@@ -55,25 +61,25 @@ const getQuote = async (inputMint: string, outputMint: string, amount: number) =
  * }
  */
 const performSwap = async (quoteResponse: any, userPublicKey: string) => {
-    const swapResponse = await (
-        await fetch('https://api.jup.ag/swap/v1/swap', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                quoteResponse,
-                userPublicKey,
-            })
-        })
-    ).json();
+  const swapResponse = await (
+    await fetch("https://lite-api.jup.ag/swap", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        quoteResponse,
+        userPublicKey,
+      }),
+    })
+  ).json();
 
-    if (!swapResponse) {
-        return ({ status: false, message: 'Failed to perform swap' });
-    }
+  if (!swapResponse) {
+    return { status: false, message: "Failed to perform swap" };
+  }
 
-    return ({ status: true, data: swapResponse });
-}
+  return { status: true, data: swapResponse };
+};
 
 /**
  * 
