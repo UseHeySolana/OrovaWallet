@@ -53,13 +53,15 @@ const ToolItem = (props: ItemProps) => {
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
-  // console.log(item?.product[0]);
+
+  console.log(item?.product_details);
 
   return (
     <View className="py-4 shadow-sm px-4 flex flex-col items-start justify-center text-[1.14rem]  bg-white dark:bg-dark dark:border border-accent rounded-xl gap-y-3">
       <View className="flex flex-row items-center justify-between w-full bg-white dark:bg-accent2 p-1 rounded-full gap-x-3">
         <View className="flex-1 flex-row items-center gap-x-2 bg-grey dark:bg-accent p-2 rounded-full ">
-          {item?.tool?.action?.includes("amazon") ? (
+          {item?.tool?.action?.includes("amazon") ||
+          item?.tool?.action?.includes("product-details") ? (
             <View className="w-10 h-10 rounded-full overflow-hidden">
               <Image
                 source={require("@/assets/apps/crossmint/logo.png")}
@@ -179,7 +181,9 @@ const ToolItem = (props: ItemProps) => {
                 key={index}
                 className="flex flex-row items-center justify-start gap-x-4"
               >
-                <CText className="text-[1rem] uppercase">{param}</CText>
+                <CText className="text-[1rem] uppercase">
+                  {param.replace("_", " ").replace("-", " ")}
+                </CText>
                 <CText className="text-[1rem]">
                   {item?.tool?.arguments.parameter
                     ? item.tool.arguments?.parameter[param]
@@ -278,7 +282,7 @@ const ToolItem = (props: ItemProps) => {
         </ScrollView>
       )}
 
-      {item?.productDetails && (
+      {item?.product_details && (
         <View>
           <CText>Product Details</CText>
         </View>

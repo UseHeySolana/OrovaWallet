@@ -1,22 +1,12 @@
-import AppSettings from "@/misc/store/settingsstore";
 import SessionManager from "../aistream/aistream";
 import { FunctionParams } from "../types";
-import UserItem from "@/misc/store/userstore";
 import WalletItem from "@/misc/store/wallet";
 import {
-  cleanNumber,
   convertSpeech,
-  signTransactions,
   summarizeProduct,
 } from "../miscfunctions.ts/extrafunctions";
 import Convo from "@/misc/store/conversation";
-import {
-  completeConversation,
-  getInTokenBalance,
-  getUserDetails,
-} from "../miscfunctions.ts";
-import { transferSol, transferToken } from "../transfers";
-import ToolsItem from "@/misc/store/toolsitems";
+import { completeConversation } from "../miscfunctions.ts";
 import { crossmint } from "../db/crossmint";
 
 export class Crossmint {
@@ -177,7 +167,13 @@ export class Crossmint {
         const response = await crossmint.search.amazon.get(args.product_id);
         const items = response.data;
 
-        const product = items.product_information;
+        const product = items;
+
+        Convo.getState().updateMessage({
+          messageId: messageId,
+          productUpdates: product,
+        });
+        console.log(product);
 
         const summary = await summarizeProduct(product);
         completeConversation(messageId, "complete");
