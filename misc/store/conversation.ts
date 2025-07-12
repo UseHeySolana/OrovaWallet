@@ -55,6 +55,7 @@ interface Conversation {
   getConversationMessages: (conversation: string) => MessageType[] | null;
   updateConversation: (conversationId: string, summary: string) => void;
   deleteAllConversations: () => void;
+  updateProductDetails: (messageId: string, productDetails: any) => void;
 }
 
 const Convo = create(

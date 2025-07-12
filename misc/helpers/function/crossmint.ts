@@ -8,39 +8,38 @@ import {
 import Convo from "@/misc/store/conversation";
 import { completeConversation } from "../miscfunctions.ts";
 import { crossmint } from "../db/crossmint";
+import { extractImportantInfo } from "@/misc/utils";
 
 export class Crossmint {
   public searchProductsAmazon: FunctionParams;
   public createAmazonOrder: FunctionParams;
-  public selectProduct: FunctionParams;
   public productDetails: FunctionParams;
 
   constructor(public session: SessionManager) {
     this.createAmazonOrder = this.create_order();
     this.searchProductsAmazon = this.search_product();
-    this.selectProduct = this.select_product();
     this.productDetails = this.product_details();
   }
 
   create_order() {
     return {
-      name: "create-amazon-order",
+      name: "create--order",
       description: "This function is used to create an order on amazon",
       parameters: {
         type: "object",
         properties: {
-          amount: {
-            type: "product_id",
+          asin: {
+            type: "string",
             description:
-              "This is the id of the product you want to purchase, it should be a string",
+              "This is the asin of the product you want to purchase, it should be a string",
           },
         },
         required: ["asin"],
       },
 
-      handler: async (args: { product_id: string }) => {
+      handler: async (args: { asin: string }) => {
         const response = await crossmint.orders.createOrder({
-          asin: args.product_id,
+          asin: args.asin,
           payerAddress: WalletItem.getState().publicKey?.toString() ?? "",
         });
 
@@ -111,40 +110,6 @@ export class Crossmint {
       },
     };
   }
-
-  select_product() {
-    return {
-      name: "select-product",
-      description:
-        "This function is used to select a product from the list of products and return the product details",
-      parameters: {
-        type: "object",
-        properties: {
-          product_id: {
-            type: "string",
-            description:
-              "This is the product id you want to get the details of, it should be a string",
-          },
-        },
-        required: ["product_id"],
-      },
-      handler: async (args: { product_id: string }) => {
-        const messageId = this.session.functionMessageId;
-        if (!messageId) return "No message id found";
-        const response = await crossmint.search.amazon.get(args.product_id);
-        const items = response.data;
-
-        const product = items;
-
-        return convertSpeech(
-          `The product you selected is ${product.name} and the price is ${product.price}
-          The details are above, do let me know if you want to proceed with the purchase
-          `
-        );
-      },
-    };
-  }
-
   product_details() {
     return {
       name: "product-details",
@@ -169,13 +134,26 @@ export class Crossmint {
 
         const product = items;
 
-        Convo.getState().updateMessage({
-          messageId: messageId,
-          productUpdates: product,
-        });
-        console.log(product);
+        const productInfo = extractImportantInfo(product);
 
-        const summary = await summarizeProduct(product);
+        Convo.getState().updateProductDetails(messageId, {
+          name: productInfo.name,
+          brand: productInfo.brand,
+          price: productInfo.price,
+          rating: productInfo.rating,
+          reviews: productInfo.reviews,
+          topReview: productInfo.topReview,
+          images: productInfo.images,
+          colors: productInfo.colors,
+          sizes: productInfo.sizes,
+          category: productInfo.category,
+          asin: productInfo.asin,
+          dimensions: productInfo.dimensions,
+          availableSince: productInfo.availableSince,
+          bestSellerRank: productInfo.bestSellerRank,
+        });
+
+        const summary = await summarizeProduct(JSON.stringify(product));
         completeConversation(messageId, "complete");
         return summary;
       },

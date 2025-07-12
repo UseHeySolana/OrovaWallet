@@ -7,49 +7,58 @@ import { Connection, Keypair, SystemProgram, Transaction, PublicKey, VersionedTr
 import { api_key } from "@/app/requests/dashboard";
 import { Linking } from "react-native";
 import { confirm } from "../service/confirmation";
+import OpenAI from "openai";
 
 const cleanNumber = (input: any) => {
-    // Remove non-digit characters
-    let cleaned = input.replace(/\D/g, '');
-    if (cleaned.startsWith('0')) {
-        cleaned = cleaned.slice(1);
-    }
-    return cleaned
-
-}
+  // Remove non-digit characters
+  let cleaned = input.replace(/\D/g, "");
+  if (cleaned.startsWith("0")) {
+    cleaned = cleaned.slice(1);
+  }
+  return cleaned;
+};
 
 const showToast = (message: string) => {
-    AppSettings.getState().setToast(message, 'info')
-}
+  AppSettings.getState().setToast(message, "info");
+};
 
+const generate = async (instructions: string) => {
+  const client = new OpenAI({
+    apiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY || "",
+  });
 
-const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GA_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const response = await client.responses.create({
+    model: "gpt-4.1",
+    input: instructions,
+  });
+
+  return response.output_text;
+};
 
 const convertSpeech = async (sentence: any) => {
-    const result = await model.generateContent([
-        `"${sentence} "Can you rewrite this sentence in a more conversational tone, I want to use it for a text to speech api, make it friendly
+  const result = await generate(
+    `"${sentence} "Can you rewrite this sentence in a more conversational tone, I want to use it for a text to speech api, make it friendly
         
         Don't return any extra text just the re construct the sentence in a more conversational tone.
-        `,
-    ]);
-    return result.response.text();
+        `
+  );
+  return result;
 };
 
 const summarizeProduct = async (sentence: any) => {
-  const result = await model.generateContent([
+  const result = await generate(
     `"${sentence} "Can you summarize this product in a single sentence. like give a short summary of the product if it is a great product or not, and if its a good fit for what the user is looking for , highlight the features of the product, refrence the ratings and comments on the product to help your feedback.
-        `,
-  ]);
-  return result.response.text();
+        `
+  );
+  return result;
 };
 
 const summarizeConversation = async (sentence: any) => {
-  const result = await model.generateContent([
+  const result = await generate(
     `"${sentence} "Can you summarize this conversation in a single sentence. just what happend keep it very short and coincise 100 characters max eg. Airtime Purchase, amount and recipient, give similar examples for other actions, if failed, just use e.g Failed Airtime purchase.
-        `,
-  ]);
-  return result.response.text();
+        `
+  );
+  return result;
 };
 
 const getTokenTransactions = async (mintAddress: string) => {

@@ -21,7 +21,7 @@ const toolRouter = (SessionManager: SessionManager) => {
 
       //crossmint
       new Crossmint(SessionManager).searchProductsAmazon,
-      //   new Crossmint(SessionManager).createAmazonOrder,
+      new Crossmint(SessionManager).createAmazonOrder,
       new Crossmint(SessionManager).productDetails,
     ];
 }

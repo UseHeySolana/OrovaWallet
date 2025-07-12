@@ -50,10 +50,10 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
   return (
     <View className="flex-1 justify-start py-2  overflow-hidden  rounded-3xl">
       {messages.length > 0 && (
-        <View className="h-[36rem] z-50">
+        <View className="h-[44rem] z-50">
           <ScrollView
             ref={scrollViewRef}
-            className=" py-2 relative h-[36rem] gap-y-4"
+            className=" py-2 relative h-[40rem] gap-y-4"
             onContentSizeChange={() =>
               scrollViewRef.current?.scrollToEnd({ animated: true })
             }
