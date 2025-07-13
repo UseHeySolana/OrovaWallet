@@ -20,12 +20,12 @@ const ProductDetails = (props: ProductDetailsProps) => {
       {productDetails && (
         <View className="w-full">
           <View className="flex flex-col items-center justify-start gap-x-4 bg-white dark:bg-accent shadow-lg p-2  rounded-xl  ">
-            {productDetails?.images.length > 0 ? (
+            {productDetails?.images?.length > 0 ? (
               <ScrollView
                 horizontal
                 contentContainerStyle={{ gap: 10, paddingRight: 10 }}
               >
-                {productDetails?.images.map((image: any, index: number) => (
+                {productDetails?.images?.map((image: any, index: number) => (
                   <Pressable
                     key={index}
                     className="w-[100px]  h-[100px] p-3 bg-white rounded-xl overflow-hidden"
@@ -43,11 +43,19 @@ const ProductDetails = (props: ProductDetailsProps) => {
                 ))}
               </ScrollView>
             ) : (
-              <Image
-                source={{ uri: productDetails?.images[0] }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="contain"
-              />
+              <Pressable
+                className="w-[100px]  h-[100px] p-3 bg-white rounded-xl overflow-hidden"
+                onPress={() => {
+                  setSelectedImage(productDetails?.images?.[0]);
+                  setShowModal(true);
+                }}
+              >
+                <Image
+                  source={{ uri: productDetails?.images?.[0] }}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="contain"
+                />
+              </Pressable>
             )}
             <View className="flex-1  p-2 gap-y-2">
               <CText className="text-[16px]">

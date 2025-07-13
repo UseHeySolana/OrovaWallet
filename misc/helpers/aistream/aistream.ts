@@ -423,7 +423,7 @@ class SessionManager {
       },
     };
 
-    await this.sendWithDelay(eventSemantic, 200);
+    await this.sendWithDelay(eventServer, 200);
   }
 
   private async requestAudioPermission(): Promise<boolean> {
