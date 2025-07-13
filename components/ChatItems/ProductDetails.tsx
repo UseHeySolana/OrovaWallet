@@ -19,42 +19,36 @@ const ProductDetails = (props: ProductDetailsProps) => {
     <>
       {productDetails && (
         <View className="w-full">
-          <CText>Product Details</CText>
-
           <View className="flex flex-col items-center justify-start gap-x-4 bg-white dark:bg-accent shadow-lg p-2  rounded-xl  ">
-          {productDetails?.images.length > 0 ? (
-
-            <ScrollView
-              horizontal
-              contentContainerStyle={{ gap: 10, paddingRight: 10 }}
-            >
-                {productDetails?.images.map(
-                  (image: any, index: number) => (
-                    <Pressable
-                      key={index}
-                      className="w-[100px]  h-[100px] p-3 bg-white rounded-xl overflow-hidden"
-                      onPress={() => {
-                        setSelectedImage(image);
-                        setShowModal(true);
-                      }}
-                    >
-                      <Image
-                        source={{ uri: image }}
-                        style={{ width: "100%", height: "100%" }}
-                        contentFit="contain"
-                      />
-                    </Pressable>
-                  ))}
-            </ScrollView>
-
-              ):(
-                <Image
-                  source={{ uri: productDetails?.images[0] }}
-                  style={{ width: "100%", height: "100%" }}
-                  contentFit="contain"
-                />
-              )
-            }
+            {productDetails?.images.length > 0 ? (
+              <ScrollView
+                horizontal
+                contentContainerStyle={{ gap: 10, paddingRight: 10 }}
+              >
+                {productDetails?.images.map((image: any, index: number) => (
+                  <Pressable
+                    key={index}
+                    className="w-[100px]  h-[100px] p-3 bg-white rounded-xl overflow-hidden"
+                    onPress={() => {
+                      setSelectedImage(image);
+                      setShowModal(true);
+                    }}
+                  >
+                    <Image
+                      source={{ uri: image }}
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="contain"
+                    />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              <Image
+                source={{ uri: productDetails?.images[0] }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
+              />
+            )}
             <View className="flex-1  p-2 gap-y-2">
               <CText className="text-[16px]">
                 {productDetails?.name?.slice(0, 70)}...
@@ -102,9 +96,22 @@ const ProductDetails = (props: ProductDetailsProps) => {
       )}
 
       {showModal && (
-        <Modal className="px-4" visible={showModal} onRequestClose={() => setShowModal(false)} transparent={true} animationType="fade">
-          <Pressable onPress={() => setShowModal(false)} className="flex flex-col items-center justify-center bg-black/50 w-full h-full">
-              <Image source={{ uri: selectedImage }} style={{ width: "100%", height: "100%" }} contentFit="contain" />
+        <Modal
+          className="px-4"
+          visible={showModal}
+          onRequestClose={() => setShowModal(false)}
+          transparent={true}
+          animationType="fade"
+        >
+          <Pressable
+            onPress={() => setShowModal(false)}
+            className="flex flex-col items-center justify-center bg-black/50 w-full h-full"
+          >
+            <Image
+              source={{ uri: selectedImage }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="contain"
+            />
           </Pressable>
         </Modal>
       )}

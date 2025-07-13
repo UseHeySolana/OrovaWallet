@@ -27,7 +27,6 @@ const Products = (props: ProductProps) => {
       {products && (
         <ScrollView
           horizontal
-          className="w-screen h-fit bg-white dark:bg-accent2 p-2 rounded-xl"
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 10, paddingRight: 50 }}
         >

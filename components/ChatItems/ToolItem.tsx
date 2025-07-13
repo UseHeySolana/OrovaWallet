@@ -166,7 +166,7 @@ const ToolItem = (props: ItemProps) => {
         </View>
       </View>
 
-      <View className="bg-white z- dark:bg-accent2 p-3 rounded-xl w-full">
+      <View className="bg-white  dark:bg-accent2 p-3 rounded-xl w-full">
         <CText
           className="uppercase text-[1.23rem]"
           style={{ fontFamily: "bold" }}
