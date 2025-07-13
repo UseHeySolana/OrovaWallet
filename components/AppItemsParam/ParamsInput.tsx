@@ -9,6 +9,7 @@ interface ParamsInputProps {
 }
 
 const ParamsInput = ({ param, appData, item }: ParamsInputProps) => {
+
   const [inputValue, setInputValue] = useState<string>("");
   const { updateToolParameter } = ToolsItem();
   const handleChangeText = (text: string) => {

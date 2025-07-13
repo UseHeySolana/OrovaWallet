@@ -85,7 +85,7 @@ function Security() {
           <CText className="text-[1.4rem]">Security</CText>
         </View>
 
-        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow  bg-white dark:bg-accent ">
+        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow-sm     bg-white dark:bg-accent ">
           {settingsMenu2.map((item, index) => {
             return (
               <Pressable

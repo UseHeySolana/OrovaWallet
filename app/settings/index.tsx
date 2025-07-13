@@ -161,7 +161,7 @@ function Settings() {
           gap: 10,
         }}
       >
-        <View className="bg-white dark:bg-accent mb-10 flex shadow flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
+        <View className="bg-white dark:bg-accent mb-10 flex shadow-sm flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
           <View className="flex flex-row justify-between items-center gap-x-2  ">
             <View className="h-10 w-10  rounded-full">
               <Image
@@ -184,7 +184,7 @@ function Settings() {
           </Pressable>
         </View>
 
-        <View className="w-11/12   m-auto px-4 py-4 shadow rounded-2xl bottom-10 bg-white dark:bg-accent ">
+        <View className="w-11/12   m-auto px-4 py-4 shadow-sm rounded-2xl bottom-10 bg-white dark:bg-accent ">
           {settingsMenu.map((item, index) => {
             return (
               <TouchableOpacity
@@ -219,7 +219,7 @@ function Settings() {
           })}
         </View>
 
-        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow bottom-10 bg-white dark:bg-accent ">
+        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow-sm  bottom-10 bg-white dark:bg-accent ">
           {settingsMenu2.map((item, index) => {
             return (
               <Pressable

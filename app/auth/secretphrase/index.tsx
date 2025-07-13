@@ -155,70 +155,107 @@ export default function SecretPhrase({ navigation }: any) {
    */
 
   return (
-    <View
-      className="py-10 relative bg-grey dark:bg-dark  h-[100%]"
-    >
-      {!startWalletCreation ?
-        <ScrollView className="gap-y-5 ">
+    <View className="py-10 relative bg-grey dark:bg-dark  h-[100%]">
+      {!startWalletCreation ? (
+        <ScrollView
+          className="gap-y-5"
+          contentContainerStyle={{ paddingBottom: 100, gap: 10 }}
+        >
           <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl p-10">
             <View className="gap-x-5">
-              <CText style={{ fontFamily: "bold" }} className="text-[24px] text-center">Your secret phrase is the master key to your wallet</CText>
-              <CText className="text-[16px] text-center">Read the context below carefully in order to be able to properly safeguard your wallet.</CText>
+              <CText
+                style={{ fontFamily: "bold" }}
+                className="text-[24px] text-center"
+              >
+                Your secret phrase is the master key to your wallet
+              </CText>
+              <CText className="text-[16px] text-center">
+                Read the context below carefully in order to be able to properly
+                safeguard your wallet.
+              </CText>
             </View>
 
             <View className="w-100 m-auto">
-
-              <Image source={require('@/assets/items/secret.png')} alt="Security image" style={{ height: 221, width: 221 }} contentFit="contain" />
-
+              <Image
+                source={require("@/assets/items/secret.png")}
+                alt="Security image"
+                style={{ height: 221, width: 221 }}
+                contentFit="contain"
+              />
             </View>
-
           </View>
 
           <View className="w-11/12 m-auto bg-white dark:bg-accent gap-y-3 rounded-3xl p-3">
             {actions.map((action, index) => {
               return (
-                <View key={index} className="bg-grey dark:bg-accent2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
+                <View
+                  key={index}
+                  className="bg-grey dark:bg-accent2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start"
+                >
                   <View className="h-5 w-5 border-4 border-purple rounded-full"></View>
                   <View className="w-[288px] ">
-
-                    <CText className="text-[16px] text-start text-wrap">{action}</CText>
+                    <CText className="text-[16px] text-start text-wrap">
+                      {action}
+                    </CText>
                   </View>
-
                 </View>
-              )
+              );
             })}
           </View>
         </ScrollView>
-        :
+      ) : (
         <View className="gap-y-5">
           <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl gap-y-4 px-4 py-3">
             <View className="gap-y-4 mb-2">
-              <CText style={{ fontFamily: "bold" }} className="text-[24px] text-start">Secret Phrase</CText>
+              <CText
+                style={{ fontFamily: "bold" }}
+                className="text-[24px] text-start"
+              >
+                Secret Phrase
+              </CText>
               <CText className="text-[16px] text-start">Write this down</CText>
             </View>
             <View className="w-full m-auto bg-grey dark:bg-accent2 rounded-3xl">
               <View className="p-7 flex flex-row flex-wrap gap-2 justify-between items-center">
                 {mnemonic.split(" ").map((word, index) => {
                   return (
-                    <CText key={index} style={{ fontFamily: 'bold' }} className="text-[16px] basis-1/4 ">
-                      {verifiedWords.length > 0 ? "*****" : `${index + 1}. ${word}`}</CText>
-                  )
+                    <CText
+                      key={index}
+                      style={{ fontFamily: "bold" }}
+                      className="text-[16px] basis-1/4 "
+                    >
+                      {verifiedWords.length > 0
+                        ? "*****"
+                        : `${index + 1}. ${word}`}
+                    </CText>
+                  );
                 })}
               </View>
             </View>
-            <Buttons buttonType="feedback" onPress={() => copyKeyPhrase()} className="" icon={<IconLibrary.copy />} text="Copy secret phrase" type="secondary" />
+            <Buttons
+              buttonType="feedback"
+              onPress={() => copyKeyPhrase()}
+              className=""
+              icon={<IconLibrary.copy />}
+              text="Copy secret phrase"
+              type="secondary"
+            />
           </View>
         </View>
-      }
+      )}
       <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 absolute">
-        {
-          !startWalletCreation &&
-          <Buttons onPress={() => { generateKeyPhrase() }} text="Continue" />
-        }
+        {!startWalletCreation && (
+          <Buttons
+            onPress={() => {
+              generateKeyPhrase();
+            }}
+            text="Continue"
+          />
+        )}
       </View>
 
       <ConfirmPhraseSheet
-        open={currentState === 'verify-phrase'}
+        open={currentState === "verify-phrase"}
         verifiedWords={verifiedWords}
         userWords={userWords}
         copyKeyPhrase={copyKeyPhrase}
@@ -227,7 +264,6 @@ export default function SecretPhrase({ navigation }: any) {
         currentState={currentState}
         validatePhrase={validatePhrase}
       />
-
     </View>
   );
 }

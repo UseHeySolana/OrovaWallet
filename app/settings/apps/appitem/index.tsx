@@ -42,13 +42,12 @@ function AppItems() {
   const [toolConfig, setToolConfig] = useState<any>(null);
   const [result, setResult] = useState<any>(null);
   const [inputValue, setInputValue] = useState<any>({});
-  console.log(inputValue);
   const [param, setParam] = useState<any>(null);
 
   useEffect(() => {
     if (app) {
-      const appData = apps.find((item: any) => item.name === app);
-      setAppData(appData);
+      const data = apps.find((item: any) => item.name === app);
+      setAppData(data);
 
       const appRatings = reviews.filter((item: any) => item.app_name === app);
       setRatings(appRatings);
@@ -227,12 +226,7 @@ function AppItems() {
           />
         )}
       </View>
-      {/* <View className="w-full  px-4 h-[40px] rounded-t-3xl dark:shadow-none shadow bg-white dark:bg-accent">
-                <View className="w-full flex flex-col justify-start items-start gap-y-4 mt-4">
-                    <CText className="text-[1.4rem]">{appData?.name}</CText>
-                    <CText className="text-[1.2rem]">{appData?.description}</CText>
-                </View>
-            </View> */}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -251,7 +245,7 @@ function AppItems() {
                 contentFit="cover"
               />
             </View>
-            <View className="flex-1 flex-col justify-start items-start gap-y-1  ">
+            <View className="flex-1 flex-col justify-start items-start gap-y-2  ">
               <CText style={{ fontFamily: "bold" }} className="text-[1.81rem]">
                 {appData?.name}
                 {appData?.is_active ? "" : " (Coming Soon)"}
@@ -273,7 +267,7 @@ function AppItems() {
                 ) : (
                   <Buttons
                     type={activated ? "primary" : "secondary"}
-                    className="py-2 px-12 rounded-3xl"
+                    className="py-2 px-5 rounded-3xl"
                     text={activated ? "Uninstall" : "Install"}
                     onPress={activated ? deactivateTool : activateTool}
                   />
@@ -283,7 +277,7 @@ function AppItems() {
           </View>
         </View>
 
-        {appData?.tools?.length > 0 && (
+        {activated && appData?.tools?.length > 0 && (
           <View className="w-full flex-1 flex-col justify-start items-start shadow gap-y-2 mt-4 bg-white dark:bg-accent p-3 py-3 rounded-2xl">
             <Pressable
               onPress={() => {
@@ -293,20 +287,26 @@ function AppItems() {
             >
               <IconLibrary.edit />
             </Pressable>
-            <View className="w-full flex flex-row gap-x-2 justify-start items-start gap-y-2">
+            <View className="w-full flex-1 flex flex-col gap-x-2 justify-start items-start gap-y-2">
               {appData?.tools?.map((item: any, index: number) => {
+                const brandColors = appData?.brand_colors?.primary
+                  ? `bg-[${appData?.brand_colors?.primary}]`
+                  : "bg-purple";
                 return (
                   <View key={index} className="gap-y-2">
-                    <View className="bg-purple p-2 px-3 rounded-full justify-center items-center">
+                    <View
+                      className={`bg-purple p-2 px-3 rounded-full justify-center items-center`}
+                    >
                       <CText
                         style={{ fontFamily: "reg" }}
-                        className="capitalize text-[1.2rem]"
+                        className="capitalize text-[1rem]"
+                        textColor={"text-white"}
                       >
                         {item.name}
                       </CText>
                     </View>
 
-                    <View>
+                    <View className="ps-4">
                       {item?.params?.map((param: any, index: number) => {
                         return (
                           <CText
