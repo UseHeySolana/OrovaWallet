@@ -56,7 +56,6 @@ const ToolItem = (props: ItemProps) => {
     outputRange: ["0deg", "360deg"],
   });
 
-  console.log(item?.product_details);
 
   return (
     <View className="py-4 shadow-sm px-4 flex flex-col items-start justify-center text-[1.14rem]  bg-white dark:bg-dark dark:border border-accent rounded-xl gap-y-3">

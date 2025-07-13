@@ -9,7 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import "react-native-get-random-values"; // Required for crypto operations
 import { v4 as uuidv4 } from "uuid"; // Import UUID v4 generator
-import AudioManager from "./AudioManager";
+
 import UserItem, { userWalletType } from "@/misc/store/userstore";
 import { toolFunctions } from "../tools";
 import { Audio } from "expo-av";
@@ -24,6 +24,9 @@ import setUserItems from "@/app/requests/dashboard";
 import WalletItem from "@/misc/store/wallet";
 import tracker from "../db/tracker";
 import { request } from "../db/db";
+
+import InCallManager from "react-native-incall-manager";
+import AudioManager from "./AudioManager";
 
 class SessionManager {
   private isSessionActive: boolean;
@@ -473,6 +476,10 @@ class SessionManager {
       }
 
       this.audioManager.cleanup();
+
+      // Stop InCallManager
+      InCallManager.stop();
+
       this.isSessionActive = false;
       this.connectionEstablished = false;
 

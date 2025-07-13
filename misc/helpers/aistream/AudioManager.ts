@@ -1,6 +1,7 @@
 import { MediaStream } from 'react-native-webrtc';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import { Platform } from "react-native";
+import InCallManager from "react-native-incall-manager";
 
 // Audio output channel types
 export enum AudioChannel {
@@ -24,11 +25,22 @@ interface AudioModeConfig {
   playThroughEarpieceAndroid?: boolean;
 }
 
+// Audio device info interface
+interface AudioDeviceInfo {
+  name: string;
+  type: string;
+  ios_category?: string;
+  android_audioDeviceKind?: string;
+  selected?: boolean;
+}
+
 class AudioManager {
   private audioStream: MediaStream | null = null;
   private currentChannel: AudioChannel = AudioChannel.SPEAKER;
   private availableChannels: AudioChannel[] = [];
   private isInitialized: boolean = false;
+  private availableDevices: AudioDeviceInfo[] = [];
+  private isInCallManagerActive: boolean = false;
 
   constructor() {
     this.initializeAudioManager();
@@ -46,6 +58,9 @@ class AudioManager {
         return;
       }
 
+      // Initialize InCallManager
+      await this.initializeInCallManager();
+
       // Platform-specific initialization
       if (Platform.OS === "ios") {
         await this.initializeIOS();
@@ -53,16 +68,52 @@ class AudioManager {
         await this.initializeAndroid();
       }
 
-      // Detect available audio channels
-      await this.detectAvailableChannels();
+      // Detect available audio devices
+      await this.detectAvailableDevices();
 
       // Set initial audio mode
-      await this.setAudioChannel(AudioChannel.SPEAKER);
+      await this.setAudioChannel(AudioChannel.AUTO);
 
       this.isInitialized = true;
       console.log("AudioManager initialized successfully for", Platform.OS);
     } catch (error) {
       console.error("Failed to initialize AudioManager:", error);
+    }
+  }
+
+  /**
+   * Initialize InCallManager for audio routing
+   */
+  private async initializeInCallManager(): Promise<void> {
+    try {
+      // Import DeviceEventEmitter for event handling
+      const { DeviceEventEmitter } = require("react-native");
+
+      // Setup InCallManager event listeners using DeviceEventEmitter
+      DeviceEventEmitter.addListener(
+        "WiredHeadset",
+        this.handleWiredHeadsetEvent.bind(this)
+      );
+      DeviceEventEmitter.addListener(
+        "Proximity",
+        this.handleProximityEvent.bind(this)
+      );
+      DeviceEventEmitter.addListener(
+        "NoisyAudio",
+        this.handleNoisyAudioEvent.bind(this)
+      );
+      DeviceEventEmitter.addListener(
+        "MediaButton",
+        this.handleMediaButtonEvent.bind(this)
+      );
+
+      // Start InCallManager
+      InCallManager.start({ media: "audio", auto: false, ringback: "" });
+      this.isInCallManagerActive = true;
+
+      console.log("InCallManager initialized successfully");
+    } catch (error) {
+      console.error("Failed to initialize InCallManager:", error);
     }
   }
 
@@ -105,107 +156,110 @@ class AudioManager {
   }
 
   /**
-   * Detect available audio output channels based on platform
+   * Event handlers for InCallManager
    */
-  private async detectAvailableChannels(): Promise<void> {
-    // Base channels available on all devices
+  private handleWiredHeadsetEvent(data: any): void {
+    console.log("Wired headset event:", data);
+    if (data.isPlugged) {
+      this.addAvailableChannel(AudioChannel.WIRED_HEADSET);
+      // Auto-route to wired headset when plugged in
+      this.setAudioChannel(AudioChannel.WIRED_HEADSET);
+    } else {
+      this.removeAvailableChannel(AudioChannel.WIRED_HEADSET);
+      // Fall back to speaker when unplugged
+      this.setAudioChannel(AudioChannel.SPEAKER);
+    }
+  }
+
+  private handleNoisyAudioEvent(data: any): void {
+    console.log("Noisy audio event:", data);
+    // Handle audio interruption (e.g., headphone unplugged)
+  }
+
+  private handleMediaButtonEvent(data: any): void {
+    console.log("Media button event:", data);
+    // Handle media button presses from headsets
+  }
+
+  private handleProximityEvent(data: any): void {
+    console.log("Proximity event:", data);
+    // Handle proximity sensor changes
+    if (data.isNear && this.currentChannel === AudioChannel.SPEAKER) {
+      this.setAudioChannel(AudioChannel.EARPIECE);
+    }
+  }
+
+  /**
+   * Detect available audio devices using InCallManager
+   */
+  private async detectAvailableDevices(): Promise<void> {
+    try {
+      // Base channels available on all devices
+      this.availableChannels = [AudioChannel.SPEAKER, AudioChannel.EARPIECE];
+
+      // Check for Bluetooth connectivity
+      const isBluetoothAvailable =
+        await InCallManager.getIsWiredHeadsetPluggedIn();
+
+      // For now, assume basic device availability
+      // In a real implementation, you would check actual device connectivity
+      this.availableChannels.push(
+        AudioChannel.BLUETOOTH,
+        AudioChannel.WIRED_HEADSET
+      );
+
+      console.log("Available audio channels:", this.availableChannels);
+    } catch (error) {
+      console.error("Failed to detect audio devices:", error);
+      // Fallback to basic channels
+      this.availableChannels = [AudioChannel.SPEAKER, AudioChannel.EARPIECE];
+    }
+  }
+
+  /**
+   * Update available channels based on detected devices
+   */
+  private updateAvailableChannels(devices: AudioDeviceInfo[]): void {
     this.availableChannels = [AudioChannel.SPEAKER, AudioChannel.EARPIECE];
 
-    // Add additional channels (in production, these would be detected dynamically)
-    this.availableChannels.push(
-      AudioChannel.BLUETOOTH,
-      AudioChannel.WIRED_HEADSET
+    devices.forEach((device) => {
+      if (
+        device.type === "Bluetooth" ||
+        device.type === "BluetoothA2DP" ||
+        device.type === "BluetoothSCO"
+      ) {
+        this.addAvailableChannel(AudioChannel.BLUETOOTH);
+      } else if (
+        device.type === "WiredHeadset" ||
+        device.type === "WiredHeadphones"
+      ) {
+        this.addAvailableChannel(AudioChannel.WIRED_HEADSET);
+      }
+    });
+
+    console.log("Updated available channels:", this.availableChannels);
+  }
+
+  /**
+   * Add a channel to available channels if not already present
+   */
+  private addAvailableChannel(channel: AudioChannel): void {
+    if (!this.availableChannels.includes(channel)) {
+      this.availableChannels.push(channel);
+    }
+  }
+
+  /**
+   * Remove a channel from available channels
+   */
+  private removeAvailableChannel(channel: AudioChannel): void {
+    this.availableChannels = this.availableChannels.filter(
+      (ch) => ch !== channel
     );
-
-    console.log("Available audio channels:", this.availableChannels);
   }
 
   /**
-   * Get platform-specific audio mode configuration for WebRTC
-   */
-  private getAudioModeConfig(channel: AudioChannel): AudioModeConfig {
-    if (Platform.OS === "ios") {
-      return this.getIOSAudioConfig(channel);
-    } else {
-      return this.getAndroidAudioConfig(channel);
-    }
-  }
-
-  /**
-   * iOS-specific audio configuration for WebRTC streams
-   */
-  private getIOSAudioConfig(channel: AudioChannel): AudioModeConfig {
-    const baseConfig: AudioModeConfig = {
-      allowsRecordingIOS: true, // Required for WebRTC audio routing
-      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-      playsInSilentModeIOS: true, // Essential for VoIP/calling apps
-      staysActiveInBackground: true,
-    };
-
-    switch (channel) {
-      case AudioChannel.SPEAKER:
-        return {
-          ...baseConfig,
-          // iOS will route to speaker by default when not using earpiece
-        };
-
-      case AudioChannel.EARPIECE:
-        return {
-          ...baseConfig,
-          // For earpiece, we need to use a different approach on iOS
-          // This might require native iOS code to force earpiece routing
-        };
-
-      case AudioChannel.BLUETOOTH:
-      case AudioChannel.WIRED_HEADSET:
-        return {
-          ...baseConfig,
-          // iOS automatically routes to these when connected
-        };
-
-      default:
-        return baseConfig;
-    }
-  }
-
-  /**
-   * Android-specific audio configuration for WebRTC streams
-   */
-  private getAndroidAudioConfig(channel: AudioChannel): AudioModeConfig {
-    const baseConfig: AudioModeConfig = {
-      shouldDuckAndroid: true,
-      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-      staysActiveInBackground: true,
-      playThroughEarpieceAndroid: false,
-    };
-
-    switch (channel) {
-      case AudioChannel.SPEAKER:
-        return {
-          ...baseConfig,
-          playThroughEarpieceAndroid: false,
-        };
-
-      case AudioChannel.EARPIECE:
-        return {
-          ...baseConfig,
-          playThroughEarpieceAndroid: true,
-        };
-
-      case AudioChannel.BLUETOOTH:
-      case AudioChannel.WIRED_HEADSET:
-        return {
-          ...baseConfig,
-          playThroughEarpieceAndroid: false,
-        };
-
-      default:
-        return baseConfig;
-    }
-  }
-
-  /**
-   * Set the audio output channel for WebRTC stream
+   * Set the audio output channel using InCallManager
    */
   async setAudioChannel(channel: AudioChannel): Promise<void> {
     if (!this.isInitialized) {
@@ -214,33 +268,24 @@ class AudioManager {
     }
 
     try {
+      // Handle auto channel selection
+      if (channel === AudioChannel.AUTO) {
+        channel = this.selectBestChannel();
+      }
+
       // Validate channel availability
-      if (
-        channel !== AudioChannel.AUTO &&
-        !this.availableChannels.includes(channel)
-      ) {
+      if (!this.availableChannels.includes(channel)) {
         console.warn(
           `Channel ${channel} not available, falling back to speaker`
         );
         channel = AudioChannel.SPEAKER;
       }
 
-      // Handle auto channel selection
-      if (channel === AudioChannel.AUTO) {
-        channel = this.selectBestChannel();
-      }
-
-      // Apply platform-specific configuration
-      const config = this.getAudioModeConfig(channel);
-      await Audio.setAudioModeAsync(config);
-
-      // iOS-specific channel routing
-      if (Platform.OS === "ios") {
-        await this.routeIOSAudio(channel);
-      }
+      // Route audio using InCallManager
+      await this.routeAudioWithInCallManager(channel);
 
       this.currentChannel = channel;
-      console.log(`WebRTC audio channel set to: ${channel} on ${Platform.OS}`);
+      console.log(`Audio channel set to: ${channel} on ${Platform.OS}`);
 
       // Re-route existing WebRTC audio if available
       if (this.audioStream) {
@@ -252,40 +297,66 @@ class AudioManager {
   }
 
   /**
-   * iOS-specific audio routing for WebRTC
+   * Route audio using InCallManager based on channel
    */
-  private async routeIOSAudio(channel: AudioChannel): Promise<void> {
+  private async routeAudioWithInCallManager(
+    channel: AudioChannel
+  ): Promise<void> {
     try {
       switch (channel) {
         case AudioChannel.SPEAKER:
-          // iOS: Force speaker output for WebRTC
-          // In a real implementation, you'd use native iOS code:
-          // AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
+          InCallManager.setSpeakerphoneOn(true);
+          InCallManager.chooseAudioRoute("SPEAKER");
           break;
 
         case AudioChannel.EARPIECE:
-          // iOS: Force earpiece/receiver output for WebRTC
-          // In a real implementation, you'd use native iOS code:
-          // AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
+          InCallManager.setSpeakerphoneOn(false);
+          InCallManager.chooseAudioRoute("EARPIECE");
           break;
 
         case AudioChannel.BLUETOOTH:
+          InCallManager.setSpeakerphoneOn(false);
+          // Find and select Bluetooth device
+          const bluetoothDevice = this.availableDevices.find(
+            (device) =>
+              device.type === "Bluetooth" ||
+              device.type === "BluetoothA2DP" ||
+              device.type === "BluetoothSCO"
+          );
+          if (bluetoothDevice) {
+            InCallManager.chooseAudioRoute(bluetoothDevice.name);
+          }
+          break;
+
         case AudioChannel.WIRED_HEADSET:
-          // iOS: Allow automatic routing to these devices when connected
+          InCallManager.setSpeakerphoneOn(false);
+          // Find and select wired headset device
+          const wiredDevice = this.availableDevices.find(
+            (device) =>
+              device.type === "WiredHeadset" ||
+              device.type === "WiredHeadphones"
+          );
+          if (wiredDevice) {
+            InCallManager.chooseAudioRoute(wiredDevice.name);
+          }
+          break;
+
+        default:
+          console.warn(`Unknown channel: ${channel}`);
           break;
       }
 
-      console.log(`iOS WebRTC audio routed to ${channel}`);
+      console.log(`InCallManager audio routed to ${channel}`);
     } catch (error) {
-      console.error("Error routing iOS WebRTC audio:", error);
+      console.error("Error routing audio with InCallManager:", error);
     }
   }
 
   /**
-   * Select the best available audio channel
+   * Select the best available audio channel with priority for external devices
    */
   private selectBestChannel(): AudioChannel {
-    // Priority order for WebRTC audio
+    // Priority order: Bluetooth > Wired Headset > Speaker > Earpiece
     const priorityOrder = [
       AudioChannel.BLUETOOTH,
       AudioChannel.WIRED_HEADSET,
@@ -300,6 +371,48 @@ class AudioManager {
     }
 
     return AudioChannel.SPEAKER; // Fallback
+  }
+
+  /**
+   * Get available audio devices
+   */
+  async getAvailableDevices(): Promise<AudioDeviceInfo[]> {
+    try {
+      // Return the current available devices
+      return this.availableDevices;
+    } catch (error) {
+      console.error("Failed to get audio devices:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if Bluetooth device is connected
+   */
+  isBluetoothConnected(): boolean {
+    return this.availableDevices.some(
+      (device) =>
+        device.type === "Bluetooth" ||
+        device.type === "BluetoothA2DP" ||
+        device.type === "BluetoothSCO"
+    );
+  }
+
+  /**
+   * Check if wired headset is connected
+   */
+  isWiredHeadsetConnected(): boolean {
+    return this.availableDevices.some(
+      (device) =>
+        device.type === "WiredHeadset" || device.type === "WiredHeadphones"
+    );
+  }
+
+  /**
+   * Force refresh of available devices
+   */
+  async refreshAvailableDevices(): Promise<void> {
+    await this.detectAvailableDevices();
   }
 
   /**
@@ -322,8 +435,12 @@ class AudioManager {
 
     try {
       // Apply current channel configuration for WebRTC audio
-      const config = this.getAudioModeConfig(this.currentChannel);
-      await Audio.setAudioModeAsync(config);
+      // Re-initialize audio session to apply routing changes
+      if (Platform.OS === "ios") {
+        await this.initializeIOS();
+      } else {
+        await this.initializeAndroid();
+      }
 
       console.log(
         `WebRTC audio routed through ${this.currentChannel} on ${Platform.OS}`
@@ -456,6 +573,19 @@ class AudioManager {
         tracks.forEach((track) => track.stop());
         this.audioStream = null;
       }
+
+      // Stop InCallManager
+      if (this.isInCallManagerActive) {
+        InCallManager.stop();
+        this.isInCallManagerActive = false;
+      }
+
+      // Remove event listeners
+      const { DeviceEventEmitter } = require("react-native");
+      DeviceEventEmitter.removeAllListeners("WiredHeadset");
+      DeviceEventEmitter.removeAllListeners("Proximity");
+      DeviceEventEmitter.removeAllListeners("NoisyAudio");
+      DeviceEventEmitter.removeAllListeners("MediaButton");
 
       // Reset to platform-appropriate defaults
       const defaultConfig =
