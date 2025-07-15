@@ -43,3 +43,6 @@ yarn-error.*
 app-example
 
 build-*
+
+
+google-services.json
