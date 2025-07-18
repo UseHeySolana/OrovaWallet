@@ -17,6 +17,8 @@ import { ThemeProvider, useThemeContext } from "@/misc/context/ThemeContext";
 import StackView from "./stack";
 import { useRouteTracking } from "@/components/hooks/navigation";
 import tracker from "@/misc/helpers/db/tracker";
+import * as Linking from "expo-linking";
+import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -74,6 +76,7 @@ export default function RootLayout() {
         <ThemeProvider>
           <AiServiceProvider>
             <PIPManager>
+              <PIPDeepLinkHandler />
               <WidgetManager>
                 <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
                   <StackView />

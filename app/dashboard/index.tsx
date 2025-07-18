@@ -176,7 +176,7 @@ export default function Dashboard() {
       ) : (
         <>
           <ChatInterface messages={message} />
-          <QuickActions showInDashboard={true} />
+          <QuickActions showInDashboard={false} />
         </>
       )}
       <Base

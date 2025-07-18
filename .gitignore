@@ -37,7 +37,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-/android
 /ios
 
 app-example
@@ -46,3 +45,9 @@ build-*
 
 
 google-services.json
+
+
+# Android build artifacts
+/android/.gradle
+/android/app/build
+/android/build

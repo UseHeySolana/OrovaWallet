@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAi } from '@/misc/context/AiContext';
 import AppSettings from '@/misc/store/settingsstore';
 import PIPOverlay from './PIPOverlay';
+import { NativePIPModule } from "./NativePIPModule";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -21,6 +22,8 @@ interface PIPContextType {
   togglePIP: () => void;
   pipPosition: { x: number; y: number };
   setPipPosition: (position: { x: number; y: number }) => void;
+  hasOverlayPermission: boolean;
+  requestPermission: () => Promise<void>;
 }
 
 const PIPContext = createContext<PIPContextType | null>(null);
@@ -29,26 +32,28 @@ interface PIPManagerProps {
   children: React.ReactNode;
 }
 
-const PIP_STORAGE_KEY = 'heysolana_pip_position';
+const PIP_STORAGE_KEY = "heysolana_pip_position";
 const PIP_SIZE = 80;
 const SCREEN_EDGE_PADDING = 20;
 
 export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
   const [isPIPActive, setIsPIPActive] = useState(false);
-  const [pipPosition, setPipPosition] = useState({ 
-    x: screenWidth - PIP_SIZE - SCREEN_EDGE_PADDING, 
-    y: screenHeight / 2 
+  const [hasOverlayPermission, setHasOverlayPermission] = useState(false);
+  const [pipPosition, setPipPosition] = useState({
+    x: screenWidth - PIP_SIZE - SCREEN_EDGE_PADDING,
+    y: screenHeight / 2,
   });
-  
+
   const translateX = useRef(new Animated.Value(pipPosition.x)).current;
   const translateY = useRef(new Animated.Value(pipPosition.y)).current;
   const scale = useRef(new Animated.Value(1)).current;
-  
+
   const { isSessionActive, sessionManager } = useAi();
   const { setLoading } = AppSettings();
 
-  // Load saved PIP position
+  // Check overlay permission on mount
   useEffect(() => {
+    checkOverlayPermission();
     loadPIPPosition();
   }, []);
 
@@ -58,6 +63,36 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
     translateY.setValue(pipPosition.y);
   }, [pipPosition]);
 
+  const checkOverlayPermission = async () => {
+    try {
+      const canDraw = await NativePIPModule.canDrawOverlays();
+      setHasOverlayPermission(canDraw);
+    } catch (error) {
+      console.error("Error checking overlay permission:", error);
+      setHasOverlayPermission(false);
+    }
+  };
+
+  const requestPermission = async () => {
+    try {
+      setLoading(true);
+      await NativePIPModule.requestOverlayPermission();
+
+      // Check again after a delay to see if permission was granted
+      setTimeout(async () => {
+        await checkOverlayPermission();
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error requesting overlay permission:", error);
+      setLoading(false);
+      Alert.alert(
+        "Permission Required",
+        "Please grant overlay permission in settings to use the floating AI assistant."
+      );
+    }
+  };
+
   const loadPIPPosition = async () => {
     try {
       const savedPosition = await AsyncStorage.getItem(PIP_STORAGE_KEY);
@@ -66,7 +101,7 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
         setPipPosition(position);
       }
     } catch (error) {
-      console.error('Error loading PIP position:', error);
+      console.error("Error loading PIP position:", error);
     }
   };
 
@@ -74,16 +109,17 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
     try {
       await AsyncStorage.setItem(PIP_STORAGE_KEY, JSON.stringify(position));
     } catch (error) {
-      console.error('Error saving PIP position:', error);
+      console.error("Error saving PIP position:", error);
     }
   };
 
   const snapToEdge = (x: number, y: number) => {
     const centerX = screenWidth / 2;
-    const snapX = x < centerX 
-      ? SCREEN_EDGE_PADDING 
-      : screenWidth - PIP_SIZE - SCREEN_EDGE_PADDING;
-    
+    const snapX =
+      x < centerX
+        ? SCREEN_EDGE_PADDING
+        : screenWidth - PIP_SIZE - SCREEN_EDGE_PADDING;
+
     const boundedY = Math.max(
       SCREEN_EDGE_PADDING,
       Math.min(y, screenHeight - PIP_SIZE - SCREEN_EDGE_PADDING)
@@ -106,9 +142,9 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
     .onEnd((event) => {
       const newX = event.translationX + pipPosition.x;
       const newY = event.translationY + pipPosition.y;
-      
+
       const snappedPosition = snapToEdge(newX, newY);
-      
+
       Animated.parallel([
         Animated.spring(translateX, {
           toValue: snappedPosition.x,
@@ -128,18 +164,50 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
       savePIPPosition(snappedPosition);
     });
 
-  const showPIP = () => {
-    if (Platform.OS === 'android') {
-      // For Android, we can request PIP mode
-      setIsPIPActive(true);
-    } else {
-      // For iOS, show our custom floating overlay
-      setIsPIPActive(true);
+  const showPIP = async () => {
+    try {
+      if (Platform.OS === "android") {
+        // Check permission first
+        const canDraw = await NativePIPModule.canDrawOverlays();
+        if (!canDraw) {
+          Alert.alert(
+            "Permission Required",
+            "Please grant overlay permission to use the floating AI assistant.",
+            [
+              { text: "Cancel", style: "cancel" },
+              { text: "Grant Permission", onPress: requestPermission },
+            ]
+          );
+          return;
+        }
+
+        // Start native PIP overlay
+        const success = await NativePIPModule.startPIP();
+        if (success) {
+          setIsPIPActive(true);
+        } else {
+          Alert.alert("Error", "Failed to start floating AI assistant.");
+        }
+      } else {
+        // For iOS, use the React Native overlay (within app)
+        setIsPIPActive(true);
+      }
+    } catch (error) {
+      console.error("Error starting PIP:", error);
+      Alert.alert("Error", "Failed to start floating AI assistant.");
     }
   };
 
-  const hidePIP = () => {
-    setIsPIPActive(false);
+  const hidePIP = async () => {
+    try {
+      if (Platform.OS === "android") {
+        await NativePIPModule.stopPIP();
+      }
+      setIsPIPActive(false);
+    } catch (error) {
+      console.error("Error stopping PIP:", error);
+      setIsPIPActive(false);
+    }
   };
 
   const togglePIP = () => {
@@ -157,16 +225,16 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
     togglePIP,
     pipPosition,
     setPipPosition,
+    hasOverlayPermission,
+    requestPermission,
   };
 
   return (
     <PIPContext.Provider value={contextValue}>
       {children}
-      {isPIPActive && (
-        <PIPOverlay 
-          pipPosition={pipPosition}
-          panGesture={panGesture}
-        />
+      {/* Only show React Native overlay on iOS or when native PIP is not available */}
+      {isPIPActive && Platform.OS === "ios" && (
+        <PIPOverlay pipPosition={pipPosition} panGesture={panGesture} />
       )}
     </PIPContext.Provider>
   );

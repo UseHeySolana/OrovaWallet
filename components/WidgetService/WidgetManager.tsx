@@ -38,8 +38,10 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({ children }) => {
         handleStopAI();
       } else if (url.includes('heysolana://pip/show')) {
         handleShowPIP();
+        router.push("/dashboard");
       } else if (url.includes('heysolana://pip/hide')) {
         handleHidePIP();
+        router.push("/dashboard");
       } else if (url.includes('heysolana://dashboard')) {
         router.push('/dashboard');
       }
