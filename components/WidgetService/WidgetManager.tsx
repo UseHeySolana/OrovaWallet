@@ -50,6 +50,7 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({ children }) => {
     // Check if app was opened with a deep link
     const getInitialURL = async () => {
       const initialURL = await Linking.getInitialURL();
+      console.log("Initial URL:", initialURL);
       if (initialURL) {
         handleDeepLink(initialURL);
       }
