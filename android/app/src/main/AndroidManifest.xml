@@ -54,34 +54,24 @@
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
     </activity>
-    
-    <!-- HeySolana Widget Providers -->
     <receiver android:name=".HeySolanaWidgetProvider" android:exported="true">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/heysolana_widget_info"/>
     </receiver>
-
     <receiver android:name=".HeySolanaStartWidgetProvider" android:exported="true">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/heysolana_start_widget_info"/>
     </receiver>
-
     <receiver android:name=".HeySolanaOpenWidgetProvider" android:exported="true">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/heysolana_open_widget_info"/>
     </receiver>
-
-    <service
-        android:name=".PIPOverlayService"
-        android:enabled="true"
-        android:exported="false"
-        android:foregroundServiceType="specialUse" />
-    
+    <service android:name=".PIPOverlayService" android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse"/>
   </application>
 </manifest>
