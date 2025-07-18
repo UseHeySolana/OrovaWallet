@@ -19,6 +19,7 @@ import SetPin from "@/components/Sheets/SetPinSheet";
 import WalletScreen from "@/components/DashboardComponents/WalletScreen";
 import ChatInterface from "@/components/DashboardComponents/Chatinterface";
 import ToolsItem from "@/misc/store/toolsitems";
+import QuickActions from "@/components/WidgetService/QuickActions";
 
 const colors = {
   loading: {
@@ -173,7 +174,10 @@ export default function Dashboard() {
       {showWallet ? (
         <WalletScreen onRefresh={onRefresh} refreshing={refreshing} />
       ) : (
-        <ChatInterface messages={message} />
+        <>
+          <ChatInterface messages={message} />
+          <QuickActions showInDashboard={false} />
+        </>
       )}
       <Base
         showWallet={showWallet}

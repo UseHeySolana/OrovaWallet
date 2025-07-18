@@ -14,7 +14,16 @@
       "bundleIdentifier": "com.maskyray.heysolana",
       "bitcode": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "This app uses the microphone for AI voice interactions.",
+        "NSCameraUsageDescription": "This app uses the camera for QR code scanning.",
+        "UIBackgroundModes": ["audio", "background-processing"],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "heysolana",
+            "CFBundleURLSchemes": ["heysolana"]
+          }
+        ]
       }
     },
     "android": {
@@ -37,7 +46,21 @@
         "android.permission.INTERNET",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.BLUETOOTH"
+        "android.permission.BLUETOOTH",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "heysolana"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
@@ -68,7 +91,23 @@
           "contactsPermission": "Allow $(PRODUCT_NAME) to access your contacts."
         }
       ],
-      "@config-plugins/react-native-webrtc"
+      "@config-plugins/react-native-webrtc",
+      [
+        "expo-notifications",
+        {
+          "color": "#971BB2"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -81,9 +120,7 @@
         "projectId": "44e617dc-89eb-42b2-bcfc-79a78f074bd3"
       }
     },
-    "runtimeVersion": {
-      "policy": "nativeVersion"
-    },
+    "runtimeVersion": "2.0.5",
     "updates": {
       "url": "https://u.expo.dev/44e617dc-89eb-42b2-bcfc-79a78f074bd3",
       "enabled": true,
