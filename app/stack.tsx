@@ -6,7 +6,7 @@ import IconLibrary from "@/misc/helpers/icons";
 import AppSettings from "@/misc/store/settingsstore";
 import { Image } from "expo-image";
 import { Stack } from "expo-router";
-import { View } from "react-native";
+import { View, StatusBar } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function StackView() {
@@ -79,13 +79,22 @@ export default function StackView() {
       </View>
     );
   };
+  
   return (
     <>
+      {/* Explicit StatusBar configuration */}
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={isDarkMode ? "#0C0C0C" : "#f3f3f3"}
+        translucent={false}
+      />
+
       <Stack
         screenOptions={{
           headerShown: false,
           statusBarStyle: isDarkMode ? "light" : "dark",
           statusBarBackgroundColor: isDarkMode ? "#0C0C0C" : "#f3f3f3",
+          statusBarTranslucent: false,
         }}
       ></Stack>
       {toast.show && <ToastModal type={toast.type} message={toast.message} />}

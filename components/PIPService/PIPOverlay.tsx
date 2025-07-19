@@ -63,6 +63,7 @@ const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
   }, [currentMode]);
 
   const handlePress = () => {
+    console.log("handlePress");
     if (isSessionActive) {
       stopSession();
     } else {
@@ -119,11 +120,9 @@ const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
           ]}
         >
           {/* Background blur effect */}
-          <BlurView
-            intensity={80}
-            style={styles.blurBackground}
-          />
-          
+          <BlurView intensity={80} style={styles.blurBackground} />
+
+          <CText>This is Moses</CText>
           {/* AI Animation */}
           <View style={styles.animationContainer}>
             <LottieView
@@ -139,7 +138,7 @@ const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
                   color: colors[currentMode].color1,
                 },
                 {
-                  keypath: "Shape Layer 1", 
+                  keypath: "Shape Layer 1",
                   color: colors[currentMode].color2,
                 },
               ]}
@@ -152,9 +151,11 @@ const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
             style={[
               styles.aiButton,
               {
-                backgroundColor: isSessionActive 
-                  ? colors[currentMode].color1 
-                  : (isDarkMode ? '#333' : '#f0f0f0'),
+                backgroundColor: isSessionActive
+                  ? colors[currentMode].color1
+                  : isDarkMode
+                  ? "#333"
+                  : "#f0f0f0",
               },
             ]}
             onPress={handlePress}
@@ -163,48 +164,51 @@ const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
             onLongPress={handleLongPress}
             activeOpacity={0.8}
           >
-            <Image 
-              source={require('@/assets/images/ai.png')} 
+            <Image
+              source={require("@/assets/images/ai.png")}
               style={styles.aiImage}
               contentFit="cover"
             />
           </TouchableOpacity>
 
           {/* Status Indicator */}
-          <View style={[
-            styles.statusIndicator,
-            {
-              backgroundColor: isSessionActive 
-                ? colors[currentMode].color1 
-                : '#666',
-            },
-          ]}>
+          <View
+            style={[
+              styles.statusIndicator,
+              {
+                backgroundColor: isSessionActive
+                  ? colors[currentMode].color1
+                  : "#666",
+              },
+            ]}
+          >
             <View style={styles.statusDot} />
           </View>
 
           {/* Mode Text */}
           <View style={styles.modeContainer}>
-            <CText style={[
-              styles.modeText,
-              { color: isDarkMode ? 'white' : 'black' }
-            ]}>
-              {isSessionActive 
-                ? currentMode === 'aispeaking' 
-                  ? 'AI' 
-                  : currentMode === 'human' 
-                    ? 'You' 
-                    : '...'
-                : 'Tap'
-              }
+            <CText
+              style={[
+                styles.modeText,
+                { color: isDarkMode ? "white" : "black" },
+              ]}
+            >
+              {isSessionActive
+                ? currentMode === "aispeaking"
+                  ? "AI"
+                  : currentMode === "human"
+                  ? "You"
+                  : "..."
+                : "Tap"}
             </CText>
           </View>
 
           {/* Close Button */}
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={hidePIP}
-          >
-            <IconLibrary.cancel color={isDarkMode ? 'white' : 'black'} size={12} />
+          <TouchableOpacity style={styles.closeButton} onPress={hidePIP}>
+            <IconLibrary.cancel
+              color={isDarkMode ? "white" : "black"}
+              size={12}
+            />
           </TouchableOpacity>
         </Animated.View>
       </GestureDetector>
