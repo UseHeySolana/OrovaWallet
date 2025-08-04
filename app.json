@@ -3,7 +3,7 @@
     "name": "Heysolana",
     "slug": "heysolana",
     "owner": "yraylabs",
-    "version": "2.0.7",
+    "version": "2.0.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heysolana",
@@ -17,17 +17,22 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "This app uses the microphone for AI voice interactions.",
         "NSCameraUsageDescription": "This app uses the camera for QR code scanning.",
-        "UIBackgroundModes": ["audio", "background-processing"],
+        "UIBackgroundModes": [
+          "audio",
+          "background-processing"
+        ],
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "heysolana",
-            "CFBundleURLSchemes": ["heysolana"]
+            "CFBundleURLSchemes": [
+              "heysolana"
+            ]
           }
         ]
       }
     },
     "android": {
-      "versionCode": 17,
+      "versionCode": 18,
       "windowSoftInputMode": "adjustResize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -59,7 +64,10 @@
               "scheme": "heysolana"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -120,7 +128,7 @@
         "projectId": "44e617dc-89eb-42b2-bcfc-79a78f074bd3"
       }
     },
-    "runtimeVersion": "2.0.7",
+    "runtimeVersion": "2.0.8",
     "updates": {
       "url": "https://u.expo.dev/44e617dc-89eb-42b2-bcfc-79a78f074bd3",
       "enabled": true,

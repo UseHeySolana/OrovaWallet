@@ -19,7 +19,9 @@
     "build:ios": "eas build --local -p ios --profile production",
     "build:ios-local": "eas build --local -p ios --profile production",
     "build:android": "eas build -p android --profile production",
-    "build:android-local": "eas build --local -p android --profile production"
+    "build:android-local": "node ./scripts/version-bump.js",
+    "build:android-local-original": "eas build --local -p android --profile production",
+    "test-version-bump": "node ./scripts/test-version-bump.js"
   },
   "jest": {
     "preset": "jest-expo"
