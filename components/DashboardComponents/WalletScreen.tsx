@@ -72,6 +72,7 @@ export default function WalletScreen({
                 $
                 <CText className="text-[45px]">
                   <CNumber
+                    // value={50}
                     value={Number(userWallet?.totalUsdBalance.toFixed(2))}
                     className="text-[45px]"
                   />
@@ -294,6 +295,7 @@ export default function WalletScreen({
                               style={{ fontFamily: "reg" }}
                               className="text-[1rem]"
                             >
+                              {/* {(50 / 198).toFixed(2)} */}
                               {token?.balance < 1
                                 ? token?.balance?.toFixed(
                                     Math.min(token?.decimals, 5)
@@ -314,11 +316,12 @@ export default function WalletScreen({
                           >
                             $
                             <CNumber
-                              value={
-                                token?.usdc_price
-                                  ? token?.usdc_price?.toFixed(2)
-                                  : 0
-                              }
+                              value={50}
+                              // value={
+                              //   token?.usdc_price
+                              //     ? token?.usdc_price?.toFixed(2)
+                              //     : 0
+                              // }
                               className="text-[16px]"
                             />
                           </CText>
