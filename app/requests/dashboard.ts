@@ -1,5 +1,5 @@
 import { fetchConversionRate, fetchTokenAccounts, getBalance } from "@/misc/helpers/wallet";
-import { UserType } from "@/misc/types/usertypes";
+import { UserType } from "@/utils/types/user.types";
 import { Connection, PublicKey } from "@solana/web3.js";
 import * as LocalAuthentication from 'expo-local-authentication';
 import { router } from "expo-router";

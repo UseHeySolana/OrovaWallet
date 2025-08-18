@@ -1,7 +1,7 @@
 import React from "react";
 import ConfirmActionSheetGlobal from "@/components/Sheets/ConfirmationSheetGlobal";
 import CText from "@/components/TextComp";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/misc/helpers/icons";
 import AppSettings from "@/misc/store/settingsstore";
 import { Image } from "expo-image";

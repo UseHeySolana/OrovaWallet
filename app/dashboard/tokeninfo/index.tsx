@@ -8,7 +8,7 @@ import { Image } from "expo-image";
 import { scale } from "react-native-size-matters";
 import Buttons from "@/components/ButtonComp";
 import { formatDate, getTokenTransactions, shortenPub, showToast } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import WalletItem from "@/misc/store/wallet";

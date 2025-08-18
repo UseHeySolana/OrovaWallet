@@ -6,7 +6,7 @@ import GeminiAudioManager from './GeminiAudioManager';
 import { userWalletType } from "@/misc/store/userstore";
 import { Audio } from "expo-av";
 import { toolFunctions } from "../tools";
-import { LiveConfig } from "@/misc/types/multimodal-live-types";
+import { LiveConfig } from "@/utils/types/multimodal-live-types.types";
 import { MultimodalLiveClient } from "./MultiModal";
 
 interface Part {

@@ -12,7 +12,7 @@ import CText from "../TextComp";
 import { openURL } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import IconLibrary from "@/misc/helpers/icons";
 import Buttons from "../ButtonComp";
-import { useAi } from "@/misc/context/AiContext";
+import { useAi } from "@/context/AiContext";
 
 interface ProductProps {
   products: any;

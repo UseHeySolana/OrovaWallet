@@ -22,8 +22,8 @@ import { summarizeConversation } from "../miscfunctions.ts/extrafunctions";
 import { AgentContacts, supportedTokens } from "../miscfunctions.ts";
 import setUserItems from "@/app/requests/dashboard";
 import WalletItem from "@/misc/store/wallet";
-import tracker from "../db/tracker";
-import { request } from "../db/db";
+import tracker from "../../../utils/tracker";
+import { request } from "../../../utils/request/db";
 
 import InCallManager from "react-native-incall-manager";
 import AudioManager from "./AudioManager";

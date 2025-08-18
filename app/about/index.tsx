@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
 import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
-import AppSettings from "@/misc/store/settingsstore";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import { Keypair } from "@solana/web3.js";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 
 const Items = [
   {
@@ -157,7 +157,7 @@ function Voicereg() {
                   </View>
 
                 </Pressable>
-                <Pressable onPress={() => router.push('/importphrase')} >
+                <Pressable onPress={() => router.push('/auth/secretphrase')} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
                     <View className="bg-white rounded-full p-1">
                       <AntDesign name="arrowdown" size={24} color="black" />

@@ -14,7 +14,7 @@ import {
   getInTokenBalance,
   getUserDetails,
 } from "../miscfunctions.ts";
-import { pajcash } from "../db/pajcash";
+import { pajcash } from "../../../libs/tools/pajcash/pajcash";
 import { TransferFunction } from "./transfer";
 import { transferSol, transferToken } from "../transfers";
 import ToolsItem from "@/misc/store/toolsitems";

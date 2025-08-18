@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 
 import IconLibrary from "@/misc/helpers/icons";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import SetPin from "@/components/Sheets/SetPinSheet";
 
 

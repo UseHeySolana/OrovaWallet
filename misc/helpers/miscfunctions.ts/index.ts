@@ -1,98 +1,98 @@
-import Convo from '@/misc/store/conversation';
-import AppSettings from '@/misc/store/settingsstore';
-import * as Clipboard from 'expo-clipboard';
-import { fetchData } from '../db/db';
-import PersonalContacts from '@/misc/store/personalcontacts';
-import PhoneBook from '@/misc/store/phonebook';
-import UserItem from '@/misc/store/userstore';
+import Convo from "@/utils/store/conversation.store";
+import AppSettings from "@/utils/store/settingsstore.store";
+import * as Clipboard from "expo-clipboard";
+import { fetchData } from "@/utils/request/db";
+import PersonalContacts from "@/utils/store/personalcontacts.store";
+import PhoneBook from "@/utils/store/phonebook.store";
+import UserItem from "@/utils/store/userstore.store";
 
 const copyItem = async (text: string) => {
-    console.log('copy')
-    try {
-        await Clipboard.setStringAsync(text);
-        return true
-    } catch (e) {
-        console.log(e)
-        return false
-    }
-}
+  console.log("copy");
+  try {
+    await Clipboard.setStringAsync(text);
+    return true;
+  } catch (e) {
+    console.log(e);
+    return false;
+  }
+};
 const pasteItem = async () => {
-    try {
-        const has = await Clipboard.hasStringAsync();
-        if (has) {
-            const text = await Clipboard.getStringAsync();
-            return text
-        } else {
-            console.log("Clipboard is empty");
-            return ""
-        }
-    } catch (e) {
-        return ""
+  try {
+    const has = await Clipboard.hasStringAsync();
+    if (has) {
+      const text = await Clipboard.getStringAsync();
+      return text;
+    } else {
+      console.log("Clipboard is empty");
+      return "";
     }
-}
-
-const delay = async(delay: number) => {
-    AppSettings.getState().setLoading(true)
-    setTimeout(() => {
-        AppSettings.getState().setLoading(false)
-    }, delay);
-}
-
-const delayPromise = (ms: number): Promise<void> => {
-    AppSettings.getState().setLoading(true);
-    return new Promise(resolve => {
-        setTimeout(() => {
-            AppSettings.getState().setLoading(false);
-            resolve();
-        }, ms);
-    });
+  } catch (e) {
+    return "";
+  }
 };
 
-const completeConversation = async (messageId: string | null, status: "complete" | "failed" | "pending", link?: string) => {
-    if (messageId !== null) {
-        Convo.getState().updateMessage({
-          messageId,
-          toolUpdates: {
-            status: status,
-            link: link,
-          },
-        });
-    }
-}
+const delay = async (delay: number) => {
+  AppSettings.getState().setLoading(true);
+  setTimeout(() => {
+    AppSettings.getState().setLoading(false);
+  }, delay);
+};
+
+const delayPromise = (ms: number): Promise<void> => {
+  AppSettings.getState().setLoading(true);
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      AppSettings.getState().setLoading(false);
+      resolve();
+    }, ms);
+  });
+};
+
+const completeConversation = async (
+  messageId: string | null,
+  status: "complete" | "failed" | "pending",
+  link?: string
+) => {
+  if (messageId !== null) {
+    Convo.getState().updateMessage({
+      messageId,
+      toolUpdates: {
+        status: status,
+        link: link,
+      },
+    });
+  }
+};
 
 const getUserDetails = async (username: string) => {
-    const users = await fetchData()
-    const filtered = users.filter(
-        (msg: any) =>
-            msg.username.toLowerCase().includes(username.toLowerCase())
-    );
-    const personalContacts = PersonalContacts.getState().personalContacts
-    const filteredPersonalContacts = personalContacts.filter(
-        (item: any) =>
-            item.username.toLowerCase() === username.toLowerCase()
-    );
-    if (filtered.length > 0) {
-        return filtered[0]
-    } else if (filteredPersonalContacts.length > 0) {
-        return filteredPersonalContacts[0]
-    } else {
-        return null
-    }
-}
-
+  const users = await fetchData();
+  const filtered = users.filter((msg: any) =>
+    msg.username.toLowerCase().includes(username.toLowerCase())
+  );
+  const personalContacts = PersonalContacts.getState().personalContacts;
+  const filteredPersonalContacts = personalContacts.filter(
+    (item: any) => item.username.toLowerCase() === username.toLowerCase()
+  );
+  if (filtered.length > 0) {
+    return filtered[0];
+  } else if (filteredPersonalContacts.length > 0) {
+    return filteredPersonalContacts[0];
+  } else {
+    return null;
+  }
+};
 
 const AgentContacts = () => {
-
-    const phoneBookContacts = PhoneBook.getState().contacts.map(item => ({
-        "name": item.name,
-    }))
-    const personalContacts = PersonalContacts.getState().personalContacts.map(item => ({
-        "name": item.username,
-    }))
-    return [...phoneBookContacts, ...personalContacts]
-
-}
-
+  const phoneBookContacts = PhoneBook.getState().contacts.map((item) => ({
+    name: item.name,
+  }));
+  const personalContacts = PersonalContacts.getState().personalContacts.map(
+    (item) => ({
+      name: item.username,
+    })
+  );
+  return [...phoneBookContacts, ...personalContacts];
+};
 
 // const AgentContacts = [...PhoneBook.getState().contacts.map(item => ({
 //     "name": item.name,
@@ -158,24 +158,28 @@ const verifiedTokens = [
     logo: "https://xstocks-metadata.backed.fi/logos/tokens/SPYx.png",
   },
 ];
-const supportedTokens = verifiedTokens.map(item => ({
-    "name": item.symbol,
-}))
+const supportedTokens = verifiedTokens.map((item) => ({
+  name: item.symbol,
+}));
 
 const getInTokenBalance = (token: string) => {
-    const userWallet = UserItem.getState().userWallet
-    return userWallet.tokenAccounts.find((item: any) => item.symbol.toLowerCase() === token.toLowerCase())?.balance ?? 0
-}
+  const userWallet = UserItem.getState().userWallet;
+  return (
+    userWallet.tokenAccounts.find(
+      (item: any) => item.symbol.toLowerCase() === token.toLowerCase()
+    )?.balance ?? 0
+  );
+};
 
 export {
-    copyItem,
-    pasteItem,
-    delay,
-    delayPromise,
-    completeConversation,
-    getUserDetails,
-    AgentContacts,
-    supportedTokens,
-    getInTokenBalance,
-    verifiedTokens
-}
+  copyItem,
+  pasteItem,
+  delay,
+  delayPromise,
+  completeConversation,
+  getUserDetails,
+  AgentContacts,
+  supportedTokens,
+  getInTokenBalance,
+  verifiedTokens,
+};

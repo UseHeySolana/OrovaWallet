@@ -1,0 +1,453 @@
+{
+  "app": {
+    "name": "Google Calendar",
+    "version": "1.0.0",
+    "description": "Smart calendar management with AI-powered natural language commands",
+    "category": "Tools",
+    "tags": ["Tools", "Productivity", "AI", "Calendar", "Google"],
+    "is_active": true,
+    "is_featured": true,
+    "is_new": true,
+    "ratings": 4.8,
+    "short_description": "Smart calendar management with AI!",
+    "long_description": "Manage your Google Calendar effortlessly with AI-powered natural language commands. Create meetings, set reminders, find available time slots, and organize your schedule using simple voice commands. Perfect for busy professionals who want to stay organized without the hassle of traditional calendar management.",
+    
+    "brand_colors": {
+      "primary": "#4285F4",
+      "secondary": "#34A853",
+      "accent": "#FBBC04",
+      "error": "#EA4335"
+    },
+    
+    "urls": {
+      "main": "https://calendar.google.com",
+      "api": "https://developers.google.com/calendar",
+      "documentation": "https://developers.google.com/calendar/api/v3/reference",
+      "support": "https://support.google.com/calendar"
+    },
+    
+    "assets": {
+      "icon": "https://play-lh.googleusercontent.com/7n0aiQd_Pv4yIcbHD9BKML6By3sHJc4qjNJP_xIxRwKjnqj7c1jU961xCLrZ5ByaBQ",
+      "banner": "https://play-lh.googleusercontent.com/7n0aiQd_Pv4yIcbHD9BKML6By3sHJc4qjNJP_xIxRwKjnqj7c1jU961xCLrZ5ByaBQ",
+      "description_images": [
+        "https://play-lh.googleusercontent.com/7n0aiQd_Pv4yIcbHD9BKML6By3sHJc4qjNJP_xIxRwKjnqj7c1jU961xCLrZ5ByaBQ",
+        "https://play-lh.googleusercontent.com/7n0aiQd_Pv4yIcbHD9BKML6By3sHJc4qjNJP_xIxRwKjnqj7c1jU961xCLrZ5ByaBQ",
+        "https://play-lh.googleusercontent.com/7n0aiQd_Pv4yIcbHD9BKML6By3sHJc4qjNJP_xIxRwKjnqj7c1jU961xCLrZ5ByaBQ"
+      ]
+    },
+    
+    "features": {
+      "ai_powered": true,
+      "voice_commands": true,
+      "natural_language": true,
+      "real_time_sync": true,
+      "multi_calendar": false,
+      "offline_support": false,
+      "notifications": true,
+      "reminders": true,
+      "recurring_events": true,
+      "attendee_management": true,
+      "location_support": true,
+      "timezone_handling": true
+    },
+    
+    "tools": [
+      {
+        "name": "calendar_access",
+        "display_name": "Calendar Access Setup",
+        "description": "Configure your Google Calendar access and permissions",
+        "category": "Setup",
+        "is_required": true,
+        "params": [
+          {
+            "name": "google_account",
+            "type": "string",
+            "display_name": "Google Account",
+            "description": "Your Google account email address",
+            "placeholder": "user@gmail.com",
+            "validation": {
+              "required": true,
+              "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+              "error_message": "Please enter a valid Google email address"
+            }
+          },
+          {
+            "name": "calendar_permissions",
+            "type": "select",
+            "display_name": "Access Level",
+            "description": "Choose the level of access you want to grant",
+            "default_value": "read_write",
+            "options": [
+              {
+                "value": "read_write",
+                "name": "Read & Write (Full access)",
+                "description": "Create, edit, and delete events"
+              },
+              {
+                "value": "read_only",
+                "name": "Read Only (View events only)",
+                "description": "View events but cannot modify"
+              }
+            ]
+          }
+        ],
+        "actions": [
+          {
+            "name": "authenticate",
+            "type": "oauth",
+            "description": "Authenticate with Google Calendar",
+            "url": "https://accounts.google.com/o/oauth2/v2/auth",
+            "scopes": [
+              "https://www.googleapis.com/auth/calendar",
+              "https://www.googleapis.com/auth/calendar.events"
+            ]
+          }
+        ]
+      },
+      
+      {
+        "name": "create_event",
+        "display_name": "Create Calendar Event",
+        "description": "Create a new calendar event using natural language",
+        "category": "Events",
+        "is_required": false,
+        "params": [
+          {
+            "name": "title",
+            "type": "string",
+            "display_name": "Event Title",
+            "description": "Name or title of the event",
+            "placeholder": "Team Meeting",
+            "validation": {
+              "required": true,
+              "min_length": 1,
+              "max_length": 100
+            }
+          },
+          {
+            "name": "start_time",
+            "type": "string",
+            "display_name": "Start Time",
+            "description": "When the event starts (natural language or specific time)",
+            "placeholder": "tomorrow at 2 PM",
+            "examples": [
+              "tomorrow at 2 PM",
+              "next Monday at 10 AM",
+              "March 15th at 3 PM",
+              "in 2 hours"
+            ],
+            "validation": {
+              "required": true
+            }
+          },
+          {
+            "name": "end_time",
+            "type": "string",
+            "display_name": "End Time",
+            "description": "When the event ends (natural language or specific time)",
+            "placeholder": "tomorrow at 3 PM",
+            "examples": [
+              "tomorrow at 3 PM",
+              "next Monday at 11 AM",
+              "March 15th at 4 PM",
+              "in 3 hours"
+            ],
+            "validation": {
+              "required": true
+            }
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "display_name": "Description",
+            "description": "Additional details about the event",
+            "placeholder": "Weekly team sync meeting",
+            "validation": {
+              "required": false,
+              "max_length": 1000
+            }
+          },
+          {
+            "name": "location",
+            "type": "string",
+            "display_name": "Location",
+            "description": "Where the event takes place",
+            "placeholder": "Conference Room A",
+            "validation": {
+              "required": false,
+              "max_length": 200
+            }
+          },
+          {
+            "name": "attendees",
+            "type": "string",
+            "display_name": "Attendees",
+            "description": "Email addresses of people to invite (comma-separated)",
+            "placeholder": "john@company.com, sarah@company.com",
+            "validation": {
+              "required": false,
+              "pattern": "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(,\\s*)?)*$",
+              "error_message": "Please enter valid email addresses separated by commas"
+            }
+          },
+          {
+            "name": "reminder_minutes",
+            "type": "number",
+            "display_name": "Reminder",
+            "description": "Minutes before the event to send a reminder",
+            "placeholder": "15",
+            "default_value": 15,
+            "validation": {
+              "required": false,
+              "min": 0,
+              "max": 10080
+            }
+          }
+        ],
+        "actions": [
+          {
+            "name": "create",
+            "type": "api_call",
+            "description": "Create the calendar event",
+            "endpoint": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "method": "POST"
+          }
+        ]
+      },
+      
+      {
+        "name": "find_available_slots",
+        "display_name": "Find Available Time",
+        "description": "Discover free time slots for scheduling new events",
+        "category": "Scheduling",
+        "is_required": false,
+        "params": [
+          {
+            "name": "date_range",
+            "type": "string",
+            "display_name": "Date Range",
+            "description": "When to look for available time",
+            "placeholder": "tomorrow",
+            "examples": [
+              "today",
+              "tomorrow",
+              "this week",
+              "next Monday",
+              "March 15th to 20th"
+            ],
+            "validation": {
+              "required": true
+            }
+          },
+          {
+            "name": "duration",
+            "type": "number",
+            "display_name": "Duration",
+            "description": "How long the event needs to be (in minutes)",
+            "placeholder": "60",
+            "default_value": 60,
+            "validation": {
+              "required": false,
+              "min": 15,
+              "max": 1440
+            }
+          },
+          {
+            "name": "working_hours",
+            "type": "string",
+            "display_name": "Working Hours",
+            "description": "Preferred time range for the event",
+            "placeholder": "9 AM to 5 PM",
+            "examples": [
+              "9 AM to 5 PM",
+              "8 AM to 6 PM",
+              "morning only",
+              "afternoon only"
+            ],
+            "validation": {
+              "required": false
+            }
+          }
+        ],
+        "actions": [
+          {
+            "name": "search",
+            "type": "api_call",
+            "description": "Search for available time slots",
+            "endpoint": "https://www.googleapis.com/calendar/v3/calendars/primary/freeBusy",
+            "method": "POST"
+          }
+        ]
+      },
+      
+      {
+        "name": "recurring_events",
+        "display_name": "Recurring Events",
+        "description": "Create events that repeat automatically",
+        "category": "Events",
+        "is_required": false,
+        "params": [
+          {
+            "name": "title",
+            "type": "string",
+            "display_name": "Event Title",
+            "description": "Name of the recurring event",
+            "placeholder": "Weekly Team Meeting",
+            "validation": {
+              "required": true,
+              "min_length": 1,
+              "max_length": 100
+            }
+          },
+          {
+            "name": "frequency",
+            "type": "select",
+            "display_name": "Frequency",
+            "description": "How often the event should repeat",
+            "default_value": "weekly",
+            "options": [
+              {
+                "value": "daily",
+                "name": "Daily",
+                "description": "Every day"
+              },
+              {
+                "value": "weekly",
+                "name": "Weekly",
+                "description": "Every week on the same day"
+              },
+              {
+                "value": "monthly",
+                "name": "Monthly",
+                "description": "Every month on the same date"
+              },
+              {
+                "value": "yearly",
+                "name": "Yearly",
+                "description": "Every year on the same date"
+              }
+            ]
+          },
+          {
+            "name": "start_date",
+            "type": "string",
+            "display_name": "Start Date",
+            "description": "When to start the recurring series",
+            "placeholder": "next Monday",
+            "examples": [
+              "next Monday",
+              "tomorrow",
+              "March 15th",
+              "next week"
+            ],
+            "validation": {
+              "required": true
+            }
+          },
+          {
+            "name": "end_condition",
+            "type": "string",
+            "display_name": "End Condition",
+            "description": "When to stop repeating the event",
+            "placeholder": "for 4 weeks",
+            "examples": [
+              "for 4 weeks",
+              "until December 31st",
+              "for 10 occurrences",
+              "indefinitely"
+            ],
+            "validation": {
+              "required": false
+            }
+          }
+        ],
+        "actions": [
+          {
+            "name": "create_series",
+            "type": "batch_api_call",
+            "description": "Create multiple recurring events",
+            "endpoint": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "method": "POST"
+          }
+        ]
+      }
+    ],
+    
+    "ai_integration": {
+      "supported_commands": [
+        "Create a meeting tomorrow at 2 PM",
+        "Schedule dentist appointment on March 15th at 3 PM",
+        "What meetings do I have this week?",
+        "Find available 1-hour slots tomorrow",
+        "Set up weekly team meeting every Monday at 10 AM",
+        "Update the meeting time to 3 PM",
+        "Delete the dentist appointment",
+        "Remind me 30 minutes before the meeting"
+      ],
+      "natural_language_processing": {
+        "date_parsing": true,
+        "time_parsing": true,
+        "relative_dates": true,
+        "smart_suggestions": true
+      },
+      "context_awareness": {
+        "calendar_conflicts": true,
+        "working_hours": true,
+        "timezone_handling": true,
+        "attendee_availability": false
+      }
+    },
+    
+    "permissions": {
+      "required": [
+        "calendar.readonly",
+        "calendar.events"
+      ],
+      "optional": [
+        "calendar.settings.readonly",
+        "calendar.addons.execute"
+      ],
+      "description": "This app needs access to your Google Calendar to create, read, and manage events on your behalf."
+    },
+    
+    "privacy": {
+      "data_collection": "minimal",
+      "data_storage": "local_only",
+      "third_party_sharing": "none",
+      "encryption": "standard",
+      "compliance": ["GDPR", "CCPA"]
+    },
+    
+    "support": {
+      "documentation": "https://developers.google.com/calendar/api/v3/reference",
+      "tutorial": "To use Google Calendar, first set up your calendar access by providing your Google account email and choosing your preferred permission level. Then you can create events, find available time slots, and manage recurring events using natural language commands.",
+      "contact": {
+        "email": "support@heysolana.com",
+        "website": "https://heysolana.com/support",
+        "response_time": "24 hours"
+      }
+    },
+    
+    "updates": {
+      "last_updated": "2024-01-15",
+      "version_history": [
+        {
+          "version": "1.0.0",
+          "date": "2024-01-15",
+          "changes": [
+            "Initial release",
+            "Basic calendar event management",
+            "Natural language processing",
+            "AI-powered scheduling"
+          ]
+        }
+      ],
+      "roadmap": [
+        "Multi-calendar support",
+        "Advanced conflict resolution",
+        "Smart scheduling suggestions",
+        "Integration with other calendar services"
+      ]
+    }
+  }
+}

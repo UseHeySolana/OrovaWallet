@@ -5,8 +5,8 @@ import IconLibrary from "@/misc/helpers/icons";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
-import SearchInput from "@/components/SearchInput/SearchInput";
-import { apps, categories } from "@/misc/apptest/apps";
+import SearchInput from "@/components/commons/SearchInput/SearchInput";
+import { apps, categories } from "@/libs/app/apps";
 import ToolsItem from "@/misc/store/toolsitems";
 /**
   * What should be done here

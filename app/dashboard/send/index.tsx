@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, TouchableNativeFeedback, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
 import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
+import AntDesign from "@expo/vector-icons/AntDesign";
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import { Keypair } from "@solana/web3.js";
 import UserItem from "@/misc/store/userstore";
 import IconLibrary from "@/misc/helpers/icons";
-import { useThemeContext } from "@/misc/context/ThemeContext";
-import SearchInput from "@/components/SearchInput/SearchInput";
+import { useThemeContext } from "@/context/ThemeContext";
+import SearchInput from "@/components/commons/SearchInput/SearchInput";
 
 const Items = [
   {

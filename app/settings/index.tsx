@@ -17,7 +17,7 @@ import UserItem from "@/misc/store/userstore";
 import * as Updates from "expo-updates";
 
 import IconLibrary from "@/misc/helpers/icons";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 
 const settingsMenu = [
   // {
