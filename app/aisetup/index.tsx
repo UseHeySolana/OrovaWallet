@@ -2,7 +2,7 @@ import { Pressable, View } from "react-native";
 import CText from "@/components/TextComp";
 import Buttons from "@/components/ButtonComp";
 import { useEffect, useState } from "react";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import { Switch } from "react-native";
 import { TextInput } from "react-native";

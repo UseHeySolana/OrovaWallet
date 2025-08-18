@@ -9,7 +9,7 @@ import * as Clipboard from 'expo-clipboard';
 import AppSettings from "@/misc/store/settingsstore";
 // import { Connection, Keypair } from "@solana/web3.js";
 import WalletItem from "@/misc/store/wallet";
-import { saveWalletAddress } from "@/misc/helpers/db/db";
+import { saveWalletAddress } from "@/utils/request/db";
 
 import UserItem from "@/misc/store/userstore";
 import { router } from "expo-router";

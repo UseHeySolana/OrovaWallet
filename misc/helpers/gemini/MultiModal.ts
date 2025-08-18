@@ -2,28 +2,27 @@ import { Content, GenerativeContentBlob, Part } from "@google/generative-ai";
 import { EventEmitter } from "eventemitter3";
 const { difference } = require("lodash");
 import {
-    ClientContentMessage,
-    isInterrupted,
-    isModelTurn,
-    isServerContentMessage,
-    isSetupCompleteMessage,
-    isToolCallCancellationMessage,
-    isToolCallMessage,
-    isTurnComplete,
-    LiveIncomingMessage,
-    ModelTurn,
-    RealtimeInputMessage,
-    ServerContent,
-    SetupMessage,
-    StreamingLog,
-    ToolCall,
-    ToolCallCancellation,
-    ToolResponseMessage,
-    type LiveConfig,
-} from "@/misc/types/multimodal-live-types";
+  ClientContentMessage,
+  isInterrupted,
+  isModelTurn,
+  isServerContentMessage,
+  isSetupCompleteMessage,
+  isToolCallCancellationMessage,
+  isToolCallMessage,
+  isTurnComplete,
+  LiveIncomingMessage,
+  ModelTurn,
+  RealtimeInputMessage,
+  ServerContent,
+  SetupMessage,
+  StreamingLog,
+  ToolCall,
+  ToolCallCancellation,
+  ToolResponseMessage,
+  type LiveConfig,
+} from "@/utils/types/multimodal-live-types.types";
 
-
-import { blobToJSON, base64ToArrayBuffer } from "@/misc/utils";
+import { blobToJSON, base64ToArrayBuffer } from "@/utils/functions";
 
 /**
  * the events that this client will emit

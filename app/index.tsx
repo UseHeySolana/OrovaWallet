@@ -27,7 +27,7 @@ import {
   UpdateFlow,
 } from "@gurukumparan/react-native-android-inapp-updates";
 import * as Updates from "expo-updates";
-import tracker from "@/misc/helpers/db/tracker";
+import tracker from "@/utils/tracker";
 
 const screens = [
   {

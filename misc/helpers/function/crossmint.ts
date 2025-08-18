@@ -7,8 +7,8 @@ import {
 } from "../miscfunctions.ts/extrafunctions";
 import Convo from "@/misc/store/conversation";
 import { completeConversation } from "../miscfunctions.ts";
-import { crossmint } from "../db/crossmint";
-import { extractImportantInfo } from "@/misc/utils";
+import { crossmint } from "../../../libs/tools/crossmint/crossmint";
+import { extractImportantInfo } from "@/utils/functions";
 
 export class Crossmint {
   public searchProductsAmazon: FunctionParams;

@@ -5,7 +5,14 @@
     "strict": true,
     "paths": {
       "@/*": [
-        "./*"
+        "./*",
+        "./context/*",
+        "./misc/*",
+        "./libs/*",
+        "./utils/*",
+        "./assets/*",
+        "./components/*",
+        "./app/*",
       ]
     }
   },
@@ -16,5 +23,5 @@
     "expo-env.d.ts",
     "nativewind-env.d.ts",
     "index.ts"
-  ]
+, "libs/tools/heysolanaapp/endstream.tool.ts"  ]
 }

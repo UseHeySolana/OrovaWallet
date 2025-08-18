@@ -9,10 +9,10 @@ import setUserItems from "../requests/dashboard";
 import { router, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/misc/store/wallet";
 import AppSettings from "@/misc/store/settingsstore";
-import { useAi } from "@/misc/context/AiContext";
+import { useAi } from "@/context/AiContext";
 
 import { Base } from "@/components/Navigation/Base";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import Convo, { MessageType } from "@/misc/store/conversation";
 import { toolRouter } from "@/misc/helpers/toolsregistry";
 import SetPin from "@/components/Sheets/SetPinSheet";

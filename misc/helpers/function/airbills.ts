@@ -2,7 +2,7 @@ import AppSettings from "@/misc/store/settingsstore";
 import SessionManager from "../aistream/aistream";
 import { FunctionParams } from "../types";
 import UserItem from "@/misc/store/userstore";
-import { fetchData } from "../db/db";
+import { fetchData } from "../../../utils/request/db";
 import WalletItem from "@/misc/store/wallet";
 import { cleanNumber, convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
 import { completeConversation, getInTokenBalance, getUserDetails } from "../miscfunctions.ts";

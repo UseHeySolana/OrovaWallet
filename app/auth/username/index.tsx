@@ -1,24 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, KeyboardAvoidingView, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
 import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
+import AntDesign from "@expo/vector-icons/AntDesign";
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 import { TextInput } from "react-native";
 import Buttons from "@/components/ButtonComp";
-import { registerUser, verifyCode } from "@/misc/helpers/db/db";
+import { registerUser, verifyCode } from "@/utils/request/db";
 import { OtpInput } from "react-native-otp-entry";
 import WalletItem from "@/misc/store/wallet";
-import { CountryPickerModal } from 'react-native-country-code-select';
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { CountryPickerModal } from "react-native-country-code-select";
+import { useThemeContext } from "@/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 import { delay } from "@/misc/helpers/miscfunctions.ts";
-import { useKeyboard } from "@/misc/context/KeyboardContext";
+import { useKeyboard } from "@/context/KeyboardContext";
 /**
   * What should be done here
   * 1. Register User Voice for Authentication 

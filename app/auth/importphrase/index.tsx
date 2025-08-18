@@ -5,15 +5,15 @@ import Buttons from "@/components/ButtonComp";
 import { getKeypairFromMnemonic, isJson } from "@/misc/helpers/wallet";
 
 
-import AppSettings from "@/misc/store/settingsstore";
-import WalletItem from "@/misc/store/wallet";
-import { saveWalletAddress } from "@/misc/helpers/db/db";
+import AppSettings from "@/utils/store/settingsstore.store";
+import WalletItem from "@/utils/store/wallet.store";
+import { saveWalletAddress } from "@/utils/request/db";
 import { router } from "expo-router";
-import UserItem from "@/misc/store/userstore";
-import { pasteItem } from "@/misc/helpers/miscfunctions.ts";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import UserItem from "@/utils/store/userstore.store";
+    import { pasteItem } from "@/utils/helpers/miscfunctions";
+    import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/misc/helpers/icons";
-import { useKeyboard } from "@/misc/context/KeyboardContext";
+import { useKeyboard } from "@/context/KeyboardContext";
 /**
   * What should be done here
   * 1. Notify what the secret phrase is for.

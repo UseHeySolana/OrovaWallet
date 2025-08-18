@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import IconLibrary from "@/misc/helpers/icons";
 import Convo, { ConversationType } from "@/misc/store/conversation";
 import { confirm } from "@/misc/helpers/service/confirmation";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 
 
 const ConversationItem = ({ conversation }: { conversation: ConversationType }) => {

@@ -1,7 +1,7 @@
 import React, { useEffect } from "react"; 
 import { ActivityIndicator, Pressable, Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import CText from "./TextComp";
-import tracker from "@/misc/helpers/db/tracker";
+import tracker from "@/utils/tracker";
 
 interface Buttons {
   loading?: boolean

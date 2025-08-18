@@ -8,15 +8,15 @@ import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-googl
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from 'react-native';
 import { Image } from 'expo-image';
-import { AiServiceProvider } from '@/misc/context/AiContext';
-import { KeyboardProvider } from '@/misc/context/KeyboardContext';
+import { AiServiceProvider } from "@/context/AiContext";
+import { KeyboardProvider } from "@/context/KeyboardContext";
 import { PIPManager } from "@/components/PIPService/PIPManager";
 import { WidgetManager } from "@/components/WidgetService/WidgetManager";
 
-import { ThemeProvider, useThemeContext } from "@/misc/context/ThemeContext";
+import { ThemeProvider, useThemeContext } from "@/context/ThemeContext";
 import StackView from "./stack";
 import { useRouteTracking } from "@/components/hooks/navigation";
-import tracker from "@/misc/helpers/db/tracker";
+import tracker from "@/utils/tracker";
 import * as Linking from "expo-linking";
 import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
 import { StatusBar } from 'expo-status-bar';

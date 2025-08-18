@@ -5,7 +5,11 @@ import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import * as Contacts from 'expo-contacts';
 import IconLibrary from "@/misc/helpers/icons";
-import { deletePersonalContact, fetchData, getContacts } from "@/misc/helpers/db/db";
+import {
+  deletePersonalContact,
+  fetchData,
+  getContacts,
+} from "@/utils/request/db";
 import Buttons from "@/components/ButtonComp";
 import PhoneBook from "@/misc/store/phonebook";
 import { shortenPub } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
@@ -13,7 +17,7 @@ import AddContactSheet from "@/components/Sheets/AddContactSheet";
 import PersonalContacts from "@/misc/store/personalcontacts";
 import WalletItem from "@/misc/store/wallet";
 import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
-import { useAi } from "@/misc/context/AiContext";
+import { useAi } from "@/context/AiContext";
 import { confirm } from "@/misc/helpers/service/confirmation";
 
 function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {

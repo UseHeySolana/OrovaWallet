@@ -8,7 +8,7 @@ import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Entypo from '@expo/vector-icons/Entypo';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
-import { useThemeContext } from '../context/ThemeContext';
+import { useThemeContext } from "../../context/ThemeContext";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 type IconProps = {
