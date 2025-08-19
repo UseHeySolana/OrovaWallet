@@ -13,7 +13,7 @@ import { usePIP } from './PIPManager';
 import { useAi } from '@/context/AiContext';
 import { useThemeContext } from '@/context/ThemeContext';
 import IconLibrary from "@/utils/icons";
-import CText from '../TextComp';
+import CText from '@/components/TextComp';
 import LottieView from 'lottie-react-native';
 import { BlurView } from 'expo-blur';
 

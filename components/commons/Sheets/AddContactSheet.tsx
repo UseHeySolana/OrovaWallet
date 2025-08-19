@@ -1,16 +1,16 @@
 import { KeyboardAvoidingView, Pressable, TextInput, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
-import DragableSheet from "../commons/CustomItems/DragableSheet";
-import CText from "../TextComp";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
-import Buttons from "../ButtonComp";
+import Buttons from "@/components/ButtonComp";
 import React, { useEffect, useState } from "react";
 import { addContact, updateContact } from "@/utils/request/db";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import ConfirmActionSheet from "./ConfirmationSheet";
 import { cleanNumber, shortenPub } from "@/utils/functions/extrafunctions";
-import PhoneBook from "@/misc/store/phonebook";
+import PhoneBook from "@/utils/store/phonebook.store";
 import { CountryPickerModal } from "react-native-country-code-select";
-import PersonalContacts from "@/misc/store/personalcontacts";
+import PersonalContacts from "@/utils/store/personalcontacts.store";
 
 interface AddContactSheetTypes {
     open: boolean;

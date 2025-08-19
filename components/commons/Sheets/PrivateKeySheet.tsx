@@ -1,11 +1,11 @@
 import { KeyboardAvoidingView, View } from "react-native";
-import DragableSheet from "../commons/CustomItems/DragableSheet";
-import CText from "../TextComp";
-import Buttons from "../ButtonComp";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+import CText from "@/components/TextComp";
+import Buttons from "@/components/ButtonComp";
 import React, { useEffect, useRef, useState } from "react";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { copyItem } from "@/utils/functions";
-import WalletItem from "@/misc/store/wallet";
+import WalletItem from "@/utils/store/wallet.store";
 import { keypairSign } from "@/utils/functions/extrafunctions";
 
 interface PrivateKeySheetTypes {

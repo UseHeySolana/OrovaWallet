@@ -4,13 +4,13 @@ import {
   Platform,
   View,
 } from "react-native";
-import DragableSheet from "../commons/CustomItems/DragableSheet";
-import CText from "../TextComp";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+import CText from "@/components/TextComp";
 import { OtpInput } from "react-native-otp-entry";
 import { useThemeContext } from "@/context/ThemeContext";
-import Buttons from "../ButtonComp";
+import Buttons from "@/components/ButtonComp";
 import React, { useEffect, useRef, useState } from "react";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 
 interface SetPinSheet {
   open: boolean;

@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAi } from '@/context/AiContext';
 import { usePIP } from '../PIPService/PIPManager';
 import { router } from 'expo-router';
-import AppSettings from '@/misc/store/settingsstore';
+import AppSettings from "@/utils/store/settingsstore.store";
 
 // Configure notifications
 Notifications.setNotificationHandler({

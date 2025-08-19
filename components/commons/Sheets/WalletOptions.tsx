@@ -1,6 +1,6 @@
 import { KeyboardAvoidingView, Pressable, View } from "react-native";
-import DragableSheet from "../commons/CustomItems/DragableSheet";
-import CText from "../TextComp";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
 
 import { router } from "expo-router";
