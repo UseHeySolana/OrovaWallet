@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FlatList, Pressable, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import * as Contacts from 'expo-contacts';
 import IconLibrary from "@/utils/icons";
@@ -11,12 +11,12 @@ import {
   getContacts,
 } from "@/utils/request/db";
 import Buttons from "@/components/ButtonComp";
-import PhoneBook from "@/misc/store/phonebook";
+import PhoneBook from "@/utils/store/phonebook.store";
 import { shortenPub } from "@/utils/functions/extrafunctions";
-import AddContactSheet from "@/components/Sheets/AddContactSheet";
-import PersonalContacts from "@/misc/store/personalcontacts";
-import WalletItem from "@/misc/store/wallet";
-import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
+import AddContactSheet from "@/components/commons/Sheets/AddContactSheet";
+import PersonalContacts from "@/utils/store/personalcontacts.store";
+import WalletItem from "@/utils/store/wallet.store";
+import ConfirmActionSheet from "@/components/commons/Sheets/ConfirmationSheet";
 import { useAi } from "@/context/AiContext";
 import { confirm } from "@/services/confirmation";
 

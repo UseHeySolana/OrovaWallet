@@ -11,9 +11,9 @@ import {
 } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 import * as Updates from "expo-updates";
 
 import IconLibrary from "@/utils/icons";

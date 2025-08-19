@@ -4,10 +4,10 @@ import CText from "@/components/TextComp";
 import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
 import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import { Keypair } from "@solana/web3.js";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 
 const Items = [
   {

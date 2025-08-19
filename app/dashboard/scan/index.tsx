@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import IconLibrary from "@/utils/icons";
 import Buttons from "@/components/ButtonComp";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import WalletItem from "@/misc/store/wallet";
+import WalletItem from "@/utils/store/wallet.store";
 import { copyItem } from "@/utils/functions";
 
 

@@ -7,19 +7,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CText, { CNumber } from "../TextComp";
+import CText, { CNumber } from "@/components/TextComp";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import Buttons from "../ButtonComp";
+import Buttons from "@/components/ButtonComp";
 import { showToast } from "@/utils/functions/extrafunctions";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
 import { scale } from "react-native-size-matters";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 import { copyItem } from "@/utils/functions";
-import WalletItem from "@/misc/store/wallet";
+import WalletItem from "@/utils/store/wallet.store";
 
 const AiHelpers = [
   {

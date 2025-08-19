@@ -7,11 +7,11 @@ import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
 import SearchInput from "@/components/commons/SearchInput/SearchInput";
 import { apps, categories } from "@/libs/app/apps";
-import ToolsItem from "@/misc/store/toolsitems";
+import ToolsItem from "@/utils/store/toolsitems.store";
 /**
   * What should be done here
   * Show AppStore
-  */
+  */  
 function ConnectedApps() {
 
   const [search, setSearch] = useState("")

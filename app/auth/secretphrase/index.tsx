@@ -6,15 +6,15 @@ import Buttons from "@/components/ButtonComp";
 import { generateMnemonic, getKeypairFromMnemonic } from "@/utils/wallet";
 
 import * as Clipboard from "expo-clipboard";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 // import { Connection, Keypair } from "@solana/web3.js";
-import WalletItem from "@/misc/store/wallet";
+import WalletItem from "@/utils/store/wallet.store";
 import { saveWalletAddress } from "@/utils/request/db";
 
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 import { router } from "expo-router";
 import IconLibrary from "@/utils/icons";
-import ConfirmPhraseSheet from "@/components/Sheets/ConfirmKeyWordsSheet";
+import ConfirmPhraseSheet from "@/components/commons/Sheets/ConfirmKeyWordsSheet";
 
 
 const actions = [

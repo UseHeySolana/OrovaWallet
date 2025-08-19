@@ -9,7 +9,8 @@ import WalletItem from "@/utils/store/wallet.store";
 import { saveWalletAddress } from "@/utils/request/db";
 import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
-import { pasteItem } from "@/utils/functions/extrafunctions";
+import { copyItem, pasteItem } from "@/utils/functions";
+
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
 import { useKeyboard } from "@/context/KeyboardContext";

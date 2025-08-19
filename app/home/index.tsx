@@ -1,4 +1,4 @@
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import Buttons from "@/components/ButtonComp";
 import { Image, ImageBackground } from "expo-image";
 // import { Link, router, useFocusEffect, useNavigation, useRouter } from "expo-router";

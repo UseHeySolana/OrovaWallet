@@ -12,7 +12,7 @@ import QRCode from "react-native-qrcode-svg";
 import Buttons from "@/components/ButtonComp";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import EvilIcons from "@expo/vector-icons/EvilIcons";
-import WalletItem from "@/misc/store/wallet";
+import WalletItem from "@/utils/store/wallet.store";
 
 import * as Sharing from "expo-sharing";
 import { copyItem } from "@/utils/functions";
