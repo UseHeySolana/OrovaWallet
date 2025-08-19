@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
-import DragableSheet from "../commons/CustomItems/DragableSheet";
-import CText from "../TextComp";
-import Buttons from "../ButtonComp";
+import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+import CText from "@/components/TextComp";
+import Buttons from "@/components/ButtonComp";
 import IconLibrary from "@/utils/icons";
 
 interface ConfirmationSheetTypes {

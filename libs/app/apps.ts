@@ -151,17 +151,17 @@ const apps: App[] = [
     name: "Smart TODO",
     category: "Tools",
     short_des: "AI-powered task management with smart event detection!",
-    icon: require("@/assets/apps/todo/logo.webp"),
+    icon: require("@/assets/apps/calendar/logo.webp"),
     description:
       "Create, manage, and organize your tasks with AI-powered smart detection. The system automatically identifies events and creates calendar entries, while providing comprehensive task management with priorities, categories, and due dates.",
-    banner: require("@/assets/apps/todo/banner.webp"),
+    banner: require("@/assets/apps/calendar/calbanner.webp"),
     url: "https://heysolana.com/todo",
     tags: ["Tools", "Productivity", "AI", "Task Management", "Smart Detection"],
     descriptionImages: [
-      require("@/assets/apps/todo/des1.webp"),
-      require("@/assets/apps/todo/des2.webp"),
-      require("@/assets/apps/todo/des3.webp"),
-      require("@/assets/apps/todo/des4.webp"),
+      require("@/assets/apps/calendar/cal1.webp"),
+      require("@/assets/apps/calendar/cal2.webp"),
+      require("@/assets/apps/calendar/cal3.webp"),
+      require("@/assets/apps/calendar/cal4.webp"),
     ],
     brand_colors: {
       primary: "#6366F1",

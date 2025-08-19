@@ -4,9 +4,9 @@ import CText from "../TextComp";
 import IconLibrary from "@/utils/icons";
 import ParamsInput from "./ParamsInput";
 import Buttons from "../ButtonComp";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { TouchableNativeFeedback } from "react-native";
-import ToolsItem from "@/misc/store/toolsitems";
+import ToolsItem from "@/utils/store/toolsitems.store";
 import { delayPromise } from "@/utils/functions";
 import { openURL } from "@/utils/functions/extrafunctions";
 

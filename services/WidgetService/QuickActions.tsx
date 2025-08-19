@@ -11,7 +11,7 @@ import { useThemeContext } from "@/context/ThemeContext";
 import { useAi } from "@/context/AiContext";
 import { usePIP } from "../PIPService/PIPManager";
 import IconLibrary from "@/utils/icons";
-import CText from "../TextComp";
+import CText from "@/components/TextComp";
 import { Share } from "react-native";
 import * as Linking from "expo-linking";
 
