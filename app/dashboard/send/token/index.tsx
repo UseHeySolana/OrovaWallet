@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 
 
 /**

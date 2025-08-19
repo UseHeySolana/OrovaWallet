@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 import { Image } from "expo-image";
 import { scale } from "react-native-size-matters";
 import Buttons from "@/components/ButtonComp";
@@ -16,7 +16,7 @@ import {
 import { useThemeContext } from "@/context/ThemeContext";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import WalletItem from "@/misc/store/wallet";
+import WalletItem from "@/utils/store/wallet.store";
 
 
 /**

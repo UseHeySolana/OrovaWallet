@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import AntDesign from '@expo/vector-icons/AntDesign'
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { router } from "expo-router";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 
 import IconLibrary from "@/utils/icons";
 

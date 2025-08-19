@@ -1,4 +1,4 @@
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import Buttons from "@/components/ButtonComp";
 import { Image, ImageBackground } from "expo-image";
 // import { Link, router, useFocusEffect, useNavigation, useRouter } from "expo-router";
@@ -19,8 +19,8 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import WalletItem from "@/misc/store/wallet";
-import UserItem from "@/misc/store/userstore";
+import WalletItem from "@/utils/store/wallet.store";
+import UserItem from "@/utils/store/userstore.store";
 import CText from "@/components/TextComp";
 import {
   startUpdateFlow,
@@ -208,4 +208,3 @@ export default function Index() {
     </View>
   );
 }
-

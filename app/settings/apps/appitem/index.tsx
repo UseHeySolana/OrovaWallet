@@ -7,11 +7,11 @@ import { Image } from "expo-image";
 import { apps, reviews } from "@/libs/app/apps";
 import Buttons from "@/components/ButtonComp";
 import { useThemeContext } from "@/context/ThemeContext";
-import ToolsItem from "@/misc/store/toolsitems";
+import ToolsItem from "@/utils/store/toolsitems.store";
 import { delay, delayPromise } from "@/utils/functions";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { confirm } from "@/services/confirmation";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 import ParamsComponent from "@/components/AppItemsParam/Params";
 
 /**

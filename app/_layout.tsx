@@ -10,8 +10,8 @@ import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { AiServiceProvider } from "@/context/AiContext";
 import { KeyboardProvider } from "@/context/KeyboardContext";
-import { PIPManager } from "@/components/PIPService/PIPManager";
-import { WidgetManager } from "@/components/WidgetService/WidgetManager";
+import { PIPManager } from "@/services/PIPService/PIPManager";
+import { WidgetManager } from "@/services/WidgetService/WidgetManager";
 
 import { ThemeProvider, useThemeContext } from "@/context/ThemeContext";
 import StackView from "./stack";

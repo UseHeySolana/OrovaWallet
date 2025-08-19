@@ -3,11 +3,11 @@ import { useThemeContext } from "@/context/ThemeContext";
 import LottieView from "lottie-react-native";
 
 import { Platform, ScrollView, TextInput, View } from "react-native";
-import ToolItem from "../ChatItems/ToolItem";
-import ChatBox from "../ChatItems/ChatBox";
-import AppSettings from "@/misc/store/settingsstore";
+import ToolItem from "@/components/ChatItems/ToolItem";
+import ChatBox from "@/components/ChatItems/ChatBox";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { useAi } from "@/context/AiContext";
-import { MessageType } from "@/misc/store/conversation";
+import { MessageType } from "@/utils/store/conversation.store";
 import { BlurView } from "expo-blur";
 
 const colors = {

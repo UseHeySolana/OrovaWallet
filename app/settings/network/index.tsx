@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import CText from "@/components/TextComp";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 
 import IconLibrary from "@/utils/icons";

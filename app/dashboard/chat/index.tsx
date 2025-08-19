@@ -4,7 +4,7 @@ import CText from "@/components/TextComp";
 import { scale } from 'react-native-size-matters';
 import { router } from "expo-router";
 import IconLibrary from "@/utils/icons";
-import Convo, { ConversationType } from "@/misc/store/conversation";
+import Convo, { ConversationType } from "@/utils/store/conversation.store";
 import { confirm } from "@/services/confirmation";
 import { useThemeContext } from "@/context/ThemeContext";
 

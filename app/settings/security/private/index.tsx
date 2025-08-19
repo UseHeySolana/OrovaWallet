@@ -7,14 +7,14 @@ import {
   View,
 } from "react-native";
 import CText from "@/components/TextComp";
-import AppSettings from "@/misc/store/settingsstore";
+  import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
-import UserItem from "@/misc/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 
 import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
-import SetPin from "@/components/Sheets/SetPinSheet";
-import PrivateKeySheet from "@/components/Sheets/PrivateKeySheet";
+import SetPin from "@/components/commons/Sheets/SetPinSheet";
+import PrivateKeySheet from "@/components/commons/Sheets/PrivateKeySheet";
 
 const privateMenu = [
   {
