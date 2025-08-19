@@ -1,23 +1,23 @@
-import AppSettings from "@/misc/store/settingsstore";
-import SessionManager from "../aistream/aistream";
-import { FunctionParams } from "../types";
-import UserItem from "@/misc/store/userstore";
-import WalletItem from "@/misc/store/wallet";
+import AppSettings from "@/utils/store/settingsstore.store";
+import SessionManager from "@/libs/voiceinfra/SessionManager";
+import { FunctionParams } from "@/utils/types/types";
+import UserItem from "@/utils/store/userstore.store";
+import WalletItem from "@/utils/store/wallet.store";
 import {
   cleanNumber,
   convertSpeech,
   signTransactions,
-} from "../miscfunctions.ts/extrafunctions";
-import Convo from "@/misc/store/conversation";
+} from "@/utils/functions/extrafunctions";
+import Convo from "@/utils/store/conversation.store";
 import {
   completeConversation,
   getInTokenBalance,
   getUserDetails,
-} from "../miscfunctions.ts";
-import { pajcash } from "../db/pajcash";
-import { TransferFunction } from "./transfer";
-import { transferSol, transferToken } from "../transfers";
-import ToolsItem from "@/misc/store/toolsitems";
+  } from "@/utils/functions";
+import { pajcash } from "@/libs/tools/pajcash/pajcash";
+import { TransferFunction } from "@/libs/tools/transfer/transfer.tool";
+import { transferSol, transferToken } from "@/libs/tools/transfer/transfers";
+import ToolsItem from "@/utils/store/toolsitems.store";
 
 export class PajCash {
   public pajitOfframp: FunctionParams;

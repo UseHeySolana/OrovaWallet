@@ -1,14 +1,14 @@
-import SessionManager from "../aistream/aistream";
-import { FunctionParams } from "../types";
-import WalletItem from "@/misc/store/wallet";
+import SessionManager from "@/libs/voiceinfra/SessionManager";
+import { FunctionParams } from "@/utils/types/types";
+import WalletItem from "@/utils/store/wallet.store";
 import {
   convertSpeech,
-  summarizeProduct,
-} from "../miscfunctions.ts/extrafunctions";
-import Convo from "@/misc/store/conversation";
-import { completeConversation } from "../miscfunctions.ts";
-import { crossmint } from "../db/crossmint";
-import { extractImportantInfo } from "@/utils/functions";
+  summarizeProduct, 
+} from "@/utils/functions/extrafunctions";
+import Convo from "@/utils/store/conversation.store";
+import { completeConversation } from "@/utils/functions";
+import { crossmint } from "@/libs/tools/crossmint/crossmint";
+import { extractImportantInfo } from "@/utils/functions/functions";
 
 export class Crossmint {
   public searchProductsAmazon: FunctionParams;

@@ -9,9 +9,9 @@ import { Platform } from 'react-native';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import GeminiAudioManager from './GeminiAudioManager';
-import { userWalletType } from "@/misc/store/userstore";
+import { userWalletType } from "@/utils/store/userstore.store";
 import { Audio } from "expo-av";
-import { toolFunctions } from "../tools";
+import { toolFunctions } from "@/libs/tool-implemetation/tools";
 import { env } from "@/env";
 
 interface Part {

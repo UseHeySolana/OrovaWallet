@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import UserItem from "@/misc/store/userstore";
 

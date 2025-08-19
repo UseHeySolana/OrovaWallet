@@ -6,7 +6,7 @@ import { useThemeContext } from "@/context/ThemeContext";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { Image } from "expo-image";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 
 interface WalletSheetTypes {
     open: boolean;

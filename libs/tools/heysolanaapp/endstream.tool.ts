@@ -1,7 +1,7 @@
-import AppSettings from "@/misc/store/settingsstore";
-import SessionManager from "../aistream/aistream";
-import GeminiSessionManager from "../gemini/StreamManager";
-import { FunctionParams } from "../types";
+import AppSettings from "@/utils/store/settingsstore.store";
+import SessionManager from "@/libs/voiceinfra/SessionManager";
+import GeminiSessionManager from "@/libs/voiceinfra/gemini/GeminiSessionManager";
+import { FunctionParams } from "@/utils/types/types";
 
 export class EndStream {
     public endStream: FunctionParams;

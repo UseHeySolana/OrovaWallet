@@ -1,12 +1,12 @@
 import { Connection } from "@solana/web3.js";
-import { userWalletType } from "@/misc/store/userstore";
-import { fetchData } from "../db/db";
-import { transferSol, transferToken } from "../transfers";
-import SessionManager from "../aistream/aistream";
-import { FunctionParams } from "../types";
-import { convertSpeech } from "../miscfunctions.ts/extrafunctions"; 
-import AppSettings from "@/misc/store/settingsstore";
-import { completeConversation, getUserDetails } from "../miscfunctions.ts";
+import { userWalletType } from "@/utils/store/userstore.store";
+import { fetchData } from "@/utils/request/db";
+import { transferSol, transferToken } from "@/libs/tools/transfer/transfers";
+import SessionManager from "@/libs/voiceinfra/SessionManager";
+import { FunctionParams } from "@/utils/types/types";
+import { convertSpeech } from "@/utils/functions/extrafunctions";
+import AppSettings from "@/utils/store/settingsstore.store";
+import { completeConversation, getUserDetails } from "@/utils/functions";
 
 const aiTransfer = async (userDetails: userWalletType, connection: Connection, args: { amount: number, token: string, recipient: string }) => {
     const { amount, token, recipient } = args;

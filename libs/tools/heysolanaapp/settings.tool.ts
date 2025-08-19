@@ -1,6 +1,6 @@
-import AppSettings from "@/misc/store/settingsstore";
-import SessionManager from "../aistream/aistream";
-import { FunctionParams } from "../types";
+import AppSettings from "@/utils/store/settingsstore.store";
+import SessionManager from "@/libs/voiceinfra/SessionManager";
+import { FunctionParams } from "@/utils/types/types";
 
 export class Settings {
     public setVoice: FunctionParams;

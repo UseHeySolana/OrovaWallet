@@ -1,12 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import AppSettings from "../../store/settingsstore";
-import { cache } from "../storage/cache";
-import { getTransactionHistory } from "../../../utils/request/db";
-import WalletItem from "@/misc/store/wallet";
+import AppSettings from "@/utils/store/settingsstore.store";
+import { cache } from "@/utils/storage/cache";
+import { getTransactionHistory } from "../request/db";
+import WalletItem from "@/utils/store/wallet.store";
 import { Connection, Keypair, SystemProgram, Transaction, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { api_key } from "@/app/requests/dashboard";
 import { Linking } from "react-native";
-import { confirm } from "../service/confirmation";
+import { confirm } from "@/services/confirmation";
 import OpenAI from "openai";
 
 const cleanNumber = (input: any) => {

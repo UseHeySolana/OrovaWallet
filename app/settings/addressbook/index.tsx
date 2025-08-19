@@ -4,7 +4,7 @@ import CText from "@/components/TextComp";
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import * as Contacts from 'expo-contacts';
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import {
   deletePersonalContact,
   fetchData,
@@ -12,13 +12,13 @@ import {
 } from "@/utils/request/db";
 import Buttons from "@/components/ButtonComp";
 import PhoneBook from "@/misc/store/phonebook";
-import { shortenPub } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { shortenPub } from "@/utils/functions/extrafunctions";
 import AddContactSheet from "@/components/Sheets/AddContactSheet";
 import PersonalContacts from "@/misc/store/personalcontacts";
 import WalletItem from "@/misc/store/wallet";
 import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import { useAi } from "@/context/AiContext";
-import { confirm } from "@/misc/helpers/service/confirmation";
+import { confirm } from "@/services/confirmation";
 
 function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {
   const phoneC = new Set(phoneContacts.map((item: any) => item.phoneNumbers && item.phoneNumbers[0]?.number?.replace(/[-\s]/g, '')).filter(Boolean));

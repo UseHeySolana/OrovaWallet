@@ -1,13 +1,20 @@
 import { Connection } from "@solana/web3.js";
-import { userWalletType } from "@/misc/store/userstore";
-import { fetchData } from "../db/db";
-import SessionManager from "../aistream/aistream";
-import { FunctionParams } from "../types";
-import { convertSpeech, signTransactions } from "../miscfunctions.ts/extrafunctions";
-import Convo from "@/misc/store/conversation";
-import AppSettings from "@/misc/store/settingsstore";
-import WalletItem from "@/misc/store/wallet";
-import { completeConversation, supportedTokens, verifiedTokens, } from "../miscfunctions.ts";
+import { userWalletType } from "@/utils/store/userstore.store";
+import { fetchData } from "@/utils/request/db";
+import SessionManager from "@/libs/voiceinfra/SessionManager";
+import { FunctionParams } from "@/utils/types/types";
+import {
+  convertSpeech,
+  signTransactions,
+} from "@/utils/functions/extrafunctions";
+import Convo from "@/utils/store/conversation.store";
+import AppSettings from "@/utils/store/settingsstore.store";
+import WalletItem from "@/utils/store/wallet.store";
+import {
+  completeConversation,
+  supportedTokens,
+  verifiedTokens,
+} from "@/utils/functions";
 
 /**
  * 

@@ -1,10 +1,10 @@
-import AppSettings from "@/misc/store/settingsstore";
-import SessionManager from "../aistream/aistream";
+import AppSettings from "@/utils/store/settingsstore.store";
+import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { router, useSegments } from "expo-router";
 
 
 import * as FileSystem from 'expo-file-system';
-import { FunctionParams } from "../types";
+    import { FunctionParams } from "@/utils/types/types";
 
 export async function getAllRoutes() {
     try {

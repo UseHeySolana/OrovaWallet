@@ -4,11 +4,11 @@ import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-nat
 
 import CText from "@/components/TextComp";
 import { router } from "expo-router";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import Buttons from "@/components/ButtonComp";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import WalletItem from "@/misc/store/wallet";
-import { copyItem } from "@/misc/helpers/miscfunctions.ts";
+import { copyItem } from "@/utils/functions";
 
 
 

@@ -8,7 +8,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 
 const settingsMenu = [
   {

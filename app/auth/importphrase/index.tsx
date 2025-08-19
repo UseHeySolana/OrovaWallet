@@ -2,17 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { TextInput, View } from "react-native";
 import CText from "@/components/TextComp";
 import Buttons from "@/components/ButtonComp";
-import { getKeypairFromMnemonic, isJson } from "@/misc/helpers/wallet";
-
+import { getKeypairFromMnemonic, isJson } from "@/utils/wallet";
 
 import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import { saveWalletAddress } from "@/utils/request/db";
 import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
-    import { pasteItem } from "@/utils/helpers/miscfunctions";
-    import { useThemeContext } from "@/context/ThemeContext";
-import IconLibrary from "@/misc/helpers/icons";
+import { pasteItem } from "@/utils/functions/extrafunctions";
+import { useThemeContext } from "@/context/ThemeContext";
+import IconLibrary from "@/utils/icons";
 import { useKeyboard } from "@/context/KeyboardContext";
 /**
   * What should be done here

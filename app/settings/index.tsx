@@ -16,7 +16,7 @@ import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 import * as Updates from "expo-updates";
 
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
 
 const settingsMenu = [

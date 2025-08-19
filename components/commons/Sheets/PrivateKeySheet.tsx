@@ -4,9 +4,9 @@ import CText from "../TextComp";
 import Buttons from "../ButtonComp";
 import React, { useEffect, useRef, useState } from "react";
 import AppSettings from "@/misc/store/settingsstore";
-import { copyItem } from "@/misc/helpers/miscfunctions.ts";
+import { copyItem } from "@/utils/functions";
 import WalletItem from "@/misc/store/wallet";
-import { keypairSign } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { keypairSign } from "@/utils/functions/extrafunctions";
 
 interface PrivateKeySheetTypes {
   open: boolean;

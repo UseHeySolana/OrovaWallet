@@ -1,10 +1,10 @@
 import { EndStream, TransferFunction, Settings, Routing } from "./function"
-import SessionManager from './aistream/aistream';
-import { AirBills } from "./function/airbills";
-import { SwapFunction } from "./function/swap";
-import { PajCash } from "./function/pajcash";
+import SessionManager from "../voiceinfra/SessionManager";
+import { AirBills } from "../../misc/helpers/function/airbills";
+import { SwapFunction } from "../../misc/helpers/function/swap";
+import { PajCash } from "../../misc/helpers/function/pajcash";
 import ToolsItem from "../store/toolsitems";
-import { Crossmint } from "./function/crossmint";
+import { Crossmint } from "../../misc/helpers/function/crossmint";
 
 
 

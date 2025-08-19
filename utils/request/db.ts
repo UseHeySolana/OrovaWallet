@@ -1,5 +1,5 @@
-import WalletItem from "../../store/wallet";
-import { BASE_URL, HELIUS } from "../constant";
+import WalletItem from "@/utils/store/wallet.store";
+import { BASE_URL, HELIUS } from "@/utils/constant";
 
 export type MessageData = {
   id: string;
@@ -8,9 +8,6 @@ export type MessageData = {
   walletAddress: string;
   addPin: string;
 };
-
-
-
 
 const request = {
   get: async (url: string) => {
@@ -142,7 +139,6 @@ const fetchData = async () => {
   }
 };
 
-
 const handleSearch = (query: string, searchedItem: any[]) => {
   const lowerCaseQuery = query.toLowerCase();
   const filtered = searchedItem.filter(
@@ -155,32 +151,33 @@ const handleSearch = (query: string, searchedItem: any[]) => {
 };
 
 /**
- * 
- * @param username 
- * @param phone_number 
- * @returns 
+ *
+ * @param username
+ * @param phone_number
+ * @returns
  */
 
 const registerUser = async (username: string, phone_number: string) => {
   const item = {
-    "username": username,
-    "phone_number": phone_number,
-  }
+    username: username,
+    phone_number: phone_number,
+  };
   console.log(item);
 
   const response = await request.postJson(item, "/v2/register-users");
   if (!response.ok) {
-
     const result = await response.json();
     return {
-      status: false, message: result.message
-    }
+      status: false,
+      message: result.message,
+    };
   }
   return { status: true, data: await response.json() };
-}
+};
 
 const verifyCode = async (otp: string, username: string) => {
   const item = {
+<<<<<<< HEAD
     "verification_code": otp,
     "username": username,
   }
@@ -208,38 +205,55 @@ const verifyCode = async (otp: string, username: string) => {
     return { status: false, message };
   }
 }
+=======
+    verification_code: otp,
+    username: username,
+  };
+  console.log(item);
+
+  const response = await request.postJson(item, "/v2/verify-code");
+  if (!response.ok) {
+    const result = await response.json();
+    return {
+      status: false,
+      message: result.message,
+    };
+  }
+  return { status: true, data: await response.json() };
+};
+>>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
 
 /**
- * 
- * @param walletAddress 
- * @param username 
- * @returns 
+ *
+ * @param walletAddress
+ * @param username
+ * @returns
  */
 const saveWalletAddress = async (walletAddress: string, username: string) => {
   const item = {
-    "wallet_address": walletAddress,
-    "username": username,
-  }
+    wallet_address: walletAddress,
+    username: username,
+  };
 
   const response = await request.postJson(item, "/v2/add-walletaddress");
   if (!response.ok) {
     const result = await response.json();
     return {
-      status: false, message: result.message
-    }
+      status: false,
+      message: result.message,
+    };
   }
   return { status: true, data: await response.json() };
-}
-
-
+};
 
 /**
- * 
- * @param phone_number 
- * @returns 
+ *
+ * @param phone_number
+ * @returns
  */
 const getCode = async (phone_number: string) => {
   const item = {
+<<<<<<< HEAD
     "phone_number": phone_number
   }
   const url = "/v2/get-code";
@@ -256,6 +270,20 @@ const getCode = async (phone_number: string) => {
       console.warn("[getCode] failed", BASE_URL + url, response.status, message);
       return { status: false, message };
     }
+=======
+    phone_number: phone_number,
+  };
+
+  const response = await request.postJson(item, "/v2/get-code");
+
+  if (!response.ok) {
+    const result = await response.json();
+    return {
+      status: false,
+      message: result.message,
+    };
+  } else {
+>>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
     const result = await response.json();
     return { status: true, data: result };
   } catch (err) {
@@ -266,83 +294,104 @@ const getCode = async (phone_number: string) => {
     console.warn("[getCode] error", BASE_URL + url, err);
     return { status: false, message };
   }
-}
-
+};
 
 /**
  * @param publicKey
- * @returns 
+ * @returns
  */
 const getTransactionHistory = async (publicKey: string) => {
-  const response = await request.getRan(`https://api.helius.xyz/v0/addresses/${publicKey}/transactions?api-key=${HELIUS}`)
+  const response = await request.getRan(
+    `https://api.helius.xyz/v0/addresses/${publicKey}/transactions?api-key=${HELIUS}`
+  );
 
   if (!response.ok) {
     const result = await response.json();
     return {
-      status: false, message: result.message
-    }
+      status: false,
+      message: result.message,
+    };
   }
   //set Transaction History
   return { status: true, data: await response.json() };
-}
+};
 
 const getContacts = async (id: string) => {
   const response = await request.get(`/v2/get-contacts/${id}`);
   if (!response.ok) {
     const result = await response.json();
-    return { status: false, message: result.message }
+    return { status: false, message: result.message };
   }
   return { status: true, data: await response.json() };
-}
+};
 
+<<<<<<< HEAD
 
 const addContact = async (username: string, phone_number: string, wallet_address: string) => {
   const userId = WalletItem.getState().publicKey?.toString()
   if (!userId) {
     return { status: false, message: "User not found" }
+=======
+const addContact = async (
+  username: string,
+  phone_number: string,
+  wallet_address: string
+) => {
+  const userId = WalletItem.getState().publicKey?.toString();
+  if (!userId) {
+    return { status: false, message: "User not found" };
+>>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
   }
   const item = {
-    "username": username,
-    "phone_number": phone_number,
-    "wallet_address": wallet_address,
-    "user_id": userId,
-  }
+    username: username,
+    phone_number: phone_number,
+    wallet_address: wallet_address,
+    user_id: userId,
+  };
 
   const response = await request.postJson(item, "/v2/add-contact");
   if (!response.ok) {
     const result = await response.json();
-    return { status: false, message: result.message }
+    return { status: false, message: result.message };
   }
   return { status: true, data: await response.json() };
-}
-
+};
 
 const deletePersonalContact = async (id: string) => {
   const response = await request.get(`/v2/delete-contact/${id}`);
   if (!response.ok) {
     const result = await response.json();
-    return { status: false, message: result.message }
+    return { status: false, message: result.message };
   }
   return { status: true, data: await response.json() };
-}
+};
 
-const updateContact = async (id: string, username: string, phone_number: string, wallet_address: string) => {
+const updateContact = async (
+  id: string,
+  username: string,
+  phone_number: string,
+  wallet_address: string
+) => {
   const item = {
-    "username": username,
-    "phone_number": phone_number,
-    "wallet_address": wallet_address,
-    "contact_id": id,
-  }
+    username: username,
+    phone_number: phone_number,
+    wallet_address: wallet_address,
+    contact_id: id,
+  };
 
   const response = await request.postJson(item, "/v2/update-contact");
   if (!response.ok) {
     const result = await response.json();
-    return { status: false, message: result.message }
+    return { status: false, message: result.message };
   }
   return { status: true, data: await response.json() };
+<<<<<<< HEAD
 }
 
 
+=======
+};
+>>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
 
 export {
   addContact,
@@ -352,6 +401,15 @@ export {
   getCode,
   saveWalletAddress,
   getTransactionHistory,
+<<<<<<< HEAD
   registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, updateContact,
+=======
+  registerUser,
+  fetchData,
+  addDataToFirestore,
+  handleSearch,
+  fetchUser,
+  request,
+  updateContact,
+>>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
 };
-
