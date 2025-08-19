@@ -2,7 +2,7 @@ import { Pressable, View } from "react-native";
 import DragableSheet from "../commons/CustomItems/DragableSheet";
 import CText from "../TextComp";
 import Buttons from "../ButtonComp";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 
 interface ConfirmationSheetTypes {
     open: boolean;

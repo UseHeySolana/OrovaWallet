@@ -2,9 +2,9 @@ import { Pressable, View } from "react-native";
 import DragableSheet from "../commons/CustomItems/DragableSheet";
 import CText from "../TextComp";
 import Buttons from "../ButtonComp";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import React, { useEffect, useState } from "react";
-import { ConfirmationOptions, setConfirmFn } from "@/misc/helpers/service/confirmation";
+import { ConfirmationOptions, setConfirmFn } from "@/services/confirmation";
 import AppSettings from "@/misc/store/settingsstore";
 import * as LocalAuthentication from 'expo-local-authentication';
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";

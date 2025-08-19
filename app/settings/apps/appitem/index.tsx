@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import { apps, reviews } from "@/libs/app/apps";
 import Buttons from "@/components/ButtonComp";
 import { useThemeContext } from "@/context/ThemeContext";
 import ToolsItem from "@/misc/store/toolsitems";
-import { delay, delayPromise } from "@/misc/helpers/miscfunctions.ts";
+import { delay, delayPromise } from "@/utils/functions";
 import AppSettings from "@/misc/store/settingsstore";
-import { confirm } from "@/misc/helpers/service/confirmation";
+import { confirm } from "@/services/confirmation";
 import UserItem from "@/misc/store/userstore";
 import ParamsComponent from "@/components/AppItemsParam/Params";
 

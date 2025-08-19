@@ -9,7 +9,7 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAi } from '@/context/AiContext';
-import AppSettings from '@/misc/store/settingsstore';
+import AppSettings from '@/utils/store/settingsstore.store';
 import PIPOverlay from './PIPOverlay';
 import { NativePIPModule } from "./NativePIPModule";
 

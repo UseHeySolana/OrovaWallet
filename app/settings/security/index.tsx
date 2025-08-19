@@ -5,7 +5,7 @@ import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import UserItem from "@/misc/store/userstore";
 
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
 import SetPin from "@/components/Sheets/SetPinSheet";
 

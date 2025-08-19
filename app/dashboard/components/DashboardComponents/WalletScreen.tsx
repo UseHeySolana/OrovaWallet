@@ -12,13 +12,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Buttons from "../ButtonComp";
-import { showToast } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { showToast } from "@/utils/functions/extrafunctions";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
 import { scale } from "react-native-size-matters";
 import UserItem from "@/misc/store/userstore";
-import { copyItem } from "@/misc/helpers/miscfunctions.ts";
+import { copyItem } from "@/utils/functions";
 import WalletItem from "@/misc/store/wallet";
 
 const AiHelpers = [

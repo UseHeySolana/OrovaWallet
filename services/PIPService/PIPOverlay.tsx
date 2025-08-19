@@ -12,7 +12,7 @@ import { Image } from 'expo-image';
 import { usePIP } from './PIPManager';
 import { useAi } from '@/context/AiContext';
 import { useThemeContext } from '@/context/ThemeContext';
-import IconLibrary from '@/misc/helpers/icons';
+import IconLibrary from "@/utils/icons";
 import CText from '../TextComp';
 import LottieView from 'lottie-react-native';
 import { BlurView } from 'expo-blur';

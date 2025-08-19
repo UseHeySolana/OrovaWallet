@@ -1,7 +1,7 @@
 import { Connection, Keypair, ParsedAccountData, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
-import WalletItem from "../store/wallet";
-import { keypairSign, signTransactions } from "./miscfunctions.ts/extrafunctions";
+import WalletItem from "@/utils/store/wallet.store";
+import { keypairSign, signTransactions } from "@/utils/functions/extrafunctions";
 
 
 

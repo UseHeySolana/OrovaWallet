@@ -3,9 +3,9 @@ import { FlatList, Pressable, StyleSheet, Switch, TouchableOpacity, View } from 
 import CText from "@/components/TextComp";
 import { scale } from 'react-native-size-matters';
 import { router } from "expo-router";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import Convo, { ConversationType } from "@/misc/store/conversation";
-import { confirm } from "@/misc/helpers/service/confirmation";
+import { confirm } from "@/services/confirmation";
 import { useThemeContext } from "@/context/ThemeContext";
 
 

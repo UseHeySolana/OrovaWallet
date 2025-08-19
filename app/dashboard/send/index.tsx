@@ -8,7 +8,7 @@ import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 import { Keypair } from "@solana/web3.js";
 import UserItem from "@/misc/store/userstore";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
 import SearchInput from "@/components/commons/SearchInput/SearchInput";
 

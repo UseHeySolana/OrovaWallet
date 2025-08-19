@@ -10,7 +10,7 @@ import CText from "@/components/TextComp";
 import AppSettings from "@/misc/store/settingsstore";
 import { router } from "expo-router";
 
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 
 interface networkSettings {
   title: string;

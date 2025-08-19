@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import UserItem from "@/misc/store/userstore";
 import { Image } from "expo-image";
 import { scale } from "react-native-size-matters";
 import Buttons from "@/components/ButtonComp";
-import { formatDate, getTokenTransactions, shortenPub, showToast } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import {
+  formatDate,
+  getTokenTransactions,
+  shortenPub,
+  showToast,
+} from "@/utils/functions/extrafunctions";
 import { useThemeContext } from "@/context/ThemeContext";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import AntDesign from "@expo/vector-icons/AntDesign";

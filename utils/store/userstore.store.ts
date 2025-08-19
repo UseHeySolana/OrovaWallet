@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
-import { UserType } from '../types/user.types';
-import AppSettings from './settingsstore.store';
-import WalletItem from './wallet.store';
+import { UserType } from '@/utils/types/user.types';
+import AppSettings from '@/utils/store/settingsstore.store';
+import WalletItem from '@/utils/store/wallet.store';
 
 interface TokenAccount {
   symbol: string;

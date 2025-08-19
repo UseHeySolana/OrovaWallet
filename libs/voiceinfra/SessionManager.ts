@@ -10,20 +10,20 @@ import { Platform } from "react-native";
 import "react-native-get-random-values"; // Required for crypto operations
 import { v4 as uuidv4 } from "uuid"; // Import UUID v4 generator
 
-import UserItem, { userWalletType } from "@/misc/store/userstore";
-import { toolFunctions } from "../tools";
+import UserItem, { userWalletType } from "@/utils/store/userstore.store";
+import { toolFunctions } from "../tool-implemetation/tools";
 import { Audio } from "expo-av";
-import AppSettings from "@/misc/store/settingsstore";
-import Convo from "@/misc/store/conversation";
-import { toolRouter } from "../toolsregistry";
-import { FunctionParams } from "../types";
+import AppSettings from "@/utils/store/settingsstore.store";
+import Convo from "@/utils/store/conversation.store";
+import { toolRouter } from "../tool-implemetation/toolsregistry";
+import { FunctionParams } from "../../utils/types/types";
 
-import { summarizeConversation } from "../miscfunctions.ts/extrafunctions";
-import { AgentContacts, supportedTokens } from "../miscfunctions.ts";
+import { summarizeConversation } from "../../utils/functions/extrafunctions";
+import { AgentContacts, supportedTokens } from "../../utils/functions";
 import setUserItems from "@/app/requests/dashboard";
-import WalletItem from "@/misc/store/wallet";
-import tracker from "../../../utils/tracker";
-import { request } from "../../../utils/request/db";
+import WalletItem from "@/utils/store/wallet.store";
+import tracker from "../../utils/tracker";
+import { request } from "../../utils/request/db";
 
 import InCallManager from "react-native-incall-manager";
 import AudioManager from "./AudioManager";

@@ -3,9 +3,9 @@ import { ScrollView, View } from "react-native";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
-import { generateMnemonic, getKeypairFromMnemonic } from "@/misc/helpers/wallet";
+import { generateMnemonic, getKeypairFromMnemonic } from "@/utils/wallet";
 
-import * as Clipboard from 'expo-clipboard';
+import * as Clipboard from "expo-clipboard";
 import AppSettings from "@/misc/store/settingsstore";
 // import { Connection, Keypair } from "@solana/web3.js";
 import WalletItem from "@/misc/store/wallet";
@@ -13,7 +13,7 @@ import { saveWalletAddress } from "@/utils/request/db";
 
 import UserItem from "@/misc/store/userstore";
 import { router } from "expo-router";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import ConfirmPhraseSheet from "@/components/Sheets/ConfirmKeyWordsSheet";
 
 

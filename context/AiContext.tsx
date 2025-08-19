@@ -1,11 +1,11 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import SessionManager from "../misc/helpers/aistream/aistream";
+import SessionManager from "../libs/voiceinfra/SessionManager";
 import { Audio } from "expo-av";
 import { Connection } from "@solana/web3.js";
-import AppSettings from "../store/settingsstore";
-import UserItem from "../store/userstore";
+import AppSettings from "@/utils/store/settingsstore.store";
+import UserItem from "@/utils/store/userstore.store";
 import { api_key } from "@/app/requests/dashboard";
-import { prompB } from "../misc/helpers/prompt";
+import { prompB } from "../libs/tool-implemetation/prompt";
 
 interface AIService {
     connection: Connection | null;

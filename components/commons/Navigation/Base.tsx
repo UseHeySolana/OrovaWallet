@@ -1,10 +1,10 @@
 import tracker from '@/utils/tracker'
-import IconLibrary from '@/misc/helpers/icons'
-import { Image } from 'expo-image'
-import { router } from 'expo-router'
-import React from 'react'
-import { Pressable, TouchableOpacity, View } from 'react-native'
-import { usePIP } from "../PIPService/PIPManager";
+import IconLibrary from "@/utils/icons";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import React from "react";
+import { Pressable, TouchableOpacity, View } from "react-native";
+import { usePIP } from "@/services/PIPService/PIPManager";
 
 interface BASENAV {
   isSessionActive: boolean;

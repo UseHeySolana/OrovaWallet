@@ -16,8 +16,8 @@ import { CountryPickerModal } from "react-native-country-code-select";
 import { useThemeContext } from "@/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
-import { cleanNumber } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
-import { delay } from "@/misc/helpers/miscfunctions.ts";
+import { cleanNumber } from "@/utils/functions/extrafunctions";
+import { delay } from "@/utils/functions";
 import { useKeyboard } from "@/context/KeyboardContext";
 /**
   * What should be done here

@@ -6,7 +6,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import { Switch } from "react-native";
 import { TextInput } from "react-native";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 
 const Items = [
   {

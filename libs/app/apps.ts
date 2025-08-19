@@ -1,6 +1,5 @@
-import IconLibrary from "@/misc/helpers/icons";
 import { ImageSource } from "expo-image";
-import { airBills } from "../../misc/helpers/db/airbills";
+import { airBills } from "@/libs/tools/airbills/airbills";
 
 export interface App {
   name: string;

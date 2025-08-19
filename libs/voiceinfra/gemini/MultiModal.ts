@@ -22,7 +22,7 @@ import {
   type LiveConfig,
 } from "@/utils/types/multimodal-live-types.types";
 
-import { blobToJSON, base64ToArrayBuffer } from "@/utils/functions";
+import { blobToJSON, base64ToArrayBuffer } from "@/utils/functions/functions";
 
 /**
  * the events that this client will emit

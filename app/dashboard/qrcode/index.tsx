@@ -6,16 +6,16 @@ import { scale } from 'react-native-size-matters';
 import { router } from "expo-router";
 
 
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 
-import QRCode from 'react-native-qrcode-svg';
+import QRCode from "react-native-qrcode-svg";
 import Buttons from "@/components/ButtonComp";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import EvilIcons from "@expo/vector-icons/EvilIcons";
 import WalletItem from "@/misc/store/wallet";
 
-import * as Sharing from 'expo-sharing';
-import { copyItem } from "@/misc/helpers/miscfunctions.ts";
+import * as Sharing from "expo-sharing";
+import { copyItem } from "@/utils/functions";
 import { captureRef } from 'react-native-view-shot';
 import RNFS from "react-native-fs"
 

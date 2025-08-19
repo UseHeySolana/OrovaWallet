@@ -14,7 +14,7 @@ import { useAi } from "@/context/AiContext";
 import { Base } from "@/components/Navigation/Base";
 import { useThemeContext } from "@/context/ThemeContext";
 import Convo, { MessageType } from "@/misc/store/conversation";
-import { toolRouter } from "@/misc/helpers/toolsregistry";
+import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
 import SetPin from "@/components/Sheets/SetPinSheet";
 import WalletScreen from "@/components/DashboardComponents/WalletScreen";
 import ChatInterface from "@/components/DashboardComponents/Chatinterface";

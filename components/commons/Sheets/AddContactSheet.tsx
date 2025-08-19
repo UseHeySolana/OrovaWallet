@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react";
 import { addContact, updateContact } from "@/utils/request/db";
 import AppSettings from "@/misc/store/settingsstore";
 import ConfirmActionSheet from "./ConfirmationSheet";
-import { cleanNumber, shortenPub } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { cleanNumber, shortenPub } from "@/utils/functions/extrafunctions";
 import PhoneBook from "@/misc/store/phonebook";
 import { CountryPickerModal } from "react-native-country-code-select";
 import PersonalContacts from "@/misc/store/personalcontacts";

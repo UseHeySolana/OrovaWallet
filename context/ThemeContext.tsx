@@ -2,8 +2,8 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 
 import { useColorScheme } from "nativewind";
-import { storage } from '../misc/helpers/storage/storage';
-import AppSettings from '../store/settingsstore';
+import { storage } from "../utils/storage/storage";
+import AppSettings from "@/utils/store/settingsstore.store";
 
 interface ColorScheme {
     isDarkMode: boolean,
