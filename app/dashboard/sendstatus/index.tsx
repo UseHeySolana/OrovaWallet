@@ -1,216 +1,121 @@
-import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useLocalSearchParams, router } from "expo-router";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
-import { Image } from "expo-image";
-import AntDesign from '@expo/vector-icons/AntDesign'
+import {
+  Pressable,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  Linking,
+} from "react-native";
+import IconLibrary from "@/utils/icons";
+import TxQueue from "@/utils/store/txqueue.store";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { router } from "expo-router";
-import { Keypair } from "@solana/web3.js";
-import UserItem from "@/utils/store/userstore.store";
+import { useEffect } from "react";
+import Buttons from "@/components/ButtonComp";
 
-const Items = [
-  {
-    id: 1,
-    title: "Voice Assistant",
-    description: "",
-    subItems: [],
-    type: "toogle",
-  },
-  {
-    id: 2,
-    title: "Language",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "English",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 3,
-    title: "Assistant Voice",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "Kira",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 4,
-    title: "Assistant Name",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "User Input",
-      description: "",
-    }],
-    type: "dropdown",
-  }
-]
-/**
-  * What should be done here
-  * 1. Register User Voice for Authentication 
-  * 2. Save User Voice and ask if to create wallet with their voice
-  */
-function Voicereg() {
-  const [recording, setRecording] = useState(false);
+function SendStatus() {
+  const { id, amount, recipient, tokenName, displayName, mint } =
+    useLocalSearchParams();
+  const item = TxQueue((s) =>
+    typeof id === "string" ? s.items[id] : undefined
+  );
 
-  const { setDefault } = AppSettings()
-  const { user } = UserItem()
+  const openExplorer = () => {
+    if (item?.txid) {
+      const network = AppSettings.getState().networkShort;
+      const explorerUrl = `https://explorer.solana.com/tx/${item.txid}?cluster=${network}`;
+      Linking.openURL(explorerUrl);
+    }
+  };
 
+  useEffect(() => {
+    if (item?.status === "confirmed" && item.txid) {
+      router.replace({
+        pathname: "/dashboard/send/token/success",
+        params: {
+          mint: mint as string,
+          txid: item.txid,
+          amount: amount as string,
+          recipient: recipient as string,
+          tokenName: tokenName as string,
+          displayName: displayName as string,
+        },
+      });
+    }
+  }, [item?.status, item?.txid]);
 
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(false);
+  const statusText = (() => {
+    switch (item?.status) {
+      case "queued":
+      case "signing":
+      case "submitted":
+      case "confirming":
+        return "Processing transaction...";
+      case "confirmed":
+        return "Transaction confirmed";
+      case "failed":
+        return "Transaction failed";
+      default:
+        return "Preparing transaction...";
+    }
+  })();
 
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
-
-  //   const audioManager = useRef<AudioManager | null>(null);
-  //     useEffect(() => {
-  //       if (!audioManager.current) {
-  //         audioManager.current = new AudioManager({
-  //           onSpeechStart: () => setIsSpeaking(true),
-  //           onSpeechEnd: () => setIsSpeaking(false),
-  //           onProcessingStart: () => setIsProcessing(true),
-  //           onProcessingEnd: () => setIsProcessing(false),
-  //           onAiSpeakingStart: () => setIsAiSpeaking(true),
-  //           onAiSpeakingEnd: () => setIsAiSpeaking(false),
-  //         });
-  //       } else {
-
-  //       }
-  //       return () => {
-  //         // audioManager.current?.cleanup();
-  //       };
-  //     }, [])
-
-  // const startRecording = async () => {
-  //   setRecording(true);
-  //   await audioManager.current?.startRecording();
-  // }
-
-  // const stopRecording = async () => {
-  //   setRecording(false);
-  //   await audioManager.current?.stopRecording();
-
-  // }
   return (
-    <View className="relative h-full w-100 flex items-center">
-      <View className="h-full  w-100 m-auto flex justify-center items-start">
-        <View className="w-11/12 m-auto p-2">
-          <View className="">
-            <CText className="text-[75px] text-purple font-bold">"</CText>
-            <CText
-              style={{ fontFamily: "bold" }}
-              className="text-[80px] text-wrap"
-            >
-              Hey Solana, send 5 SOL to Alex
-            </CText>
-            <CText className="text-[75px] text-purple font-bold self-end rotate-180">
-              "
+    <View className="relative w-full bg-grey dark:bg-dark flex-1 py-4">
+      <View className="w-full px-4 flex flex-row justify-start items-center gap-x-5 mb-6">
+        <Pressable
+          onPress={() => router.back()}
+          className="p-3 rounded-full bg-white dark:bg-accent"
+        >
+          <IconLibrary.back />
+        </Pressable>
+        <CText className="text-[1.4rem]">Send Status</CText>
+      </View>
+
+      <View className="px-4 flex-1 items-center justify-center gap-y-6">
+        {item?.status !== "failed" ? (
+          <ActivityIndicator size="large" color="#971BB2" />
+        ) : (
+          <View className="w-24 h-24 bg-red-500 rounded-full items-center justify-center">
+            <IconLibrary.cancel size={48} color="white" />
+          </View>
+        )}
+
+        <CText className="text-[20px]" style={{ fontFamily: "bold" }}>
+          {statusText}
+        </CText>
+        <CText className="text-center text-[14px] text-gray-600 dark:text-gray-300">
+          {displayName || (recipient as string)}
+        </CText>
+        <CText className="text-center text-[14px] text-gray-600 dark:text-gray-300">
+          {amount} {tokenName}
+        </CText>
+
+        {item?.status === "failed" && (
+          <View className="w-full mt-4">
+            <CText className="text-center text-red-500">
+              {item?.error || "Something went wrong."}
             </CText>
           </View>
-          <View>
-            <CText className="text-[32px] text-gray-400">
-              Let’s register your voice! say the big text you see on your
-              screen, LFG
-            </CText>
-          </View>
+        )}
+
+        <View className="w-full mt-auto pb-8 gap-y-3">
+          {item?.txid && (
+            <Buttons
+              text="View on Explorer"
+              type="secondary"
+              onPress={openExplorer}
+            />
+          )}
+          <Buttons
+            text="Back to Dashboard"
+            type="primary"
+            onPress={() => router.replace("/dashboard")}
+          />
         </View>
       </View>
-
-      <View className="w-11/12 m-auto p-2 gap-y-3 bottom-10 absolute">
-        {/* <Pressable onPress={() => { recording ? stopRecording() : startRecording() }} > */}
-        <Pressable
-          onPress={() => {
-            setStartWalletReg(true);
-          }}
-        >
-          <View
-            style={{ padding: 5 }}
-            className={`${
-              !recording ? "bg-[#971BB2]" : "bg-red-600"
-            } py-5 rounded-full `}
-          >
-            <CText className="text-white text-center">Record</CText>
-          </View>
-        </Pressable>
-      </View>
-
-      {startWalletReg && (
-        <DragableSheet
-          close={() => setStartWalletReg(false)}
-          snapPoints={["55%"]}
-          child={
-            <View className="w-full  gap-y-5 flex flex-col justify-between ">
-              <CText
-                style={{ fontFamily: "bold" }}
-                className="text-[20px] text-center"
-              >
-                Wallet
-              </CText>
-              <View className="flex w-100 justify-center items-center py-">
-                <Image
-                  style={{ height: 185, width: 300 }}
-                  source={require("@/assets/items/wallet.png")}
-                  alt="Wallet"
-                  contentFit="contain"
-                />
-              </View>
-
-              <Pressable
-                onPress={() => {
-                  router.push("/auth/secretphrase");
-                }}
-              >
-                <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
-                  <View className="">
-                    <AntDesign name="pluscircleo" size={24} color="black" />
-                  </View>
-
-                  <View className="">
-                    <CText
-                      style={{ fontFamily: "bold" }}
-                      className="text-primary text-[16px] font-dmBold text-start"
-                    >
-                      Create new Wallet
-                    </CText>
-                    <CText className="text-primary text-[14px]  text-start">
-                      Create a new Solana Wallet
-                    </CText>
-                  </View>
-                </View>
-              </Pressable>
-              <Pressable onPress={() => router.push("/auth/importphrase")}>
-                <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
-                  <View className="bg-white rounded-full p-1">
-                    <AntDesign name="arrowdown" size={24} color="black" />
-                  </View>
-
-                  <View className="">
-                    <CText
-                      style={{ fontFamily: "bold" }}
-                      className="text-primary text-[16px] font-dmBold text-start"
-                    >
-                      Import existing wallet
-                    </CText>
-                    <CText className="text-primary text-[14px]  text-start">
-                      Import a previously existing wallet
-                    </CText>
-                  </View>
-                </View>
-              </Pressable>
-            </View>
-          }
-        />
-      )}
     </View>
   );
 }
 
-export default Voicereg
-
+export default SendStatus;

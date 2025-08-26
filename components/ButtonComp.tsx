@@ -13,6 +13,7 @@ interface Buttons {
   style?: {};
   icon?: React.ReactNode;
   buttonType?: "feedback" | "pressable"
+  disabled?: boolean;
 }
 
 /**
@@ -30,7 +31,7 @@ onPress:() => void;
  * @returns 
  */
 export default function Buttons(props: Buttons) {
-  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType } = props;
+  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType, disabled } = props;
 
   const buttonColor = type == "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
 
@@ -43,7 +44,6 @@ export default function Buttons(props: Buttons) {
   return (
     <>
       {buttonType === "feedback" ? (
-
         <>
           <View style={{
             borderRadius: 50,  // Match this with your desired border radius
@@ -63,7 +63,7 @@ export default function Buttons(props: Buttons) {
           </View>
         </>
       ) :
-        <TouchableOpacity onPress={onPress}>
+        <TouchableOpacity onPress={onPress} disabled={disabled} className={`${disabled ? "opacity-50" : ""}`}>
           <View className={`${buttonColor} ${className ? className : "py-5  rounded-full"}  flex flex-row justify-center items-center gap-x-2 `}>
             {props.icon}
             <CText style={{ fontFamily: "bold" }} className={`${textClass ? textClass : "text-[1rem]  text-center"} ${type === "primary" ?

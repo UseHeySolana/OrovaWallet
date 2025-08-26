@@ -68,8 +68,6 @@ export const transferToken = async (
 
     if (!fromWallet) throw Error;
 
-
-
     try {
 
 

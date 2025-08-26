@@ -113,8 +113,7 @@ export default function WalletScreen({
                 buttonType="feedback"
                 className="py-4 rounded-full"
                 onPress={() => {
-                  //  router.push('/dashboard/send')
-                  showToast("Kindly Use Voice to send tokens");
+                  router.push("/dashboard/send");
                 }}
                 type="secondary"
                 text="Send"
