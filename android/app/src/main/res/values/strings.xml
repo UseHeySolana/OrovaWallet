@@ -4,5 +4,4 @@
   <string name="expo_runtime_version">2.0.9</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
-  <string name="widget_description">Quick access to HeySolana AI assistant - Start AI, enable PIP mode, or open the app</string>
 </resources>

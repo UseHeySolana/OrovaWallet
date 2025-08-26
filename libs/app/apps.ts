@@ -116,8 +116,8 @@ const apps: App[] = [
       primary: "#4285F4",
       secondary: "#34A853",
     },
-    is_active: true,
-    is_featured: true,
+    is_active: false,
+    is_featured: false,
     is_new: true,
     ratings: 4.8,
     tools: [
@@ -167,8 +167,8 @@ const apps: App[] = [
       primary: "#6366F1",
       secondary: "#8B5CF6",
     },
-    is_active: true,
-    is_featured: true,
+    is_active: false,
+    is_featured: false,
     is_new: true,
     ratings: 4.9,
     tools: [
@@ -510,8 +510,8 @@ Talk, ask, command, and get things done with just your voice. From managing your
       require("@/assets/apps/jumia/img3.webp"),
       require("@/assets/apps/jumia/img4.webp"),
     ],
-    is_active: true,
-    is_featured: true,
+    is_active: false,
+    is_featured: false,
     is_new: true,
     ratings: 4.5,
     tools: [
