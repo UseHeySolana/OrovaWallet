@@ -67,19 +67,21 @@ const getTokenTransactions = async (mintAddress: string) => {
     data: null,
   };
 
-  const txHistory = await cache.get("txHistory");
+  const publicKey = WalletItem.getState().publicKey;
+  if (!publicKey) {
+    response.status = false;
+    return response;
+  }
+
+  const cacheKey = `txHistory:${publicKey.toString()}`;
+  const txHistory = await cache.get(cacheKey);
   if (!txHistory) {
-    const publicKey = WalletItem.getState().publicKey;
-    if (!publicKey) {
-      response.status = false;
-      return response;
-    }
-    const fetchedTxHistory = await getTransactionHistory(publicKey?.toString());
+    const fetchedTxHistory = await getTransactionHistory(publicKey.toString());
     if (!fetchedTxHistory.status) {
       return response;
     }
-
-    cache.set("txHistory", JSON.stringify(fetchedTxHistory));
+    // Cache for 5 minutes
+    await cache.set(cacheKey, JSON.stringify(fetchedTxHistory), 5 * 60 * 1000);
 
     const filtered = fetchedTxHistory.data.filter((tx: any) => {
       const mintInTokenTransfers = tx.tokenTransfers?.some(
