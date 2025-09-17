@@ -11,7 +11,6 @@ import "react-native-get-random-values"; // Required for crypto operations
 import { v4 as uuidv4 } from "uuid"; // Import UUID v4 generator
 
 import UserItem, { userWalletType } from "@/utils/store/userstore.store";
-import { toolFunctions } from "../tool-implemetation/tools";
 import { Audio } from "expo-av";
 import AppSettings from "@/utils/store/settingsstore.store";
 import Convo from "@/utils/store/conversation.store";
@@ -19,7 +18,7 @@ import { toolRouter } from "../tool-implemetation/toolsregistry";
 import { FunctionParams } from "../../utils/types/types";
 
 import { summarizeConversation } from "../../utils/functions/extrafunctions";
-import { AgentContacts, supportedTokens } from "../../utils/functions";
+import { AgentContacts, delay, supportedTokens } from "../../utils/functions";
 import setUserItems from "@/app/requests/dashboard";
 import WalletItem from "@/utils/store/wallet.store";
 import tracker from "../../utils/tracker";
@@ -42,7 +41,8 @@ class SessionManager {
   private connectionEstablished: boolean = false;
   private conversation_id: string | null = null;
   public functionMessageId: string | null = null;
-  public activeMessageId: string | null = null;
+  public activeAiMessageId: string | null = null;
+  public activeHumanMessageId: string | null = null;
   public token: string | null = null;
   // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
   public callbacks: {
@@ -76,9 +76,12 @@ class SessionManager {
     this.availableFunctions = toolRouter(this);
   }
 
-  async getToken() {
+  async getToken({ instructions }: { instructions: string }) {
     const url = "/open-token";
-    const tokenResponse = await request.get(url);
+    const item = {
+      prompt: instructions,
+    };
+    const tokenResponse = await request.postJson(item, url);
     const data = await tokenResponse.json();
     this.token = data.client_secret.value;
     return this.token;
@@ -100,8 +103,9 @@ class SessionManager {
                 \n 
                 to swap first get the quote of the tokens and then respond to the user with the quote and then ask for confirmation to swap.
                 \n
-
             always map the username i am interacting to any of these, correct with right spelling always if the username doesn't fall you can use as provided.
+                \n
+                Todo Items are always identified by the slug of the title of the todo item. if the user provides the id, you should use the slug of the title of the todo item as the id.
                 \n
                  these are the list of sub tools supported and parameters,
                 ${JSON.stringify(
@@ -115,7 +119,9 @@ class SessionManager {
       this.systemInstructions = systemInstructions + sysIns;
     }
 
-    const EPHEMERAL_KEY = await this.getToken();
+    const EPHEMERAL_KEY = await this.getToken({
+      instructions: "",
+    });
 
     if (this.isSessionActive || this.peerConnection || this.dataChannel) {
       console.warn(
@@ -147,8 +153,6 @@ class SessionManager {
       const stream = await mediaDevices.getUserMedia({ audio: true });
 
       const devices = await mediaDevices.enumerateDevices();
-      console.log("devices", devices);
-      console.log("stream", stream);
 
       // Add tracks to peer connection
       stream.getTracks().forEach((track) => {
@@ -245,9 +249,9 @@ class SessionManager {
         const message = JSON.parse(e.data);
         this.events.unshift(message);
 
-        // if (message.type.includes('conversation')) {
-        //     console.log(message.type)
-        // }
+        if (this.conversation_id === null) {
+          throw new Error("Conversation has not been set");
+        }
 
         if (message.type === "input_audio_buffer.speech_started") {
           this.callbacks.setMode("human");
@@ -259,6 +263,36 @@ class SessionManager {
         }
 
         if (
+          message.type === "conversation.item.input_audio_transcription.delta"
+        ) {
+          if (this.activeHumanMessageId) {
+            // Get current content before updating to avoid infinite loop
+            const currentContent =
+              Convo.getState()
+                .getConversationMessages(this.conversation_id)
+                ?.find((item) => item.id === this.activeHumanMessageId)
+                ?.content || "";
+            //append new delta to the content
+            Convo.getState().updateMessage({
+              messageId: this.activeHumanMessageId,
+              content: {
+                content: currentContent + message.delta,
+              },
+            });
+          } else {
+            this.activeHumanMessageId =
+              "temp" + new Date().getTime().toString();
+            Convo.getState().setMessages({
+              id: this.activeHumanMessageId,
+              role: "user",
+              content: message.delta,
+              timestamp: new Date().getTime(),
+              conversation_id: this.conversation_id,
+            });
+          }
+        }
+
+        if (
           message.type ==
           "conversation.item.input_audio_transcription.completed"
         ) {
@@ -266,11 +300,40 @@ class SessionManager {
             !message.transcript || message.transcript === "\n"
               ? "[inaudible]"
               : message.transcript;
-          if (this.conversation_id !== null) {
+
+          if (this.activeHumanMessageId) {
+            Convo.getState().updateMessage({
+              messageId: this.activeHumanMessageId,
+              content: {
+                content: finalTranscript,
+              },
+            });
+            setTimeout(() => {
+              this.activeHumanMessageId = null;
+            }, 200);
+          }
+        }
+
+        if (message.type === "response.audio_transcript.delta") {
+          if (this.activeAiMessageId) {
+            // Get current content before updating to avoid infinite loop
+            const currentContent =
+              Convo.getState()
+                .getConversationMessages(this.conversation_id)
+                ?.find((item) => item.id === this.activeAiMessageId)?.content ||
+              "";
+            Convo.getState().updateMessage({
+              messageId: this.activeAiMessageId,
+              content: {
+                content: currentContent + message.delta,
+              },
+            });
+          } else {
+            this.activeAiMessageId = "temp" + new Date().getTime().toString();
             Convo.getState().setMessages({
-              id: message.response_id,
-              role: "user",
-              content: finalTranscript,
+              id: this.activeAiMessageId,
+              role: "system",
+              content: message.delta,
               timestamp: new Date().getTime(),
               conversation_id: this.conversation_id,
             });
@@ -280,14 +343,16 @@ class SessionManager {
         if (message.type === "response.audio_transcript.done") {
           this.updateMemory(message);
 
-          if (this.conversation_id !== null) {
-            Convo.getState().setMessages({
-              id: message.response_id,
-              role: "system",
-              content: message.transcript,
-              timestamp: new Date().getTime(),
-              conversation_id: this.conversation_id,
+          if (this.activeAiMessageId) {
+            Convo.getState().updateMessage({
+              messageId: this.activeAiMessageId,
+              content: {
+                content: message.transcript,
+              },
             });
+            setTimeout(() => {
+              this.activeAiMessageId = null;
+            }, 200);
           }
         }
 
@@ -432,7 +497,6 @@ class SessionManager {
       const { status } = await Audio.getPermissionsAsync();
       if (status !== "granted") {
         const { status: newStatus } = await Audio.requestPermissionsAsync();
-        console.log("newStatus", newStatus);
         return newStatus === "granted";
       }
       return true;
@@ -482,8 +546,6 @@ class SessionManager {
 
       this.isSessionActive = false;
       this.connectionEstablished = false;
-
-      console.log("Cleaned up previous session resources.");
     } catch (error) {
       console.error("Error during cleanup:", error);
     }
@@ -491,7 +553,6 @@ class SessionManager {
 
   // Toggle speaker mode
   toggleSpeaker(speakerOn: boolean): void {
-    console.log(`Toggling speaker mode to: ${speakerOn ? "ON" : "OFF"}`);
     this.audioManager.toggleSpeaker(speakerOn);
   }
 
@@ -556,7 +617,6 @@ class SessionManager {
   }
 
   updateSystemInstructions(instructions: string): void {
-    console.log("Updating system instructions:", instructions);
     this.systemInstructions = instructions;
 
     if (this.isSessionActive) {
@@ -572,20 +632,16 @@ class SessionManager {
         },
       };
 
-      console.log("Sending system instructions event");
+      console.log("Sending system instructions event", instructions);
       this.sendClientEvent(event);
     } else {
-      console.log(
+      console.error(
         "Session not active, instructions will be sent when session starts"
       );
     }
   }
 
   registerFunctions(functions: FunctionParams[]): void {
-    console.log(
-      "Registering functions:",
-      functions.map((fn) => fn.name).join(", ")
-    );
     this.availableFunctions = functions;
 
     if (this.isSessionActive) {
@@ -601,14 +657,11 @@ class SessionManager {
           tool_choice: "auto",
         },
       };
-      console.log("Sending function registration event");
       this.sendClientEvent(event);
     }
   }
 
   private async handleFunctionCall(functionCall: any): Promise<void> {
-    console.log("Handling function call", functionCall.name);
-
     const { name, arguments: argsJson, call_id } = functionCall;
     try {
       // Find the registered function handler
@@ -628,7 +681,7 @@ class SessionManager {
         args = argsJson;
       }
 
-      console.log(`Executing function ${name} with args:`, args);
+      console.log(`Executing function ${name} with args:`, args, functionCall);
 
       if (this.conversation_id !== null) {
         Convo.getState().setMessages({
@@ -694,7 +747,6 @@ class SessionManager {
     const userItem = UserItem.getState();
     const publicKey = WalletItem.getState().publicKey;
     if (userItem.user && publicKey) {
-      console.log("Updating user items");
       await setUserItems(
         userItem.user,
         userItem.updateUserWallet,
