@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { TextProps } from "react-native";
+import { Text, TextProps } from "react-native";
+
 import Animated, {
   FadeIn,
   useSharedValue,
@@ -93,6 +94,7 @@ const CNumber: React.FC<CNumberProps> = ({
   return (
     <Animated.Text
       {...props}
+
       className={`${textColor ?? "text-[1rem] text-dark dark:text-white"} ${
         className ?? ""
       }`}
