@@ -10,20 +10,26 @@ import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-export default function StackView() {
-  const { isDarkMode } = useThemeContext();
-  const { isLoading, toast } = AppSettings();
-
-  const LoadingScreen = () => (
-    <View className="h-screen absolute w-full flex-1 z-40 bg-white/55 dark:bg-black/55 justify-center items-center ">
+function LoadingScreen() {
+  return (
+    <View
+      className="h-screen absolute w-full flex-1 z-40 bg-white/55 dark:bg-black/55 justify-center items-center"
+      accessibilityViewIsModal
+      accessibilityLabel="Loading"
+    >
       <Image
         source={require("@/assets/images/splaash.gif")}
-        alt="Security image"
+        alt="Loading"
         style={{ height: 70, width: 70 }}
         contentFit="contain"
       />
     </View>
   );
+}
+
+export default function StackView() {
+  const { isDarkMode } = useThemeContext();
+  const { isLoading, toast } = AppSettings();
 
   const ToastModal = ({
     type,

@@ -298,7 +298,7 @@ const getContacts = async (id: string) => {
 
 const addContact = async (username: string, phone_number: string, wallet_address: string) => {
   const userId = WalletItem.getState().publicKey?.toString()
-  if(!userId){
+  if (!userId) {
     return { status: false, message: "User not found" }
   }
   const item = {
@@ -339,7 +339,7 @@ const updateContact = async (id: string, username: string, phone_number: string,
     const result = await response.json();
     return { status: false, message: result.message }
   }
-  return { status: true, data: await response.json() }; 
+  return { status: true, data: await response.json() };
 }
 
 
@@ -352,6 +352,6 @@ export {
   getCode,
   saveWalletAddress,
   getTransactionHistory,
-  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, updateContact ,
+  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, updateContact,
 };
 

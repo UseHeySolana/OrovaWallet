@@ -33,8 +33,9 @@ interface Settings {
     setDefault: () => void;
 
     isLoading: boolean,
+    loadingCount: number,
     setLoading: (state: boolean) => void
-    loadingTimeout: any,
+    loadingTimeout: ReturnType<typeof setTimeout> | null,
     setEk: (value: string, expiry: number) => void
     toast: {
         show: boolean,
@@ -66,6 +67,7 @@ const AppSettings = create(
             },
             theme: "light",
             isLoading: false,
+            loadingCount: 0,
             toast: {
                 show: false,
                 message: "",
@@ -101,10 +103,13 @@ const AppSettings = create(
             updateAiVoice: (newAiVoice: string) => set({ aiVoice: newAiVoice }),
             setDefault: () => {
                 // reset the default settings
+                const prev = get();
+                if (prev.loadingTimeout) clearTimeout(prev.loadingTimeout);
                 set(
                     {
                         theme: "light",
                         isLoading: false,
+                        loadingCount: 0,
                         loadingTimeout: null,
                         notifications: true,
                         aiVoice: "alloy",
@@ -120,37 +125,44 @@ const AppSettings = create(
             },
 
             setOpenWithAuth: (val: boolean) => set({ openWithAuth: val }),
-            setLoading: async (state) => {
+            setLoading: (state: boolean) => {
+                const LOADING_TIMEOUT_MS = 10000;
+                const prev = get();
+                const prevTimeout = prev.loadingTimeout;
+                const prevCount = prev.loadingCount;
 
-
-                // const previousTimeout = get().loadingTimeout;
-                // if (previousTimeout) {
-                //     clearTimeout(previousTimeout);
-                // }
-
-                // Update loading state
-                set({ isLoading: state });
-
-                // if (state) {
-                //     // Set a new timeout and store its ID
-                //     const timeoutId = setTimeout(() => {
-                //         set({ isLoading: false, loadingTimeout: null });
-                //         get().setToast('An Error occured!!', 'error')
-                //     }, 10000);
-
-                //     set({ loadingTimeout: timeoutId });
-                // } else {
-                //     // If manually turning off loading, clear any pending timeout
-                //     set({ loadingTimeout: null });
-                // }
-                // await new Promise(resolve => setTimeout(resolve, 100));
-
-            }
+                if (state) {
+                    const newCount = prevCount + 1;
+                    set({ loadingCount: newCount, isLoading: true });
+                    if (newCount === 1) {
+                        if (prevTimeout) clearTimeout(prevTimeout);
+                        const timeoutId = setTimeout(() => {
+                            get().setToast("Something took too long. Please try again.", "error");
+                            set({ loadingCount: 0, isLoading: false, loadingTimeout: null });
+                        }, LOADING_TIMEOUT_MS);
+                        set({ loadingTimeout: timeoutId });
+                    }
+                } else {
+                    const newCount = Math.max(0, prevCount - 1);
+                    if (newCount === 0 && prevTimeout) {
+                        clearTimeout(prevTimeout);
+                    }
+                    set({
+                        loadingCount: newCount,
+                        isLoading: newCount > 0,
+                        ...(newCount === 0 ? { loadingTimeout: null } : {}),
+                    });
+                }
+            },
 
         }),
         {
             name: 'settings', // Storage key
             storage: createJSONStorage(() => AsyncStorage), // Use AsyncStorage for React Native
+            partialize: (state) => {
+                const { isLoading, loadingCount, loadingTimeout, ...rest } = state;
+                return rest;
+            },
             onRehydrateStorage: () => (state) => {
             }
         }
