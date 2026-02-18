@@ -6,7 +6,8 @@ import IconLibrary from "@/misc/helpers/icons";
 import AppSettings from "@/misc/store/settingsstore";
 import { Image } from "expo-image";
 import { Stack } from "expo-router";
-import { View, StatusBar } from "react-native";
+import { View } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 export default function StackView() {
@@ -35,15 +36,15 @@ export default function StackView() {
       type === "success"
         ? "bg-green-100 dark:bg-green-900 border border-green-500"
         : type === "error"
-        ? "bg-red-100 dark:bg-red-900 border border-red-500"
-        : "bg-yellow-100 dark:bg-yellow-900 border border-yellow-500";
+          ? "bg-red-100 dark:bg-red-900 border border-red-500"
+          : "bg-yellow-100 dark:bg-yellow-900 border border-yellow-500";
 
     const textColor =
       type === "success"
         ? "text-green-700 dark:text-green-300"
         : type === "error"
-        ? "text-red-700 dark:text-red-300"
-        : "text-yellow-700 dark:text-yellow-300";
+          ? "text-red-700 dark:text-red-300"
+          : "text-yellow-700 dark:text-yellow-300";
 
     const iconColor =
       type === "success" ? "green" : type === "error" ? "red" : "orange";
@@ -79,27 +80,22 @@ export default function StackView() {
       </View>
     );
   };
-  
+
   return (
     <>
-      {/* Explicit StatusBar configuration */}
-      <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={isDarkMode ? "#0C0C0C" : "#f3f3f3"}
-        translucent={false}
-      />
-
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          statusBarStyle: isDarkMode ? "light" : "dark",
-          statusBarBackgroundColor: isDarkMode ? "#0C0C0C" : "#f3f3f3",
-          statusBarTranslucent: false,
-        }}
-      ></Stack>
-      {toast.show && <ToastModal type={toast.type} message={toast.message} />}
-      {isLoading && <LoadingScreen />}
-      <ConfirmActionSheetGlobal />
+      <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]} className="bg-[#f3f3f3] dark:bg-[#0C0C0C]">
+        <StatusBar
+          style={isDarkMode ? "light" : "dark"}
+        />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        />
+        {toast.show && <ToastModal type={toast.type} message={toast.message} />}
+        {isLoading && <LoadingScreen />}
+        <ConfirmActionSheetGlobal />
+      </SafeAreaView>
     </>
   );
 }

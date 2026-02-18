@@ -96,8 +96,6 @@ function Login() {
         "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber),
     };
     const response = await getCode(data.phone_number);
-    console.log(data.phone_number);
-
     console.log(response);
     if (response.status !== false) {
       setUserDetails({
@@ -213,16 +211,6 @@ function Login() {
 
             <KeyboardAvoidingView className="bg-grey dark:bg-accent  rounded-3xl gap-y-3">
               <View className="bg-white  dark:bg-accent h-fit py-3 rounded-2xl">
-                {/* <TextInput
-              style={{ fontFamily: "bold" }}
-              className=" p-4 py-5"
-              value={userDetails.username}
-              onChangeText={(text) => {
-                setUserDetails({ ...userDetails, username: text })
-              }}
-              placeholder={`enter a username`}
-            />
-            <View className="border-b border-gray-200" /> */}
                 <View className="flex flex-row px-4 justify-between items-center">
                   <TouchableOpacity
                     onPress={() => {
@@ -251,7 +239,10 @@ function Login() {
             <View>
               <Buttons
                 buttonType="pressable"
-                onPress={() => Login()}
+                onPress={
+                  () => {
+                    Login();
+                  }}
                 className=""
                 text={isLoading ? "loading" : "Login"}
                 type="primary"

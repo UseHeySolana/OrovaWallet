@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../global.css'
 import { SplashScreen, Stack, useNavigationContainerRef, useRootNavigationState } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-google-fonts/dm-sans";
@@ -19,6 +19,7 @@ import { useRouteTracking } from "@/components/hooks/navigation";
 import tracker from "@/misc/helpers/db/tracker";
 import * as Linking from "expo-linking";
 import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
+import { StatusBar } from 'expo-status-bar';
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -71,21 +72,21 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView>
-      <KeyboardProvider>
-        <ThemeProvider>
-          <AiServiceProvider>
-            <PIPManager>
-              <PIPDeepLinkHandler />
-              <WidgetManager>
-                <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider style={{ flex: 1 }}>
+        <KeyboardProvider>
+          <ThemeProvider>
+            <AiServiceProvider>
+              <PIPManager>
+                <PIPDeepLinkHandler />
+                <WidgetManager>
                   <StackView />
-                </SafeAreaView>
-              </WidgetManager>
-            </PIPManager>
-          </AiServiceProvider>
-        </ThemeProvider>
-      </KeyboardProvider>
+                </WidgetManager>
+              </PIPManager>
+            </AiServiceProvider>
+          </ThemeProvider>
+        </KeyboardProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

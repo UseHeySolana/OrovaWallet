@@ -184,16 +184,29 @@ const verifyCode = async (otp: string, username: string) => {
     "verification_code": otp,
     "username": username,
   }
-  console.log(item);
-
-  const response = await request.postJson(item, "/v2/verify-code");
-  if (!response.ok) {
-    const result = await response.json();
-    return {
-      status: false, message: result.message
+  const url = "/v2/verify-code";
+  try {
+    const response = await request.postJson(item, url);
+    if (!response.ok) {
+      let message = response.statusText || "Verification failed";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response
+      }
+      console.warn("[verifyCode] failed", BASE_URL + url, response.status, message);
+      return { status: false, message };
     }
+    return { status: true, data: await response.json() };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check EXPO_PUBLIC_API_URL and that the backend is running."
+        : (err instanceof Error ? err.message : "Request failed");
+    console.warn("[verifyCode] error", BASE_URL + url, err);
+    return { status: false, message };
   }
-  return { status: true, data: await response.json() };
 }
 
 /**
@@ -229,17 +242,29 @@ const getCode = async (phone_number: string) => {
   const item = {
     "phone_number": phone_number
   }
-
-  const response = await request.postJson(item, "/v2/get-code");
-
-  if (!response.ok) {
-    const result = await response.json();
-    return {
-      status: false, message: result.message
+  const url = "/v2/get-code";
+  try {
+    const response = await request.postJson(item, url);
+    if (!response.ok) {
+      let message = response.statusText || "Request failed";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response (e.g. 500 HTML)
+      }
+      console.warn("[getCode] failed", BASE_URL + url, response.status, message);
+      return { status: false, message };
     }
-  } else {
     const result = await response.json();
     return { status: true, data: result };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check EXPO_PUBLIC_API_URL and that the backend is running."
+        : (err instanceof Error ? err.message : "Request failed");
+    console.warn("[getCode] error", BASE_URL + url, err);
+    return { status: false, message };
   }
 }
 

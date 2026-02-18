@@ -148,9 +148,8 @@ export default function Index() {
               scrollRef.current?.scrollTo({ x: width * index });
             }}
             key={index}
-            className={`h-2 w-2 mx-1 rounded-3xl ${
-              currentIndex === index ? "bg-purple w-6" : "bg-gray-400"
-            }`}
+            className={`h-2 w-2 mx-1 rounded-3xl ${currentIndex === index ? "bg-purple w-6" : "bg-gray-400"
+              }`}
           />
         ))}
       </View>
@@ -172,19 +171,9 @@ export default function Index() {
             style={{ width, height }}
             className="flex flex-1 items-center justify-start gap-y-3 relative"
           >
-            {/* <View className="flex-1 relative top-0 h-full w-full">
-              <Image
-                source={screen.image}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="contain"
-                contentPosition="top center"
-              />
-            </View> */}
-
             <View
-              className={`items-center mt-5 absolute ${
-                height > 891 ? "bottom-[25%]" : "bottom-[15%]"
-              } flex-1 px-6`}
+              className={`items-center mt-5 absolute ${height > 891 ? "bottom-[25%]" : "bottom-[15%]"
+                } flex-1 px-6`}
             >
               <CText className="text-[1.2rem]  text-center font-bold text-primary dark:text-white">
                 {screen.title}
@@ -195,9 +184,8 @@ export default function Index() {
             </View>
 
             <View
-              className={`px-3 w-full absolute h-fit ${
-                height > 891 ? "bottom-[15%]" : "bottom-[5%]"
-              } left-0`}
+              className={`px-3 w-full absolute h-fit ${height > 891 ? "bottom-[15%]" : "bottom-[5%]"
+                } left-0`}
             >
               <Buttons
                 className=""
