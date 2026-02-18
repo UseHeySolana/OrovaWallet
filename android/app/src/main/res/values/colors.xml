@@ -4,4 +4,6 @@
   <color name="colorPrimary">#023c69</color>
   <color name="colorPrimaryDark">#000000</color>
   <color name="notification_icon_color">#971BB2</color>
+  <color name="status_bar_light">#f3f3f3</color>
+  <color name="status_bar_dark">#0C0C0C</color>
 </resources>

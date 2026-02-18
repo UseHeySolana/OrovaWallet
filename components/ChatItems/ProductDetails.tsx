@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Modal, ScrollView } from "react-native";
 import { Pressable, View } from "react-native";
 import CText from "../TextComp";
-import IconLibrary from "@/utils/icons";
+import IconLibrary from "@/misc/helpers/icons";
 import Buttons from "../ButtonComp";
 
 interface ProductDetailsProps {

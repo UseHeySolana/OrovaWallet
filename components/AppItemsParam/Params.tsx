@@ -1,14 +1,14 @@
 import { View, Text, ScrollView, Linking } from "react-native";
 import { Pressable } from "react-native";
 import CText from "../TextComp";
-import IconLibrary from "@/utils/icons";
+import IconLibrary from "@/misc/helpers/icons";
 import ParamsInput from "./ParamsInput";
 import Buttons from "../ButtonComp";
-import AppSettings from "@/utils/store/settingsstore.store";
+import AppSettings from "@/misc/store/settingsstore";
 import { TouchableNativeFeedback } from "react-native";
-import ToolsItem from "@/utils/store/toolsitems.store";
-import { delayPromise } from "@/utils/functions";
-import { openURL } from "@/utils/functions/extrafunctions";
+import ToolsItem from "@/misc/store/toolsitems";
+import { delayPromise } from "@/misc/helpers/miscfunctions.ts";
+import { openURL } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
 
 interface ParamsComponentProps {
   appData: any;
