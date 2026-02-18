@@ -177,7 +177,7 @@ const registerUser = async (username: string, phone_number: string) => {
 
 const verifyCode = async (otp: string, username: string) => {
   const item = {
-<<<<<<< HEAD
+
     "verification_code": otp,
     "username": username,
   }
@@ -205,23 +205,7 @@ const verifyCode = async (otp: string, username: string) => {
     return { status: false, message };
   }
 }
-=======
-    verification_code: otp,
-    username: username,
-  };
-  console.log(item);
 
-  const response = await request.postJson(item, "/v2/verify-code");
-  if (!response.ok) {
-    const result = await response.json();
-    return {
-      status: false,
-      message: result.message,
-    };
-  }
-  return { status: true, data: await response.json() };
-};
->>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
 
 /**
  *
@@ -253,9 +237,8 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
  */
 const getCode = async (phone_number: string) => {
   const item = {
-<<<<<<< HEAD
-    "phone_number": phone_number
-  }
+    phone_number: phone_number,
+  };
   const url = "/v2/get-code";
   try {
     const response = await request.postJson(item, url);
@@ -270,20 +253,6 @@ const getCode = async (phone_number: string) => {
       console.warn("[getCode] failed", BASE_URL + url, response.status, message);
       return { status: false, message };
     }
-=======
-    phone_number: phone_number,
-  };
-
-  const response = await request.postJson(item, "/v2/get-code");
-
-  if (!response.ok) {
-    const result = await response.json();
-    return {
-      status: false,
-      message: result.message,
-    };
-  } else {
->>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
     const result = await response.json();
     return { status: true, data: result };
   } catch (err) {
@@ -325,13 +294,6 @@ const getContacts = async (id: string) => {
   return { status: true, data: await response.json() };
 };
 
-<<<<<<< HEAD
-
-const addContact = async (username: string, phone_number: string, wallet_address: string) => {
-  const userId = WalletItem.getState().publicKey?.toString()
-  if (!userId) {
-    return { status: false, message: "User not found" }
-=======
 const addContact = async (
   username: string,
   phone_number: string,
@@ -340,7 +302,6 @@ const addContact = async (
   const userId = WalletItem.getState().publicKey?.toString();
   if (!userId) {
     return { status: false, message: "User not found" };
->>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
   }
   const item = {
     username: username,
@@ -385,13 +346,7 @@ const updateContact = async (
     return { status: false, message: result.message };
   }
   return { status: true, data: await response.json() };
-<<<<<<< HEAD
-}
-
-
-=======
 };
->>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
 
 export {
   addContact,
@@ -401,9 +356,6 @@ export {
   getCode,
   saveWalletAddress,
   getTransactionHistory,
-<<<<<<< HEAD
-  registerUser, fetchData, addDataToFirestore, handleSearch, fetchUser, request, updateContact,
-=======
   registerUser,
   fetchData,
   addDataToFirestore,
@@ -411,5 +363,4 @@ export {
   fetchUser,
   request,
   updateContact,
->>>>>>> f282eb5 (Refactor: Update import paths to streamline codebase and enhance maintainability. Replace deprecated references with updated paths across various components and services. Remove unused files and consolidate helper functions for improved organization.)
 };
