@@ -9,10 +9,10 @@ import {
 } from "react-native";
 import { Pressable, View } from "react-native";
 import CText from "../TextComp";
-import { openURL } from "@/utils/functions/extrafunctions";
-import IconLibrary from "@/utils/icons";
+import { openURL } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import IconLibrary from "@/misc/helpers/icons";
 import Buttons from "../ButtonComp";
-import { useAi } from "@/context/AiContext";
+import { useAi } from "@/misc/context/AiContext";
 
 interface ProductProps {
   products: any;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { TextInput } from "react-native";
-import ToolsItem from "@/utils/store/toolsitems.store";
+import ToolsItem from "@/misc/store/toolsitems";
 
 interface ParamsInputProps {
   param: any;
