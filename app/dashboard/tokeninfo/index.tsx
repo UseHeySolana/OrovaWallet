@@ -230,7 +230,7 @@ function TokenInfo() {
                               <View>
                                 <CText style={{ fontFamily: "bold" }}>
                                   {transfer?.fromUserAccount ===
-                                  publicKey?.toString()
+                                    publicKey?.toString()
                                     ? "SENT"
                                     : "RECEIVED"}
                                 </CText>
@@ -239,11 +239,11 @@ function TokenInfo() {
                                   textColor="text-grey/40"
                                 >
                                   {transfer?.fromUserAccount ===
-                                  publicKey?.toString()
+                                    publicKey?.toString()
                                     ? "to " +
-                                      shortenPub(transfer?.toUserAccount)
+                                    shortenPub(transfer?.toUserAccount)
                                     : "from " +
-                                      shortenPub(transfer?.fromUserAccount)}
+                                    shortenPub(transfer?.fromUserAccount)}
                                 </CText>
                               </View>
                             ) : (
@@ -262,7 +262,7 @@ function TokenInfo() {
                           <CText
                             textColor={
                               transfer?.fromUserAccount ===
-                              publicKey?.toString()
+                                publicKey?.toString()
                                 ? "text-red-400"
                                 : "text-green-400"
                             }

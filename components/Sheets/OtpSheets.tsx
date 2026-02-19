@@ -2,7 +2,7 @@ import { KeyboardAvoidingView, View } from "react-native";
 import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
 import { OtpInput } from "react-native-otp-entry";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import Buttons from "../ButtonComp";
 
 interface OTPSheet {

@@ -2,11 +2,11 @@ import { Pressable, View } from "react-native";
 import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
 import Buttons from "../ButtonComp";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import React, { useEffect, useState } from "react";
-import { ConfirmationOptions, setConfirmFn } from "@/misc/helpers/service/confirmation";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 import * as LocalAuthentication from 'expo-local-authentication';
+import { ConfirmationOptions, setConfirmFn } from "@/services/confirmation";
 
 
 
@@ -41,7 +41,7 @@ const ConfirmActionSheetGlobal = () => {
                         resolver?.(false);
                         resolver = null;
                         return;
-                    }else{
+                    } else {
                         setVisible(false);
                         resolver?.(true);
                         resolver = null;

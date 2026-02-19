@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Dimensions, 
+import {
+  View,
+  Dimensions,
   Animated,
   Platform,
   Alert
@@ -234,7 +234,7 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
       {children}
       {/* Only show React Native overlay on iOS or when native PIP is not available */}
       {isPIPActive && Platform.OS === "ios" && (
-        <PIPOverlay pipPosition={pipPosition} panGesture={panGesture} />
+        <PIPOverlay pipPosition={pipPosition} panGesture={panGesture} hidePIP={hidePIP} />
       )}
     </PIPContext.Provider>
   );

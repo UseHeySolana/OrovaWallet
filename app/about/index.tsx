@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+
 import { Image } from "expo-image";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import { Keypair } from "@solana/web3.js";
 import UserItem from "@/utils/store/userstore.store";
+import DragableSheet from "@/components/CustomItems/DragableSheet";
 
 const Items = [
   {

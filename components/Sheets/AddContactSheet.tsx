@@ -1,16 +1,16 @@
 import { KeyboardAvoidingView, Pressable, TextInput, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import Buttons from "../ButtonComp";
 import React, { useEffect, useState } from "react";
-import { addContact, updateContact } from "@/misc/helpers/db/db";
-import AppSettings from "@/misc/store/settingsstore";
+import { addContact, updateContact } from "@/utils/request/db";
+import AppSettings from "@/utils/store/settingsstore.store";
 import ConfirmActionSheet from "./ConfirmationSheet";
-import { cleanNumber, shortenPub } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
-import PhoneBook from "@/misc/store/phonebook";
+import { cleanNumber, shortenPub } from "@/utils/functions/extrafunctions";
+import PhoneBook from "@/utils/store/phonebook.store";
 import { CountryPickerModal } from "react-native-country-code-select";
-import PersonalContacts from "@/misc/store/personalcontacts";
+import PersonalContacts from "@/utils/store/personalcontacts.store";
 
 interface AddContactSheetTypes {
     open: boolean;
@@ -55,14 +55,14 @@ const AddContactSheet = ({
     }, [data])
 
     const saveContact = async () => {
-        if (contact.username === '' || contact.phoneNumber === '' || contact.walletAddress === ''){
+        if (contact.username === '' || contact.phoneNumber === '' || contact.walletAddress === '') {
             setToast("Please fill in all the fields", "error")
             return
         }
         const phoneNumber = "+" + selectedValue.callingCode + cleanNumber(contact.phoneNumber)
         AppSettings.getState().setLoading(true)
         if (data) {
-           
+
             const response = await updateContact(data.id, contact.username, phoneNumber, contact.walletAddress)
             if (response?.status) {
                 setToast("Contact updated successfully", "success")

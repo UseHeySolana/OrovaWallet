@@ -31,7 +31,7 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({ children }) => {
   useEffect(() => {
     const handleDeepLink = (url: string) => {
       console.log('Deep link received:', url);
-      
+
       if (url.includes('heysolana://ai/start')) {
         handleStartAI();
       } else if (url.includes('heysolana://ai/stop')) {
@@ -73,7 +73,7 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({ children }) => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         const data = response.notification.request.content.data;
-        
+
         if (data?.action === 'start_ai') {
           handleStartAI();
         } else if (data?.action === 'stop_ai') {
@@ -106,16 +106,16 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({ children }) => {
   const handleStartAI = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Navigate to dashboard if not already there
       router.push('/dashboard');
-      
+
       // Small delay to ensure navigation completes
       setTimeout(() => {
         startSession();
         setLoading(false);
       }, 500);
-      
+
     } catch (error) {
       console.error('Error starting AI session:', error);
       setLoading(false);
@@ -172,7 +172,7 @@ export const WidgetManager: React.FC<WidgetManagerProps> = ({ children }) => {
           isPIPActive,
           lastUpdated: new Date().toISOString(),
         };
-        
+
         await AsyncStorage.setItem('widget_data', JSON.stringify(widgetData));
       } catch (error) {
         console.error('Error saving widget data:', error);

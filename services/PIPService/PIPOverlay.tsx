@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
-import { usePIP } from './PIPManager';
 import { useAi } from '@/context/AiContext';
 import { useThemeContext } from '@/context/ThemeContext';
 import IconLibrary from "@/utils/icons";
@@ -37,19 +36,19 @@ const colors = {
 interface PIPOverlayProps {
   pipPosition: { x: number; y: number };
   panGesture: any;
+  hidePIP: () => void | Promise<void>;
 }
 
-const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
-  const { hidePIP } = usePIP();
-  const { 
-    sessionManager, 
-    isSessionActive, 
-    startSession, 
-    stopSession, 
-    currentMode 
+const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture, hidePIP }) => {
+  const {
+    sessionManager,
+    isSessionActive,
+    startSession,
+    stopSession,
+    currentMode
   } = useAi();
   const { isDarkMode } = useThemeContext();
-  
+
   const animation = useRef<LottieView>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0.9)).current;
@@ -154,8 +153,8 @@ const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
                 backgroundColor: isSessionActive
                   ? colors[currentMode].color1
                   : isDarkMode
-                  ? "#333"
-                  : "#f0f0f0",
+                    ? "#333"
+                    : "#f0f0f0",
               },
             ]}
             onPress={handlePress}
@@ -197,8 +196,8 @@ const PIPOverlay: React.FC<PIPOverlayProps> = ({ pipPosition, panGesture }) => {
                 ? currentMode === "aispeaking"
                   ? "AI"
                   : currentMode === "human"
-                  ? "You"
-                  : "..."
+                    ? "You"
+                    : "..."
                 : "Tap"}
             </CText>
           </View>

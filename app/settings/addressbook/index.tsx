@@ -13,10 +13,10 @@ import {
 import Buttons from "@/components/ButtonComp";
 import PhoneBook from "@/utils/store/phonebook.store";
 import { shortenPub } from "@/utils/functions/extrafunctions";
-import AddContactSheet from "@/components/commons/Sheets/AddContactSheet";
+import AddContactSheet from "@/components/Sheets/AddContactSheet";
 import PersonalContacts from "@/utils/store/personalcontacts.store";
 import WalletItem from "@/utils/store/wallet.store";
-import ConfirmActionSheet from "@/components/commons/Sheets/ConfirmationSheet";
+import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import { useAi } from "@/context/AiContext";
 import { confirm } from "@/services/confirmation";
 
@@ -49,7 +49,7 @@ function AddressBook() {
   const [showContactonHey, setShowContactOnHey] = useState(true)
 
   const { contacts, addContact } = PhoneBook();
-  const { personalContacts, addPersonalContact, deletePersonalContact:deleteAppContact, refreshPersonalContacts } = PersonalContacts();
+  const { personalContacts, addPersonalContact, deletePersonalContact: deleteAppContact, refreshPersonalContacts } = PersonalContacts();
 
   const { refresher } = AppSettings()
 
@@ -87,8 +87,8 @@ function AddressBook() {
   const getPersonalContacts = async () => {
     const response = await getContacts(publicKey?.toString() || "")
     if (response?.status) {
-      
-      if(response.data.data?.length <= 0){
+
+      if (response.data.data?.length <= 0) {
         refreshPersonalContacts()
       }
 
@@ -104,8 +104,8 @@ function AddressBook() {
 
 
       })
-      console.log(personalContacts)      
-    }else{
+      console.log(personalContacts)
+    } else {
       refreshPersonalContacts()
     }
   }
@@ -132,7 +132,7 @@ function AddressBook() {
 
   const deleteContact = async (contact: any) => {
     setLoading(true)
-    const response  = await deletePersonalContact(contact.id)
+    const response = await deletePersonalContact(contact.id)
     if (response?.status) {
       deleteAppContact(contact.id)
       setToast("Contact deleted successfully", "success")
@@ -225,7 +225,7 @@ function AddressBook() {
             </View>
 
             <Buttons loading={isLoading}
-              onPress={() => {setAddContactModal(true); setSelectedContact(null)}}
+              onPress={() => { setAddContactModal(true); setSelectedContact(null) }}
               type="primary" className="p-2 rounded-xl" text="Add Contact" />
 
 
@@ -233,72 +233,73 @@ function AddressBook() {
 
 
 
-            <View>
-              <FlatList
-                contentContainerStyle={{ paddingBottom: 80 }}
-                getItemLayout={(data, index) => ({
-                  length: 100,
-                  offset: 100 * index,
-                  index
-                })}
-                initialNumToRender={15}
-                maxToRenderPerBatch={15}
-                className="rounded-xl gap-x-2  "
-                data={personalContacts}
-                renderItem={(item: any) => {
-                  return (
-                    <View
-                      className="bg-grey shadow dark:bg-accent  mb-2 flex flex-row justify-start gap-x-2 items-center p-3 rounded-xl "
-                      key={item?.item?.wallet_address}
-                    >
-                      <View className="flex-1 flex flex-row justify-start items-center gap-x-2">
-                        <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
-                          <CText>+</CText>
-                        </View>
-                        <View className="flex-1 flex-col  justify-start gap-x-4  items-start">
-                          <CText className="text-[1.45rem]">{item?.item?.username}</CText>
-                          <CText className="text-[1rem]">
-                            {shortenPub(item?.item?.wallet_address || "")}
-                          </CText>
-                        </View>
+          <View>
+            <FlatList
+              contentContainerStyle={{ paddingBottom: 80 }}
+              getItemLayout={(data, index) => ({
+                length: 100,
+                offset: 100 * index,
+                index
+              })}
+              initialNumToRender={15}
+              maxToRenderPerBatch={15}
+              className="rounded-xl gap-x-2  "
+              data={personalContacts}
+              renderItem={(item: any) => {
+                return (
+                  <View
+                    className="bg-grey shadow dark:bg-accent  mb-2 flex flex-row justify-start gap-x-2 items-center p-3 rounded-xl "
+                    key={item?.item?.wallet_address}
+                  >
+                    <View className="flex-1 flex flex-row justify-start items-center gap-x-2">
+                      <View className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
+                        <CText>+</CText>
                       </View>
+                      <View className="flex-1 flex-col  justify-start gap-x-4  items-start">
+                        <CText className="text-[1.45rem]">{item?.item?.username}</CText>
+                        <CText className="text-[1rem]">
+                          {shortenPub(item?.item?.wallet_address || "")}
+                        </CText>
+                      </View>
+                    </View>
 
-                      {item?.item?.type === "personal" &&
-                        <View className="flex flex-row justify-start items-center gap-x-2">
-                          <TouchableOpacity onPress={() => {
-                            setAddContactModal(true)
-                            setSelectedContact(item?.item)}} className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
-                            <IconLibrary.edit />
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => {
-                            confirm({
-                              message: "Are you sure you want to delete this contact?",
-                              type: AppSettings.getState().openWithAuth ?'fingerprint' : undefined
-                            })
+                    {item?.item?.type === "personal" &&
+                      <View className="flex flex-row justify-start items-center gap-x-2">
+                        <TouchableOpacity onPress={() => {
+                          setAddContactModal(true)
+                          setSelectedContact(item?.item)
+                        }} className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
+                          <IconLibrary.edit />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => {
+                          confirm({
+                            message: "Are you sure you want to delete this contact?",
+                            type: AppSettings.getState().openWithAuth ? 'fingerprint' : undefined
+                          })
                             .then((response) => {
                               console.log(response)
-                              if(response){
+                              if (response) {
                                 deleteContact(item?.item)
                               }
                             })
-                            
-                          }} className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
-                            <IconLibrary.delete />
-                          </TouchableOpacity>
-                        </View>
 
-                      }
-                    </View>)
-                }
-                }
-                ListEmptyComponent={
-                  <View className="flex-1 justify-center items-center">
-                    <CText>No Contacts added yet!</CText>
-                  </View>
-                }
-                keyExtractor={item => item.username}
-              />
-            </View>
+                        }} className="rounded-full bg-white dark:bg-accent2 h-10 w-10 flex items-center  justify-center">
+                          <IconLibrary.delete />
+                        </TouchableOpacity>
+                      </View>
+
+                    }
+                  </View>)
+              }
+              }
+              ListEmptyComponent={
+                <View className="flex-1 justify-center items-center">
+                  <CText>No Contacts added yet!</CText>
+                </View>
+              }
+              keyExtractor={item => item.username}
+            />
+          </View>
 
         </View>
 
@@ -310,7 +311,7 @@ function AddressBook() {
         title="Are you sure you want to delete this contact?"
         open={confirmOpen}
         close={setConfirmOpen}
-        actionNo={() => {setConfirmOpen(false)}}
+        actionNo={() => { setConfirmOpen(false) }}
         actionYes={() => {
           deleteContact(selectedContact)
         }}
@@ -323,7 +324,7 @@ function AddressBook() {
         setToast={(message, type) => setToast(message, type)}
       />
 
-    
+
     </View>
   );
 }

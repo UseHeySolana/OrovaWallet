@@ -1,4 +1,4 @@
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import { useState } from "react";
 import {
   RefreshControl,
@@ -12,14 +12,14 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Buttons from "../ButtonComp";
-import { showToast } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import { showToast } from "@/utils/functions/extrafunctions";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
 import { scale } from "react-native-size-matters";
-import UserItem from "@/misc/store/userstore";
-import { copyItem } from "@/misc/helpers/miscfunctions.ts";
-import WalletItem from "@/misc/store/wallet";
+import UserItem from "@/utils/store/userstore";
+import { copyItem } from "@/utils/functions";
+import WalletItem from "@/utils/store/wallet.store";
 
 const AiHelpers = [
   {
@@ -192,7 +192,7 @@ export default function WalletScreen({
                 </View>
                 <TouchableOpacity
                   className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white"
-                  onPress={() => {}}
+                  onPress={() => { }}
                 >
                   <MaterialCommunityIcons
                     name="greater-than"
@@ -212,9 +212,8 @@ export default function WalletScreen({
               onPress={() => setActiveTab("tokens")}
             >
               <View
-                className={`w-[50%] py-5 border-b-2 ${
-                  activeTab == "tokens" ? "border-purple" : "border-grey"
-                } `}
+                className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"
+                  } `}
               >
                 <CText
                   style={{ fontFamily: "bold" }}
@@ -229,11 +228,10 @@ export default function WalletScreen({
               onPress={() => setActiveTab("history")}
             >
               <View
-                className={`w-[50%] py-5 border-b-2 ${
-                  activeTab == "history"
-                    ? "border-purple"
-                    : "border-grey dark:border-dark"
-                } `}
+                className={`w-[50%] py-5 border-b-2 ${activeTab == "history"
+                  ? "border-purple"
+                  : "border-grey dark:border-dark"
+                  } `}
               >
                 <CText className="text-[1.1rem] text-center">History</CText>
               </View>
@@ -298,11 +296,11 @@ export default function WalletScreen({
                               {/* {(50 / 198).toFixed(2)} */}
                               {token?.balance < 1
                                 ? token?.balance?.toFixed(
-                                    Math.min(token?.decimals, 5)
-                                  )
+                                  Math.min(token?.decimals, 5)
+                                )
                                 : token?.balance.toFixed(
-                                    Math.min(token?.decimals, 3)
-                                  )}
+                                  Math.min(token?.decimals, 3)
+                                )}
                             </CText>
                           </View>
                         </View>

@@ -1,5 +1,5 @@
 import React from "react";
-import ConfirmActionSheetGlobal from "@/components/commons/Sheets/ConfirmationSheetGlobal";
+import ConfirmActionSheetGlobal from "@/components/Sheets/ConfirmationSheetGlobal";
 import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";

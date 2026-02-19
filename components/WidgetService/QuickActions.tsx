@@ -7,10 +7,10 @@ import {
   Platform,
 } from "react-native";
 import { Image } from "expo-image";
-import { useThemeContext } from "@/misc/context/ThemeContext";
-import { useAi } from "@/misc/context/AiContext";
-import { usePIP } from "../PIPService/PIPManager";
-import IconLibrary from "@/misc/helpers/icons";
+  import { useThemeContext } from "@/context/ThemeContext";
+import { useAi } from "@/context/AiContext";
+import { usePIP } from "@/services/PIPService/PIPManager";
+import IconLibrary from "@/utils/icons";
 import CText from "../TextComp";
 import { Share } from "react-native";
 import * as Linking from "expo-linking";

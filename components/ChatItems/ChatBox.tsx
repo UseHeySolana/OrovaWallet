@@ -1,12 +1,12 @@
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Easing, StatusBar, TouchableOpacity } from "react-native";
 import { Pressable, View } from "react-native";
 import CText from "../TextComp";
-import { openURL } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
-import IconLibrary from "@/misc/helpers/icons";
+import { openURL } from "@/utils/functions/extrafunctions";
+import IconLibrary from "@/utils/icons";
 
 interface ChatBoxProps {
     item: any

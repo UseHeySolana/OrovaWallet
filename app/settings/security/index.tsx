@@ -1,4 +1,4 @@
-import React,{ useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -7,7 +7,7 @@ import UserItem from "@/utils/store/userstore.store";
 
 import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
-import SetPin from "@/components/commons/Sheets/SetPinSheet";
+import SetPin from "@/components/Sheets/SetPinSheet";
 
 
 

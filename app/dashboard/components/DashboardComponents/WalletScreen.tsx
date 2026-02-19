@@ -191,7 +191,7 @@ export default function WalletScreen({
                 </View>
                 <TouchableOpacity
                   className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white"
-                  onPress={() => {}}
+                  onPress={() => { }}
                 >
                   <MaterialCommunityIcons
                     name="greater-than"
@@ -211,9 +211,8 @@ export default function WalletScreen({
               onPress={() => setActiveTab("tokens")}
             >
               <View
-                className={`w-[50%] py-5 border-b-2 ${
-                  activeTab == "tokens" ? "border-purple" : "border-grey"
-                } `}
+                className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"
+                  } `}
               >
                 <CText
                   style={{ fontFamily: "bold" }}
@@ -228,11 +227,10 @@ export default function WalletScreen({
               onPress={() => setActiveTab("history")}
             >
               <View
-                className={`w-[50%] py-5 border-b-2 ${
-                  activeTab == "history"
-                    ? "border-purple"
-                    : "border-grey dark:border-dark"
-                } `}
+                className={`w-[50%] py-5 border-b-2 ${activeTab == "history"
+                  ? "border-purple"
+                  : "border-grey dark:border-dark"
+                  } `}
               >
                 <CText className="text-[1.1rem] text-center">History</CText>
               </View>
@@ -296,11 +294,11 @@ export default function WalletScreen({
                             >
                               {token?.balance < 1
                                 ? token?.balance?.toFixed(
-                                    Math.min(token?.decimals, 5)
-                                  )
+                                  Math.min(token?.decimals, 5)
+                                )
                                 : token?.balance.toFixed(
-                                    Math.min(token?.decimals, 3)
-                                  )}
+                                  Math.min(token?.decimals, 3)
+                                )}
                             </CText>
                           </View>
                         </View>

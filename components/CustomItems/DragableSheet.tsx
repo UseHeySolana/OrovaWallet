@@ -1,4 +1,5 @@
-import { useThemeContext } from "@/misc/context/ThemeContext";
+
+import { useThemeContext } from "@/context/ThemeContext";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { StatusBar } from "react-native";

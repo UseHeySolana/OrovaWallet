@@ -10,7 +10,7 @@ import { Connection } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { api_key } from "@/app/requests/dashboard";
 import Buttons from "@/components/ButtonComp";
-import ConfirmActionSheet from "@/components/commons/Sheets/ConfirmationSheet";
+import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import ButtonComp from "@/components/ButtonComp";
 import TxQueue from "@/utils/store/txqueue.store";
 
@@ -114,18 +114,18 @@ function TokenAmount() {
       const id = TxQueue.getState().enqueue(
         isSol
           ? {
-              kind: "sol",
-              recipient: recipient as string,
-              amount: numAmount,
-            }
+            kind: "sol",
+            recipient: recipient as string,
+            amount: numAmount,
+          }
           : {
-              kind: "spl",
-              recipient: recipient as string,
-              mint: token.mint,
-              amount: numAmount,
-              decimals: token.decimals,
-              symbol: token.symbol,
-            }
+            kind: "spl",
+            recipient: recipient as string,
+            mint: token.mint,
+            amount: numAmount,
+            decimals: token.decimals,
+            symbol: token.symbol,
+          }
       );
 
       router.push({
@@ -257,9 +257,8 @@ function TokenAmount() {
         open={showConfirmation}
         close={setShowConfirmation}
         title="Confirm Transaction"
-        subtitle={`Send ${amount} ${token?.symbol} to ${
-          displayName || (recipient as string).substring(0, 20) + "..."
-        }\n\nAmount: ${amount} ${token?.symbol}\nUSD Value: ${getUsdValue()}`}
+        subtitle={`Send ${amount} ${token?.symbol} to ${displayName || (recipient as string).substring(0, 20) + "..."
+          }\n\nAmount: ${amount} ${token?.symbol}\nUSD Value: ${getUsdValue()}`}
         actionNo={() => setShowConfirmation(false)}
         actionYes={() => {
           setShowConfirmation(false);

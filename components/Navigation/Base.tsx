@@ -1,10 +1,10 @@
-import tracker from '@/misc/helpers/db/tracker'
-import IconLibrary from '@/misc/helpers/icons'
+import tracker from '@/utils/tracker'
+import IconLibrary from '@/utils/icons'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import React from 'react'
 import { Pressable, TouchableOpacity, View } from 'react-native'
-import { usePIP } from "../PIPService/PIPManager";
+import { usePIP } from "@/services/PIPService/PIPManager";
 
 interface BASENAV {
   isSessionActive: boolean;
@@ -59,8 +59,8 @@ export const Base = ({
             showWallet
               ? setShowWallet(false)
               : isSessionActive
-              ? stopSession()
-              : startSession();
+                ? stopSession()
+                : startSession();
           }}
           className="h-[100]  w-[100] bg-grey dark:bg-accent  rounded-full"
         >
