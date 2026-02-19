@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+import DragableSheet from "@/components//CustomItems/DragableSheet";
 import { Image } from "expo-image";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import AppSettings from "@/utils/store/settingsstore.store";

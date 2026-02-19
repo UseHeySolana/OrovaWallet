@@ -28,9 +28,8 @@ const settingsMenu = [
   {
     title: "AI Assistant",
     route: "/aisetup",
-    subtitle: `${AppSettings.getState().aiName} -- ${
-      AppSettings.getState().aiLanguage
-    }`,
+    subtitle: `${AppSettings.getState().aiName} -- ${AppSettings.getState().aiLanguage
+      }`,
     icon: (
       <View className="h-[18px] w-[18px]  rounded-full">
         <Image

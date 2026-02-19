@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, TouchableNativeFeedback, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components/commons/CustomItems/DragableSheet";
+import DragableSheet from "@/components//CustomItems/DragableSheet";
 import { Image } from "expo-image";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -10,7 +10,7 @@ import { Keypair } from "@solana/web3.js";
 import UserItem from "@/utils/store/userstore.store";
 import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
-import SearchInput from "@/components/commons/SearchInput/SearchInput";
+import SearchInput from "@/components/SearchInput/SearchInput";
 
 const Items = [
   {
@@ -75,7 +75,7 @@ function Send() {
         </Pressable>
       </View>
       <View className=" flex-1 gap-y-2 flex-col justify-start items-center rounded-2xl w-11/12 py-2 m-auto">
-        <SearchInput onSearch={() => {}} value={""} />
+        <SearchInput onSearch={() => { }} value={""} />
         <View className="bg-white dark:bg-accent rounded-xl overflow-hidden">
           {userWallet?.tokenAccounts.map((token: any, index: number) => (
             <View key={index}>
@@ -114,11 +114,11 @@ function Send() {
                       >
                         {token?.balance < 1
                           ? token?.balance?.toFixed(
-                              Math.min(token?.decimals, 5)
-                            )
+                            Math.min(token?.decimals, 5)
+                          )
                           : token?.balance.toFixed(
-                              Math.min(token?.decimals, 3)
-                            )}{" "}
+                            Math.min(token?.decimals, 3)
+                          )}{" "}
                         {token.symbol}
                       </CText>
                     </View>

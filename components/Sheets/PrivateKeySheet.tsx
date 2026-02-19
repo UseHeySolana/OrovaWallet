@@ -3,10 +3,10 @@ import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
 import Buttons from "../ButtonComp";
 import React, { useEffect, useRef, useState } from "react";
-import AppSettings from "@/misc/store/settingsstore";
-import { copyItem } from "@/misc/helpers/miscfunctions.ts";
-import WalletItem from "@/misc/store/wallet";
-import { keypairSign } from "@/misc/helpers/miscfunctions.ts/extrafunctions";
+import AppSettings from "@/utils/store/settingsstore.store";
+import { copyItem } from "@/utils/functions";
+import WalletItem from "@/utils/store/wallet.store";
+import { keypairSign } from "@/utils/functions/extrafunctions";
 
 interface PrivateKeySheetTypes {
   open: boolean;

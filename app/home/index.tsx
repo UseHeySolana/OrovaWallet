@@ -28,7 +28,7 @@ const screens = [
 const { width, height } = Dimensions.get('window');
 export default function Home({ navigation }: any) {
 
-  const { alreadyOpened,markOpened,skippedAiSettings, createdWallet } = AppSettings()
+  const { alreadyOpened, markOpened, skippedAiSettings, createdWallet } = AppSettings()
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -39,16 +39,16 @@ export default function Home({ navigation }: any) {
   };
 
   const onLayoutRootView = useCallback(async () => {
-  
+
   }, []);
   useEffect(() => {
-    if (alreadyOpened) { 
+    if (alreadyOpened) {
       navigation.navigate('AiSetup')
-     }
-   }, [])
+    }
+  }, [])
   return (
     <View
-    onLayout={onLayoutRootView}
+      onLayout={onLayoutRootView}
       className="relative"
     >
       <View className="absolute top-10  z-50 flex-row self-center">

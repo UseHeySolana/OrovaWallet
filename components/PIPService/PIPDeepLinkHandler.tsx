@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import * as Linking from "expo-linking";
-import { usePIP } from "./PIPManager";
+import { usePIP } from "@/services/PIPService/PIPManager";
 
 export default function PIPDeepLinkHandler() {
   const { showPIP } = usePIP();

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import GeminiAudioManager from './GeminiAudioManager';
-import { userWalletType } from "@/misc/store/userstore";
+import { userWalletType } from "@/utils/store/userstore";
 import { Audio } from "expo-av";
 import { toolFunctions } from "../../tool-implemetation/tools";
 import { LiveConfig } from "@/utils/types/multimodal-live-types.types";

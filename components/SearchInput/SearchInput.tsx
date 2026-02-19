@@ -1,5 +1,5 @@
-import { useThemeContext } from "@/misc/context/ThemeContext";
-import IconLibrary from "@/misc/helpers/icons";
+import { useThemeContext } from "@/context/ThemeContext";
+import IconLibrary from "@/utils/icons";
 import { TextInput, View } from "react-native";
 
 interface SearchInputProps {

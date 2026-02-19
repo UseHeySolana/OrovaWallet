@@ -1,12 +1,11 @@
 import { KeyboardAvoidingView, Pressable, TextInput, View } from "react-native";
 import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
-import { useThemeContext } from "@/misc/context/ThemeContext";
-
+import { useThemeContext } from "@/context/ThemeContext";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { Image } from "expo-image";
-import IconLibrary from "@/misc/helpers/icons";
+import IconLibrary from "@/utils/icons";
 import Buttons from "../ButtonComp";
 
 interface ConfirmSheet {

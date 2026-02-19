@@ -7,10 +7,10 @@ import {
 import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
 import { OtpInput } from "react-native-otp-entry";
-import { useThemeContext } from "@/misc/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import Buttons from "../ButtonComp";
 import React, { useEffect, useRef, useState } from "react";
-import AppSettings from "@/misc/store/settingsstore";
+import AppSettings from "@/utils/store/settingsstore.store";
 
 interface SetPinSheet {
   open: boolean;
@@ -154,8 +154,8 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                 {stage === "enter-previous-pin"
                   ? "Enter Previous PIN"
                   : stage === "new-pin"
-                  ? "Enter New PIN"
-                  : "Confirm PIN"}
+                    ? "Enter New PIN"
+                    : "Confirm PIN"}
               </CText>
               <CText
                 style={{ fontFamily: "md" }}
@@ -165,8 +165,8 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                 {stage === "enter-previous-pin"
                   ? "Enter your previous PIN to change pin"
                   : stage === "new-pin"
-                  ? "Create a PIN to secure your account"
-                  : "Confirm your PIN to secure your account"}
+                    ? "Create a PIN to secure your account"
+                    : "Confirm your PIN to secure your account"}
               </CText>
             </View>
 
@@ -189,8 +189,8 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                       stage === "new-pin"
                         ? setPin(text)
                         : stage === "enter-previous-pin"
-                        ? setEnterPreviousPin(text)
-                        : setConfirmPin(text)
+                          ? setEnterPreviousPin(text)
+                          : setConfirmPin(text)
                     }
                   />
                 </View>

@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Dimensions, 
+import {
+  View,
+  Dimensions,
   Animated,
   Platform,
   Alert
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAi } from '@/misc/context/AiContext';
-import AppSettings from '@/misc/store/settingsstore';
+import { useAi } from '@/context/AiContext';
+import AppSettings from '@/utils/store/settingsstore.store';
 import PIPOverlay from './PIPOverlay';
 import { NativePIPModule } from "./NativePIPModule";
 
@@ -234,7 +234,7 @@ export const PIPManager: React.FC<PIPManagerProps> = ({ children }) => {
       {children}
       {/* Only show React Native overlay on iOS or when native PIP is not available */}
       {isPIPActive && Platform.OS === "ios" && (
-        <PIPOverlay pipPosition={pipPosition} panGesture={panGesture} />
+        <PIPOverlay pipPosition={pipPosition} panGesture={panGesture} hidePIP={hidePIP} />
       )}
     </PIPContext.Provider>
   );

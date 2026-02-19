@@ -14,7 +14,8 @@ import { saveWalletAddress } from "@/utils/request/db";
 import UserItem from "@/utils/store/userstore.store";
 import { router } from "expo-router";
 import IconLibrary from "@/utils/icons";
-import ConfirmPhraseSheet from "@/components/commons/Sheets/ConfirmKeyWordsSheet";
+import ConfirmPhraseSheet from "@/components/Sheets/ConfirmKeyWordsSheet";
+
 
 
 const actions = [
@@ -127,27 +128,27 @@ export default function SecretPhrase({ navigation }: any) {
       return;
     } else {
 
-    try {
-      setCurrentState('set-pin');
-      const keyPair = await getKeypairFromMnemonic(mnemonic);
-      updateKeypair(keyPair)
-      updatePassphrase(mnemonic);
+      try {
+        setCurrentState('set-pin');
+        const keyPair = await getKeypairFromMnemonic(mnemonic);
+        updateKeypair(keyPair)
+        updatePassphrase(mnemonic);
 
-      if (!user) {
-        router.replace('/auth/username')
-        return
-      }
-      const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
-      if (response.status !== false) {
-        setToast("Wallet Created", 'success')
-        router.replace('/dashboard')
+        if (!user) {
+          router.replace('/auth/username')
+          return
+        }
+        const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
+        if (response.status !== false) {
+          setToast("Wallet Created", 'success')
+          router.replace('/dashboard')
+          setLoading(false)
+        }
         setLoading(false)
+      } catch (error) {
+        setLoading(false)
+        console.error("Error generating keypair:", error);
       }
-      setLoading(false)
-    } catch (error) {
-      setLoading(false)
-      console.error("Error generating keypair:", error);
-    }
     }
   }
   /**

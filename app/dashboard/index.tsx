@@ -11,15 +11,15 @@ import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { useAi } from "@/context/AiContext";
 
-import { Base } from "@/components/commons/Navigation/Base";
+import { Base } from "@/components//Navigation/Base";
 import { useThemeContext } from "@/context/ThemeContext";
 import Convo, { MessageType } from "@/utils/store/conversation.store";
 import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
-  import SetPin from "@/components/commons/Sheets/SetPinSheet";
-  import WalletScreen from "@/app/dashboard/components/DashboardComponents/WalletScreen";
-  import ChatInterface from "@/app/dashboard/components/DashboardComponents/Chatinterface";
-  import ToolsItem from "@/utils/store/toolsitems.store";
-  import QuickActions from "@/services/WidgetService/QuickActions";
+import SetPin from "@/components/Sheets/SetPinSheet";
+import WalletScreen from "@/app/dashboard/components/DashboardComponents/WalletScreen";
+import ChatInterface from "@/app/dashboard/components/DashboardComponents/Chatinterface";
+import ToolsItem from "@/utils/store/toolsitems.store";
+import QuickActions from "@/services/WidgetService/QuickActions";
 
 const colors = {
   loading: {
