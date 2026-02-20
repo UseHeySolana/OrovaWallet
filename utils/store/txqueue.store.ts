@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Connection } from '@solana/web3.js';
 import AppSettings from '@/utils/store/settingsstore.store';
-import { api_key } from '@/app/requests/dashboard';
+import { api_key } from '@/utils/dashboard';
 import { transferSol, transferToken } from '@/libs/tools/transfer/transfers';
 
 export type TransactionStatus = 'queued' | 'signing' | 'submitted' | 'confirming' | 'confirmed' | 'failed';

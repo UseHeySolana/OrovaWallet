@@ -16,7 +16,7 @@ import ButtonComp from "@/components/ButtonComp";
  * What should be done here
  * Send Token Info
  */
-function SendToken() {
+export default function SendToken() {
   const { mint } = useLocalSearchParams();
   const [token, setToken] = useState<any>(null);
   const [recipientInput, setRecipientInput] = useState("");
@@ -260,5 +260,3 @@ function SendToken() {
     </View>
   );
 }
-
-export default SendToken;

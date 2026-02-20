@@ -40,7 +40,7 @@ const ConversationItem = ({ conversation }: { conversation: ConversationType }) 
   )
 }
 
-function Scan() {
+export default function Chat() {
   const { conversations, deleteConversation, getConversationMessages, deleteAllConversations } = Convo()
   const { isDarkMode } = useThemeContext()
 
@@ -112,6 +112,3 @@ function Scan() {
     </View>
   );
 }
-
-export default Scan
-

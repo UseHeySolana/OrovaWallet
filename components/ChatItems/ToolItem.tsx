@@ -149,19 +149,6 @@ const ToolItem = (props: ItemProps) => {
               contentFit="contain"
               className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
             />
-
-            {/* <Image
-                            source={
-                                item.tool?.status == 'pending'
-                                    ? require('@/assets/toolstatus/pending.png')
-                                    : item.tool?.status == 'complete'
-                                        ? require('@/assets/toolstatus/complete.png')
-                                        : require('@/assets/toolstatus/failed.png')
-                            }
-                            style={{ width: '100%', height: '100%' }}
-                            contentFit="contain"
-                            className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                        /> */}
           </View>
         </View>
       </View>

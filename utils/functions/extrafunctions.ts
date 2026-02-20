@@ -4,7 +4,7 @@ import { cache } from "@/utils/storage/cache";
 import { getTransactionHistory } from "../request/db";
 import WalletItem from "@/utils/store/wallet.store";
 import { Connection, Keypair, SystemProgram, Transaction, PublicKey, VersionedTransaction } from "@solana/web3.js";
-import { api_key } from "@/app/requests/dashboard";
+import { api_key } from "@/utils/dashboard";
 import { Linking } from "react-native";
 import { confirm } from "@/services/confirmation";
 import OpenAI from "openai";

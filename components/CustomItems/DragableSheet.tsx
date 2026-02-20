@@ -23,23 +23,6 @@ const DragableSheet = (props: DragableSheetProps) => {
         }
     }
     const { isDarkMode } = useThemeContext()
-    // const renderBackdrop = useMemo(
-    //     () => (props:any) => (
-    //       <BottomSheetBackdrop
-    //         {...props}
-    //         disappearsOnIndex={-1}
-    //         appearsOnIndex={0}
-    //         pressBehavior="close"
-    //         // You can customize these styles
-    //         style={{
-    //             height: "100%",
-    //             border: "1px solid black",
-    //           backgroundColor: '#0000000',
-    //         }}
-    //       />
-    //     ),
-    //     []
-    // );
     return (
         <BottomSheet
             keyboardBehavior="interactive"

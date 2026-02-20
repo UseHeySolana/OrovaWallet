@@ -13,7 +13,7 @@ import { Linking } from "react-native";
  * Success Info Page
  * Show transaction details
  */
-function SuccessSent() {
+export default function SuccessSent() {
   const { mint, txid, amount, recipient, tokenName, displayName } =
     useLocalSearchParams();
   const { isDarkMode } = useThemeContext();
@@ -146,6 +146,3 @@ function SuccessSent() {
     </View>
   );
 }
-
-export default SuccessSent
-

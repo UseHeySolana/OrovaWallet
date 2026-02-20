@@ -4,7 +4,7 @@ import { Audio } from "expo-av";
 import { Connection } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
 import UserItem from "@/utils/store/userstore.store";
-import { api_key } from "@/app/requests/dashboard";
+import { api_key } from "@/utils/dashboard";
 import { prompB } from "../libs/tool-implemetation/prompt";
 
 interface AIService {

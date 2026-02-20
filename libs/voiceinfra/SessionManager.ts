@@ -19,7 +19,7 @@ import { FunctionParams } from "../../utils/types/types";
 
 import { summarizeConversation } from "../../utils/functions/extrafunctions";
 import { AgentContacts, delay, supportedTokens } from "../../utils/functions";
-import setUserItems from "@/app/requests/dashboard";
+import setUserItems from "@/utils/dashboard";
 import WalletItem from "@/utils/store/wallet.store";
 import tracker from "../../utils/tracker";
 import { request } from "../../utils/request/db";
@@ -256,6 +256,16 @@ class SessionManager {
         if (message.type === "input_audio_buffer.speech_started") {
           this.callbacks.setMode("human");
           this.updateMemory(message);
+          // Create user message placeholder so it always appears before the AI response
+          this.activeHumanMessageId =
+            "temp" + new Date().getTime().toString();
+          Convo.getState().setMessages({
+            id: this.activeHumanMessageId,
+            role: "user",
+            content: "",
+            timestamp: new Date().getTime(),
+            conversation_id: this.conversation_id,
+          });
         }
 
         if (message.type === "response.created") {

@@ -114,7 +114,7 @@ const settingsMenu2 = [
   * What should be done here
   * 1. Updates Settings and Shows Settings and What to Change
   */
-function Settings() {
+export default function Settings() {
   const [recording, setRecording] = useState(false);
 
   const { isDarkMode, toggleTheme } = useThemeContext();
@@ -275,5 +275,4 @@ function Settings() {
   );
 }
 
-export default Settings
 

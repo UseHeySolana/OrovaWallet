@@ -21,14 +21,14 @@ import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/utils/functions/extrafunctions";
 import { delay } from "@/utils/functions";
-import { BiometricAuth } from "@/app/requests/dashboard";
+import { BiometricAuth } from "@/utils/dashboard";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 /**
   * What should be done here
  Login Page
   */
-function Login() {
+export default function Login() {
   const [userDetails, setUserDetails] = useState({
     username: "",
     mobileNumber: "",
@@ -106,7 +106,7 @@ function Login() {
       setCurrentState("set-pin");
       setLoading(false);
     } else {
-      setToast(response.message, "error");
+      setToast(response.message || "Something went wrong", "error");
       setLoading(false);
     }
   };
@@ -401,4 +401,3 @@ function Login() {
   );
 }
 
-export default Login;

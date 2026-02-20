@@ -37,7 +37,7 @@ function getMatchingContacts(phoneContacts: any, heysolanaContacts: any) {
   * What should be done here
   * 1. Add user to Address Book  and Shows List of Contact in Address Book and What to Change
   */
-function AddressBook() {
+export default function AddressBook() {
 
   const { setLoading, isLoading, setToast } = AppSettings()
   const { publicKey } = WalletItem()
@@ -329,5 +329,4 @@ function AddressBook() {
   );
 }
 
-export default AddressBook
 

@@ -20,7 +20,7 @@ import { captureRef } from 'react-native-view-shot';
 import RNFS from "react-native-fs"
 
 
-function Scan() {
+export default function QrCode() {
 
   const { publicKey } = WalletItem()
 
@@ -142,6 +142,3 @@ function Scan() {
     </View>
   );
 }
-
-export default Scan
-

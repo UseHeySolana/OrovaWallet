@@ -58,7 +58,7 @@ const Items = [
   * What should be done here
   * 1: Send tokens
   */
-function Send() {
+export default function Send() {
   const { user, userWallet } = UserItem()
   const { isDarkMode } = useThemeContext()
   const [selectedToken, setTokenSelected] = useState(null);
@@ -133,6 +133,3 @@ function Send() {
     </View>
   );
 }
-
-export default Send
-

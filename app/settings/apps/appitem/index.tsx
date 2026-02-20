@@ -18,7 +18,7 @@ import ParamsComponent from "@/components/AppItemsParam/Params";
  * What should be done here
  * Show AppStore
  */
-function AppItems() {
+export default function AppItems() {
   const { isDarkMode } = useThemeContext();
   const { app } = useLocalSearchParams();
   const { user } = UserItem();
@@ -486,4 +486,3 @@ function AppItems() {
   );
 }
 
-export default AppItems;

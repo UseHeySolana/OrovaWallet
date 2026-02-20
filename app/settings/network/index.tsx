@@ -41,7 +41,7 @@ const settingsMenu2 = [
   * What should be done here
   * 1. Updates Settings and Shows Settings and What to Change
   */
-function Security() {
+export default function Security() {
   const { network, changeNetwork } = AppSettings();
 
   const networkType = {
@@ -111,4 +111,3 @@ function Security() {
   );
 }
 
-export default Security;

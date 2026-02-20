@@ -12,7 +12,7 @@ import ToolsItem from "@/utils/store/toolsitems.store";
   * What should be done here
   * Show AppStore
   */
-function ConnectedApps() {
+export default function ConnectedApps() {
 
   const [search, setSearch] = useState("")
   const [filteredApps, setFilteredApps] = useState(apps)
@@ -218,5 +218,4 @@ function ConnectedApps() {
   );
 }
 
-export default ConnectedApps;
 
