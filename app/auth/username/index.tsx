@@ -24,7 +24,7 @@ import { useKeyboard } from "@/context/KeyboardContext";
   * 1. Register User Voice for Authentication 
   * 2. Save User Voice and ask if to create wallet with their voice
   */
-function Voicereg() {
+export default function Username() {
   const { isKeyboardVisible } = useKeyboard()
 
   const [userDetails, setUserDetails] = useState({
@@ -102,7 +102,7 @@ function Voicereg() {
       setCurrentState('start-wallet')
       setLoading(false)
     } else {
-      setToast(response.message, 'error')
+      setToast(response.message || 'Something went wrong', 'error')
       setLoading(false)
     }
   }
@@ -195,6 +195,3 @@ function Voicereg() {
     </View >
   );
 }
-
-export default Voicereg
-

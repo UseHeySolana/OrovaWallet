@@ -15,7 +15,7 @@ import { useAi } from "@/context/AiContext";
   * 
 */
 
-function Voicereg() {
+export default function Voicereg() {
   const [recording, setRecording] = useState(false);
   const { sessionManager, isSessionActive, startSession, stopSession } = useAi()
   const { setDefault } = AppSettings()
@@ -120,5 +120,5 @@ function Voicereg() {
   );
 }
 
-export default Voicereg
+
 

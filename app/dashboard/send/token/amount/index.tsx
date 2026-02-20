@@ -8,7 +8,7 @@ import { Image } from "expo-image";
 import { useThemeContext } from "@/context/ThemeContext";
 import { Connection } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { api_key } from "@/app/requests/dashboard";
+import { api_key } from "@/utils/dashboard";
 import Buttons from "@/components/ButtonComp";
 import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import ButtonComp from "@/components/ButtonComp";
@@ -20,7 +20,7 @@ import TxQueue from "@/utils/store/txqueue.store";
  * Show amount input
  * Handle send transaction
  */
-function TokenAmount() {
+export default function TokenAmount() {
   const { mint, recipient, displayName } = useLocalSearchParams();
   const [token, setToken] = useState<any>(null);
   const [amount, setAmount] = useState("");
@@ -268,6 +268,3 @@ function TokenAmount() {
     </View>
   );
 }
-
-export default TokenAmount;
-

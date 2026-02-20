@@ -83,9 +83,11 @@ const Convo = create(
         const result =
           get().conversations.find((item) => item.id === conversation) || null;
         if (result) {
-          const messages = get().messages.filter(
-            (messages) => messages.conversation_id === conversation
-          );
+          const messages = get()
+            .messages.filter(
+              (messages) => messages.conversation_id === conversation
+            )
+            .sort((a, b) => a.timestamp - b.timestamp);
           return messages || [];
         } else {
           return null;

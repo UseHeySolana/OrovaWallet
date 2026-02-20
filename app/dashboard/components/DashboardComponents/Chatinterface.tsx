@@ -9,6 +9,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { useAi } from "@/context/AiContext";
 import { MessageType } from "@/utils/store/conversation.store";
 import { BlurView } from "expo-blur";
+import UserItem from "@/utils/store/userstore.store";
 
 const colors = {
   loading: {
@@ -31,8 +32,10 @@ interface ChatInterfaceProps {
 
 export default function ChatInterface({ messages }: ChatInterfaceProps) {
   const { isDarkMode } = useThemeContext();
+
   const { network, setLoading, aiName, refresher, pin, pinReminder } =
     AppSettings();
+  const { user } = UserItem();
   const animation = useRef<LottieView>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -73,29 +76,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
                       />
                     </>
                   ) : (
-                    <ChatBox item={item} isSystem={isSystem} aiName={aiName} />
-                    // <View
-                    //   className={`w-full flex-col gap-y-2 mb-2 ${isSystem ? "justify-start" : "justify-end"}`}
-                    // >
-                    //   <View className="flex flex-row items-center gap-x-2 ">
-                    //     <Image
-                    //       source={require('@/assets/images/ai.png')}
-                    //       style={{ width: 30, height: 30 }}
-                    //       contentFit="contain"
-                    //       className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
-                    //     />
-                    //     <CText className="text-[12px]" style={{ fontFamily: "bold" }}>
-                    //       {isSystem ? aiName : `@${user?.username}`}
-                    //     </CText>
-                    //   </View>
-                    //   <View
-                    //     className={`bg-white dark:bg-black p-2 rounded-b-xl rounded-tr-xl dark:border border-accent2 w-[70%] gap-y-2 ${isSystem ? "ml-2" : "mr-2"}`}
-                    //   >
-                    //     <View className="bg-grey dark:bg-accent p-2 rounded-lg">
-                    //       <CText className="text-[12px]">{item.content}</CText>
-                    //     </View>
-                    //   </View>
-                    // </View>
+                    <ChatBox item={item} isSystem={isSystem} aiName={aiName} user={user} />
                   )}
                 </View>
               );

@@ -57,7 +57,7 @@ const Items = [
   * 1. Register User Voice for Authentication 
   * 2. Save User Voice and ask if to create wallet with their voice
   */
-function Voicereg() {
+export default function About() {
   const [recording, setRecording] = useState(false);
 
   const { setDefault } = AppSettings()
@@ -183,6 +183,3 @@ function Voicereg() {
     </View>
   );
 }
-
-export default Voicereg
-

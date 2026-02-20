@@ -24,7 +24,7 @@ import WalletItem from "@/utils/store/wallet.store";
  * Show token info
  * Show charts
  */
-function TokenInfo() {
+export default function TokenInfo() {
   const { mint } = useLocalSearchParams();
   const [token, setToken] = useState<any>(null);
   const [history, setTokenHistory] = useState<any[] | null>(null);
@@ -288,6 +288,4 @@ function TokenInfo() {
     </View>
   );
 }
-
-export default TokenInfo
 

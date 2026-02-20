@@ -13,7 +13,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { useEffect } from "react";
 import Buttons from "@/components/ButtonComp";
 
-function SendStatus() {
+export default function SendStatus() {
   const { id, amount, recipient, tokenName, displayName, mint } =
     useLocalSearchParams();
   const item = TxQueue((s) =>
@@ -117,5 +117,3 @@ function SendStatus() {
     </View>
   );
 }
-
-export default SendStatus;

@@ -12,7 +12,7 @@ import { copyItem } from "@/utils/functions";
 
 
 
-function Scan() {
+export default function Scan() {
 
   const { publicKey } = WalletItem()
 
@@ -109,6 +109,3 @@ function Scan() {
     </View>
   );
 }
-
-export default Scan
-

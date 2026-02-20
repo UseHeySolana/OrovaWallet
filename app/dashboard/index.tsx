@@ -5,7 +5,7 @@ import CText from "@/components/TextComp";
 import Feather from "@expo/vector-icons/Feather";
 import { Image } from "expo-image";
 import UserItem from "@/utils/store/userstore.store";
-import setUserItems from "../requests/dashboard";
+import setUserItems from "@/utils/dashboard";
 import { router, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -89,6 +89,8 @@ export default function Dashboard() {
       setMessage(messageItem);
     }
   }, [conversationId, messages, convoId]);
+
+
 
   useEffect(() => {
     if (currentMode === "aispeaking" || currentMode === "human") {

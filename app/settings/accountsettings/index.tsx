@@ -82,7 +82,7 @@ const settingsMenu2 = [
   * What should be done here
   * 1. Updates Settings and Shows Settings and What to Change
   */
-function Settings() {
+export default function AccountSettings() {
   const [recording, setRecording] = useState(false);
 
   const { setDefault } = AppSettings()
@@ -171,6 +171,3 @@ function Settings() {
     </View>
   );
 }
-
-export default Settings
-
