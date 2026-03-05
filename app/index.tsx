@@ -1,11 +1,8 @@
 import AppSettings from "@/utils/store/settingsstore.store";
 import Buttons from "@/components/ButtonComp";
 import { Image, ImageBackground } from "expo-image";
-// import { Link, router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import {
-  useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";

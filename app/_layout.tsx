@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../global.css'
-import { SplashScreen, Stack, useNavigationContainerRef, useRootNavigationState } from "expo-router";
+import { SplashScreen, Stack } from "expo-router";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";

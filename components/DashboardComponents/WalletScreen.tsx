@@ -7,17 +7,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CText, { CNumber } from "../TextComp";
+import CText, { CNumber } from "@/components/TextComp";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import Buttons from "../ButtonComp";
+import Buttons from "@/components/ButtonComp";
 import { showToast } from "@/utils/functions/extrafunctions";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
 import { scale } from "react-native-size-matters";
-import UserItem from "@/utils/store/userstore";
+import UserItem from "@/utils/store/userstore.store";
 import { copyItem } from "@/utils/functions";
 import WalletItem from "@/utils/store/wallet.store";
 
@@ -113,8 +113,7 @@ export default function WalletScreen({
                 buttonType="feedback"
                 className="py-4 rounded-full"
                 onPress={() => {
-                  //  router.push('/dashboard/send')
-                  showToast("Kindly Use Voice to send tokens");
+                  router.push("/dashboard/send");
                 }}
                 type="secondary"
                 text="Send"
@@ -293,7 +292,6 @@ export default function WalletScreen({
                               style={{ fontFamily: "reg" }}
                               className="text-[1rem]"
                             >
-                              {/* {(50 / 198).toFixed(2)} */}
                               {token?.balance < 1
                                 ? token?.balance?.toFixed(
                                   Math.min(token?.decimals, 5)
@@ -305,21 +303,22 @@ export default function WalletScreen({
                           </View>
                         </View>
                         <View className="flex flex-col justify-end">
-                          {/* <CText className="text-[14px]">
-                            {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
-                          </CText> */}
+                          <CText className="text-[14px]">
+                            {token?.balance?.toFixed(
+                              Math.min(token?.decimals, 2)
+                            )}
+                          </CText>
                           <CText
                             style={{ fontFamily: "bold" }}
                             className="text-[16px]"
                           >
                             $
                             <CNumber
-                              value={50}
-                              // value={
-                              //   token?.usdc_price
-                              //     ? token?.usdc_price?.toFixed(2)
-                              //     : 0
-                              // }
+                              value={
+                                token?.usdc_price
+                                  ? token?.usdc_price?.toFixed(2)
+                                  : 0
+                              }
                               className="text-[16px]"
                             />
                           </CText>

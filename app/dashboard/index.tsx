@@ -16,10 +16,12 @@ import { useThemeContext } from "@/context/ThemeContext";
 import Convo, { MessageType } from "@/utils/store/conversation.store";
 import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
 import SetPin from "@/components/Sheets/SetPinSheet";
-import WalletScreen from "@/app/dashboard/components/DashboardComponents/WalletScreen";
-import ChatInterface from "@/app/dashboard/components/DashboardComponents/Chatinterface";
+
 import ToolsItem from "@/utils/store/toolsitems.store";
 import QuickActions from "@/services/WidgetService/QuickActions";
+import ChatInterface from "@/components/DashboardComponents/Chatinterface";
+import WalletScreen from "@/components/DashboardComponents/WalletScreen";
+
 
 const colors = {
   loading: {
