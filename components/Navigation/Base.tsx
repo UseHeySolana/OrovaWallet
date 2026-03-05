@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import React from 'react'
 import { Pressable, TouchableOpacity, View } from 'react-native'
 import { usePIP } from "@/services/PIPService/PIPManager";
+import { useAi } from "@/context/AiContext";
 
 interface BASENAV {
   isSessionActive: boolean;
@@ -24,6 +25,7 @@ export const Base = ({
   showWallet,
 }: BASENAV) => {
   const { showPIP, isPIPActive } = usePIP();
+  const { inputMode } = useAi();
 
   const handlePIPToggle = () => {
     if (isSessionActive) {
@@ -34,6 +36,8 @@ export const Base = ({
       setTimeout(() => showPIP(), 1000);
     }
   };
+
+  if (inputMode === "chat") return null;
 
   return (
     <View className="absolute w-screen flex flex-row justify-center items-center bottom-10 px-2">

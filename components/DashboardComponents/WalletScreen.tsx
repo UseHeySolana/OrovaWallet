@@ -46,8 +46,15 @@ export default function WalletScreen({
   onRefresh,
   refreshing,
 }: WalletScreenProps) {
-  const { userWallet } = UserItem();
+  const { userWallet, visibleTokenMints } = UserItem();
   const { publicKey } = WalletItem();
+
+  const displayedTokens =
+    visibleTokenMints === null
+      ? userWallet?.tokenAccounts ?? []
+      : (userWallet?.tokenAccounts ?? []).filter((t: any) =>
+          visibleTokenMints.includes(t.mint)
+        );
 
   const [activeTab, setActiveTab] = useState("tokens");
   const { isDarkMode } = useThemeContext();
@@ -331,12 +338,19 @@ export default function WalletScreen({
           {activeTab == "tokens" ? (
             <View className="flex-1">
               <View className="py-5 w-full">
-                <TouchableOpacity className="bg-grey dark:bg-accent2 rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3">
-                  <FontAwesome name="sliders" size={14} color="black" />
+                <TouchableOpacity
+                  onPress={() => router.push("/dashboard/managetokens")}
+                  className="bg-grey dark:bg-accent2 rounded-full  m-auto w-10/12 flex flex-row justify-center items-center gap-x-4 p-3"
+                >
+                  <FontAwesome
+                    name="sliders"
+                    size={14}
+                    color={isDarkMode ? "white" : "black"}
+                  />
                   <CText>Manage tokens</CText>
                 </TouchableOpacity>
               </View>
-              {userWallet?.tokenAccounts?.map((token: any, index: number) => {
+              {displayedTokens?.map((token: any, index: number) => {
                 return (
                   <View key={index}>
                     <TouchableNativeFeedback
@@ -353,7 +367,7 @@ export default function WalletScreen({
                       }}
                     >
                       <View className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[1.14rem]">
-                        <View className="flex flex-row items-start gap-x-2">
+                        <View className="flex-1 flex-row  w-[80%] items-start gap-x-2">
                           <View
                             style={{
                               width: scale(30),
@@ -393,25 +407,26 @@ export default function WalletScreen({
                             </CText>
                           </View>
                         </View>
-                        <View className="flex flex-col justify-end">
-                          <CText className="text-[14px]">
+                        <View className="flex flex-col w-[20%] justify-start">
+                          {/* <CText className="text-[14px]">
                             {token?.balance?.toFixed(
                               Math.min(token?.decimals, 2)
                             )}
-                          </CText>
+                          </CText> */}
                           <CText
                             style={{ fontFamily: "bold" }}
-                            className="text-[16px]"
+                            className="text-[19px]"
                           >
                             $
-                            <CNumber
-                              value={
-                                token?.usdc_price
-                                  ? token?.usdc_price?.toFixed(2)
-                                  : 0
-                              }
-                              className="text-[16px]"
-                            />
+                            {token?.usdc_price?.toFixed(2) ?
+                              <CNumber
+                                value={
+                                  token?.usdc_price?.toFixed(2)
+                                }
+                                style={{ fontFamily: "bold" }}
+                                className="text-[19px] "
+                              />
+                              : "0.00"}
                           </CText>
                         </View>
                       </View>

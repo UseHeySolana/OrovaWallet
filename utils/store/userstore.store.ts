@@ -26,9 +26,11 @@ export interface Userstore {
   user: UserType | null;
   setUser: (user: UserType | null) => void;
   logout: () => void;
-  userWallet: userWalletType
+  userWallet: userWalletType;
   updateUserWallet: (userWallet: userWalletType) => void;
-
+  /** null = show all tokens; string[] = only show these mints on wallet screen */
+  visibleTokenMints: string[] | null;
+  setVisibleTokenMints: (mints: string[] | null) => void;
 }
 
 const UserItem = create(
@@ -44,6 +46,8 @@ const UserItem = create(
       },
       setUser: (user: UserType | null) => set({ user }),
       updateUserWallet: (userWallet: userWalletType) => set({ userWallet }),
+      visibleTokenMints: null,
+      setVisibleTokenMints: (mints: string[] | null) => set({ visibleTokenMints: mints }),
       createSession: () => {
         const session = `${Math.random()}${new Date().getTime()}${Math.random()}`;
         set({ session });
@@ -59,7 +63,8 @@ const UserItem = create(
             solBalance: 0,
             tokenAccounts: [],
             totalUsdBalance: 0,
-          }
+          },
+          visibleTokenMints: null,
         })
       },
       logout: () => {

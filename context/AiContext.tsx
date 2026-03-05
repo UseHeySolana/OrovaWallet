@@ -6,6 +6,10 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import UserItem from "@/utils/store/userstore.store";
 import { api_key } from "@/utils/dashboard";
 import { prompB } from "../libs/tool-implemetation/prompt";
+import Convo from "@/utils/store/conversation.store";
+import { v4 as uuidv4 } from "uuid";
+
+export type AiInputMode = 'audio' | 'chat';
 
 interface AIService {
     connection: Connection | null;
@@ -15,6 +19,9 @@ interface AIService {
     stopSession: () => void,
     currentMode: 'loading' | 'aispeaking' | 'human',
     conversationId: string,
+    inputMode: AiInputMode,
+    setInputMode: (mode: AiInputMode) => void,
+    sendChatMessage: (text: string) => void,
 }
 const AiService = createContext<AIService | null>(null);
 
@@ -29,6 +36,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const [prompt, setPrompt] = useState("")
 
     const [currentMode, setCurrentMode] = useState<'loading' | 'aispeaking' | 'human'>("loading");
+    const [inputMode, setInputMode] = useState<AiInputMode>('audio');
 
     const [conversationId, setConversationId] = useState('');
     const [connection, setConnection] = useState<Connection | null>(null)
@@ -112,8 +120,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         console.log('starting session');
         if (!sessionManager || isSessionActive) return;
         if (prompt == "") return;
-
-        await sessionManager.startSession(prompt);
+        // Chat mode = text-only session (no mic). Audio mode = full voice session.
+        await sessionManager.startSession(prompt, {
+            useAudio: inputMode === 'audio',
+        });
         setIsSessionActive(true);
     }
 
@@ -133,8 +143,22 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
 
     }, [sessionManager]);
 
+    const sendChatMessage = useCallback((text: string) => {
+        const trimmed = text?.trim();
+        if (!trimmed || !sessionManager || !isSessionActive || !conversationId) return;
+        const messageId = uuidv4();
+        Convo.getState().setMessages({
+            id: messageId,
+            role: "user",
+            content: trimmed,
+            timestamp: new Date().getTime(),
+            conversation_id: conversationId,
+        });
+        sessionManager.sendTextMessage(trimmed);
+    }, [sessionManager, isSessionActive, conversationId]);
+
     return (
-        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId, connection }}>
+        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId, connection, inputMode, setInputMode, sendChatMessage }}>
             {children}
         </AiService.Provider>
     );

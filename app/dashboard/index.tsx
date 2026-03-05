@@ -144,13 +144,25 @@ export default function Dashboard() {
   return (
     <View className="flex-1 pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark ">
       <View className="flex  flex-row justify-between items-center">
-        <View className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1">
-          <View className="h-6 w-6  rounded-full">
-            <Image
-              source={require("@/assets/images/ballicon.png")}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="contain"
-            />
+        <TouchableOpacity
+          onPress={() => router.push("/dashboard/account")}
+          activeOpacity={0.8}
+          className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1"
+        >
+          <View className="h-6 w-6  rounded-full overflow-hidden">
+            {user?.profileImageUri ? (
+              <Image
+                source={{ uri: user.profileImageUri }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+              />
+            ) : (
+              <Image
+                source={require("@/assets/images/ballicon.png")}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
+              />
+            )}
           </View>
           <CText
             style={{ fontFamily: "md" }}
@@ -158,7 +170,7 @@ export default function Dashboard() {
           >
             @{user?.username}
           </CText>
-        </View>
+        </TouchableOpacity>
         <View className="flex flex-row gap-x-2">
           <TouchableOpacity
             onPress={() => router.push("/settings")}
