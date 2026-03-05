@@ -24,7 +24,7 @@ export interface Userstore {
   session: string | null;
   clearData: () => void;
   user: UserType | null;
-  setUser: (user: UserType| null) => void;
+  setUser: (user: UserType | null) => void;
   logout: () => void;
   userWallet: userWalletType
   updateUserWallet: (userWallet: userWalletType) => void;
