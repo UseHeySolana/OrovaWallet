@@ -74,12 +74,10 @@ export default function ConnectedApps() {
             contentContainerStyle={{ paddingEnd: 10, }}
             className="py-2"
           >
-
             <View className="flex flex-row  justify-start items-center gap-x-2">
               {apps.filter((item: any) => item.is_featured).map((item, index) => {
                 const tools = ToolsItem.getState().tools
                 const tool = tools.find((tool: any) => tool.name === item.name)
-
                 return (
                   <Pressable
                     onPress={() => {
@@ -88,15 +86,15 @@ export default function ConnectedApps() {
                         params: { app: item.name },
                       });
                     }}
-                    key={index} className="flex h-[10rem] w-[16rem] shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
-                    <Image source={item.banner instanceof String ? { uri: item.banner } : item.banner} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                    key={index} className="flex h-[10rem] min-w-[16rem] max-w-[20rem] shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
+                    <Image source={item.banner instanceof String ? { uri: item.banner as string } : item.banner} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                     <View className="absolute bottom-[-2] rounded-2xl w-full p-3  bg-white dark:bg-accent flex flex-row items-center  justify-between gap-x-2">
                       <View className="flex flex-row items-center gap-x-2">
 
                         <View className="h-12 w-12 overflow-hidden rounded-full bg-white dark:bg-accent2 ">
-                          {item.icon ? <Image source={item?.icon instanceof String ? { uri: item.icon } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
+                          {item.icon ? <Image source={item?.icon instanceof String ? { uri: item.icon as string } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
                             //@ts-ignore
-                            <Image source={item?.icon instanceof String ? { uri: item.icon } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                            <Image source={item?.icon instanceof String ? { uri: item.icon as string } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                           }
                         </View>
 
@@ -136,12 +134,11 @@ export default function ConnectedApps() {
                 {filteredApps.map((item, index) => {
                   return (
                     <View key={index} className="flex w-full shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
-
                       <View className="rounded-2xl w-full p-3  bg-white dark:bg-accent  flex-row items-center  justify-between gap-x-2">
                         <View className="flex-1  flex-row items-center gap-x-2">
                           <View className="h-12 w-12 overflow-hidden rounded-lg bg-white dark:bg-accent2 ">
-                            {item.icon ? <Image source={item?.icon instanceof String ? { uri: item.icon } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
-                              <Image source={item?.banner instanceof String ? { uri: item.banner } : item.banner} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                            {item.icon ? <Image source={item?.icon instanceof String ? { uri: item.icon as string } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
+                              <Image source={item?.banner instanceof String ? { uri: item.banner as string } : item.banner} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                             }
                           </View>
                           <View className="w-[80%]">

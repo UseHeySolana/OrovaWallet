@@ -3,6 +3,8 @@ interface UserType {
     mobileNumber: string,
     pin: string,
     wallet_address?: string,
+    profileImageUri?: string,
+    email?: string,
 }
 
 

@@ -160,7 +160,11 @@ export default function Settings() {
           gap: 10,
         }}
       >
-        <View className="bg-white dark:bg-accent mb-10 flex shadow-sm flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2">
+        <TouchableOpacity
+          onPress={() => router.push("/dashboard/account")}
+          activeOpacity={0.8}
+          className="bg-white dark:bg-accent mb-10 flex shadow-sm flex-row justify-between items-center rounded-2xl w-11/12 py-5 m-auto p-2"
+        >
           <View className="flex flex-row justify-between items-center gap-x-2  ">
             <View className="h-10 w-10  rounded-full">
               <Image
@@ -178,10 +182,10 @@ export default function Settings() {
               </CText>
             </View>
           </View>
-          <Pressable onPress={() => router.back()} className="p-3">
+          <View className="p-3">
             <IconLibrary.angle_right />
-          </Pressable>
-        </View>
+          </View>
+        </TouchableOpacity>
 
         <View className="w-11/12   m-auto px-4 py-4 shadow-sm rounded-2xl bottom-10 bg-white dark:bg-accent ">
           {settingsMenu.map((item, index) => {

@@ -450,7 +450,7 @@ Talk, ask, command, and get things done with just your voice. From managing your
     ],
     is_active: false,
     is_featured: false,
-    is_new: true,
+    is_new: false,
     ratings: 0,
     tools: [],
   },
@@ -478,9 +478,9 @@ Talk, ask, command, and get things done with just your voice. From managing your
       // "https://wavelet.yraylabs.fun/images/3.png",
       // "https://wavelet.yraylabs.fun/images/4.png",
     ],
-    is_active: true,
-    is_featured: true,
-    is_new: true,
+    is_active: false,
+    is_featured: false,
+    is_new: false,
     ratings: 4.5,
     tools: [
       {
@@ -500,7 +500,7 @@ Talk, ask, command, and get things done with just your voice. From managing your
     short_des: "Get ready for big deals, with Jumia 🛒, you always win!",
     icon: require("@/assets/apps/jumia/jumia.webp"),
     description:
-      "Jumia is a platform that allows you to shop online for products in Nigeria and Ghana",
+      "Jumia is a platform that allows you to shop online for products in Nigeria and Ghana. Use the AI assistant to search for products and place orders.",
     banner: require("@/assets/apps/jumia/banner.webp"),
     url: "https://jumia.com",
     tags: ["Stablecoin", "Ecommerce", "Shopping"],
@@ -510,30 +510,21 @@ Talk, ask, command, and get things done with just your voice. From managing your
       require("@/assets/apps/jumia/img3.webp"),
       require("@/assets/apps/jumia/img4.webp"),
     ],
-    is_active: false,
-    is_featured: false,
+    is_active: true,
+    is_featured: true,
     is_new: true,
     ratings: 4.5,
     tools: [
       {
         name: "ecommerce",
         params: [
-          {
-            name: "Address Name",
-            type: "string",
-          },
-          {
-            name: "city",
-            type: "string",
-          },
-          {
-            name: "state",
-            type: "string",
-          },
-          {
-            name: "country",
-            type: "string",
-          },
+          { name: "Address Name", type: "string" },
+          { name: "email", type: "string" },
+          { name: "address_line_1", type: "string" },
+          { name: "city", type: "string" },
+          { name: "state", type: "string" },
+          { name: "postal_code", type: "string" },
+          { name: "country", type: "string" },
         ],
       },
     ],

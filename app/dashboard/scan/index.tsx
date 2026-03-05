@@ -72,16 +72,11 @@ export default function Scan() {
                   icon={
                     <View className="">
                       <IconLibrary.copy />
-
                     </View>
                   }
                 />
               </View>
             </View>
-
-
-
-
           </View>
         </View>
 
@@ -94,18 +89,8 @@ export default function Scan() {
 
             <CText style={{ fontFamily: "md" }} className="text-[16px] text-start text-wrap">Use this address to receive tokens and collectibles on the Solana network only..</CText>
           </View>
-
         </View>
-
-
-
-
-
       </View>
-
-
-
-
     </View>
   );
 }

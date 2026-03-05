@@ -44,6 +44,13 @@ class SessionManager {
   public activeAiMessageId: string | null = null;
   public activeHumanMessageId: string | null = null;
   public token: string | null = null;
+  private useAudioThisSession: boolean = true;
+  /** Batched transcript deltas to avoid "Maximum update depth" from rapid store updates */
+  private pendingHumanDeltas: string = "";
+  private pendingAiDeltas: string = "";
+  private flushHumanTimer: ReturnType<typeof setTimeout> | null = null;
+  private flushAiTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly FLUSH_MS = 80;
   // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
   public callbacks: {
     setMode: (mode: "loading" | "human" | "aispeaking") => void;
@@ -87,7 +94,12 @@ class SessionManager {
     return this.token;
   }
 
-  async startSession(systemInstructions?: string): Promise<void> {
+  async startSession(
+    systemInstructions?: string,
+    options?: { useAudio?: boolean }
+  ): Promise<void> {
+    const useAudio = options?.useAudio !== false;
+    this.useAudioThisSession = useAudio;
     AppSettings.getState().setLoading(true);
     // Set system instructions if provided
     if (systemInstructions) {
@@ -131,7 +143,8 @@ class SessionManager {
     }
 
     try {
-      // Request permissions first (important for React Native)
+      // API requires offer to include an audio media section, so we always request mic and add track.
+      // In chat mode we still add the track (so the offer is valid) but disable VAD so the server only responds to text.
       if (Platform.OS === "android") {
         const granted = await this.requestAudioPermission();
         if (!granted) {
@@ -148,18 +161,11 @@ class SessionManager {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // Add STUN server for better connection
       });
 
-      // if (audio) {
-      // Get media stream (different in React Native)
       const stream = await mediaDevices.getUserMedia({ audio: true });
-
-      const devices = await mediaDevices.enumerateDevices();
-
-      // Add tracks to peer connection
       stream.getTracks().forEach((track) => {
         this.peerConnection!.addTrack(track, stream);
       });
 
-      // }
       // Setup connection state tracking
       //@ts-ignore
       this.peerConnection.addEventListener("connectionstatechange", () => {
@@ -180,11 +186,11 @@ class SessionManager {
       // Setup event handlers before creating offer
       this.setupDataChannelEventHandlers();
 
-      // Create offer with required options parameter
+      // API requires an audio media section in the offer; we always include it
       const offer = await this.peerConnection.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: false,
-        voiceActivityDetection: true,
+        voiceActivityDetection: useAudio, // only listen for voice in audio mode
       });
 
       await this.peerConnection.setLocalDescription(offer);
@@ -240,6 +246,64 @@ class SessionManager {
     }
   }
 
+  private scheduleFlushHuman(): void {
+    if (this.flushHumanTimer != null) return;
+    this.flushHumanTimer = setTimeout(() => {
+      this.flushHumanTimer = null;
+      this.flushHumanNow();
+    }, SessionManager.FLUSH_MS);
+  }
+
+  private cancelFlushHuman(): void {
+    if (this.flushHumanTimer != null) {
+      clearTimeout(this.flushHumanTimer);
+      this.flushHumanTimer = null;
+    }
+  }
+
+  private flushHumanNow(): void {
+    if (!this.activeHumanMessageId || !this.pendingHumanDeltas) return;
+    const toApply = this.pendingHumanDeltas;
+    this.pendingHumanDeltas = "";
+    const currentContent =
+      Convo.getState()
+        .getConversationMessages(this.conversation_id!)
+        ?.find((item) => item.id === this.activeHumanMessageId)?.content ?? "";
+    Convo.getState().updateMessage({
+      messageId: this.activeHumanMessageId,
+      content: { content: currentContent + toApply },
+    });
+  }
+
+  private scheduleFlushAi(): void {
+    if (this.flushAiTimer != null) return;
+    this.flushAiTimer = setTimeout(() => {
+      this.flushAiTimer = null;
+      this.flushAiNow();
+    }, SessionManager.FLUSH_MS);
+  }
+
+  private cancelFlushAi(): void {
+    if (this.flushAiTimer != null) {
+      clearTimeout(this.flushAiTimer);
+      this.flushAiTimer = null;
+    }
+  }
+
+  private flushAiNow(): void {
+    if (!this.activeAiMessageId || !this.pendingAiDeltas) return;
+    const toApply = this.pendingAiDeltas;
+    this.pendingAiDeltas = "";
+    const currentContent =
+      Convo.getState()
+        .getConversationMessages(this.conversation_id!)
+        ?.find((item) => item.id === this.activeAiMessageId)?.content ?? "";
+    Convo.getState().updateMessage({
+      messageId: this.activeAiMessageId,
+      content: { content: currentContent + toApply },
+    });
+  }
+
   private setupDataChannelEventHandlers(): void {
     if (!this.dataChannel) return;
 
@@ -276,26 +340,15 @@ class SessionManager {
           message.type === "conversation.item.input_audio_transcription.delta"
         ) {
           if (this.activeHumanMessageId) {
-            // Get current content before updating to avoid infinite loop
-            const currentContent =
-              Convo.getState()
-                .getConversationMessages(this.conversation_id)
-                ?.find((item) => item.id === this.activeHumanMessageId)
-                ?.content || "";
-            //append new delta to the content
-            Convo.getState().updateMessage({
-              messageId: this.activeHumanMessageId,
-              content: {
-                content: currentContent + message.delta,
-              },
-            });
+            this.pendingHumanDeltas += message.delta ?? "";
+            this.scheduleFlushHuman();
           } else {
             this.activeHumanMessageId =
               "temp" + new Date().getTime().toString();
             Convo.getState().setMessages({
               id: this.activeHumanMessageId,
               role: "user",
-              content: message.delta,
+              content: message.delta ?? "",
               timestamp: new Date().getTime(),
               conversation_id: this.conversation_id,
             });
@@ -311,6 +364,8 @@ class SessionManager {
               ? "[inaudible]"
               : message.transcript;
 
+          this.cancelFlushHuman();
+          this.flushHumanNow();
           if (this.activeHumanMessageId) {
             Convo.getState().updateMessage({
               messageId: this.activeHumanMessageId,
@@ -326,24 +381,14 @@ class SessionManager {
 
         if (message.type === "response.audio_transcript.delta") {
           if (this.activeAiMessageId) {
-            // Get current content before updating to avoid infinite loop
-            const currentContent =
-              Convo.getState()
-                .getConversationMessages(this.conversation_id)
-                ?.find((item) => item.id === this.activeAiMessageId)?.content ||
-              "";
-            Convo.getState().updateMessage({
-              messageId: this.activeAiMessageId,
-              content: {
-                content: currentContent + message.delta,
-              },
-            });
+            this.pendingAiDeltas += message.delta ?? "";
+            this.scheduleFlushAi();
           } else {
             this.activeAiMessageId = "temp" + new Date().getTime().toString();
             Convo.getState().setMessages({
               id: this.activeAiMessageId,
               role: "system",
-              content: message.delta,
+              content: message.delta ?? "",
               timestamp: new Date().getTime(),
               conversation_id: this.conversation_id,
             });
@@ -353,11 +398,13 @@ class SessionManager {
         if (message.type === "response.audio_transcript.done") {
           this.updateMemory(message);
 
+          this.cancelFlushAi();
+          this.flushAiNow();
           if (this.activeAiMessageId) {
             Convo.getState().updateMessage({
               messageId: this.activeAiMessageId,
               content: {
-                content: message.transcript,
+                content: message.transcript ?? "",
               },
             });
             setTimeout(() => {
@@ -425,8 +472,7 @@ class SessionManager {
         );
       }
 
-      //Step 2: set vad mode
-
+      // Step 2: set vad mode (only for voice sessions; chat uses text-only)
       this.setVadMode();
 
       // Step 2: Register functions after system instructions
@@ -472,6 +518,19 @@ class SessionManager {
   }
 
   private async setVadMode(): Promise<void> {
+    // Chat-only sessions: no voice activity detection; responses only via response.create
+    if (!this.useAudioThisSession) {
+      await this.sendWithDelay(
+        {
+          type: "session.update",
+          session: {
+            turn_detection: null as any, // disable VAD for text-only
+          },
+        },
+        200
+      );
+      return;
+    }
     const eventServer = {
       type: "session.update",
       session: {
@@ -480,24 +539,11 @@ class SessionManager {
           threshold: 0.5,
           prefix_padding_ms: 300,
           silence_duration_ms: 500,
-          create_response: true, // only in conversation mode
-          interrupt_response: true, // only in conversation mode
+          create_response: true,
+          interrupt_response: true,
         },
       },
     };
-
-    const eventSemantic = {
-      type: "session.update",
-      session: {
-        turn_detection: {
-          type: "semantic_vad",
-          eagerness: "auto", // optional
-          create_response: true, // only in conversation mode
-          interrupt_response: true, // only in conversation mode
-        },
-      },
-    };
-
     await this.sendWithDelay(eventServer, 200);
   }
 
@@ -553,6 +599,11 @@ class SessionManager {
 
       // Stop InCallManager
       InCallManager.stop();
+
+      this.cancelFlushHuman();
+      this.cancelFlushAi();
+      this.pendingHumanDeltas = "";
+      this.pendingAiDeltas = "";
 
       this.isSessionActive = false;
       this.connectionEstablished = false;

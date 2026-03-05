@@ -3,6 +3,7 @@ import { TransferFunction } from "@/libs/tools/transfer/transfer.tool";
 import { SwapFunction } from "@/libs/tools/swap/swap.tool";
 import { PajCash } from "@/libs/tools/pajcash/pajcash.tool";
 import { Crossmint } from "@/libs/tools/crossmint/crossmint.tool";
+import { JumiaTool } from "@/libs/tools/jumia/jumia.tool";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 
 const toolRouter = (SessionManager: SessionManager) => {
@@ -19,6 +20,10 @@ const toolRouter = (SessionManager: SessionManager) => {
     new Crossmint(SessionManager).searchProductsAmazon,
     new Crossmint(SessionManager).createAmazonOrder,
     new Crossmint(SessionManager).productDetails,
+
+    // Jumia
+    new JumiaTool(SessionManager).searchJumiaProducts,
+    new JumiaTool(SessionManager).placeJumiaOrder,
   ];
 };
 
