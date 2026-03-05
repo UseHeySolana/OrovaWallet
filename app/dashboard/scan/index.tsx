@@ -61,7 +61,7 @@ export default function Scan() {
               <View className="w-[45%]">
                 <Buttons buttonType="feedback" className="py-4 rounded-full" onPress={share} type="secondary" text="Share" icon={
                   <View className="rotate-[230deg]">
-                    <AntDesign name="arrowdown" size={16} color="white" />
+                    <AntDesign name="down" size={16} color="white" />
                   </View>
                 } />
               </View>

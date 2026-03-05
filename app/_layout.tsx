@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../global.css'
-import { SplashScreen, Stack } from "expo-router";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SplashScreen } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-google-fonts/dm-sans";
@@ -13,13 +13,11 @@ import { KeyboardProvider } from "@/context/KeyboardContext";
 import { PIPManager } from "@/services/PIPService/PIPManager";
 import { WidgetManager } from "@/services/WidgetService/WidgetManager";
 
-import { ThemeProvider, useThemeContext } from "@/context/ThemeContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import StackView from "./stack";
 import { useRouteTracking } from "@/components/hooks/navigation";
 import tracker from "@/utils/tracker";
-import * as Linking from "expo-linking";
 import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
-import { StatusBar } from 'expo-status-bar';
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
