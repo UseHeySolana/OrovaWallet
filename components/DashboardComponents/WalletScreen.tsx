@@ -1,6 +1,7 @@
 import { useThemeContext } from "@/context/ThemeContext";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
+  Dimensions,
   RefreshControl,
   ScrollView,
   TouchableNativeFeedback,
@@ -48,9 +49,69 @@ export default function WalletScreen({
   const { userWallet } = UserItem();
   const { publicKey } = WalletItem();
 
-  const [activeItems, setActiveItems] = useState([0, 1]);
   const [activeTab, setActiveTab] = useState("tokens");
   const { isDarkMode } = useThemeContext();
+
+  const [isHelpersExpanded, setIsHelpersExpanded] = useState(false);
+  const helpersScrollRef = useRef<ScrollView>(null);
+  const [activeHelperIndex, setActiveHelperIndex] = useState(0);
+
+  const { width: sliderWidth } = Dimensions.get("window");
+  const itemWidth = sliderWidth * 0.88;
+  const CARD_WIDTH = 300;
+  const CARD_GAP = 10;
+  const AUTO_SCROLL_INTERVAL = 4000;
+
+  // Auto-scroll AI helpers carousel
+  useEffect(() => {
+    if (isHelpersExpanded || AiHelpers.length <= 1) return;
+    const id = setInterval(() => {
+      setActiveHelperIndex((prev) => {
+        const next = (prev + 1) % AiHelpers.length;
+        helpersScrollRef.current?.scrollTo({
+          x: next * (CARD_WIDTH + CARD_GAP),
+          animated: true,
+        });
+        return next;
+      });
+    }, AUTO_SCROLL_INTERVAL);
+    return () => clearInterval(id);
+  }, [isHelpersExpanded]);
+
+  const renderCarouselItem = ({
+    item,
+    index,
+  }: {
+    item: (typeof AiHelpers)[0];
+    index: number;
+  }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => setIsHelpersExpanded(true)}
+      className="w-full"
+    >
+      <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-4 rounded-2xl bg-white dark:bg-accent w-full">
+        <View className="h-8 w-8 rounded-full">
+          <Image
+            source={require("@/assets/images/ballicon.png")}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="contain"
+          />
+        </View>
+        <View className="flex-1">
+          <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">
+            {item.title}
+          </CText>
+          <CText className="text-[1rem]">{item.caption}</CText>
+        </View>
+        <MaterialCommunityIcons
+          name="greater-than"
+          size={12}
+          color={isDarkMode ? "white" : "black"}
+        />
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <ScrollView
@@ -120,7 +181,7 @@ export default function WalletScreen({
                 icon={
                   <View className="rotate-[230deg]">
                     <AntDesign
-                      name="arrowdown"
+                      name="arrow-down"
                       size={16}
                       color={isDarkMode ? "white" : "black"}
                     />
@@ -141,7 +202,7 @@ export default function WalletScreen({
                 icon={
                   <View className="rotate-[40deg]">
                     <AntDesign
-                      name="arrowdown"
+                      name="arrow-down"
                       size={16}
                       color={isDarkMode ? "white" : "black"}
                     />
@@ -149,59 +210,89 @@ export default function WalletScreen({
                 }
               />
             </View>
-            {/* <View className="w-[45px] h-[45px] rounded-full  bg-grey dark:bg-accent2 flex justify-center items-center">
-                    <TouchableOpacity className="p-2 flex justify-center items-center">
-                      <FontAwesome6 name="arrows-rotate" size={16} color={isDarkMode ? "white" : "black"} />
-                    </TouchableOpacity>
-                  </View> */}
           </View>
         </View>
 
-        <View className="h-[90px] relative w-full">
-          {AiHelpers.map((item, index) => {
-            return (
-              <View
-                key={index}
-                style={{
-                  display: activeItems.includes(index) ? "flex" : "none",
-                  position: "relative",
-                  bottom: index * 70,
-                  zIndex: index * -1,
-                  width: `${100 - index * 4}%`,
-                }}
-                className="h-[80px] m-auto"
-              >
-                <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-6 rounded-2xl bg-white dark:bg-accent">
-                  <View className="h-8 w-8 rounded-full">
-                    <Image
-                      source={require("@/assets/images/ballicon.png")}
-                      style={{ width: "100%", height: "100%" }}
-                      contentFit="contain"
+        <View className="relative w-full">
+          {isHelpersExpanded ? (
+            <View className="gap-3 pb-2">
+              {AiHelpers.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  activeOpacity={0.8}
+                  onPress={() => { }}
+                  className="w-full"
+                >
+                  <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-4 rounded-2xl bg-white dark:bg-accent w-full">
+                    <View className="h-8 w-8 rounded-full">
+                      <Image
+                        source={require("@/assets/images/ballicon.png")}
+                        style={{ width: "100%", height: "100%" }}
+                        contentFit="contain"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <CText
+                        style={{ fontFamily: "bold" }}
+                        className="text-[1.1rem]"
+                      >
+                        {item.title}
+                      </CText>
+                      <CText className="text-[1rem]">{item.caption}</CText>
+                    </View>
+                    <MaterialCommunityIcons
+                      name="greater-than"
+                      size={12}
+                      color={isDarkMode ? "white" : "black"}
                     />
                   </View>
-                  <View>
-                    <CText
-                      style={{ fontFamily: "bold" }}
-                      className="text-[1.1rem]"
-                    >
-                      {item.title}
-                    </CText>
-                    <CText className="text-[1rem]">{item.caption}</CText>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  className="py-2 px-3 absolute right-2 top-2 h-9 w-9 flex justify-center  items-center rounded-full bg-grey dark:bg-accent2 text-white"
-                  onPress={() => { }}
-                >
-                  <MaterialCommunityIcons
-                    name="greater-than"
-                    size={12}
-                    color={isDarkMode ? "white" : "black"}
-                  />
                 </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View className="w-full">
+              <ScrollView
+                ref={helpersScrollRef}
+                className=""
+                showsHorizontalScrollIndicator={false}
+                horizontal
+                pagingEnabled={false}
+                snapToInterval={CARD_WIDTH + CARD_GAP}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                contentContainerStyle={{ gap: CARD_GAP, paddingRight: CARD_GAP }}
+                onScroll={(e) => {
+                  const x = e.nativeEvent.contentOffset.x;
+                  const index = Math.round(x / (CARD_WIDTH + CARD_GAP));
+                  const clamped = Math.min(Math.max(0, index), AiHelpers.length - 1);
+                  setActiveHelperIndex(clamped);
+                }}
+                scrollEventThrottle={16}
+              >
+                {AiHelpers.map((item, index) => (
+                  <TouchableOpacity key={index} className="w-[300px]" onPress={() => setIsHelpersExpanded(true)}>
+                    <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-4 py-5 rounded-2xl bg-white dark:bg-accent w-full ">
+                      <View className="h-8 w-8 rounded-full">
+                        <Image source={require("@/assets/images/ballicon.png")} style={{ width: "100%", height: "100%" }} contentFit="contain" />
+                      </View>
+                      <View className="flex-1">
+                        <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">{item.title}</CText>
+                        <CText className="text-[1rem]">{item.caption}</CText>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <View className="flex-row justify-center items-center gap-1.5 pt-3 pb-1">
+                {AiHelpers.map((_, index) => (
+                  <View
+                    key={index}
+                    className={`h-2 rounded-full ${index === activeHelperIndex ? "w-5 bg-purple" : "w-2 bg-grey dark:bg-accent2"}`}
+                  />
+                ))}
               </View>
-            );
-          })}
+            </View>
+          )}
         </View>
 
         <View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">

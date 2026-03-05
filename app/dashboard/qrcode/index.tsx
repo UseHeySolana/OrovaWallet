@@ -95,7 +95,7 @@ export default function QrCode() {
                   text="Share"
                   icon={
                     <View className="rotate-[230deg]">
-                      <AntDesign name="arrowdown" size={16} color="white" />
+                      <AntDesign name="down" size={16} color="white" />
                     </View>
                   }
                 />

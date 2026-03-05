@@ -139,7 +139,7 @@ export default function TokenInfo() {
                 icon={
                   <View className="rotate-[230deg]">
                     <AntDesign
-                      name="arrowdown"
+                      name="arrow-down"
                       size={16}
                       color={isDarkMode ? "white" : "black"}
                     />
@@ -161,7 +161,7 @@ export default function TokenInfo() {
                 icon={
                   <View className="rotate-[40deg]">
                     <AntDesign
-                      name="arrowdown"
+                      name="arrow-down"
                       size={16}
                       color={isDarkMode ? "white" : "black"}
                     />

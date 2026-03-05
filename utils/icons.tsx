@@ -72,7 +72,7 @@ const IconLibrary = {
         const { isDarkMode } = useThemeContext();
         return (
             <AntDesign
-                name="pluscircleo"
+                name="plus-circle"
                 size={props.size || 18}
                 color={props.color || (isDarkMode ? "white" : "black")}
             />
@@ -82,7 +82,7 @@ const IconLibrary = {
         const { isDarkMode } = useThemeContext();
         return (
             <AntDesign
-                name="arrowdown"
+                name="arrow-down"
                 size={props.size || 18}
                 color={props.color || (isDarkMode ? "white" : "black")}
             />
@@ -154,7 +154,7 @@ const IconLibrary = {
             <AntDesign
                 size={props.size || 18}
                 color={props.color || (isDarkMode ? "white" : "black")}
-                name="infocirlceo"
+                name="info-circle"
             />
         );
     },
@@ -192,7 +192,7 @@ const IconLibrary = {
         const { isDarkMode } = useThemeContext();
         return (
             <AntDesign
-                name="linechart"
+                name="line-chart"
                 size={props.size || 18}
                 color={props.color || (isDarkMode ? "white" : "black")}
             />
@@ -331,7 +331,7 @@ const IconLibrary = {
     back: (props: IconProps = {}) => {
         const { isDarkMode } = useThemeContext();
         return (
-            <AntDesign name="back"
+            <AntDesign name="arrow-left"
                 size={props.size || 14}
                 color={props.color || (isDarkMode ? "white" : "black")}
             />

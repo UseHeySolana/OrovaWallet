@@ -194,7 +194,7 @@ export default function SendToken() {
               onPress={pasteFromClipboard}
               className="absolute right-4 top-4"
             >
-              <AntDesign name="copy1" size={20} color="#9CA3AF" />
+              <IconLibrary.copy size={20} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
           <View className="p-2">

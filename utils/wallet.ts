@@ -1,9 +1,73 @@
 import * as bip39 from 'bip39';
 import { getRandomValues as expoCryptoGetRandomValues } from "expo-crypto";
-import { derivePath } from 'ed25519-hd-key';
+import { hmac } from '@noble/hashes/hmac';
+import { sha512 } from '@noble/hashes/sha2';
 import { storage } from "./storage/storage";
 
 import { PublicKey, Connection, Keypair } from '@solana/web3.js';
+
+const ED25519_CURVE = 'ed25519 seed';
+const HARDENED_OFFSET = 0x80000000;
+const PATH_REGEX = /^m(\/[0-9]+')+$/;
+
+function replaceDerive(val: string): string {
+  return val.replace("'", '');
+}
+
+/** SLIP-0010 Ed25519 path derivation (same as ed25519-hd-key, RN-safe) */
+function getMasterKeyFromSeed(seedHex: string): { key: Uint8Array; chainCode: Uint8Array } {
+  const seedBytes = hexToBytes(seedHex);
+  const I = hmac(sha512, ED25519_CURVE, seedBytes);
+  return {
+    key: I.slice(0, 32),
+    chainCode: I.slice(32),
+  };
+}
+
+function CKDPriv(
+  parent: { key: Uint8Array; chainCode: Uint8Array },
+  index: number
+): { key: Uint8Array; chainCode: Uint8Array } {
+  const indexBuffer = new Uint8Array(4);
+  indexBuffer[0] = (index >> 24) & 0xff;
+  indexBuffer[1] = (index >> 16) & 0xff;
+  indexBuffer[2] = (index >> 8) & 0xff;
+  indexBuffer[3] = index & 0xff;
+  const data = new Uint8Array(1 + parent.key.length + 4);
+  data[0] = 0;
+  data.set(parent.key, 1);
+  data.set(indexBuffer, 1 + parent.key.length);
+  const I = hmac(sha512, parent.chainCode, data);
+  return {
+    key: I.slice(0, 32),
+    chainCode: I.slice(32),
+  };
+}
+
+function derivePath(path: string, seedHex: string): { key: Uint8Array; chainCode: Uint8Array } {
+  if (!PATH_REGEX.test(path)) {
+    throw new Error('Invalid derivation path');
+  }
+  const segments = path
+    .split('/')
+    .slice(1)
+    .map(replaceDerive)
+    .map((el) => parseInt(el, 10));
+  let state = getMasterKeyFromSeed(seedHex);
+  for (const segment of segments) {
+    state = CKDPriv(state, segment + HARDENED_OFFSET);
+  }
+  return state;
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const len = hex.length / 2;
+  const out = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
 
 export const isJson = (str: any) => {
     try {
