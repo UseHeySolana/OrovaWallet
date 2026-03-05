@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import IconLibrary from "@/utils/icons";

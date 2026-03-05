@@ -176,7 +176,7 @@ export default function Login() {
         return;
       }
     } else {
-      setToast(response.message, "error");
+      setToast(response.message || "Something went wrong", "error");
       setLoading(false);
     }
   };

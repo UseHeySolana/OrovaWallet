@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import CText from "@/components/TextComp";
 import DragableSheet from "@/components//CustomItems/DragableSheet";
