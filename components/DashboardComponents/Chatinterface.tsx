@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
   TouchableOpacity,
-  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
@@ -62,40 +62,79 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
   } = useAi();
 
   const [chatInput, setChatInput] = useState("");
-  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [speakerMuted, setSpeakerMuted] = useState(false);
+  const [micMuted, setMicMuted] = useState(false);
 
-  // When session becomes active and we had a message waiting, send it
+  // Push content up by keyboard height so input is never covered
   React.useEffect(() => {
-    if (isSessionActive && pendingMessage) {
-      sendChatMessage(pendingMessage);
-      setPendingMessage(null);
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Scroll to end when keyboard opens so latest messages stay visible
+  React.useEffect(() => {
+    if (keyboardHeight > 0) {
+      const t = setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 150);
+      return () => clearTimeout(t);
     }
-  }, [isSessionActive, pendingMessage]);
+  }, [keyboardHeight]);
+
+  // Reset mute state when session ends
+  React.useEffect(() => {
+    if (!isSessionActive) {
+      setSpeakerMuted(false);
+      setMicMuted(false);
+    }
+  }, [isSessionActive]);
+
+  const handleStartSession = () => {
+    if (sessionManager) startSession();
+  };
 
   const handleSendChat = () => {
     const text = chatInput.trim();
-    if (!text) return;
+    if (!text || !isSessionActive) return;
     setChatInput("");
-    if (isSessionActive) {
-      sendChatMessage(text);
-    } else {
-      setPendingMessage(text);
-      if (sessionManager) startSession();
+    sendChatMessage(text);
+  };
+
+  const handleToggleSpeaker = () => {
+    const next = !speakerMuted;
+    setSpeakerMuted(next);
+    if (typeof sessionManager?.muteSpeaker === "function") {
+      sessionManager.muteSpeaker(next);
     }
   };
 
-  return (
-    <View className="flex-1 justify-start py-2  overflow-hidden  rounded-3xl">
-      {/* Audio / Chat mode switch */}
-      <View className="flex-row items-center justify-center gap-1 mb-3 px-2">
+  const handleToggleMic = () => {
+    const next = !micMuted;
+    setMicMuted(next);
+    if (typeof sessionManager?.muteMic === "function") {
+      sessionManager.muteMic(next);
+    }
+  };
+
+  const chatContent = (
+    <View
+      className="flex-1"
+      style={{ zIndex: 10, paddingBottom: inputMode === "chat" ? keyboardHeight : 0 }}
+    >
+      {/* Audio / Chat mode switch + Speaker & Mic mute when session active */}
+      <View className="flex-row items-center justify-center gap-1 mb-3 px-2 z-50">
         <TouchableOpacity
           onPress={() => setInputMode("audio")}
           activeOpacity={0.8}
-          className={`flex-1 py-2.5 rounded-2xl flex-row items-center justify-center gap-2 ${
-            inputMode === "audio"
-              ? "bg-[#971BB2] dark:bg-[#B84DD4]"
-              : "bg-white/80 dark:bg-accent/80"
-          }`}
+          className={`flex-1 py-2.5 rounded-2xl flex-row items-center justify-center gap-2 ${inputMode === "audio"
+            ? "bg-[#971BB2] dark:bg-[#B84DD4]"
+            : "bg-white/80 dark:bg-accent/80"
+            }`}
         >
           <Feather
             name="mic"
@@ -112,11 +151,10 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
         <TouchableOpacity
           onPress={() => setInputMode("chat")}
           activeOpacity={0.8}
-          className={`flex-1 py-2.5 rounded-2xl flex-row items-center justify-center gap-2 ${
-            inputMode === "chat"
-              ? "bg-[#971BB2] dark:bg-[#B84DD4]"
-              : "bg-white/80 dark:bg-accent/80"
-          }`}
+          className={`flex-1 py-2.5 rounded-2xl flex-row items-center justify-center gap-2 ${inputMode === "chat"
+            ? "bg-[#971BB2] dark:bg-[#B84DD4]"
+            : "bg-white/80 dark:bg-accent/80"
+            }`}
         >
           <Feather
             name="message-circle"
@@ -130,41 +168,129 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
             Chat
           </CText>
         </TouchableOpacity>
+        {isSessionActive && (
+          <>
+            <TouchableOpacity
+              onPress={handleToggleSpeaker}
+              activeOpacity={0.8}
+              className={`p-2.5 rounded-2xl ${speakerMuted ? "bg-red-500/80 dark:bg-red-600/80" : "bg-white/80 dark:bg-accent/80"}`}
+            >
+              <Feather
+                name={speakerMuted ? "volume-x" : "volume-2"}
+                size={20}
+                color={speakerMuted ? "#fff" : isDarkMode ? "#999" : "#555"}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleToggleMic}
+              activeOpacity={0.8}
+              className={`p-2.5 rounded-2xl ${micMuted ? "bg-red-500/80 dark:bg-red-600/80" : "bg-white/80 dark:bg-accent/80"}`}
+            >
+              <Feather
+                name={micMuted ? "mic-off" : "mic"}
+                size={20}
+                color={micMuted ? "#fff" : isDarkMode ? "#999" : "#555"}
+              />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
-      {messages.length > 0 && (
-        <View className="h-[44rem] z-50">
-          <ScrollView
-            ref={scrollViewRef}
-            className=" py-2 relative h-[40rem] gap-y-4"
-            onContentSizeChange={() =>
-              scrollViewRef.current?.scrollToEnd({ animated: true })
-            }
-          >
-            {messages.map((item: any, index: number) => {
-              const isSystem = item.role === "system";
-              const toolCall = item.role === "tool";
+      {/* Messages: flex-1 so this area shrinks when keyboard opens */}
+      <View className="flex-1 min-h-0 z-50">
+        <ScrollView
+          ref={scrollViewRef}
+          className="py-2 flex-1 gap-y-4"
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() =>
+            scrollViewRef.current?.scrollToEnd({ animated: true })
+          }
+          showsVerticalScrollIndicator={messages.length > 0}
+        >
+          {messages.map((item: any, index: number) => {
+            const isSystem = item.role === "system";
+            const toolCall = item.role === "tool";
 
-              return (
-                <View key={index + item.id} className="mb-3 relative">
-                  {toolCall ? (
-                    <>
-                      <ToolItem
-                        item={item}
-                        isSystem={isSystem}
-                        aiName={aiName}
-                      />
-                    </>
-                  ) : (
-                    <ChatBox item={item} isSystem={isSystem} aiName={aiName} user={user} />
-                  )}
-                </View>
-              );
-            })}
-          </ScrollView>
+            return (
+              <View key={index + item.id} className="mb-3 relative">
+                {toolCall ? (
+                  <ToolItem
+                    item={item}
+                    isSystem={isSystem}
+                    aiName={aiName}
+                  />
+                ) : (
+                  <ChatBox item={item} isSystem={isSystem} aiName={aiName} user={user} />
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Chat mode: Start button when no session, input + Send + End when session active */}
+      {inputMode === "chat" && (
+        <View className="pt-2 pb-4 px-4">
+          {isSessionActive ? (
+            <View className="flex-row items-center gap-2 bg-white/90 dark:bg-accent/90 rounded-2xl px-3 py-2 min-h-[48]">
+              <TextInput
+                value={chatInput}
+                onChangeText={setChatInput}
+                placeholder="Type a message..."
+                placeholderTextColor={isDarkMode ? "#888" : "#666"}
+                editable={true}
+                multiline
+                maxLength={2000}
+                className="flex-1 text-dark dark:text-white text-base py-2 max-h-24"
+                style={{ fontFamily: "md" }}
+              />
+              <TouchableOpacity
+                onPress={handleSendChat}
+                disabled={!chatInput.trim()}
+                activeOpacity={0.7}
+                className={`p-2 rounded-xl ${chatInput.trim()
+                  ? "bg-[#971BB2] dark:bg-[#B84DD4]"
+                  : "bg-gray-300 dark:bg-gray-600"
+                  }`}
+              >
+                <Feather
+                  name="send"
+                  size={20}
+                  color={chatInput.trim() ? "#fff" : "#888"}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={stopSession}
+                activeOpacity={0.7}
+                className="p-2 rounded-xl bg-red-500/90 dark:bg-red-600/90"
+              >
+                <CText className="text-white text-sm" style={{ fontFamily: "md" }}>
+                  End
+                </CText>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleStartSession}
+              activeOpacity={0.8}
+              className="w-full py-3.5 rounded-2xl bg-white dark:bg-accent2 border border-[#971BB2] dark:border-white/20 items-center justify-center shadow-sm"
+            >
+              <CText className="text-black dark:text-white text-base" style={{ fontFamily: "bold" }}>
+                Start
+              </CText>
+            </TouchableOpacity>
+          )}
         </View>
       )}
+    </View>
+  );
 
+  return (
+    <View className="flex-1 justify-start py-2 overflow-hidden rounded-3xl">
+      {chatContent}
+
+      {/* Decorative Lottie overlay behind content */}
       <View
         className="flex-1 h-full w-full absolute bottom-0"
         style={{ zIndex: 1 }}
@@ -185,14 +311,8 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
               }}
               resizeMode="cover"
               colorFilters={[
-                {
-                  keypath: "Shape Layer 2",
-                  color: colors[currentMode].color1,
-                },
-                {
-                  keypath: "Shape Layer 1",
-                  color: colors[currentMode].color2,
-                },
+                { keypath: "Shape Layer 2", color: colors[currentMode].color1 },
+                { keypath: "Shape Layer 1", color: colors[currentMode].color2 },
               ]}
               source={require("@/assets/anim/lower.json")}
             />
@@ -204,7 +324,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
                 width: "100%",
                 height: "100%",
               }}
-            ></BlurView>
+            />
           </>
         ) : (
           <LottieView
@@ -220,67 +340,13 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
             }}
             resizeMode="cover"
             colorFilters={[
-              {
-                keypath: "Shape Layer 2",
-                color: colors[currentMode].color1,
-              },
-              {
-                keypath: "Shape Layer 1",
-                color: colors[currentMode].color2,
-              },
+              { keypath: "Shape Layer 2", color: colors[currentMode].color1 },
+              { keypath: "Shape Layer 1", color: colors[currentMode].color2 },
             ]}
             source={require("@/assets/anim/lower.json")}
           />
         )}
       </View>
-
-      {/* Chat mode: always show input — type and press Send (starts session on first send) */}
-      {inputMode === "chat" && (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          className="absolute bottom-4 left-4 right-4"
-          style={{ zIndex: 999, elevation: 999 }}
-        >
-          <View className="flex-row items-center gap-2 bg-white/90 dark:bg-accent/90 rounded-2xl px-3 py-2 min-h-[48]">
-            <TextInput
-              value={chatInput}
-              onChangeText={setChatInput}
-              placeholder="Type a message..."
-              placeholderTextColor={isDarkMode ? "#888" : "#666"}
-              editable={true}
-              multiline
-              maxLength={2000}
-              className="flex-1 text-dark dark:text-white text-base py-2 max-h-24"
-              style={{ fontFamily: "md" }}
-            />
-            <TouchableOpacity
-              onPress={handleSendChat}
-              disabled={!chatInput.trim()}
-              activeOpacity={0.7}
-              className={`p-2 rounded-xl ${
-                chatInput.trim()
-                  ? "bg-[#971BB2] dark:bg-[#B84DD4]"
-                  : "bg-gray-300 dark:bg-gray-600"
-              }`}
-            >
-              <Feather
-                name="send"
-                size={20}
-                color={chatInput.trim() ? "#fff" : "#888"}
-              />
-            </TouchableOpacity>
-            {isSessionActive && (
-              <TouchableOpacity
-                onPress={stopSession}
-                activeOpacity={0.7}
-                className="p-2 rounded-xl bg-gray-200 dark:bg-gray-600"
-              >
-                <Feather name="phone-off" size={18} color="#666" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      )}
     </View>
   );
 }

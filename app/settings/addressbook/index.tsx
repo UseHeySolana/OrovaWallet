@@ -219,16 +219,12 @@ export default function AddressBook() {
 
         <View className="gap-y-4 overflow-hidden flex-1">
           <View className="flex flex-row justify-between items-center gap-x-2">
-
             <View>
               <CText style={{ fontFamily: "bold" }} className="p-4 text-primary text-[16px] text-start rounded-xl">Personal Contacts</CText>
             </View>
-
             <Buttons loading={isLoading}
               onPress={() => { setAddContactModal(true); setSelectedContact(null) }}
               type="primary" className="p-2 rounded-xl" text="Add Contact" />
-
-
           </View>
 
 

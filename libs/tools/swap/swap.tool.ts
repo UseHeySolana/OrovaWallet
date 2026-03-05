@@ -4,16 +4,16 @@ import { fetchData } from "@/utils/request/db";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import {
-  convertSpeech,
-  signTransactions,
+    convertSpeech,
+    signTransactions,
 } from "@/utils/functions/extrafunctions";
 import Convo from "@/utils/store/conversation.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import {
-  completeConversation,
-  supportedTokens,
-  verifiedTokens,
+    completeConversation,
+    supportedTokens,
+    verifiedTokens,
 } from "@/utils/functions";
 
 /**
@@ -29,32 +29,32 @@ import {
  */
 
 const getQuote = async (
-  inputMint: string,
-  outputMint: string,
-  amount: number
+    inputMint: string,
+    outputMint: string,
+    amount: number
 ) => {
-  if (inputMint === "" || outputMint === "" || amount <= 0) {
-    return { status: false, message: "Invalid input" };
-  }
-
-  try {
-    // Get quote for ExactOut swap to USDC
-    const quoteUrl = `https://lite-api.jup.ag/swap/v1/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&swapMode=ExactOut&slippageBps=50`;
-    const response = await fetch(quoteUrl);
-    const quoteData = await response.json();
-
-    if (response.status !== 200) {
-      return {
-        status: false,
-        message: quoteData.error || "Failed to get quote",
-      };
+    if (inputMint === "" || outputMint === "" || amount <= 0) {
+        return { status: false, message: "Invalid input" };
     }
 
-    return { status: true, data: quoteData };
-  } catch (error) {
-    console.error("Error getting quote:", error);
-    return { status: false, message: "Failed to get quote" };
-  }
+    try {
+        // Get quote for ExactOut swap to USDC
+        const quoteUrl = `https://lite-api.jup.ag/swap/v1/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&swapMode=ExactOut&slippageBps=50`;
+        const response = await fetch(quoteUrl);
+        const quoteData = await response.json();
+
+        if (response.status !== 200) {
+            return {
+                status: false,
+                message: quoteData.error || "Failed to get quote",
+            };
+        }
+
+        return { status: true, data: quoteData };
+    } catch (error) {
+        console.error("Error getting quote:", error);
+        return { status: false, message: "Failed to get quote" };
+    }
 };
 
 /**
@@ -68,24 +68,24 @@ const getQuote = async (
  * }
  */
 const performSwap = async (quoteResponse: any, userPublicKey: string) => {
-  const swapResponse = await (
-    await fetch("https://lite-api.jup.ag/swap", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        quoteResponse,
-        userPublicKey,
-      }),
-    })
-  ).json();
+    const swapResponse = await (
+        await fetch("https://lite-api.jup.ag/swap", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                quoteResponse,
+                userPublicKey,
+            }),
+        })
+    ).json();
 
-  if (!swapResponse) {
-    return { status: false, message: "Failed to perform swap" };
-  }
+    if (!swapResponse) {
+        return { status: false, message: "Failed to perform swap" };
+    }
 
-  return { status: true, data: swapResponse };
+    return { status: true, data: swapResponse };
 };
 
 /**
@@ -100,20 +100,21 @@ const performSwap = async (quoteResponse: any, userPublicKey: string) => {
  */
 
 
-const getPrice = async (fromMint: string, toMint: string) => {
+const getPrice = async (fromMint: string, toMint: string, amount: number) => {
     try {
-        const priceUrl = `https://lite-api.jup.ag/price/v2?ids=${fromMint}&vsToken=${toMint}`;
-        const priceResponse = await fetch(priceUrl);
-        const priceData = await priceResponse.json();
-
-        if (priceResponse.status !== 200) {
-            return ({ status: false, message: priceData.error || 'Failed to get price' });
+        const options = { method: 'GET', headers: { 'x-api-key': process.env.EXPO_PUBLIC_JUP_API_KEY || '' } };
+        const res = await fetch(
+            `https://api.jup.ag/swap/v1/quote?swapMode=ExactIn&maxAccounts=64&instructionVersion=V1&inputMint=${fromMint}&outputMint=${toMint}&amount=${amount}`,
+            options
+        );
+        const priceData = await res.json();
+        if (res.status !== 200 || priceData.error) {
+            return { status: false, message: priceData.error || priceData.message || 'Failed to get price' };
         }
-
-        return ({ status: true, data: priceData });
+        return { status: true, data: priceData };
     } catch (error) {
         console.error('Error getting price:', error);
-        return ({ status: false, message: 'Failed to get price' });
+        return { status: false, message: (error as Error).message || 'Failed to get price' };
     }
 }
 
@@ -122,6 +123,7 @@ const getPrice = async (fromMint: string, toMint: string) => {
 export class SwapFunction {
     public swapFunction: FunctionParams;
     public checkPrice: FunctionParams;
+
     constructor(public session: SessionManager) {
         this.swapFunction = this.swap_tokens()
         this.checkPrice = this.check_price()
@@ -158,7 +160,7 @@ export class SwapFunction {
                 const fromMint = verifiedTokens.find(token => token.symbol === fromToken);
                 const toMint = verifiedTokens.find(token => token.symbol === toToken);
 
-                if(!fromMint || !toMint){
+                if (!fromMint || !toMint) {
                     if (messageId !== null) {
                         completeConversation(messageId, 'failed')
                     }
@@ -183,8 +185,8 @@ export class SwapFunction {
                     return swapResponse.message;
                 }
 
-                const txid = await signTransactions({tx: swapResponse.data.swapTransaction, type: "versioned"});
-                if(!txid.status){
+                const txid = await signTransactions({ tx: swapResponse.data.swapTransaction, type: "versioned" });
+                if (!txid.status) {
                     return txid.message;
                 }
                 const confirmation = await this.session.connection.confirmTransaction(txid.message, "confirmed");
@@ -205,7 +207,7 @@ export class SwapFunction {
             }
         }
     }
-    check_price(){
+    check_price() {
         return {
             name: "check_price",
             owner: "HeySolana",
@@ -233,35 +235,42 @@ export class SwapFunction {
 
                 const { fromToken, toToken, amount } = args;
 
-                const fromMint = verifiedTokens.find(token => token.symbol === fromToken)?.address;
-                const toMint = verifiedTokens.find(token => token.symbol === toToken)?.address;
+                const fromMintToken = verifiedTokens.find(token => token.symbol === fromToken);
+                const toMintToken = verifiedTokens.find(token => token.symbol === toToken);
 
-                if(!fromMint || !toMint){   
+                if (!fromMintToken || !toMintToken) {
                     if (messageId !== null) {
                         completeConversation(messageId, 'failed')
                     }
                     return "Token  swap not supported yet!";
                 }
 
+                console.log("PRICE DATA", fromMintToken.address, toMintToken.address, amount * Math.pow(10, fromMintToken.decimals || 0));
 
-                const priceData = await getPrice(fromMint || '', toMint || '');
-                if(!priceData.status){
+                const priceData = await getPrice(
+                    fromMintToken.address,
+                    toMintToken.address,
+                    amount * Math.pow(10, fromMintToken.decimals || 0)
+                );
+
+                if (!priceData?.status) {
                     if (messageId !== null) {
                         completeConversation(messageId, 'failed')
                     }
-                    return priceData.message;
+                    return priceData?.message || 'Failed to get price';
                 }
 
-                const priceComparedtoOneToMint = priceData.data.data[fromMint].price;
-                const priceInSwap = priceComparedtoOneToMint * amount;
-
+                // Jupiter quote returns { inAmount, outAmount, ... } - outAmount is expected output in smallest units
+                const outAmountRaw = priceData.data?.outAmount;
+                const expectedOutAmount = outAmountRaw
+                    ? Number(outAmountRaw) / Math.pow(10, toMintToken.decimals || 0)
+                    : 0;
 
                 if (messageId !== null) {
                     completeConversation(messageId, 'complete')
                 }
 
-
-                return convertSpeech(`The expected amount of ${amount} ${fromToken} is ${priceInSwap} ${toToken}`);
+                return convertSpeech(`The expected amount of ${amount} ${fromToken} is ${expectedOutAmount} ${toToken}`);
             }
 
         }

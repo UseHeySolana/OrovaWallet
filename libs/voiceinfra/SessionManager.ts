@@ -617,6 +617,32 @@ class SessionManager {
     this.audioManager.toggleSpeaker(speakerOn);
   }
 
+  // Mute/unmute remote audio (speaker / what you hear)
+  muteSpeaker(muted: boolean): void {
+    this.audioManager.muteAudio(muted);
+    if (!this.peerConnection) return;
+    // Use receiver tracks so native playback is muted; prefer volume=0 (more reliable than track.enabled on some devices)
+    this.peerConnection.getReceivers().forEach((receiver) => {
+      const track = receiver.track;
+      if (!track || track.kind !== "audio") return;
+      if (typeof (track as any)._setVolume === "function") {
+        (track as any)._setVolume(muted ? 0 : 1);
+      } else {
+        track.enabled = !muted;
+      }
+    });
+  }
+
+  // Mute/unmute local microphone
+  muteMic(muted: boolean): void {
+    if (!this.peerConnection) return;
+    this.peerConnection.getSenders().forEach((sender) => {
+      if (sender.track && sender.track.kind === "audio") {
+        sender.track.enabled = !muted;
+      }
+    });
+  }
+
   // Generate a UUID using the uuid package
   private generateUUID(): string {
     return uuidv4();
