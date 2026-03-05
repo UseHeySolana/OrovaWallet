@@ -36,6 +36,7 @@ interface AudioDeviceInfo {
 
 class AudioManager {
   private audioStream: MediaStream | null = null;
+  private speakerMuted: boolean = false; // desired mute state (applied when stream exists or arrives)
   private currentChannel: AudioChannel = AudioChannel.SPEAKER;
   private availableChannels: AudioChannel[] = [];
   private isInitialized: boolean = false;
@@ -416,11 +417,28 @@ class AudioManager {
   }
 
   /**
+   * Apply current speaker mute state to the remote stream (volume to 0 when muted).
+   * Uses native _setVolume(0) when available for reliable mute; falls back to track.enabled.
+   */
+  private applySpeakerMute(): void {
+    if (!this.audioStream) return;
+    const audioTracks = this.audioStream.getAudioTracks();
+    audioTracks.forEach((track: any) => {
+      if (typeof track._setVolume === "function") {
+        track._setVolume(this.speakerMuted ? 0 : 1);
+      } else {
+        track.enabled = !this.speakerMuted;
+      }
+    });
+  }
+
+  /**
    * Handle incoming remote audio stream from WebRTC
    */
   async handleRemoteStream(stream: MediaStream): Promise<void> {
     console.log("Received remote WebRTC audio stream");
     this.audioStream = stream;
+    this.applySpeakerMute(); // apply any mute user set before stream arrived
     await this.routeWebRTCAudio();
   }
 
@@ -546,19 +564,15 @@ class AudioManager {
   }
 
   /**
-   * Mute/unmute WebRTC audio stream
+   * Mute/unmute WebRTC audio stream (volume to 0 when muted).
+   * Stores desired state so it applies when the remote stream arrives if it's not here yet.
    */
   muteAudio(muted: boolean): void {
+    this.speakerMuted = muted;
     if (!this.audioStream) {
-      console.warn("No WebRTC audio stream to mute");
-      return;
+      return; // will apply in handleRemoteStream when stream arrives
     }
-
-    const audioTracks = this.audioStream.getAudioTracks();
-    audioTracks.forEach((track) => {
-      track.enabled = !muted;
-    });
-
+    this.applySpeakerMute();
     console.log(`WebRTC audio ${muted ? "muted" : "unmuted"}`);
   }
 
