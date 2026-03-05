@@ -33,7 +33,6 @@
     },
     "android": {
       "versionCode": 20,
-      "windowSoftInputMode": "adjustResize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
