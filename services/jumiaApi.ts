@@ -10,6 +10,18 @@ export interface JumiaProduct {
   availability?: boolean;
 }
 
+export interface JumiaProductDetails {
+  name: string;
+  brand: string;
+  price: { current: number; original: number; currency: string };
+  images: string[];
+  rating?: number;
+  link?: string;
+  url?: string;
+  shipping?: string;
+  availability?: boolean;
+}
+
 export interface JumiaDeliveryAddress {
   id: number;
   full_name: string;
@@ -56,7 +68,7 @@ async function get(path: string) {
 
 export async function searchJumiaProducts(query: string, options?: { page?: number; limit?: number }): Promise<JumiaProduct[]> {
   const res = await postJson(
-    { query, page: options?.page ?? 1, limit: options?.limit ?? 20 },
+    { query, limit: options?.limit ?? 20 },
     "/jumia/scrape/search"
   );
   if (!res.ok) {
@@ -125,4 +137,32 @@ export async function placeJumiaOrder(
   }
   const order = (data as { data?: { order_number?: string; id?: number } }).data;
   return { order_number: order?.order_number ?? "", id: order?.id ?? 0 };
+}
+
+
+export async function getJumiaProductDetails(productLink: string): Promise<JumiaProductDetails> {
+  const res = await postJson(
+    { product_link: productLink },
+    "/jumia/scrape/product-details"
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string })?.error || `Product details failed: ${res.status}`);
+  }
+  const data = await res.json();
+  return {
+    name: data.name,
+    brand: data.brand,
+    price: {
+      current: data.price?.current ?? 0,
+      original: data.price?.original ?? 0,
+      currency: data.price?.currency ?? "NGN",
+    },
+    images: Array.isArray(data.images) ? data.images : [],
+    rating: data.rating,
+    link: data.link ?? data.url,
+    url: data.url ?? data.link,
+    shipping: data.shipping,
+    availability: data.availability,
+  };
 }

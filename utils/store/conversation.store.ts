@@ -25,6 +25,7 @@ export interface MessageType {
     rating: number;
   }[];
   product_details?: any;
+  source: string;
 }
 
 export interface ConversationType {
@@ -46,11 +47,13 @@ interface Conversation {
     toolUpdates,
     content,
     productUpdates,
+    source,
   }: {
     messageId: string;
     toolUpdates?: Partial<ToolType>;
     content?: Partial<MessageType>;
     productUpdates?: Partial<MessageType["product"]>;
+    source: string;
   }) => void;
   getConversationMessages: (conversation: string) => MessageType[] | null;
   updateConversation: (conversationId: string, summary: string) => void;
@@ -108,11 +111,13 @@ const Convo = create(
         toolUpdates,
         content,
         productUpdates,
+        source,
       }: {
         messageId: string;
         toolUpdates?: Partial<ToolType>;
         content?: Partial<MessageType>;
         productUpdates?: Partial<MessageType["product"]>;
+        source: string;
       }) => {
         set((state) => ({
           messages: state.messages.map((msg) => {
@@ -128,6 +133,7 @@ const Convo = create(
                 ...(msg.product ?? {}), // fallback to empty object if product is undefined
                 ...productUpdates,
               },
+              source: source,
               ...content,
             } as MessageType;
           }),

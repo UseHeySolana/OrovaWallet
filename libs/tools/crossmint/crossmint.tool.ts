@@ -3,12 +3,13 @@ import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import {
   convertSpeech,
-  summarizeProduct, 
+  summarizeProduct,
 } from "@/utils/functions/extrafunctions";
 import Convo from "@/utils/store/conversation.store";
 import { completeConversation } from "@/utils/functions";
 import { crossmint } from "@/libs/tools/crossmint/crossmint";
 import { extractImportantInfo } from "@/utils/functions/functions";
+import { BASE_URL } from "@/utils/constant";
 
 export class Crossmint {
   public searchProductsAmazon: FunctionParams;
@@ -38,12 +39,33 @@ export class Crossmint {
       },
 
       handler: async (args: { asin: string }) => {
+        const payerAddress = WalletItem.getState().publicKey?.toString() ?? "";
         const response = await crossmint.orders.createOrder({
           asin: args.asin,
-          payerAddress: WalletItem.getState().publicKey?.toString() ?? "",
+          payerAddress,
         });
 
         if (!response.status) return response.message;
+
+        if (BASE_URL && payerAddress) {
+          try {
+            const data = response.data as Record<string, unknown> | undefined;
+            await fetch(`${BASE_URL}/crossmint/wallet/orders`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                wallet_address: payerAddress,
+                crossmint_order_id: data?.id ?? data?.orderId ?? null,
+                asin: args.asin,
+                total_amount: data?.totalAmount ?? data?.amount ?? null,
+                currency: (data?.currency as string) ?? "USD",
+                raw_response: data ?? null,
+              }),
+            });
+          } catch (_) {
+            // non-blocking: order already created on Crossmint
+          }
+        }
 
         return response.message;
 
@@ -100,6 +122,7 @@ export class Crossmint {
         Convo.getState().updateMessage({
           messageId: messageId,
           productUpdates: products,
+          source: "crossmint",
         });
 
         completeConversation(messageId, "complete");
