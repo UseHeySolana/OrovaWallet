@@ -115,6 +115,14 @@ export interface JumiaInlineAddress {
   country: string;
 }
 
+export interface PlaceJumiaOrderResult {
+  order_number: string;
+  id: number;
+  total_amount_ngn?: number;
+  /** USD amount to charge (NGN converted + processing fee). Use for USDC deduction. */
+  amount_usd?: number | null;
+}
+
 export async function placeJumiaOrder(
   walletAddress: string,
   payload: {
@@ -126,7 +134,7 @@ export async function placeJumiaOrder(
     is_express_delivery?: boolean;
     delivery_instructions?: string;
   }
-): Promise<{ order_number: string; id: number }> {
+): Promise<PlaceJumiaOrderResult> {
   const res = await postJson(
     { wallet_address: walletAddress, ...payload },
     "/jumia/wallet/orders"
@@ -135,8 +143,13 @@ export async function placeJumiaOrder(
   if (!res.ok) {
     throw new Error((data as { message?: string })?.message || "Failed to place order");
   }
-  const order = (data as { data?: { order_number?: string; id?: number } }).data;
-  return { order_number: order?.order_number ?? "", id: order?.id ?? 0 };
+  const order = (data as { data?: { order_number?: string; id?: number; total_amount_ngn?: number; amount_usd?: number | null } }).data;
+  return {
+    order_number: order?.order_number ?? "",
+    id: order?.id ?? 0,
+    total_amount_ngn: order?.total_amount_ngn,
+    amount_usd: order?.amount_usd ?? null,
+  };
 }
 
 

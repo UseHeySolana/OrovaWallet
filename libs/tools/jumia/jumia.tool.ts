@@ -3,12 +3,18 @@ import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import Convo from "@/utils/store/conversation.store";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { completeConversation } from "@/utils/functions";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import { searchJumiaProducts, placeJumiaOrder, getJumiaProductDetails, type JumiaProduct, type JumiaInlineAddress } from "@/services/jumiaApi";
+import { transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
+import { JUMIA_USDC_TREASURY } from "@/utils/constant";
 
 const JUMIA_APP_NAME = "Jumia Online Shopping";
 const JUMIA_CONFIG_TYPE = "ecommerce";
+/** USDC mint (mainnet/devnet) */
+const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const USDC_DECIMALS = 6;
 
 function isJumiaActivated(): boolean {
   const tools = ToolsItem.getState().tools;
@@ -135,6 +141,7 @@ export class JumiaTool {
         required: ["product_id", "product_name", "quantity", "unit_price"],
       },
       handler: async (args: { product_id: string; product_name: string; quantity: number; unit_price: number }) => {
+        const messageId = this.session.functionMessageId;
         if (!isJumiaActivated()) {
           return "Jumia is not activated. Ask the user to activate Jumia in Settings → Apps and set their delivery address and email.";
         }
@@ -158,11 +165,60 @@ export class JumiaTool {
               },
             ],
           });
+
+          const amountUsd = result.amount_usd != null && result.amount_usd > 0 ? Number(Number(result.amount_usd).toFixed(USDC_DECIMALS)) : 0;
+          const connection = this.session.connection;
+
+          if (amountUsd > 0 && JUMIA_USDC_TREASURY) {
+            try {
+              const balance = await getTokenBalance(walletAddress, USDC_MINT, USDC_DECIMALS, connection);
+              if (balance < amountUsd) {
+                if (messageId) completeConversation(messageId, "failed");
+                return convertSpeech(
+                  `Order ${result.order_number} was placed but payment could not be completed. You need ${amountUsd} USDC and your balance is ${balance.toFixed(2)} USDC. Please add USDC and try again or contact support.`
+                );
+              }
+              const transferResult = await transferToken(
+                JUMIA_USDC_TREASURY,
+                USDC_MINT,
+                amountUsd,
+                USDC_DECIMALS,
+                connection
+              );
+              if (!transferResult.status) {
+                if (messageId) completeConversation(messageId, "failed");
+                return convertSpeech(
+                  `Order ${result.order_number} was placed but USDC payment failed. ${typeof transferResult.message === "string" ? transferResult.message : "Please try again or contact support."}`
+                );
+              }
+              const network = AppSettings.getState().networkShort;
+              const txId = typeof transferResult.message === "string" ? transferResult.message : "";
+              if (messageId && txId) {
+                completeConversation(messageId, "complete", `https://explorer.solana.com/tx/${txId}?cluster=${network}`);
+              } else if (messageId) {
+                completeConversation(messageId, "complete");
+              }
+              return convertSpeech(
+                `Order placed successfully. Order number: ${result.order_number}. ${amountUsd} USDC has been deducted from your wallet. The order will be processed by our team and you will receive updates.`
+              );
+            } catch (deductError) {
+              if (messageId) completeConversation(messageId, "failed");
+              const errMsg = deductError instanceof Error ? deductError.message : "USDC deduction failed";
+              return convertSpeech(
+                `Order ${result.order_number} was placed but USDC deduction failed. ${errMsg}. Please contact support with your order number.`
+              );
+            }
+          }
+
+          if (messageId) completeConversation(messageId, "complete");
           return convertSpeech(
-            `Order placed successfully. Order number: ${result.order_number}. The order will be processed by our team and you will receive updates.`
+            amountUsd > 0 && !JUMIA_USDC_TREASURY
+              ? `Order placed successfully. Order number: ${result.order_number}. Payment of ${amountUsd} USDC could not be processed (not configured). Please contact support.`
+              : `Order placed successfully. Order number: ${result.order_number}. The order will be processed by our team and you will receive updates.`
           );
         } catch (e) {
           const err = e instanceof Error ? e.message : "Failed to place order";
+          if (messageId) completeConversation(messageId, "failed");
           return `Failed to place order: ${err}`;
         }
       },
@@ -213,6 +269,7 @@ export class JumiaTool {
             link,
             url: details.url ?? link,
           });
+          Convo.getState().updateMessage({ messageId, source: "jumia" });
           completeConversation(messageId, "complete");
           return convertSpeech(
             "Here are the product details. You can purchase this item when ready."

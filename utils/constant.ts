@@ -3,5 +3,7 @@ const AIRBILLS = process.env.EXPO_PUBLIC_AIR_BILLS || "";
 const HELIUS = process.env.EXPO_PUBLIC_HELIUS_API || "";
 const SCRAPER_API_KEY = process.env.EXPO_PUBLIC_SCRAPER_API_KEY || "";
 const CROSSMINT_API_KEY = process.env.EXPO_PUBLIC_CROSSMINT || "";
+/** USDC recipient for Jumia order payments (wallet address). Required for USDC deduction. */
+const JUMIA_USDC_TREASURY = process.env.EXPO_PUBLIC_JUMIA_USDC_TREASURY || "";
 
-export { BASE_URL, AIRBILLS, HELIUS, SCRAPER_API_KEY, CROSSMINT_API_KEY };
+export { BASE_URL, AIRBILLS, HELIUS, SCRAPER_API_KEY, CROSSMINT_API_KEY, JUMIA_USDC_TREASURY };
