@@ -116,18 +116,18 @@ const ToolItem = (props: ItemProps) => {
                 {item?.tool?.action?.includes("jumia")
                   ? "Jumia"
                   : item?.tool?.action?.includes("amazon")
-                  ? "Crossmint"
-                  : item?.tool?.action?.includes("airtime")
-                    ? "AirBills"
-                    : item?.tool?.action?.includes("swap") ||
-                      item?.tool?.action?.includes("price")
-                      ? "Jupiter"
-                      : item.tool?.arguments?.owner
-                        ? item?.tool?.arguments?.owner
-                        : item?.tool?.action?.includes("pajit") ||
-                          item?.tool?.action?.includes("naira-rate")
-                          ? "Pajcash"
-                          : aiName}
+                    ? "Crossmint"
+                    : item?.tool?.action?.includes("airtime")
+                      ? "AirBills"
+                      : item?.tool?.action?.includes("swap") ||
+                        item?.tool?.action?.includes("price")
+                        ? "Jupiter"
+                        : item.tool?.arguments?.owner
+                          ? item?.tool?.arguments?.owner
+                          : item?.tool?.action?.includes("pajit") ||
+                            item?.tool?.action?.includes("naira-rate")
+                            ? "Pajcash"
+                            : aiName}
               </CText>
             ) : (
               <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
@@ -155,7 +155,7 @@ const ToolItem = (props: ItemProps) => {
         </View>
       </View>
 
-      <View className="bg-white  dark:bg-accent2 p-3 rounded-xl w-full">
+      <View className="flex-1 w-full bg-white  dark:bg-accent2 p-3 rounded-xl">
         <CText
           className="uppercase text-[1.23rem]"
           style={{ fontFamily: "bold" }}
@@ -164,17 +164,26 @@ const ToolItem = (props: ItemProps) => {
             ? item?.tool?.arguments?.tool?.replace("_", " ").replace("-", " ")
             : item?.tool?.action?.replace("_", " ").replace("-", " ")}
         </CText>
-        <View className="p-2 flex-1 flex-row justify-between">
+        <View
+          className="p-2 w-full flex flex-row justify-between border border-grey/0 overflow-hidden ">
           <View>
             {params?.map((param: any, index: number) => (
               <View
                 key={index}
-                className="flex flex-row items-center justify-start gap-x-4"
+                className="flex flex-row  items-center justify-start gap-x-1"
               >
                 <CText className="text-[1rem] uppercase">
-                  {param.replace("_", " ").replace("-", " ")}
+                  {param.replace("_", " ").replace("-", " ")}{": "}
                 </CText>
-                <CText className="text-[1rem]">
+
+                <CText
+                  ellipsizeMode="tail"
+                  numberOfLines={1}
+                  style={{
+                    flexShrink: 1,
+                    minWidth: 0
+                  }}
+                  className="text-[1rem]">
                   {item?.tool?.arguments.parameter
                     ? item.tool.arguments?.parameter[param]
                     : item.tool.arguments[param]}
@@ -205,7 +214,7 @@ const ToolItem = (props: ItemProps) => {
         <ProductDetails
           productDetails={item?.product_details}
           sessionManager={sessionManager}
-          source={item?.source ?? "crossmint"}
+          source={item?.source ?? (item?.tool?.action?.includes("jumia") ? "jumia" : "crossmint")}
         />
       )}
     </View>

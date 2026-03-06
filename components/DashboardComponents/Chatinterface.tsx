@@ -201,7 +201,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
         <ScrollView
           ref={scrollViewRef}
           className="py-2 flex-1 gap-y-4"
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
             scrollViewRef.current?.scrollToEnd({ animated: true })
