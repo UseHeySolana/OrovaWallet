@@ -9,11 +9,23 @@ import Buttons from "../ButtonComp";
 interface ProductDetailsProps {
   productDetails: any;
   sessionManager: any;
+  /** "jumia" | "crossmint" - used to send the correct order command */
+  source?: string;
 }
 const ProductDetails = (props: ProductDetailsProps) => {
-  const { productDetails, sessionManager } = props;
+  const { productDetails, sessionManager, source = "crossmint" } = props;
   const [showModal, setShowModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  const displayPrice =
+    typeof productDetails?.price === "object" && productDetails?.price?.current != null
+      ? productDetails.price.current
+      : productDetails?.price ?? 0;
+  const displayCurrency =
+    typeof productDetails?.price === "object" && productDetails?.price?.currency
+      ? productDetails.price.currency
+      : productDetails?.currency ?? "";
+  const rating = Number(productDetails?.rating) || 0;
 
   return (
     <>
@@ -63,20 +75,20 @@ const ProductDetails = (props: ProductDetailsProps) => {
               </CText>
               <View className="flex flex-row justify-between items-center">
                 <CText className="text-[10px]" style={{ fontFamily: "bold" }}>
-                  {productDetails?.currency}
+                  {displayCurrency}
                   <CText style={{ fontFamily: "bold" }}>
-                    {productDetails?.price}
+                    {displayPrice}
                   </CText>
                 </CText>
 
                 <View className="flex flex-row justify-start items-center ">
+                  {Array.from({ length: Math.min(5, Math.round(rating)) }).map(
+                    (_, index) => (
+                      <IconLibrary.star color="#FFD700" size={12} key={index} />
+                    )
+                  )}
                   {Array.from({
-                    length: productDetails?.rating?.toFixed(0),
-                  }).map((_, index) => (
-                    <IconLibrary.star color="#FFD700" size={12} key={index} />
-                  ))}
-                  {Array.from({
-                    length: 5 - productDetails?.rating?.toFixed(0),
+                    length: 5 - Math.min(5, Math.round(rating)),
                   }).map((_, index) => (
                     <IconLibrary.star color="grey" size={12} key={index} />
                   ))}
@@ -85,7 +97,7 @@ const ProductDetails = (props: ProductDetailsProps) => {
                     style={{ fontFamily: "reg" }}
                     className="text-[1.2rem]"
                   >
-                    {productDetails?.rating?.toFixed(1)}
+                    {rating.toFixed(1)}
                   </CText>
                 </View>
               </View>
@@ -93,9 +105,18 @@ const ProductDetails = (props: ProductDetailsProps) => {
               <Buttons
                 text="Purchase"
                 onPress={() => {
-                  sessionManager?.sendTextMessage(
-                    `Create order for product ${productDetails?.asin}`
-                  );
+                  if (source === "jumia") {
+                    const link = productDetails?.link ?? productDetails?.asin ?? productDetails?.url;
+                    const name = productDetails?.name ?? "Product";
+                    const price = productDetails?.price?.current ?? productDetails?.price ?? 0;
+                    sessionManager?.sendTextMessage(
+                      `Place Jumia order for this product: link ${link}, name ${name}, quantity 1, unit price ${price} NGN.`
+                    );
+                  } else {
+                    sessionManager?.sendTextMessage(
+                      `Create Amazon order for product ${productDetails?.asin}`
+                    );
+                  }
                 }}
               />
             </View>
@@ -116,7 +137,7 @@ const ProductDetails = (props: ProductDetailsProps) => {
             className="flex flex-col items-center justify-center bg-black/50 w-full h-full"
           >
             <Image
-              source={{ uri: selectedImage }}
+              source={{ uri: selectedImage || "" }}
               style={{ width: "100%", height: "100%" }}
               contentFit="contain"
             />

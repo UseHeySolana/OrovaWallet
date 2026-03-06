@@ -23,6 +23,7 @@ const toolRouter = (SessionManager: SessionManager) => {
 
     // Jumia
     new JumiaTool(SessionManager).searchJumiaProducts,
+    new JumiaTool(SessionManager).getJumiaProductDetails,
     new JumiaTool(SessionManager).placeJumiaOrder,
   ];
 };

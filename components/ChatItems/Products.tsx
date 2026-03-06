@@ -17,10 +17,11 @@ import { useAi } from "@/context/AiContext";
 interface ProductProps {
   products: any;
   sessionManager: any;
+  source: string;
 }
 
 const Products = (props: ProductProps) => {
-  const { products, sessionManager } = props;
+  const { products, sessionManager, source } = props;
 
   return (
     <>
@@ -87,8 +88,9 @@ const Products = (props: ProductProps) => {
                   <Buttons
                     text="Select"
                     onPress={() => {
+                      console.log("SOURCE", source);
                       sessionManager?.sendTextMessage(
-                        `Select product ${product?.asin} and fetch the details`
+                        `Select product ${product?.asin} and fetch the details from ${source}`
                       );
                     }}
                   />

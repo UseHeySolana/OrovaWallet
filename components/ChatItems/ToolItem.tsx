@@ -113,7 +113,9 @@ const ToolItem = (props: ItemProps) => {
           <View>
             {item.tool ? (
               <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
-                {item?.tool?.action?.includes("amazon")
+                {item?.tool?.action?.includes("jumia")
+                  ? "Jumia"
+                  : item?.tool?.action?.includes("amazon")
                   ? "Crossmint"
                   : item?.tool?.action?.includes("airtime")
                     ? "AirBills"
@@ -196,13 +198,14 @@ const ToolItem = (props: ItemProps) => {
       </View>
 
       {item?.product && (
-        <Products products={item?.product} sessionManager={sessionManager} />
+        <Products products={item?.product} sessionManager={sessionManager} source={item?.source} />
       )}
 
       {item?.product_details && (
         <ProductDetails
           productDetails={item?.product_details}
           sessionManager={sessionManager}
+          source={item?.source ?? "crossmint"}
         />
       )}
     </View>

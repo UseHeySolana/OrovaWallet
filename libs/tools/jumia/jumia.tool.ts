@@ -5,7 +5,7 @@ import ToolsItem from "@/utils/store/toolsitems.store";
 import Convo from "@/utils/store/conversation.store";
 import { completeConversation } from "@/utils/functions";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
-import { searchJumiaProducts, placeJumiaOrder, type JumiaProduct, type JumiaInlineAddress } from "@/services/jumiaApi";
+import { searchJumiaProducts, placeJumiaOrder, getJumiaProductDetails, type JumiaProduct, type JumiaInlineAddress } from "@/services/jumiaApi";
 
 const JUMIA_APP_NAME = "Jumia Online Shopping";
 const JUMIA_CONFIG_TYPE = "ecommerce";
@@ -45,10 +45,12 @@ function getJumiaDeliveryAddress(): JumiaInlineAddress | null {
 export class JumiaTool {
   public searchJumiaProducts: FunctionParams;
   public placeJumiaOrder: FunctionParams;
+  public getJumiaProductDetails: FunctionParams;
 
   constructor(public session: SessionManager) {
     this.searchJumiaProducts = this.search_products();
     this.placeJumiaOrder = this.place_order();
+    this.getJumiaProductDetails = this.jumia_product_details();
   }
 
   search_products(): FunctionParams {
@@ -77,26 +79,24 @@ export class JumiaTool {
             return convertSpeech("No products found for that search. Try a different query.");
           }
           const productList = products.map((p: JumiaProduct, i: number) => ({
-            index: i + 1,
             name: p.name,
+            asin: p.url || "",
             price: p.price?.current ?? 0,
             currency: p.price?.currency ?? "NGN",
-            link: p.link || p.url,
-            product_id: p.link || p.url || `jumia-${i}`,
+            link: p.link || "",
+            image: p.image || "",
+            rating: p.rating || 0,
           }));
           if (messageId) {
             Convo.getState().updateMessage({
               messageId,
-              productUpdates: { items: productList, source: "jumia" },
+              productUpdates: productList,
+              source: "jumia",
             });
             completeConversation(messageId, "complete");
           }
-          const summary = productList
-            .slice(0, 10)
-            .map((p) => `${p.index}. ${p.name} — NGN ${Number(p.price).toLocaleString("en-NG")}`)
-            .join("\n");
           return convertSpeech(
-            `I found ${products.length} products. Here are the first 10:\n\n${summary}\n\nAsk the user which product they want to order (by number or name), then use place-jumia-order with that product's details.`
+            `Kindly choose which of the products you want to purchase from.`
           );
         } catch (e) {
           const err = e instanceof Error ? e.message : "Search failed";
@@ -164,6 +164,63 @@ export class JumiaTool {
         } catch (e) {
           const err = e instanceof Error ? e.message : "Failed to place order";
           return `Failed to place order: ${err}`;
+        }
+      },
+    };
+  }
+
+  /**
+   * Get Jumia product details and show in UI. Use when user selected a Jumia product
+   * or asked to fetch details from Jumia (not Amazon/Crossmint).
+   */
+  jumia_product_details(): FunctionParams {
+    return {
+      name: "get-jumia-product-details",
+      description:
+        "Get full details of a product from Jumia. Use this when the user selected a Jumia product or asked to fetch details from Jumia (not Amazon). Requires the product link/URL from the Jumia search results.",
+      parameters: {
+        type: "object",
+        properties: {
+          product_link: {
+            type: "string",
+            description: "The Jumia product URL or link from search results",
+          },
+        },
+        required: ["product_link"],
+      },
+      handler: async (args: { product_link: string }) => {
+        const messageId = this.session.functionMessageId;
+        if (!messageId) return "No message id found";
+        try {
+          const details = await getJumiaProductDetails(args.product_link);
+          const priceNum =
+            typeof details.price === "object" && details.price?.current != null
+              ? details.price.current
+              : Number(details.price) || 0;
+          const currency =
+            typeof details.price === "object" && details.price?.currency
+              ? details.price.currency
+              : "NGN";
+          const link = details.link ?? details.url ?? args.product_link;
+          Convo.getState().updateProductDetails(messageId, {
+            name: details.name,
+            brand: details.brand,
+            price: priceNum,
+            currency,
+            rating: details.rating ?? 0,
+            images: details.images ?? [],
+            asin: link,
+            link,
+            url: details.url ?? link,
+          });
+          completeConversation(messageId, "complete");
+          return convertSpeech(
+            "Here are the product details. You can purchase this item when ready."
+          );
+        } catch (e) {
+          const err = e instanceof Error ? e.message : "Failed to load product details";
+          if (messageId) completeConversation(messageId, "failed");
+          return `Failed to get product details: ${err}`;
         }
       },
     };
