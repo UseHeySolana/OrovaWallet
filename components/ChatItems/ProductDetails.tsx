@@ -5,7 +5,7 @@ import { Pressable, View } from "react-native";
 import CText from "../TextComp";
 import IconLibrary from "@/utils/icons";
 import Buttons from "../ButtonComp";
-import DragableSheet from "@/components/CustomItems/DragableSheet";
+import DragableSheetModal from "@/components/CustomItems/DragableSheetModal";
 
 interface ProductDetailsProps {
   productDetails: any;
@@ -127,7 +127,7 @@ const ProductDetails = (props: ProductDetailsProps) => {
       )}
 
       {summarySheetOpen && (
-        <DragableSheet
+        <DragableSheetModal
           close={() => setSummarySheetOpen(false)}
           panClose
           snapPoints={["45%", "55%"]}
@@ -166,7 +166,7 @@ const ProductDetails = (props: ProductDetailsProps) => {
                 />
                 <Buttons
                   text="Proceed with payment"
-                  type="primary"
+                  type="secondary"
                   onPress={() => {
                     setSummarySheetOpen(false);
                     if (source === "jumia") {

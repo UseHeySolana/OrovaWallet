@@ -6,6 +6,7 @@ import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-google-fonts/dm-sans";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { AiServiceProvider } from "@/context/AiContext";
@@ -72,8 +73,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider style={{ flex: 1 }}>
-        <KeyboardProvider>
-          <ThemeProvider>
+        <BottomSheetModalProvider>
+          <KeyboardProvider>
+            <ThemeProvider>
             <AiServiceProvider>
               <PIPManager>
                 <PIPDeepLinkHandler />
@@ -84,6 +86,7 @@ export default function RootLayout() {
             </AiServiceProvider>
           </ThemeProvider>
         </KeyboardProvider>
+        </BottomSheetModalProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
