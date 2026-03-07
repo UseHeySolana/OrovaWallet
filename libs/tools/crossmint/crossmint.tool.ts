@@ -10,6 +10,7 @@ import { completeConversation } from "@/utils/functions";
 import { crossmint } from "@/libs/tools/crossmint/crossmint";
 import { extractImportantInfo } from "@/utils/functions/functions";
 import { BASE_URL } from "@/utils/constant";
+import { getPublicSettings } from "@/services/settingsApi";
 
 export class Crossmint {
   public searchProductsAmazon: FunctionParams;
@@ -50,17 +51,59 @@ export class Crossmint {
         if (BASE_URL && payerAddress) {
           try {
             const data = response.data as Record<string, unknown> | undefined;
+            const createOrderResponse = response as {
+              recipient?: { email?: string; physicalAddress?: Record<string, string> };
+            };
+            // Recipient is returned by createOrder (our code), or may be echoed in API response
+            const recipient =
+              createOrderResponse.recipient ??
+              (data?.recipient as { email?: string; physicalAddress?: Record<string, string> } | undefined);
+
+            const totalRaw =
+              data?.totalAmount ??
+              data?.amount ??
+              data?.total ??
+              (data?.cost as Record<string, unknown>)?.total ??
+              (data as Record<string, unknown>)?.orderTotal;
+            const totalNum =
+              totalRaw != null
+                ? typeof totalRaw === "number"
+                  ? totalRaw
+                  : typeof totalRaw === "string"
+                    ? parseFloat(totalRaw)
+                    : null
+                : null;
+            const totalAmount =
+              totalNum != null && !Number.isNaN(totalNum) ? totalNum : null;
+            const currency =
+              (data?.currency as string) ??
+              (data?.currencyCode as string) ??
+              "USD";
+
+            const body = {
+              wallet_address: payerAddress,
+              crossmint_order_id:
+                (data?.id as string) ??
+                (data?.orderId as string) ??
+                (data?.order_id as string) ??
+                null,
+              asin: args.asin,
+              total_amount: totalAmount,
+              currency,
+              raw_response: data ?? null,
+              recipient_email: recipient?.email ?? null,
+              recipient: recipient
+                ? {
+                    email: recipient.email ?? null,
+                    physicalAddress: recipient.physicalAddress ?? null,
+                  }
+                : null,
+            };
+
             await fetch(`${BASE_URL}/crossmint/wallet/orders`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                wallet_address: payerAddress,
-                crossmint_order_id: data?.id ?? data?.orderId ?? null,
-                asin: args.asin,
-                total_amount: data?.totalAmount ?? data?.amount ?? null,
-                currency: (data?.currency as string) ?? "USD",
-                raw_response: data ?? null,
-              }),
+              body: JSON.stringify(body),
             });
           } catch (_) {
             // non-blocking: order already created on Crossmint
@@ -108,16 +151,28 @@ export class Crossmint {
         if (!messageId) return "No message id found";
         const response = await crossmint.search.amazon.search(args.name);
         const items = response.data.results;
-
-        const products = items.map((item: any) => ({
-          name: item.name,
-          asin: item.asin,
-          price: item.price,
-          currency: item.price_symbol,
-          image: item.image,
-          link: item.url,
-          rating: item.stars,
-        }));
+        let deliveryFeeUsd = 0;
+        try {
+          const publicSettings = await getPublicSettings();
+          deliveryFeeUsd = publicSettings.delivery_fee_crossmint_usd ?? 0;
+        } catch {
+          // use 0 if settings fail
+        }
+        const products = items.map((item: any) => {
+          const basePrice = typeof item.price === "number" ? item.price : Number(item.price) || 0;
+          const totalPrice = basePrice + deliveryFeeUsd;
+          return {
+            name: item.name,
+            asin: item.asin,
+            price: totalPrice,
+            base_price: basePrice,
+            delivery_fee: deliveryFeeUsd,
+            currency: item.price_symbol ?? "USD",
+            image: item.image,
+            link: item.url,
+            rating: item.stars,
+          };
+        });
 
         Convo.getState().updateMessage({
           messageId: messageId,
@@ -128,7 +183,7 @@ export class Crossmint {
         completeConversation(messageId, "complete");
 
         return convertSpeech(
-          `Kindly choose which of the products you want to purchase from.`
+          `Kindly choose which of the products you want to purchase from. products: ${JSON.stringify(products)}`
         );
       },
     };
@@ -158,11 +213,29 @@ export class Crossmint {
         const product = items;
 
         const productInfo = extractImportantInfo(product);
+        let deliveryFeeUsd = 0;
+        try {
+          const publicSettings = await getPublicSettings();
+          deliveryFeeUsd = publicSettings.delivery_fee_crossmint_usd ?? 0;
+        } catch {
+          // use 0 if settings fail
+        }
+        const rawPrice = productInfo.price;
+        const basePrice =
+          typeof rawPrice === "number" && !Number.isNaN(rawPrice)
+            ? rawPrice
+            : typeof rawPrice === "string"
+              ? parseFloat(rawPrice.replace(/[^0-9.]/g, "")) || 0
+              : Number(rawPrice) || 0;
+        const totalPrice = basePrice + deliveryFeeUsd;
 
         Convo.getState().updateProductDetails(messageId, {
           name: productInfo.name,
           brand: productInfo.brand,
-          price: productInfo.price,
+          price: totalPrice,
+          base_price: basePrice,
+          delivery_fee: deliveryFeeUsd,
+          currency: "USD",
           rating: productInfo.rating,
           reviews: productInfo.reviews,
           topReview: productInfo.topReview,

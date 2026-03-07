@@ -139,9 +139,13 @@ export async function placeJumiaOrder(
     { wallet_address: walletAddress, ...payload },
     "/jumia/wallet/orders"
   );
-  const data = await res.json();
+  const data = await res.json().catch(() => ({})) as { message?: string; error?: string; errors?: Record<string, string[]> };
   if (!res.ok) {
-    throw new Error((data as { message?: string })?.message || "Failed to place order");
+    const msg = data?.message || "Failed to place order";
+    const errList = data?.errors ? Object.entries(data.errors).flatMap(([k, v]) => (Array.isArray(v) ? v : [v]).map((e) => `${k}: ${e}`)) : [];
+    const serverErr = data?.error ? ` ${data.error}` : "";
+    const full = [errList.length ? `${msg} (${errList.join("; ")})` : msg, serverErr].filter(Boolean).join(".");
+    throw new Error(full.trim() || "Failed to place order");
   }
   const order = (data as { data?: { order_number?: string; id?: number; total_amount_ngn?: number; amount_usd?: number | null } }).data;
   return {
