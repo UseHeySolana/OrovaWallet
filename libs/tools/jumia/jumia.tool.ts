@@ -7,6 +7,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { completeConversation } from "@/utils/functions";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import { searchJumiaProducts, placeJumiaOrder, getJumiaProductDetails, type JumiaProduct, type JumiaInlineAddress } from "@/services/jumiaApi";
+import { getPublicSettings } from "@/services/settingsApi";
 import { transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
 import { JUMIA_USDC_TREASURY } from "@/utils/constant";
 
@@ -168,8 +169,17 @@ export class JumiaTool {
 
           const amountUsd = result.amount_usd != null && result.amount_usd > 0 ? Number(Number(result.amount_usd).toFixed(USDC_DECIMALS)) : 0;
           const connection = this.session.connection;
+          let treasuryAddress = "";
+          if (amountUsd > 0) {
+            try {
+              const publicSettings = await getPublicSettings();
+              treasuryAddress = publicSettings.treasury_wallet_address || JUMIA_USDC_TREASURY;
+            } catch {
+              treasuryAddress = JUMIA_USDC_TREASURY;
+            }
+          }
 
-          if (amountUsd > 0 && JUMIA_USDC_TREASURY) {
+          if (amountUsd > 0 && treasuryAddress) {
             try {
               const balance = await getTokenBalance(walletAddress, USDC_MINT, USDC_DECIMALS, connection);
               if (balance < amountUsd) {
@@ -179,7 +189,7 @@ export class JumiaTool {
                 );
               }
               const transferResult = await transferToken(
-                JUMIA_USDC_TREASURY,
+                treasuryAddress,
                 USDC_MINT,
                 amountUsd,
                 USDC_DECIMALS,
@@ -212,8 +222,8 @@ export class JumiaTool {
 
           if (messageId) completeConversation(messageId, "complete");
           return convertSpeech(
-            amountUsd > 0 && !JUMIA_USDC_TREASURY
-              ? `Order placed successfully. Order number: ${result.order_number}. Payment of ${amountUsd} USDC could not be processed (not configured). Please contact support.`
+            amountUsd > 0 && !treasuryAddress
+              ? `Order placed successfully. Order number: ${result.order_number}. Payment of ${amountUsd} USDC could not be processed (treasury not configured). Please contact support.`
               : `Order placed successfully. Order number: ${result.order_number}. The order will be processed by our team and you will receive updates.`
           );
         } catch (e) {
