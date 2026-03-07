@@ -5,6 +5,7 @@ import { Pressable, View } from "react-native";
 import CText from "../TextComp";
 import IconLibrary from "@/utils/icons";
 import Buttons from "../ButtonComp";
+import DragableSheet from "@/components/CustomItems/DragableSheet";
 
 interface ProductDetailsProps {
   productDetails: any;
@@ -15,16 +16,30 @@ interface ProductDetailsProps {
 const ProductDetails = (props: ProductDetailsProps) => {
   const { productDetails, sessionManager, source = "crossmint" } = props;
   const [showModal, setShowModal] = useState(false);
+  const [summarySheetOpen, setSummarySheetOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const displayPrice =
-    typeof productDetails?.price === "object" && productDetails?.price?.current != null
-      ? productDetails.price.current
-      : productDetails?.price ?? 0;
+  // Price: support object { current }, or numeric total; ensure item price is never 0 when we have a total
+  const priceObj = productDetails?.price;
+  const numericTotal =
+    typeof priceObj === "number" && !Number.isNaN(priceObj)
+      ? priceObj
+      : typeof priceObj === "object" && priceObj?.current != null
+        ? Number(priceObj.current)
+        : Number(priceObj) || 0;
+  const deliveryFee = productDetails?.delivery_fee != null ? Number(productDetails.delivery_fee) : 0;
+  const explicitBase = productDetails?.base_price != null ? Number(productDetails.base_price) : NaN;
+  const basePrice =
+    !Number.isNaN(explicitBase) && explicitBase > 0
+      ? explicitBase
+      : numericTotal >= deliveryFee
+        ? numericTotal - deliveryFee
+        : numericTotal;
+  const displayPrice = basePrice + deliveryFee;
   const displayCurrency =
-    typeof productDetails?.price === "object" && productDetails?.price?.currency
-      ? productDetails.price.currency
-      : productDetails?.currency ?? "";
+    typeof priceObj === "object" && priceObj?.currency
+      ? priceObj.currency
+      : productDetails?.currency ?? (source === "jumia" ? "NGN" : "USD");
   const rating = Number(productDetails?.rating) || 0;
 
   return (
@@ -104,24 +119,74 @@ const ProductDetails = (props: ProductDetailsProps) => {
 
               <Buttons
                 text="Purchase"
-                onPress={() => {
-                  if (source === "jumia") {
-                    const link = productDetails?.link ?? productDetails?.asin ?? productDetails?.url;
-                    const name = productDetails?.name ?? "Product";
-                    const price = productDetails?.price?.current ?? productDetails?.price ?? 0;
-                    sessionManager?.sendTextMessage(
-                      `Place Jumia order for this product: link ${link}, name ${name}, quantity 1, unit price ${price} NGN.`
-                    );
-                  } else {
-                    sessionManager?.sendTextMessage(
-                      `Create Amazon order for product ${productDetails?.asin}`
-                    );
-                  }
-                }}
+                onPress={() => setSummarySheetOpen(true)}
               />
             </View>
           </View>
         </View>
+      )}
+
+      {summarySheetOpen && (
+        <DragableSheet
+          close={() => setSummarySheetOpen(false)}
+          panClose
+          snapPoints={["45%", "55%"]}
+          child={
+            <View className="py-2 w-full gap-y-4">
+              <CText style={{ fontFamily: "bold" }} className="text-lg">
+                Confirm payment
+              </CText>
+              <CText className="text-sm text-gray-600 dark:text-gray-400">
+                Do you want to proceed with this payment?
+              </CText>
+              <CText className="text-sm" numberOfLines={2}>
+                {productDetails?.name?.slice(0, 60)}
+                {(productDetails?.name?.length ?? 0) > 60 ? "…" : ""}
+              </CText>
+              <View className="border-t border-grey/20 dark:border-white/10 pt-3 mt-1">
+                <View className="flex-row justify-between mb-2">
+                  <CText className="text-sm">Item price</CText>
+                  <CText className="text-sm">{displayCurrency} {basePrice.toLocaleString()}</CText>
+                </View>
+                <View className="flex-row justify-between mb-2">
+                  <CText className="text-sm">Delivery fee</CText>
+                  <CText className="text-sm">{displayCurrency} {deliveryFee.toLocaleString()}</CText>
+                </View>
+                <View className="flex-row justify-between pt-2 border-t border-grey/20 dark:border-white/10">
+                  <CText className="text-sm" style={{ fontFamily: "bold" }}>Total</CText>
+                  <CText className="text-sm" style={{ fontFamily: "bold" }}>{displayCurrency} {displayPrice.toLocaleString()}</CText>
+                </View>
+              </View>
+              <View className="flex-row gap-2 mt-2">
+                <Buttons
+                  type="secondary"
+                  text="Cancel"
+                  onPress={() => setSummarySheetOpen(false)}
+                  className="flex-1 py-3"
+                />
+                <Buttons
+                  text="Proceed with payment"
+                  type="primary"
+                  onPress={() => {
+                    setSummarySheetOpen(false);
+                    if (source === "jumia") {
+                      const link = productDetails?.link ?? productDetails?.asin ?? productDetails?.url;
+                      const name = productDetails?.name ?? "Product";
+                      sessionManager?.sendTextMessage(
+                        `Place Jumia order for this product: link ${link}, name ${name}, quantity 1, unit price ${basePrice} NGN.`
+                      );
+                    } else {
+                      sessionManager?.sendTextMessage(
+                        `Create Amazon order for product ${productDetails?.asin}`
+                      );
+                    }
+                  }}
+                  className="flex-1 py-3"
+                />
+              </View>
+            </View>
+          }
+        />
       )}
 
       {showModal && (

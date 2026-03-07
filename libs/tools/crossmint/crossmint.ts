@@ -61,14 +61,32 @@ const crossmint = {
     }) => {
       const url = `${crossmint.baseUrl}/orders`;
 
+      // --- Validate user details before proceeding ---
+      const emailParam = ToolsItem.getState().getToolParameters(
+        "Crossmint",
+        "tracking email"
+      )[0];
+      const email = emailParam?.value?.trim()?.toLowerCase();
+      if (!email) {
+        return {
+          status: false,
+          message:
+            "Your tracking email is not set. Please set it in the app settings (Crossmint → tracking email) before placing an order.",
+        };
+      }
+
       const params = ToolsItem.getState().getToolParameters(
         "Crossmint",
         "Agentic Commerce"
       );
-
-      const email = ToolsItem.getState()
-        .getToolParameters("Crossmint", "tracking email")[0]
-        ?.value.toLowerCase();
+      const requiredAddressFields = ["name", "line1", "city", "state", "postalCode", "country"];
+      if (!params?.length) {
+        return {
+          status: false,
+          message:
+            "Your delivery address is not set. Please set it in the app settings (Crossmint → Agentic Commerce) before placing an order.",
+        };
+      }
 
       let address = {
         name: "",
@@ -80,20 +98,31 @@ const crossmint = {
       };
 
       for (const param of params) {
-        if (param.value === "") {
+        if (param.value === "" || !String(param.value).trim()) {
           return {
             status: false,
-            message: `Your ${param.type} for your delivery address is not set, please set it first`,
+            message: `Your ${param.type} for your delivery address is not set. Please complete your delivery address in the app settings (Crossmint → Agentic Commerce) before placing an order.`,
           };
         }
         address[param.type as keyof typeof address] = param.value;
       }
 
+      const missingAddressFields = requiredAddressFields.filter(
+        (field) => !address[field as keyof typeof address]?.trim()
+      );
+      if (missingAddressFields.length > 0) {
+        return {
+          status: false,
+          message: `Your delivery address is incomplete. Please set ${missingAddressFields.join(", ")} in the app settings (Crossmint → Agentic Commerce) before placing an order.`,
+        };
+      }
+
+      const recipient = {
+        email,
+        physicalAddress: address,
+      };
       const data = {
-        recipient: {
-          email,
-          physicalAddress: address,
-        },
+        recipient,
         payment: {
           method: "solana",
           payerAddress: payerAddress,
@@ -105,14 +134,6 @@ const crossmint = {
         ],
       };
 
-      console.log(data);
-      return {
-        status: true,
-        data,
-        message: "Order created successfully",
-        orderId: "1234567890",
-      };
-
       try {
         const response = await request.postJsonRan(data, url, {
           "X-API-KEY": CROSSMINT_API_KEY,
@@ -121,7 +142,13 @@ const crossmint = {
           const result = await response.json();
           return { status: false, message: result.message };
         }
-        return { status: true, data: await response.json() };
+        const responseData = await response.json();
+        return {
+          status: true,
+          data: responseData,
+          message: "Order created successfully",
+          recipient,
+        };
       } catch (error) {
         console.log(error);
         return { status: false, message: error };

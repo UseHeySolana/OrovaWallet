@@ -1,6 +1,7 @@
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
+import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import Convo from "@/utils/store/conversation.store";
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -28,7 +29,7 @@ function getJumiaDeliveryAddress(): JumiaInlineAddress | null {
     ToolsItem.getState().getParameterValue(JUMIA_APP_NAME, JUMIA_CONFIG_TYPE, paramType)?.trim() ?? "";
   const full_name = get("Address Name");
   const email = get("email");
-  const phone_number = get("phone_number");
+  const phone_number = UserItem.getState().user?.mobileNumber?.trim() ?? "";
   const address_line_1 = get("address_line_1");
   const city = get("city");
   const state = get("state");
@@ -85,15 +86,28 @@ export class JumiaTool {
           if (products.length === 0) {
             return convertSpeech("No products found for that search. Try a different query.");
           }
-          const productList = products.map((p: JumiaProduct, i: number) => ({
-            name: p.name,
-            asin: p.url || "",
-            price: p.price?.current ?? 0,
-            currency: p.price?.currency ?? "NGN",
-            link: p.link || "",
-            image: p.image || "",
-            rating: p.rating || 0,
-          }));
+          let deliveryFeeNgn = 0;
+          try {
+            const publicSettings = await getPublicSettings();
+            deliveryFeeNgn = publicSettings.delivery_fee_jumia_ngn ?? 0;
+          } catch {
+            // use 0 if settings fail
+          }
+          const productList = products.map((p: JumiaProduct) => {
+            const basePrice = p.price?.current ?? 0;
+            const totalPrice = basePrice + deliveryFeeNgn;
+            return {
+              name: p.name,
+              asin: p.url || "",
+              price: totalPrice,
+              base_price: basePrice,
+              delivery_fee: deliveryFeeNgn,
+              currency: p.price?.currency ?? "NGN",
+              link: p.link || "",
+              image: p.image || "",
+              rating: p.rating || 0,
+            };
+          });
           if (messageId) {
             Convo.getState().updateMessage({
               messageId,
@@ -103,7 +117,7 @@ export class JumiaTool {
             completeConversation(messageId, "complete");
           }
           return convertSpeech(
-            `Kindly choose which of the products you want to purchase from.`
+            `Kindly choose which of the products you want to purchase from. products: ${JSON.stringify(productList)}`
           );
         } catch (e) {
           const err = e instanceof Error ? e.message : "Search failed";
@@ -148,7 +162,7 @@ export class JumiaTool {
         }
         const address = getJumiaDeliveryAddress();
         if (!address) {
-          return "Delivery details are not set. Ask the user to go to Settings → Apps → Jumia Online Shopping and fill in their delivery address (name, email, phone, address, city, state, postal code, country).";
+          return "Delivery details are not set. Ask the user to go to Settings → Apps → Jumia Online Shopping and fill in their delivery address (name, email, address, city, state, postal code, country). Ensure their phone number is set in their profile.";
         }
         const walletAddress = WalletItem.getState().publicKey?.toString();
         if (!walletAddress) {
@@ -229,7 +243,7 @@ export class JumiaTool {
         } catch (e) {
           const err = e instanceof Error ? e.message : "Failed to place order";
           if (messageId) completeConversation(messageId, "failed");
-          return `Failed to place order: ${err}`;
+          return convertSpeech(`Failed to place order. ${err}`);
         }
       },
     };
@@ -267,11 +281,21 @@ export class JumiaTool {
             typeof details.price === "object" && details.price?.currency
               ? details.price.currency
               : "NGN";
+          let deliveryFeeNgn = 0;
+          try {
+            const publicSettings = await getPublicSettings();
+            deliveryFeeNgn = publicSettings.delivery_fee_jumia_ngn ?? 0;
+          } catch {
+            // use 0 if settings fail
+          }
+          const totalPrice = priceNum + deliveryFeeNgn;
           const link = details.link ?? details.url ?? args.product_link;
           Convo.getState().updateProductDetails(messageId, {
             name: details.name,
             brand: details.brand,
-            price: priceNum,
+            price: totalPrice,
+            base_price: priceNum,
+            delivery_fee: deliveryFeeNgn,
             currency,
             rating: details.rating ?? 0,
             images: details.images ?? [],
