@@ -51,6 +51,8 @@ class SessionManager {
   private flushHumanTimer: ReturnType<typeof setTimeout> | null = null;
   private flushAiTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly FLUSH_MS = 80;
+  /** Current in-flight response id; used to cancel and stop audio when user sends a new message */
+  private currentResponseId: string | null = null;
   // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
   public callbacks: {
     setMode: (mode: "loading" | "human" | "aispeaking") => void;
@@ -333,6 +335,7 @@ class SessionManager {
         }
 
         if (message.type === "response.created") {
+          this.currentResponseId = message.response?.id ?? null;
           this.callbacks.setMode("aispeaking");
         }
 
@@ -411,6 +414,10 @@ class SessionManager {
               this.activeAiMessageId = null;
             }, 200);
           }
+        }
+
+        if (message.type === "response.done") {
+          this.currentResponseId = null;
         }
 
         // Handle function calls from the model
@@ -682,6 +689,17 @@ class SessionManager {
     }
 
     try {
+      // When user sends a new message: stop current AI audio and cancel in-flight response
+      // so we move to the new item and the new response's audio plays instead.
+      if (this.currentResponseId) {
+        this.sendClientEvent({
+          type: "response.cancel",
+          response_id: this.currentResponseId,
+        });
+        this.sendClientEvent({ type: "output_audio_buffer.clear" });
+        this.currentResponseId = null;
+      }
+
       const event = {
         type: "conversation.item.create",
         item: {
