@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Heysolana: AI Wallet",
-    "slug": "heysolana-solana-mobile",
+    "name": "Heysolana",
+    "slug": "heysolana",
     "owner": "yraylabs",
-    "version": "1.0.1",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heysolana",
@@ -11,7 +11,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yraylabs.heysolana",
+      "bundleIdentifier": "com.maskyray.heysolana",
       "bitcode": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -32,12 +32,12 @@
       }
     },
     "android": {
-      "versionCode": 21,
+      "versionCode": 20,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yraylabs.heysolana",
+      "package": "com.maskyray.heysolana",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.WAKE_LOCK",
@@ -124,10 +124,10 @@
         "origin": false
       },
       "eas": {
-        "projectId": "aee792b8-12be-42be-aa93-d1dfa3b3d32d"
+        "projectId": "44e617dc-89eb-42b2-bcfc-79a78f074bd3"
       }
     },
-    "runtimeVersion": "1.0.1",
+    "runtimeVersion": "2.1.0",
     "updates": {
       "url": "https://u.expo.dev/44e617dc-89eb-42b2-bcfc-79a78f074bd3",
       "enabled": true,
