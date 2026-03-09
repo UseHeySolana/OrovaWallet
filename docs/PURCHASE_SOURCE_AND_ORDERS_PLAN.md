@@ -6,7 +6,7 @@
 - **Solution**:
   - **Source on message**: Search results already set `source: "jumia"` or `source: "crossmint"` on the message (in `conversation.store`).
   - **ProductDetails** now receives `source` from `ToolItem` (`item?.source ?? "crossmint"`):
-    - **Purchase button**: If `source === "jumia"` it sends: *"Place Jumia order for this product: link …, name …, quantity 1, unit price … NGN."* so the AI calls `place-jumia-order`. Otherwise it sends *"Create Amazon order for product [asin]"* for `create--order`.
+    - **Purchase button**: If `source === "jumia"` it sends: *"Place Jumia order for this product: link …, name …, quantity 1, unit price … NGN."* so the AI calls `place-jumia-order`. Otherwise it sends *"Create Amazon order for product [asin]"* for `create-order`.
   - **Jumia product details**: A separate tool **`get-jumia-product-details`** was added so the AI can fetch Jumia details when the user says "fetch the details from jumia". It uses `product_link`, calls your backend `/jumia/scrape/product-details`, then updates the same message with `updateProductDetails` so the UI shows details and the Purchase button uses Jumia.
   - **Products "Select"** already sends *"Select product … and fetch the details from ${source}"*, so the AI picks:
     - `get-jumia-product-details` when `source` is jumia,

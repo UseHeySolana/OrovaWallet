@@ -1,5 +1,6 @@
 import React from "react";
 import ConfirmActionSheetGlobal from "@/components/Sheets/ConfirmationSheetGlobal";
+import PurchaseConfirmationSheet from "@/components/Sheets/PurchaseConfirmationSheet";
 import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
@@ -101,6 +102,7 @@ export default function StackView() {
         {toast.show && <ToastModal type={toast.type} message={toast.message} />}
         {isLoading && <LoadingScreen />}
         <ConfirmActionSheetGlobal />
+        <PurchaseConfirmationSheet />
       </SafeAreaView>
     </>
   );

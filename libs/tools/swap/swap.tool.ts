@@ -187,6 +187,7 @@ export class SwapFunction {
 
                 const txid = await signTransactions({ tx: swapResponse.data.swapTransaction, type: "versioned" });
                 if (!txid.status) {
+                    if (messageId !== null) completeConversation(messageId, "failed");
                     return txid.message;
                 }
                 const confirmation = await this.session.connection.confirmTransaction(txid.message, "confirmed");
@@ -194,7 +195,7 @@ export class SwapFunction {
                 if (confirmation) {
                     const network = AppSettings.getState().networkShort
                     if (messageId !== null) {
-                        completeConversation(messageId, 'complete', `https://explorer.solana.com/tx/${txid}?cluster=${network}`)
+                        completeConversation(messageId, "complete", `https://explorer.solana.com/tx/${txid.message}?cluster=${network}`)
                     }
                     return await convertSpeech(`You have swapped ${amount} ${fromToken} for ${swapResponse.data.outputAmount} ${toToken} successfully`);
                 } else {

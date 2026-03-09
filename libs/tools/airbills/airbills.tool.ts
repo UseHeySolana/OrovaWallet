@@ -83,6 +83,8 @@ export class AirBills {
 
         const res = await signTransactions({ tx: result.data.ix });
         if (!res.status) {
+          const messageId = this.session.functionMessageId;
+          if (messageId !== null) completeConversation(messageId, "failed");
           return res.message;
         }
         const confirmation = await this.session.connection.confirmTransaction(
@@ -100,7 +102,7 @@ export class AirBills {
               completeConversation(
                 messageId,
                 "complete",
-                `https://explorer.solana.com/tx/${res}?cluster=${network}`
+                `https://explorer.solana.com/tx/${res.message}?cluster=${network}`
               );
             }
             return await convertSpeech(
@@ -205,6 +207,8 @@ export class AirBills {
 
         const res = await signTransactions({ tx: result.ix });
         if (!res.status) {
+          const messageId = this.session.functionMessageId;
+          if (messageId !== null) completeConversation(messageId, "failed");
           return res.message;
         }
         const confirmation = await this.session.connection.confirmTransaction(
@@ -224,11 +228,13 @@ export class AirBills {
               completeConversation(
                 messageId,
                 "complete",
-                `https://explorer.solana.com/tx/${res}?cluster=${network}`
+                `https://explorer.solana.com/tx/${res.message}?cluster=${network}`
               );
             }
             return await convertSpeech("Your airtime purchase is successfull");
           } else {
+            const messageId = this.session.functionMessageId;
+            if (messageId !== null) completeConversation(messageId, "failed");
             return await convertSpeech("Airtime purchase failed!");
           }
         } else {
