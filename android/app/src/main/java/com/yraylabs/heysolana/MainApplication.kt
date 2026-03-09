@@ -1,4 +1,4 @@
-package com.maskyray.heysolana
+package com.yraylabs.heysolana
 
 import android.app.Application
 import android.content.res.Configuration
