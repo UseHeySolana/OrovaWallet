@@ -1,4 +1,4 @@
-package com.maskyray.heysolana
+package com.yraylabs.heysolana
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
