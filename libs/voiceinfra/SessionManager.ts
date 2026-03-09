@@ -119,8 +119,6 @@ class SessionManager {
                 \n
             always map the username i am interacting to any of these, correct with right spelling always if the username doesn't fall you can use as provided.
                 \n
-                Todo Items are always identified by the slug of the title of the todo item. if the user provides the id, you should use the slug of the title of the todo item as the id.
-                \n
                  these are the list of sub tools supported and parameters,
                 ${JSON.stringify(
                   toolRouter(this).map((item) => ({
