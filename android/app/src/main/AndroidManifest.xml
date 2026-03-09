@@ -44,12 +44,11 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="heysolana"/>
-        <data android:scheme="exp+heysolana-solana-mobile"/>
+        <data android:scheme="exp+heysolana"/>
       </intent-filter>
       <intent-filter data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
         <data android:scheme="heysolana"/>
-        <data android:scheme="exp+heysolana-solana-mobile"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
