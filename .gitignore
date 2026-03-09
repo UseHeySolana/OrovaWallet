@@ -51,3 +51,8 @@ google-services.json
 /android/.gradle
 /android/app/build
 /android/build
+
+
+
+credentials.json
+dappstore.keystore
