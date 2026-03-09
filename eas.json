@@ -3,7 +3,8 @@
     "dapp-store": {
       "channel": "production",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "credentialsSource": "local"
       }
     },
     "test": {

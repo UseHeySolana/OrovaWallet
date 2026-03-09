@@ -3,7 +3,7 @@
     "name": "Heysolana: AI Wallet",
     "slug": "heysolana-solana-mobile",
     "owner": "yraylabs",
-    "version": "2.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heysolana",
@@ -127,7 +127,7 @@
         "projectId": "aee792b8-12be-42be-aa93-d1dfa3b3d32d"
       }
     },
-    "runtimeVersion": "2.1.0",
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/44e617dc-89eb-42b2-bcfc-79a78f074bd3",
       "enabled": true,
