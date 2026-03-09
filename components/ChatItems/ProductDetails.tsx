@@ -90,10 +90,7 @@ const ProductDetails = (props: ProductDetailsProps) => {
               </CText>
               <View className="flex flex-row justify-between items-center">
                 <CText className="text-[10px]" style={{ fontFamily: "bold" }}>
-                  {displayCurrency}
-                  <CText style={{ fontFamily: "bold" }}>
-                    {displayPrice}
-                  </CText>
+                  {displayCurrency} {displayPrice}
                 </CText>
 
                 <View className="flex flex-row justify-start items-center ">
@@ -159,14 +156,15 @@ const ProductDetails = (props: ProductDetailsProps) => {
               </View>
               <View className="flex-row gap-2 mt-2">
                 <Buttons
-                  type="secondary"
+                  // type="secondary"
                   text="Cancel"
                   onPress={() => setSummarySheetOpen(false)}
-                  className="flex-1 py-3"
+                  className="flex-1 py-3 rounded-full"
                 />
                 <Buttons
                   text="Proceed with payment"
-                  type="secondary"
+                  // type="primary"
+                  className="flex-grow py-3 rounded-full"
                   onPress={() => {
                     setSummarySheetOpen(false);
                     if (source === "jumia") {
@@ -181,7 +179,6 @@ const ProductDetails = (props: ProductDetailsProps) => {
                       );
                     }
                   }}
-                  className="flex-1 py-3"
                 />
               </View>
             </View>

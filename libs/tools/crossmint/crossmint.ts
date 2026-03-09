@@ -52,6 +52,7 @@ const crossmint = {
   },
 
   orders: {
+    /** @deprecated Wallet app uses backend POST /crossmint/wallet/orders/create (save then charge). Do not use Airbills for new orders. */
     createOrder: async ({
       payerAddress,
       asin,

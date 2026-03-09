@@ -9,6 +9,7 @@ import { completeConversation } from "@/utils/functions";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import { searchJumiaProducts, placeJumiaOrder, getJumiaProductDetails, type JumiaProduct, type JumiaInlineAddress } from "@/services/jumiaApi";
 import { getPublicSettings } from "@/services/settingsApi";
+import { requestPurchaseConfirmation } from "@/services/purchaseConfirmation";
 import { transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
 import { JUMIA_USDC_TREASURY } from "@/utils/constant";
 
@@ -168,6 +169,27 @@ export class JumiaTool {
         if (!walletAddress) {
           return "Wallet not available. Please connect your wallet.";
         }
+        let deliveryFeeNgn = 0;
+        try {
+          const publicSettings = await getPublicSettings();
+          deliveryFeeNgn = publicSettings.delivery_fee_jumia_ngn ?? 0;
+        } catch {
+          // use 0 if settings fail
+        }
+        const basePrice = Number(args.unit_price) * Math.max(1, Math.floor(args.quantity));
+        const confirmed = await requestPurchaseConfirmation({
+          productDetails: {
+            name: args.product_name,
+            base_price: basePrice,
+            delivery_fee: deliveryFeeNgn,
+            currency: "NGN",
+          },
+          source: "jumia",
+        });
+        if (!confirmed) {
+          if (messageId) completeConversation(messageId, "failed");
+          return convertSpeech("Purchase cancelled.");
+        }
         try {
           const result = await placeJumiaOrder(walletAddress, {
             delivery_address: address,
@@ -187,6 +209,7 @@ export class JumiaTool {
           if (amountUsd > 0) {
             try {
               const publicSettings = await getPublicSettings();
+              // Treasury is set by admin in the backend; fallback to env only if API fails
               treasuryAddress = publicSettings.treasury_wallet_address || JUMIA_USDC_TREASURY;
             } catch {
               treasuryAddress = JUMIA_USDC_TREASURY;

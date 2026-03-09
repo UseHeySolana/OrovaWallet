@@ -52,6 +52,7 @@ export class PajCash {
       },
 
       handler: async (args: { amount: number; token: string }) => {
+        const messageId = this.session.functionMessageId;
         const tokenBalance = getInTokenBalance(args.token);
 
         const tokens: any = this.session.userDetails.tokenAccounts.filter(
@@ -74,7 +75,7 @@ export class PajCash {
         const recipient = "PAJiUaKgxTBJVADc1wdiUygLd51biQPVB8KkJqYu53L";
 
         let confirmation = null;
-        let transfer = null;
+        let transfer: { status: boolean; message: string } | null = null;
 
         if (args.token.toLowerCase() == "sol") {
           transfer = await transferSol(
@@ -82,7 +83,10 @@ export class PajCash {
             args.amount,
             this.session.connection
           );
-
+          if (!transfer.status) {
+            if (messageId !== null) completeConversation(messageId, "failed");
+            return transfer.message;
+          }
           confirmation = await this.session.connection.confirmTransaction(
             transfer.message,
             "confirmed"
@@ -95,6 +99,10 @@ export class PajCash {
             tokens[0].decimals,
             this.session.connection
           );
+          if (!transfer.status) {
+            if (messageId !== null) completeConversation(messageId, "failed");
+            return transfer.message;
+          }
           confirmation = await this.session.connection.confirmTransaction(
             transfer.message,
             "confirmed"
@@ -102,18 +110,16 @@ export class PajCash {
         }
 
         if (confirmation) {
-          const messageId = this.session.functionMessageId;
           const network = AppSettings.getState().networkShort;
           if (messageId !== null) {
             completeConversation(
               messageId,
               "complete",
-              `https://explorer.solana.com/tx/${transfer.message}?cluster=${network}`
+              `https://explorer.solana.com/tx/${transfer!.message}?cluster=${network}`
             );
           }
           return `You have successfully Paj ${args.amount} ${args.token} to Naira`;
         } else {
-          const messageId = this.session.functionMessageId;
           if (messageId !== null) {
             completeConversation(messageId, "failed");
           }
@@ -145,7 +151,7 @@ export class PajCash {
       },
 
       handler: async (args: { amount: number; token: string }) => {
-        const userDetails = this.session.userDetails;
+        const messageId = this.session.functionMessageId;
 
         const tokenBalance = getInTokenBalance(args.token);
 
@@ -156,7 +162,10 @@ export class PajCash {
           this.baseUrl,
           args.amount
         );
-        if (!rateResponse.status) return "Failed to get naira rate";
+        if (!rateResponse.status) {
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return "Failed to get naira rate";
+        }
 
         const rateData = rateResponse.data;
 
@@ -166,6 +175,7 @@ export class PajCash {
 
         const userAmountFiat = rateData.amounts.userAmountFiat;
 
+        if (messageId !== null) completeConversation(messageId, "complete");
         return convertSpeech(
           `The amount of ${args.amount} ${args.token} is equivalent to ${userAmountFiat} NGN`
         );
