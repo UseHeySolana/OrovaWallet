@@ -4,6 +4,40 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// API URL to set in .env before bundling
+const BUILD_API_URL = 'https://hey.yraytestings.com.ng/api';
+
+// Function to set EXPO_PUBLIC_API_URL in .env before bundling
+function setEnvApiUrl() {
+  const envPath = path.join(__dirname, '..', '.env');
+  console.log('🔧 Setting EXPO_PUBLIC_API_URL in .env for build...');
+
+  let content;
+  try {
+    content = fs.readFileSync(envPath, 'utf8');
+  } catch (error) {
+    console.error('❌ Could not read .env:', error.message);
+    return false;
+  }
+
+  const targetLine = `EXPO_PUBLIC_API_URL=${BUILD_API_URL}`;
+  const urlRegex = /^EXPO_PUBLIC_API_URL=.*$/m;
+  const hasMatch = urlRegex.test(content);
+
+  const newContent = hasMatch
+    ? content.replace(urlRegex, targetLine)
+    : content.trimEnd() + (content.endsWith('\n') ? '' : '\n') + '\n' + targetLine + '\n';
+
+  try {
+    fs.writeFileSync(envPath, newContent);
+    console.log(`✅ EXPO_PUBLIC_API_URL set to ${BUILD_API_URL}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Could not write .env:', error.message);
+    return false;
+  }
+}
+
 // Function to increment version
 function incrementVersion(version) {
   const parts = version.split('.');
@@ -108,6 +142,12 @@ function main() {
   console.log('🎯 HeySolana Version Bump & Build Script');
   console.log('==========================================');
   
+  // Step 0: Set EXPO_PUBLIC_API_URL in .env before bundling
+  if (!setEnvApiUrl()) {
+    console.error('❌ Setting .env failed. Exiting...');
+    process.exit(1);
+  }
+
   // Step 1: Bump versions
   if (!bumpVersions()) {
     console.error('❌ Version bump failed. Exiting...');
@@ -135,6 +175,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  setEnvApiUrl,
   incrementVersion,
   bumpVersions,
   runPrebuild,

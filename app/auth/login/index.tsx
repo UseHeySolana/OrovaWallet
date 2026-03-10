@@ -95,7 +95,7 @@ export default function Login() {
       phone_number:
         "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber),
     };
-    const response = await getCode(data.phone_number);
+    const response = await getCode(data.phone_number, selectedValue.name);
     console.log(response);
     if (response.status !== false) {
       setUserDetails({

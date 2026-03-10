@@ -75,7 +75,7 @@ export default function Username() {
       username: userDetails.username,
       phone_number: "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber)
     }
-    const response = await registerUser(data.username, data.phone_number)
+    const response = await registerUser(data.username, data.phone_number, selectedValue.name)
     if (response.status !== false) {
       setCurrentState('set-pin')
       setLoading(false)
