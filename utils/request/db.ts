@@ -157,11 +157,16 @@ const handleSearch = (query: string, searchedItem: any[]) => {
  * @returns
  */
 
-const registerUser = async (username: string, phone_number: string) => {
-  const item = {
-    username: username,
-    phone_number: phone_number,
+const registerUser = async (
+  username: string,
+  phone_number: string,
+  country?: string
+) => {
+  const item: Record<string, string> = {
+    username,
+    phone_number,
   };
+  if (country) item.country = country;
   console.log(item);
 
   const response = await request.postJson(item, "/v2/register-users");
@@ -235,10 +240,9 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
  * @param phone_number
  * @returns
  */
-const getCode = async (phone_number: string) => {
-  const item = {
-    phone_number: phone_number,
-  };
+const getCode = async (phone_number: string, country?: string) => {
+  const item: Record<string, string> = { phone_number };
+  if (country) item.country = country;
   const url = "/v2/get-code";
   try {
     const response = await request.postJson(item, url);
