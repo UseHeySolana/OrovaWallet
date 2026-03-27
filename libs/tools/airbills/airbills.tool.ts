@@ -2,7 +2,6 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import UserItem from "@/utils/store/userstore.store";
-import { fetchData } from "@/utils/request/db";
 import WalletItem from "@/utils/store/wallet.store";
 import {
   cleanNumber,
@@ -74,14 +73,22 @@ export class AirBills {
           user_address: WalletItem.getState().publicKey?.toString() || "",
           meterNo: meter_number,
           electId: elect_id,
+          // Existing app setting stores meter_type as 01/02.
+          // New API uses this value as the electricity batch and expects prodId too.
           prodId: type,
+          batch: type,
         });
         if (!response.status)
           return "Electricity bill purchase failed, please try again";
         const result = response.data;
-        const dataId = result.data.id;
+        const dataId = result.id;
+        const transactionIx = result.ix;
 
-        const res = await signTransactions({ tx: result.data.ix });
+        if (!transactionIx || !dataId) {
+          return "Electricity bill purchase failed, missing transaction payload";
+        }
+
+        const res = await signTransactions({ tx: transactionIx });
         if (!res.status) {
           const messageId = this.session.functionMessageId;
           if (messageId !== null) completeConversation(messageId, "failed");
@@ -159,13 +166,7 @@ export class AirBills {
         }
 
         const usdcBalance = getInTokenBalance("usdc");
-        const airtimePrice = await airBills.airtime.getAirtimePrice(
-          args.amount
-        );
-        if (!airtimePrice.status) return "Airtime price is not available";
-
-        if (airtimePrice.data.usd > usdcBalance)
-          return "Insufficient balance to purchase airtime";
+        if (usdcBalance <= 0) return "Insufficient balance to purchase airtime";
 
         const user = UserItem.getState().user;
         let mobileNumber: string;
@@ -204,8 +205,13 @@ export class AirBills {
 
         const result = response.data;
         const dataId = result.id;
+        const transactionIx = result.ix;
 
-        const res = await signTransactions({ tx: result.ix });
+        if (!transactionIx || !dataId) {
+          return "Airtime purchase failed, missing transaction payload";
+        }
+
+        const res = await signTransactions({ tx: transactionIx });
         if (!res.status) {
           const messageId = this.session.functionMessageId;
           if (messageId !== null) completeConversation(messageId, "failed");
