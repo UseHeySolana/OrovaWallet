@@ -13,6 +13,8 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { confirm } from "@/services/confirmation";
 import UserItem from "@/utils/store/userstore.store";
 import ParamsComponent from "@/components/AppItemsParam/Params";
+import WalletItem from "@/utils/store/wallet.store";
+import { activateKalshiWallet, backupKalshiApiKey } from "@/services/kalshiApi";
 
 /**
  * What should be done here
@@ -22,6 +24,8 @@ export default function AppItems() {
   const { isDarkMode } = useThemeContext();
   const { app } = useLocalSearchParams();
   const { user } = UserItem();
+  const walletAddress = WalletItem((state) => state.publicKey?.toString() || "");
+  const phoneNumber = user?.mobileNumber?.trim() || "";
   const [appData, setAppData] = useState<any>(null);
   const [ratings, setRatings] = useState<any>(null);
   const {
@@ -43,6 +47,18 @@ export default function AppItems() {
   const [result, setResult] = useState<any>(null);
   const [inputValue, setInputValue] = useState<any>({});
   const [param, setParam] = useState<any>(null);
+
+  const maskSensitiveValue = (paramName: string, value: string) => {
+    const v = String(value || "");
+    if (!v) return "";
+    const name = String(paramName || "").toLowerCase();
+    if (name.includes("private_key") || name.includes("secret") || name.includes("api_key") || name.includes("access_key")) {
+      const tail = v.replace(/\s+/g, "").slice(-6);
+      return `••••••••••••${tail ? `…${tail}` : ""}`;
+    }
+    if (v.length > 60) return `${v.slice(0, 20)}…${v.slice(-8)}`;
+    return v;
+  };
 
   useEffect(() => {
     if (app) {
@@ -140,6 +156,10 @@ export default function AppItems() {
             type: tool.name,
           });
         });
+
+        if (appData?.name === "Kalshi Prediction Markets" && (walletAddress || phoneNumber)) {
+          setToast("Paste your Kalshi private key and key id to complete setup", "info");
+        }
       }
 
       // setToast("", )
@@ -192,6 +212,31 @@ export default function AppItems() {
       type: paramItem.name,
       value: text,
     });
+
+    if (appData?.name === "Kalshi Prediction Markets" && item?.name === "credentials" && (walletAddress || phoneNumber)) {
+      const currentPrivateKey =
+        (paramItem?.name === "private_key" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "private_key"))?.trim?.() || "";
+      const currentKeyId =
+        (paramItem?.name === "kalshi_access_key_id" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "kalshi_access_key_id"))?.trim?.() || "";
+      const currentKeyLabel = ToolsItem.getState().getParameterValue(appData?.name, "credentials", "key_label") || appData?.name;
+      const currentEnv = (ToolsItem.getState().getParameterValue(appData?.name, "credentials", "environment") || "production") as "production" | "staging";
+
+      if (currentPrivateKey && currentKeyId) {
+        activateKalshiWallet({
+          wallet_address: walletAddress || undefined,
+          phone_number: phoneNumber || undefined,
+          private_key: currentPrivateKey,
+          kalshi_access_key_id: currentKeyId,
+          key_label: currentKeyLabel,
+          environment: currentEnv,
+        }).then(() => {
+          setToast("Kalshi credentials imported successfully", "success");
+        }).catch((error) => {
+          const message = error instanceof Error ? error.message : "Failed to import Kalshi credentials";
+          setToast(message, "error");
+        });
+      }
+    }
   };
 
   return (
@@ -324,7 +369,12 @@ export default function AppItems() {
                             )?.name ||
                               toolConfig?.find(
                                 (item: any) => item?.type === param?.name
-                              )?.value ||
+                              )?.value
+                                ? maskSensitiveValue(
+                                    param?.name,
+                                    toolConfig?.find((item: any) => item?.type === param?.name)?.value
+                                  )
+                                : "" ||
                               "Not set"}
                           </CText>
                         );

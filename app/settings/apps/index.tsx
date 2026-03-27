@@ -88,23 +88,32 @@ export default function ConnectedApps() {
                     }}
                     key={index} className="flex h-[10rem] min-w-[16rem] max-w-[20rem] shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
                     <Image source={item.banner instanceof String ? { uri: item.banner as string } : item.banner} style={{ width: "100%", height: "100%" }} contentFit="cover" />
-                    <View className="absolute bottom-[-2] rounded-2xl w-full p-3  bg-white dark:bg-accent flex flex-row items-center  justify-between gap-x-2">
-                      <View className="flex flex-row items-center gap-x-2">
+                    <View className="absolute bottom-0 w-full px-3 py-2 bg-white/90 dark:bg-accent/90 flex flex-row items-center justify-between gap-x-2">
+                      <View className="flex flex-row items-center gap-x-2 flex-1 pr-2">
 
-                        <View className="h-12 w-12 overflow-hidden rounded-full bg-white dark:bg-accent2 ">
+                        <View className="h-11 w-11 overflow-hidden rounded-2xl bg-white dark:bg-accent2 ">
                           {item.icon ? <Image source={item?.icon instanceof String ? { uri: item.icon as string } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
                             //@ts-ignore
                             <Image source={item?.icon instanceof String ? { uri: item.icon as string } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                           }
                         </View>
 
-                        <View className="">
-                          <CText style={{ fontFamily: "bold" }}>{item.name}</CText>
-                          <CText style={{ fontFamily: "reg" }}>{item.category}</CText>
+                        <View className="flex-1">
+                          <CText numberOfLines={1} style={{ fontFamily: "bold" }} className="text-[1.1rem]">
+                            {item.name}
+                          </CText>
+                          <CText numberOfLines={1} style={{ fontFamily: "reg" }} className="text-[0.9rem] text-black/70 dark:text-grey/70">
+                            {item.category}
+                          </CText>
                         </View>
                       </View>
 
-                      <Buttons type="primary" className="p-2 px-4 dark:bg-accent2 rounded-3xl" text={tool ? "Activated" : "Activate"} onPress={() => {
+                      <Buttons
+                        type={tool ? "secondary" : "primary"}
+                        className="py-2 rounded-full"
+                        style={{ width: 104 }}
+                        text={tool ? "Activated" : "Activate"}
+                        onPress={() => {
                         router.push({
                           pathname: '/settings/apps/appitem',
                           params: { app: item.name },
@@ -135,19 +144,28 @@ export default function ConnectedApps() {
                   return (
                     <View key={index} className="flex w-full shadow relative  rounded-3xl overflow-hidden flex-row justify-start items-center gap-x-2 bg-white dark:bg-accent">
                       <View className="rounded-2xl w-full p-3  bg-white dark:bg-accent  flex-row items-center  justify-between gap-x-2">
-                        <View className="flex-1  flex-row items-center gap-x-2">
+                        <View className="flex-1 flex-row items-center gap-x-3 pr-2">
                           <View className="h-12 w-12 overflow-hidden rounded-lg bg-white dark:bg-accent2 ">
                             {item.icon ? <Image source={item?.icon instanceof String ? { uri: item.icon as string } : item.icon} style={{ width: "100%", height: "100%" }} contentFit="cover" /> :
                               <Image source={item?.banner instanceof String ? { uri: item.banner as string } : item.banner} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                             }
                           </View>
-                          <View className="w-[80%]">
-                            <CText style={{ fontFamily: "bold" }} className="text-[1.23rem]">{item.name}</CText>
-                            <CText style={{ fontFamily: "reg" }} >{item.description.slice(0, 50) + "..."}</CText>
+                          <View className="flex-1">
+                            <CText numberOfLines={1} style={{ fontFamily: "bold" }} className="text-[1.23rem]">
+                              {item.name}
+                            </CText>
+                            <CText numberOfLines={2} style={{ fontFamily: "reg" }} className="text-[0.95rem] text-black/70 dark:text-grey/70">
+                              {item.description}
+                            </CText>
                           </View>
                         </View>
 
-                        <Buttons type="primary" className="p-2 px-4 bg-accent2 rounded-3xl" text="View" onPress={() =>
+                        <Buttons
+                          type="primary"
+                          className="py-2 rounded-full"
+                          style={{ width: 96 }}
+                          text="View"
+                          onPress={() =>
                           router.push({
                             pathname: '/settings/apps/appitem',
                             params: { app: item.name },

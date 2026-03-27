@@ -4,6 +4,7 @@ import { SwapFunction } from "@/libs/tools/swap/swap.tool";
 import { PajCash } from "@/libs/tools/pajcash/pajcash.tool";
 import { Crossmint } from "@/libs/tools/crossmint/crossmint.tool";
 import { JumiaTool } from "@/libs/tools/jumia/jumia.tool";
+import { KalshiTool } from "@/libs/tools/kalshi/kalshi.tool";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 
 const toolRouter = (SessionManager: SessionManager) => {
@@ -25,6 +26,18 @@ const toolRouter = (SessionManager: SessionManager) => {
     new JumiaTool(SessionManager).searchJumiaProducts,
     new JumiaTool(SessionManager).getJumiaProductDetails,
     new JumiaTool(SessionManager).placeJumiaOrder,
+
+    // Kalshi
+    new KalshiTool(SessionManager).activateKalshi,
+    new KalshiTool(SessionManager).backupApiKey,
+    new KalshiTool(SessionManager).kalshiStatus,
+    new KalshiTool(SessionManager).searchMarkets,
+    new KalshiTool(SessionManager).marketDetails,
+    new KalshiTool(SessionManager).marketPriceData,
+    new KalshiTool(SessionManager).placeOrder,
+    new KalshiTool(SessionManager).cancelOrder,
+    new KalshiTool(SessionManager).getOrders,
+    new KalshiTool(SessionManager).getPositions,
   ];
 };
 
