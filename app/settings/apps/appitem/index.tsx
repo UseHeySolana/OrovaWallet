@@ -399,11 +399,11 @@ export default function AppItems() {
                               toolConfig?.find(
                                 (item: any) => item?.type === param?.name
                               )?.value
-                                ? maskSensitiveValue(
-                                    param?.name,
-                                    toolConfig?.find((item: any) => item?.type === param?.name)?.value
-                                  )
-                                : "" ||
+                              ? maskSensitiveValue(
+                                param?.name,
+                                toolConfig?.find((item: any) => item?.type === param?.name)?.value
+                              )
+                              : "" ||
                               "Not set"}
                           </CText>
                         );
