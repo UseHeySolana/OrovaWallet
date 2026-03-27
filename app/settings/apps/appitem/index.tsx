@@ -15,6 +15,7 @@ import UserItem from "@/utils/store/userstore.store";
 import ParamsComponent from "@/components/AppItemsParam/Params";
 import WalletItem from "@/utils/store/wallet.store";
 import { activateKalshiWallet, backupKalshiApiKey } from "@/services/kalshiApi";
+import { activateBayseWallet } from "@/services/bayseApi";
 
 /**
  * What should be done here
@@ -157,8 +158,11 @@ export default function AppItems() {
           });
         });
 
-        if (appData?.name === "Kalshi Prediction Markets" && (walletAddress || phoneNumber)) {
+        if ((appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && (walletAddress || phoneNumber)) {
           setToast("Paste your Kalshi private key and key id to complete setup", "info");
+        }
+        if (appData?.name === "Bayse Prediction Markets" && (walletAddress || phoneNumber)) {
+          setToast("Paste your Bayse public and secret keys to complete setup", "info");
         }
       }
 
@@ -213,7 +217,7 @@ export default function AppItems() {
       value: text,
     });
 
-    if (appData?.name === "Kalshi Prediction Markets" && item?.name === "credentials" && (walletAddress || phoneNumber)) {
+    if ((appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && item?.name === "credentials" && (walletAddress || phoneNumber)) {
       const currentPrivateKey =
         (paramItem?.name === "private_key" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "private_key"))?.trim?.() || "";
       const currentKeyId =
@@ -233,6 +237,31 @@ export default function AppItems() {
           setToast("Kalshi credentials imported successfully", "success");
         }).catch((error) => {
           const message = error instanceof Error ? error.message : "Failed to import Kalshi credentials";
+          setToast(message, "error");
+        });
+      }
+    }
+    if (appData?.name === "Bayse Prediction Markets" && item?.name === "credentials" && (walletAddress || phoneNumber)) {
+      const currentPublicKey =
+        (paramItem?.name === "public_key" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "public_key"))?.trim?.() || "";
+      const currentSecretKey =
+        (paramItem?.name === "secret_key" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "secret_key"))?.trim?.() || "";
+      const currentKeyLabel = ToolsItem.getState().getParameterValue(appData?.name, "credentials", "key_label") || appData?.name;
+      const currentCurrency =
+        (ToolsItem.getState().getParameterValue(appData?.name, "credentials", "default_currency") || "NGN") as "USD" | "NGN";
+
+      if (currentPublicKey && currentSecretKey) {
+        activateBayseWallet({
+          wallet_address: walletAddress || undefined,
+          phone_number: phoneNumber || undefined,
+          public_key: currentPublicKey,
+          secret_key: currentSecretKey,
+          key_label: currentKeyLabel,
+          default_currency: currentCurrency,
+        }).then(() => {
+          setToast("Bayse credentials imported successfully", "success");
+        }).catch((error) => {
+          const message = error instanceof Error ? error.message : "Failed to import Bayse credentials";
           setToast(message, "error");
         });
       }

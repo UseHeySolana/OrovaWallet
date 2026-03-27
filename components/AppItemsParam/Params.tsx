@@ -88,7 +88,7 @@ const ParamsComponent = ({
                     {item.name.toUpperCase()}
                   </CText>
 
-                {appData?.name === "Kalshi Prediction Markets" && item?.name === "credentials" && (
+                {(appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && item?.name === "credentials" && (
                   <View className="w-full mb-4 p-3 rounded-2xl bg-grey/30 dark:bg-black/30">
                     <CText style={{ fontFamily: "bold" }} className="text-[1.1rem] mb-2">
                       Connect your Kalshi account
@@ -106,6 +106,31 @@ const ParamsComponent = ({
                       <IconLibrary.external size={18} />
                       <CText style={{ fontFamily: "reg" }} className="text-[0.95rem]">
                         Open Kalshi profile
+                      </CText>
+                    </Pressable>
+                  </View>
+                )}
+                {appData?.name === "Bayse Prediction Markets" && item?.name === "credentials" && (
+                  <View className="w-full mb-4 p-3 rounded-2xl bg-grey/30 dark:bg-black/30">
+                    <CText style={{ fontFamily: "bold" }} className="text-[1.1rem] mb-2">
+                      Connect your Bayse account
+                    </CText>
+                    <CText style={{ fontFamily: "reg" }} className="text-[0.95rem]">
+                      1) Open Bayse dashboard and log in.
+                    </CText>
+                    <CText style={{ fontFamily: "reg" }} className="text-[0.95rem] mt-1">
+                      2) Create a new API key and copy both the public key and secret key.
+                    </CText>
+                    <CText style={{ fontFamily: "reg" }} className="text-[0.95rem] mt-1">
+                      3) Save them here to enable signed order placement.
+                    </CText>
+                    <Pressable
+                      onPress={async () => await openURL("https://link.bayse.markets/app")}
+                      className="w-full flex flex-row justify-start items-center gap-x-2 mt-2"
+                    >
+                      <IconLibrary.external size={18} />
+                      <CText style={{ fontFamily: "reg" }} className="text-[0.95rem]">
+                        Open Bayse
                       </CText>
                     </Pressable>
                   </View>

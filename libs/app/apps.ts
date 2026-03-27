@@ -358,6 +358,66 @@ Talk, ask, command, and get things done with just your voice. From managing your
     ],
   },
   {
+    name: "Bayse Prediction Markets",
+    category: "Finance",
+    short_des: "Trade prediction markets with NGN/USD support.",
+    icon: "https://docs.bayse.markets/logo/light.svg",
+    description:
+      "Bayse lets you trade event outcomes across sports, politics, crypto, and more. Use API keys to activate secure server-side signed trading from HeySolana.",
+    banner: "https://docs.bayse.markets/og.png",
+    url: "https://link.bayse.markets/app",
+    tags: ["Prediction", "Markets", "Trading", "Finance", "NGN"],
+    descriptionImages: [],
+    is_active: true,
+    is_featured: true,
+    is_new: true,
+    ratings: 4.6,
+    tools: [
+      {
+        name: "credentials",
+        params: [
+          {
+            name: "public_key",
+            type: "string",
+            label: "Bayse Public Key",
+            placeholder: "pk_live_...",
+            helper: "Public API key used in request headers.",
+          },
+          {
+            name: "secret_key",
+            type: "string",
+            label: "Bayse Secret Key",
+            placeholder: "sk_live_...",
+            helper: "Keep this secret. It is used to generate HMAC signatures for write requests.",
+            secure: true,
+          },
+          {
+            name: "key_label",
+            type: "string",
+            label: "Key nickname (optional)",
+            placeholder: "e.g. HeySolana Wallet",
+            helper: "Optional label to help identify this key pair.",
+          },
+          {
+            name: "default_currency",
+            type: "select",
+            options: [
+              { value: "NGN", name: "NGN (Nigeria Naira)" },
+              { value: "USD", name: "USD (US Dollar)" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "prediction_preferences",
+        params: [
+          { name: "max_order_size", type: "string" },
+          { name: "default_side", type: "select", options: [{ value: "BUY", name: "Buy" }, { value: "SELL", name: "Sell" }] },
+        ],
+      },
+    ],
+  },
+  {
     name: "Kalshi",
     category: "Finance",
     short_des: "Trade real-world event markets with secure backend signing.",
