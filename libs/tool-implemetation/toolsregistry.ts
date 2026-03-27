@@ -5,6 +5,7 @@ import { PajCash } from "@/libs/tools/pajcash/pajcash.tool";
 import { Crossmint } from "@/libs/tools/crossmint/crossmint.tool";
 import { JumiaTool } from "@/libs/tools/jumia/jumia.tool";
 import { KalshiTool } from "@/libs/tools/kalshi/kalshi.tool";
+import { BayseTool } from "@/libs/tools/bayse/bayse.tool";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 
 const toolRouter = (SessionManager: SessionManager) => {
@@ -38,6 +39,17 @@ const toolRouter = (SessionManager: SessionManager) => {
     new KalshiTool(SessionManager).cancelOrder,
     new KalshiTool(SessionManager).getOrders,
     new KalshiTool(SessionManager).getPositions,
+
+    // Bayse
+    new BayseTool(SessionManager).activateBayse,
+    new BayseTool(SessionManager).bayseStatus,
+    new BayseTool(SessionManager).searchEvents,
+    new BayseTool(SessionManager).getQuote,
+    new BayseTool(SessionManager).placeOrder,
+    new BayseTool(SessionManager).cancelOrder,
+    new BayseTool(SessionManager).getOrders,
+    new BayseTool(SessionManager).getPortfolio,
+    new BayseTool(SessionManager).getActivities,
   ];
 };
 
