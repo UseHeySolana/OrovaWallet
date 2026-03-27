@@ -358,6 +358,63 @@ Talk, ask, command, and get things done with just your voice. From managing your
     ],
   },
   {
+    name: "Kalshi",
+    category: "Finance",
+    short_des: "Trade real-world event markets with secure backend signing.",
+    icon: require("@/assets/apps/kalshi/logo.png"),
+    description:
+      "Activate Kalshi prediction markets and securely back up your API credentials. HeySolana generates your signing key on the backend and stores it encrypted for transaction signing.",
+    banner: require("@/assets/apps/kalshi/banner.png"),
+    url: "https://kalshi.com",
+    tags: ["Prediction", "Markets", "Trading", "Finance"],
+    descriptionImages: [],
+    is_active: true,
+    is_featured: true,
+    is_new: true,
+    ratings: 4.6,
+    tools: [
+      {
+        name: "credentials",
+        params: [
+          {
+            name: "kalshi_access_key_id",
+            type: "string",
+            label: "Kalshi Key ID",
+            placeholder: "Paste your Kalshi Key ID",
+            helper: "This is the Key ID shown when you create an API key on Kalshi.",
+          },
+          {
+            name: "private_key",
+            type: "string",
+            label: "Kalshi Private Key",
+            placeholder: "Paste the full PRIVATE KEY block (BEGIN/END included)",
+            helper:
+              "This is secret. Paste the entire key including the BEGIN/END lines. You can only view it once on Kalshi.",
+            multiline: true,
+            secure: true,
+          },
+          {
+            name: "key_label",
+            type: "string",
+            label: "Key nickname (optional)",
+            placeholder: "e.g. HeySolana iPhone",
+            helper: "Just a label for you. Does not affect trading.",
+          },
+          { name: "environment", type: "select", options: [{ value: "production", name: "Production" }, { value: "staging", name: "Staging" }] },
+        ],
+      },
+      {
+        name: "prediction_preferences",
+        params: [
+          { name: "max_order_size", type: "string" },
+          { name: "default_order_type", type: "select", options: [{ value: "market", name: "Market" }, { value: "limit", name: "Limit" }] },
+          { name: "default_side", type: "select", options: [{ value: "yes", name: "Yes" }, { value: "no", name: "No" }] },
+          { name: "risk_mode", type: "select", options: [{ value: "conservative", name: "Conservative" }, { value: "balanced", name: "Balanced" }, { value: "aggressive", name: "Aggressive" }] },
+        ],
+      },
+    ],
+  },
+  {
     name: "Jumia Online Shopping",
     category: "Ecommerce",
     short_des: "Get ready for big deals, with Jumia 🛒, you always win!",

@@ -42,6 +42,7 @@ class AudioManager {
   private isInitialized: boolean = false;
   private availableDevices: AudioDeviceInfo[] = [];
   private isInCallManagerActive: boolean = false;
+  private stopPlaybackTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.initializeAudioManager();
@@ -577,10 +578,47 @@ class AudioManager {
   }
 
   /**
+   * Immediately silence any currently-playing remote WebRTC audio.
+   * This is used to cut off buffered playback during interruptions/cancellations.
+   *
+   * It does NOT tear down the stream or change the user's desired mute state.
+   */
+  stopPlayback(durationMs: number = 350): void {
+    if (!this.audioStream) return;
+
+    // Ensure rapid consecutive calls keep playback silenced.
+    if (this.stopPlaybackTimeout) {
+      clearTimeout(this.stopPlaybackTimeout);
+      this.stopPlaybackTimeout = null;
+    }
+
+    const audioTracks = this.audioStream.getAudioTracks();
+    audioTracks.forEach((track: any) => {
+      if (typeof track._setVolume === "function") {
+        track._setVolume(0);
+      } else {
+        track.enabled = false;
+      }
+    });
+
+    this.stopPlaybackTimeout = setTimeout(() => {
+      if (!this.audioStream) return;
+      // Restore to the user's desired mute state (speakerMuted).
+      this.applySpeakerMute();
+      this.stopPlaybackTimeout = null;
+    }, durationMs);
+  }
+
+  /**
    * Clean up WebRTC audio resources
    */
   async cleanup(): Promise<void> {
     try {
+      if (this.stopPlaybackTimeout) {
+        clearTimeout(this.stopPlaybackTimeout);
+        this.stopPlaybackTimeout = null;
+      }
+
       // Clean up WebRTC stream
       if (this.audioStream) {
         const tracks = this.audioStream.getTracks();

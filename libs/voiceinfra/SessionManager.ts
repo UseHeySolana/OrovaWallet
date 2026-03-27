@@ -53,6 +53,27 @@ class SessionManager {
   private static readonly FLUSH_MS = 80;
   /** Current in-flight response id; used to cancel and stop audio when user sends a new message */
   private currentResponseId: string | null = null;
+  /** Enhanced response state tracking */
+  private responseState: {
+    id: string | null;
+    status: 'creating' | 'in_progress' | 'completed' | 'cancelled' | null;
+    audioItemId: string | null;
+  } = { id: null, status: null, audioItemId: null };
+  /** Function call state for streaming arguments */
+  private functionCallState: {
+    itemId: string | null;
+    name: string | null;
+    arguments: string;
+  } = { itemId: null, name: null, arguments: "" };
+  /** Push-to-talk mode state */
+  private pushToTalkMode: boolean = false;
+  private isRecording: boolean = false;
+  /** VAD configuration */
+  private vadConfig = {
+    threshold: 0.5,
+    prefix_padding_ms: 300,
+    silence_duration_ms: 500,
+  };
   // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
   public callbacks: {
     setMode: (mode: "loading" | "human" | "aispeaking") => void;
@@ -111,8 +132,8 @@ class SessionManager {
             \n
             These are the list of supported tokens for swaps,
                 ${JSON.stringify(
-                  supportedTokens
-                )} always map the token to the correct symbol, correct with right spelling always if the token doesn't fall you can use as provided.
+        supportedTokens
+      )} always map the token to the correct symbol, correct with right spelling always if the token doesn't fall you can use as provided.
 
                 \n 
                 to swap first get the quote of the tokens and then respond to the user with the quote and then ask for confirmation to swap.
@@ -121,11 +142,11 @@ class SessionManager {
                 \n
                  these are the list of sub tools supported and parameters,
                 ${JSON.stringify(
-                  toolRouter(this).map((item) => ({
-                    toolName: item.name,
-                    toolParameters: item.parameters,
-                  }))
-                )}.
+        toolRouter(this).map((item) => ({
+          toolName: item.name,
+          toolParameters: item.parameters,
+        }))
+      )}.
                 `;
 
       this.systemInstructions = systemInstructions + sysIns;
@@ -223,11 +244,9 @@ class SessionManager {
       // Handle audio tracks with our AudioManager
       // @ts-ignore
       this.peerConnection.addEventListener("track", (event) => {
-        console.log("Track event received:", event.track?.kind);
         if (event.streams && event.streams[0]) {
           // Only handle audio tracks
           if (event.track && event.track.kind === "audio") {
-            console.log("Audio track received - handling with AudioManager");
             this.audioManager.handleRemoteStream(event.streams[0]);
           }
         }
@@ -272,6 +291,7 @@ class SessionManager {
     Convo.getState().updateMessage({
       messageId: this.activeHumanMessageId,
       content: { content: currentContent + toApply },
+      source: "voice",
     });
   }
 
@@ -301,6 +321,7 @@ class SessionManager {
     Convo.getState().updateMessage({
       messageId: this.activeAiMessageId,
       content: { content: currentContent + toApply },
+      source: "voice",
     });
   }
 
@@ -318,9 +339,30 @@ class SessionManager {
         }
 
         if (message.type === "input_audio_buffer.speech_started") {
+          // Handle user interruption properly
+          // 1. Cancel any in-flight response
+          if (this.currentResponseId) {
+            this.sendClientEvent({
+              type: "response.cancel",
+              response_id: this.currentResponseId,
+            });
+            this.currentResponseId = null;
+          }
+
+          // 2. Stop audio playback immediately
+          this.audioManager.stopPlayback();
+
+          // 3. Clear output buffer (WebRTC auto-truncates conversation)
+          this.sendClientEvent({ type: "output_audio_buffer.clear" });
+
+          // 4. Cancel pending AI transcript updates
+          this.cancelFlushAi();
+          this.pendingAiDeltas = "";
+
+          // 5. Set mode and create user message placeholder
           this.callbacks.setMode("human");
           this.updateMemory(message);
-          // Create user message placeholder so it always appears before the AI response
+
           this.activeHumanMessageId =
             "temp" + new Date().getTime().toString();
           Convo.getState().setMessages({
@@ -329,14 +371,41 @@ class SessionManager {
             content: "",
             timestamp: new Date().getTime(),
             conversation_id: this.conversation_id,
+            source: "voice",
           });
         }
 
         if (message.type === "response.created") {
           this.currentResponseId = message.response?.id ?? null;
+          this.responseState = {
+            id: message.response?.id ?? null,
+            status: 'creating',
+            audioItemId: null,
+          };
+          // Reset function call state for new response
+          this.functionCallState = { itemId: null, name: null, arguments: "" };
           this.callbacks.setMode("aispeaking");
         }
 
+        if (message.type === "response.cancelled") {
+          console.log("Response cancelled by server");
+          this.currentResponseId = null;
+          this.responseState = { id: null, status: 'cancelled', audioItemId: null };
+          // Reset function call state on cancellation
+          this.functionCallState = { itemId: null, name: null, arguments: "" };
+          this.cancelFlushAi();
+          this.pendingAiDeltas = "";
+        }
+
+        if (message.type === "response.output_item.added") {
+          if (message.item?.type === "audio") {
+            this.responseState.audioItemId = message.item.id;
+            this.responseState.status = 'in_progress';
+          }
+        }
+
+        console.log("messageResponseOutput", JSON.stringify(message.response));
+        // console.log("messageType", JSON.stringify(message.response?.output[0]?.content[0]?.transcript));
         if (
           message.type === "conversation.item.input_audio_transcription.delta"
         ) {
@@ -352,6 +421,7 @@ class SessionManager {
               content: message.delta ?? "",
               timestamp: new Date().getTime(),
               conversation_id: this.conversation_id,
+              source: "voice",
             });
           }
         }
@@ -373,6 +443,7 @@ class SessionManager {
               content: {
                 content: finalTranscript,
               },
+              source: "voice",
             });
             setTimeout(() => {
               this.activeHumanMessageId = null;
@@ -392,6 +463,7 @@ class SessionManager {
               content: message.delta ?? "",
               timestamp: new Date().getTime(),
               conversation_id: this.conversation_id,
+              source: "voice",
             });
           }
         }
@@ -407,6 +479,7 @@ class SessionManager {
               content: {
                 content: message.transcript ?? "",
               },
+              source: "voice",
             });
             setTimeout(() => {
               this.activeAiMessageId = null;
@@ -414,23 +487,117 @@ class SessionManager {
           }
         }
 
-        if (message.type === "response.done") {
-          this.currentResponseId = null;
+        // Handle streaming function call arguments (delta events)
+        if (message.type === "response.function_call_arguments.delta") {
+          console.log("[Function Call] Arguments delta:", message);
+
+          // Initialize or accumulate function call arguments
+          if (!this.functionCallState.itemId) {
+            this.functionCallState.itemId = message.item_id;
+            this.functionCallState.name = message.name || null;
+            this.functionCallState.arguments = message.delta || "";
+          } else {
+            this.functionCallState.arguments += message.delta || "";
+          }
+
+          console.log(`[Function Call] Building arguments for ${this.functionCallState.name}:`,
+            this.functionCallState.arguments
+          );
         }
 
-        // Handle function calls from the model
-        if (
-          message.type === "response.done" &&
-          message.response?.output &&
-          message.response.output.length > 0
-        ) {
-          const output = message.response.output;
-          for (const item of output) {
-            if (item.type === "function_call") {
-              console.log("Function call detected:", item.name);
-              this.handleFunctionCall(item);
+        // Handle completed function call arguments
+        if (message.type === "response.function_call_arguments.done") {
+          console.log("[Function Call] Arguments completed:", message);
+
+          // Update the final accumulated arguments
+          if (message.arguments) {
+            this.functionCallState.arguments = message.arguments;
+          }
+
+          console.log(`[Function Call] Final arguments for ${message.name}:`,
+            this.functionCallState.arguments
+          );
+
+          // Note: The actual function execution will happen in response.done
+          // when we receive the complete function_call item
+        }
+
+        if (message.type === "response.done") {
+          this.currentResponseId = null;
+          this.responseState = { id: null, status: 'completed', audioItemId: null };
+
+          console.log("[Response] response.done received:", JSON.stringify(message.response, null, 2));
+
+          // Process response output items according to OpenAI Realtime API spec
+          if (message.response?.output && message.response.output.length > 0) {
+            const output = message.response.output;
+
+            for (const item of output) {
+              // Handle function calls (as per OpenAI docs)
+              // When type is "function_call", indicates this response contains arguments for a named function call
+              if (item.type === "function_call" && item.status === "completed") {
+                console.log("Function call detected:", {
+                  name: item.name,
+                  call_id: item.call_id,
+                  arguments: item.arguments
+                });
+
+                // Handle the function call asynchronously
+                this.handleFunctionCall(item);
+
+                // Don't process further items if we have a function call
+                // The model will continue after we provide the function result
+                continue;
+              }
+
+              // Handle AI message with transcript
+              if (item.type === "message" && item.role === "assistant" && item.content) {
+                // Find the transcript in the content array
+                for (const contentItem of item.content) {
+                  if (contentItem.type === "output_audio" && contentItem.transcript) {
+                    const transcript = contentItem.transcript;
+
+                    // Flush any pending AI deltas first
+                    this.cancelFlushAi();
+                    this.flushAiNow();
+
+                    // Update or create AI message with final transcript
+                    if (this.activeAiMessageId) {
+                      Convo.getState().updateMessage({
+                        messageId: this.activeAiMessageId,
+                        content: {
+                          content: transcript,
+                        },
+                        source: "voice",
+                      });
+                    } else {
+                      // Create new message if no active AI message exists
+                      this.activeAiMessageId = "temp" + new Date().getTime().toString();
+                      Convo.getState().setMessages({
+                        id: this.activeAiMessageId,
+                        role: "system",
+                        content: transcript,
+                        timestamp: new Date().getTime(),
+                        conversation_id: this.conversation_id!,
+                        source: "voice",
+                      });
+                    }
+
+                    // Clear active message ID after a brief delay
+                    setTimeout(() => {
+                      this.activeAiMessageId = null;
+                    }, 200);
+
+                    this.updateMemory({ type: "ai_transcript_completed", transcript });
+                    break;
+                  }
+                }
+              }
             }
           }
+
+          // Reset function call state after processing response
+          this.functionCallState = { itemId: null, name: null, arguments: "" };
         }
       } catch (error) {
         console.error("Error processing data channel message:", error);
@@ -536,14 +703,30 @@ class SessionManager {
       );
       return;
     }
+
+    // If push-to-talk mode is enabled, disable VAD
+    if (this.pushToTalkMode) {
+      await this.sendWithDelay(
+        {
+          type: "session.update",
+          session: {
+            turn_detection: null as any,
+          },
+        },
+        200
+      );
+      return;
+    }
+
+    // Normal VAD mode with configurable parameters
     const eventServer = {
       type: "session.update",
       session: {
         turn_detection: {
           type: "server_vad",
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
+          threshold: this.vadConfig.threshold,
+          prefix_padding_ms: this.vadConfig.prefix_padding_ms,
+          silence_duration_ms: this.vadConfig.silence_duration_ms,
           create_response: true,
           interrupt_response: true,
         },
@@ -690,12 +873,23 @@ class SessionManager {
       // When user sends a new message: stop current AI audio and cancel in-flight response
       // so we move to the new item and the new response's audio plays instead.
       if (this.currentResponseId) {
+        // Stop audio playback immediately
+        this.audioManager.stopPlayback();
+
+        // Cancel response
         this.sendClientEvent({
           type: "response.cancel",
           response_id: this.currentResponseId,
         });
+
+        // Clear output buffer
         this.sendClientEvent({ type: "output_audio_buffer.clear" });
+
         this.currentResponseId = null;
+
+        // Cancel AI transcript updates
+        this.cancelFlushAi();
+        this.pendingAiDeltas = "";
       }
 
       const event = {
@@ -744,28 +938,257 @@ class SessionManager {
     }
   }
 
-  registerFunctions(functions: FunctionParams[]): void {
-    this.availableFunctions = functions;
+  /**
+   * Enable or disable push-to-talk mode
+   * Push-to-talk gives users control over when to speak and avoids VAD failures
+   */
+  async setPushToTalkMode(enabled: boolean): Promise<void> {
+    this.pushToTalkMode = enabled;
 
-    if (this.isSessionActive) {
-      const event = {
+    if (!this.isSessionActive) {
+      console.log("Push-to-talk mode will be applied when session starts");
+      return;
+    }
+
+    await this.sendWithDelay(
+      {
         type: "session.update",
         session: {
-          tools: functions.map((fn) => ({
-            type: "function",
-            name: fn.name,
-            description: fn.description,
-            parameters: fn.parameters,
-          })),
-          tool_choice: "auto",
+          turn_detection: enabled ? null : {
+            type: "server_vad",
+            threshold: this.vadConfig.threshold,
+            prefix_padding_ms: this.vadConfig.prefix_padding_ms,
+            silence_duration_ms: this.vadConfig.silence_duration_ms,
+            create_response: true,
+            interrupt_response: true,
+          },
         },
-      };
-      this.sendClientEvent(event);
+      },
+      0
+    );
+
+    console.log(`Push-to-talk mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Start recording in push-to-talk mode
+   * Call this when user presses/holds the talk button
+   */
+  async startPushToTalk(): Promise<void> {
+    if (!this.pushToTalkMode || this.isRecording) {
+      console.warn("Cannot start push-to-talk: mode not enabled or already recording");
+      return;
+    }
+
+    this.isRecording = true;
+
+    // Clear input buffer for fresh recording (WebRTC requirement)
+    this.sendClientEvent({ type: "input_audio_buffer.clear" });
+
+    // Cancel any in-flight response
+    if (this.currentResponseId) {
+      this.sendClientEvent({
+        type: "response.cancel",
+        response_id: this.currentResponseId,
+      });
+      this.currentResponseId = null;
+    }
+
+    // Stop playback and clear output buffer
+    this.audioManager.stopPlayback();
+    this.sendClientEvent({ type: "output_audio_buffer.clear" });
+
+    this.callbacks.setMode("human");
+
+    // Create user message placeholder
+    this.activeHumanMessageId = "temp" + new Date().getTime().toString();
+    Convo.getState().setMessages({
+      id: this.activeHumanMessageId,
+      role: "user",
+      content: "",
+      timestamp: new Date().getTime(),
+      conversation_id: this.conversation_id!,
+      source: "voice",
+    });
+
+    console.log("Push-to-talk recording started");
+  }
+
+  /**
+   * Stop recording in push-to-talk mode
+   * Call this when user releases the talk button
+   */
+  async stopPushToTalk(): Promise<void> {
+    if (!this.pushToTalkMode || !this.isRecording) {
+      console.warn("Cannot stop push-to-talk: mode not enabled or not recording");
+      return;
+    }
+
+    this.isRecording = false;
+
+    // Commit the audio buffer (triggers transcription if enabled)
+    this.sendClientEvent({ type: "input_audio_buffer.commit" });
+
+    // Trigger response after brief delay
+    setTimeout(() => {
+      this.sendClientEvent({ type: "response.create" });
+    }, 100);
+
+    console.log("Push-to-talk recording stopped, triggering response");
+  }
+
+  /**
+   * Check if currently in push-to-talk mode
+   */
+  isPushToTalkMode(): boolean {
+    return this.pushToTalkMode;
+  }
+
+  /**
+   * Check if currently recording in push-to-talk mode
+   */
+  isCurrentlyRecording(): boolean {
+    return this.isRecording;
+  }
+
+  /**
+   * Update VAD settings for different environments
+   * @param settings - VAD configuration options
+   * 
+   * Recommended presets:
+   * - Quiet environment: { threshold: 0.4, silenceDurationMs: 400 }
+   * - Normal environment: { threshold: 0.5, silenceDurationMs: 500 } (default)
+   * - Noisy environment: { threshold: 0.6, silenceDurationMs: 700 }
+   */
+  async updateVadSettings(settings: {
+    threshold?: number;
+    prefixPaddingMs?: number;
+    silenceDurationMs?: number;
+  }): Promise<void> {
+    if (!this.useAudioThisSession) {
+      console.warn("Cannot update VAD settings in text-only mode");
+      return;
+    }
+
+    if (this.pushToTalkMode) {
+      console.warn("Cannot update VAD settings in push-to-talk mode");
+      return;
+    }
+
+    // Update config
+    if (settings.threshold !== undefined) {
+      this.vadConfig.threshold = settings.threshold;
+    }
+    if (settings.prefixPaddingMs !== undefined) {
+      this.vadConfig.prefix_padding_ms = settings.prefixPaddingMs;
+    }
+    if (settings.silenceDurationMs !== undefined) {
+      this.vadConfig.silence_duration_ms = settings.silenceDurationMs;
+    }
+
+    // Apply to session if active
+    if (this.isSessionActive) {
+      await this.sendWithDelay(
+        {
+          type: "session.update",
+          session: {
+            turn_detection: {
+              type: "server_vad",
+              threshold: this.vadConfig.threshold,
+              prefix_padding_ms: this.vadConfig.prefix_padding_ms,
+              silence_duration_ms: this.vadConfig.silence_duration_ms,
+              create_response: true,
+              interrupt_response: true,
+            },
+          },
+        },
+        0
+      );
+
+      console.log("VAD settings updated:", this.vadConfig);
     }
   }
 
+  /**
+   * Get current VAD configuration
+   */
+  getVadConfig(): { threshold: number; prefix_padding_ms: number; silence_duration_ms: number } {
+    return { ...this.vadConfig };
+  }
+
+  /**
+   * Register callable functions with the model
+   * Based on OpenAI Realtime API function calling specification
+   * @param functions - Array of function definitions with handlers
+   */
+  registerFunctions(functions: FunctionParams[]): void {
+    this.availableFunctions = functions;
+
+    console.log(`[Functions] Registering ${functions.length} functions:`,
+      functions.map(f => f.name).join(', ')
+    );
+
+    if (this.isSessionActive) {
+      // Format functions according to OpenAI spec
+      const tools = functions.map((fn) => {
+        // Validate required fields
+        if (!fn.name) {
+          console.warn(`[Functions] Function missing name:`, fn);
+        }
+        if (!fn.description) {
+          console.warn(`[Functions] Function ${fn.name} missing description`);
+        }
+        if (!fn.parameters) {
+          console.warn(`[Functions] Function ${fn.name} missing parameters`);
+        }
+
+        return {
+          type: "function",
+          name: fn.name,
+          description: fn.description,
+          parameters: fn.parameters,
+        };
+      });
+
+      const event = {
+        type: "session.update",
+        session: {
+          tools,
+          tool_choice: "auto", // Let the model decide when to call functions
+        },
+      };
+
+      console.log(`[Functions] Sending session.update with tools:`,
+        JSON.stringify(event, null, 2)
+      );
+
+      this.sendClientEvent(event);
+    } else {
+      console.log(`[Functions] Session not active, functions will be registered on session start`);
+    }
+  }
+
+  /**
+   * Handle function call from the model
+   * Based on OpenAI Realtime API function calling specification
+   * @param functionCall - The function call item from response.done output
+   */
   private async handleFunctionCall(functionCall: any): Promise<void> {
     const { name, arguments: argsJson, call_id } = functionCall;
+
+    console.log(`[Function Call] Received:`, {
+      name,
+      call_id,
+      arguments: argsJson,
+      status: functionCall.status
+    });
+
+    // Validate required fields
+    if (!name || !call_id) {
+      console.error("[Function Call] Missing required fields (name or call_id)");
+      return;
+    }
+
     try {
       // Find the registered function handler
       const functionDef = this.availableFunctions.find(
@@ -776,16 +1199,21 @@ class SessionManager {
         throw new Error(`No handler found for function: ${name}`);
       }
 
-      // Parse arguments - handle both string and object formats
+      // Parse arguments - OpenAI sends them as a JSON string
       let args;
       if (typeof argsJson === "string") {
-        args = JSON.parse(argsJson);
+        try {
+          args = JSON.parse(argsJson);
+        } catch (parseError) {
+          throw new Error(`Failed to parse function arguments: ${parseError}`);
+        }
       } else {
         args = argsJson;
       }
 
-      console.log(`Executing function ${name} with args:`, args, functionCall);
+      console.log(`[Function Call] Executing ${name} with parsed args:`, args);
 
+      // Create a pending message in the conversation UI
       if (this.conversation_id !== null) {
         Convo.getState().setMessages({
           id: call_id,
@@ -799,16 +1227,35 @@ class SessionManager {
             action: functionDef.name,
             arguments: args,
           },
+          source: "voice",
         });
         this.functionMessageId = call_id;
       }
 
-      // Execute the function
+      // Execute the function handler
       const result = await functionDef.handler(args);
-      console.log(`Function ${name} result:`, result);
+      console.log(`[Function Call] ${name} completed with result:`, result);
 
+      // Track tool usage
       tracker.tool_calls(name, 1);
-      // Send the result back to the model
+
+      // Update conversation message with success status
+      if (this.conversation_id !== null && this.functionMessageId) {
+        Convo.getState().updateMessage({
+          messageId: this.functionMessageId,
+          content: {
+            tool: {
+              status: "complete",
+              action: functionDef.name,
+              owner: functionDef.owner,
+            }
+          },
+          source: "voice",
+        });
+      }
+
+      // Send the result back to the model as per OpenAI spec
+      // The output must be a JSON string
       const resultEvent = {
         type: "conversation.item.create",
         item: {
@@ -818,35 +1265,63 @@ class SessionManager {
         },
       };
 
+      console.log(`[Function Call] Sending result back to model:`, resultEvent);
       this.sendClientEvent(resultEvent);
 
-      // Trigger a new response after a short delay
+      // Trigger a new response to process the function result
+      // As per OpenAI docs: "ask the model to respond"
       setTimeout(() => {
+        console.log(`[Function Call] Requesting model response with function result`);
         this.sendClientEvent({ type: "response.create" });
       }, 300);
     } catch (error: any) {
-      console.error(`Error executing function ${name}:`, error);
+      console.error(`[Function Call] Error executing ${name}:`, error);
 
       AppSettings.getState().setLoading(false);
-      // Send error back to the model
+
+      // Update conversation message with error status
+      if (this.conversation_id !== null && this.functionMessageId) {
+        const functionDef = this.availableFunctions.find(
+          (fn) => fn.name === name
+        );
+
+        Convo.getState().updateMessage({
+          messageId: this.functionMessageId,
+          content: {
+            tool: {
+              status: "failed",
+              action: functionDef?.name || name,
+              owner: functionDef?.owner,
+            }
+          },
+          source: "voice",
+        });
+      }
+
+      // Send error back to the model as per OpenAI spec
+      // The output should be a JSON string containing error information
       const errorEvent = {
         type: "conversation.item.create",
         item: {
           type: "function_call_output",
           call_id: call_id,
           output: JSON.stringify({
-            error: `Error executing function: ${error.message}`,
+            error: error.message || "Unknown error",
+            type: error.name || "FunctionExecutionError",
           }),
         },
       };
 
+      console.log(`[Function Call] Sending error to model:`, errorEvent);
       this.sendClientEvent(errorEvent);
 
+      // Still trigger a response so the model can handle the error gracefully
       setTimeout(() => {
         this.sendClientEvent({ type: "response.create" });
       }, 300);
     }
 
+    // Update user wallet state after function execution
     const userItem = UserItem.getState();
     const publicKey = WalletItem.getState().publicKey;
     if (userItem.user && publicKey) {
@@ -859,13 +1334,23 @@ class SessionManager {
     }
   }
 
+  /**
+   * Dynamically add or update a single function
+   * @param name - Function name (must be unique)
+   * @param owner - Owner identifier for the function
+   * @param description - Human-readable description to help the model decide when to call this function
+   * @param parameters - JSON Schema object describing the function parameters
+   * @param handler - Async function that executes the function logic
+   */
   addFunction(
     name: string,
     owner: any,
     description: string,
     parameters: any,
-    handler: () => Promise<any>
+    handler: (args: any) => Promise<any>
   ): void {
+    console.log(`[Functions] Adding/updating function: ${name}`);
+
     const functionDef = {
       name,
       description,
@@ -879,17 +1364,43 @@ class SessionManager {
       (fn) => fn.name === name
     );
     if (existingIndex >= 0) {
-      // Replace existing function
+      console.log(`[Functions] Replacing existing function: ${name}`);
       this.availableFunctions[existingIndex] = functionDef;
     } else {
-      // Add new function
+      console.log(`[Functions] Adding new function: ${name}`);
       this.availableFunctions.push(functionDef);
     }
 
     // If session is active, update the available tools
     if (this.isSessionActive) {
+      console.log(`[Functions] Session active, registering updated function list`);
       this.registerFunctions(this.availableFunctions);
     }
+  }
+
+  /**
+   * Remove a function by name
+   * @param name - Function name to remove
+   */
+  removeFunction(name: string): void {
+    const index = this.availableFunctions.findIndex((fn) => fn.name === name);
+    if (index >= 0) {
+      this.availableFunctions.splice(index, 1);
+
+      // Update session if active
+      if (this.isSessionActive) {
+        this.registerFunctions(this.availableFunctions);
+      }
+    } else {
+      console.warn(`[Functions] Function ${name} not found`);
+    }
+  }
+
+  /**
+   * Get list of registered function names
+   */
+  getRegisteredFunctions(): string[] {
+    return this.availableFunctions.map(fn => fn.name);
   }
 
   private async updateMemory(message: any): Promise<void> {
