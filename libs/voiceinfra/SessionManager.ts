@@ -3,7 +3,6 @@ import {
   RTCPeerConnection,
   RTCSessionDescription,
   mediaDevices,
-  MediaStream,
 } from "react-native-webrtc";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
@@ -18,7 +17,7 @@ import { toolRouter } from "../tool-implemetation/toolsregistry";
 import { FunctionParams } from "../../utils/types/types";
 
 import { summarizeConversation } from "../../utils/functions/extrafunctions";
-import { AgentContacts, delay, supportedTokens } from "../../utils/functions";
+import { AgentContacts, supportedTokens } from "../../utils/functions";
 import setUserItems from "@/utils/dashboard";
 import WalletItem from "@/utils/store/wallet.store";
 import tracker from "../../utils/tracker";
@@ -404,8 +403,6 @@ class SessionManager {
           }
         }
 
-        console.log("messageResponseOutput", JSON.stringify(message.response));
-        // console.log("messageType", JSON.stringify(message.response?.output[0]?.content[0]?.transcript));
         if (
           message.type === "conversation.item.input_audio_transcription.delta"
         ) {
@@ -427,7 +424,7 @@ class SessionManager {
         }
 
         if (
-          message.type ==
+          message.type ===
           "conversation.item.input_audio_transcription.completed"
         ) {
           const finalTranscript =
@@ -525,8 +522,6 @@ class SessionManager {
         if (message.type === "response.done") {
           this.currentResponseId = null;
           this.responseState = { id: null, status: 'completed', audioItemId: null };
-
-          console.log("[Response] response.done received:", JSON.stringify(message.response, null, 2));
 
           // Process response output items according to OpenAI Realtime API spec
           if (message.response?.output && message.response.output.length > 0) {
@@ -1124,9 +1119,6 @@ class SessionManager {
   registerFunctions(functions: FunctionParams[]): void {
     this.availableFunctions = functions;
 
-    console.log(`[Functions] Registering ${functions.length} functions:`,
-      functions.map(f => f.name).join(', ')
-    );
 
     if (this.isSessionActive) {
       // Format functions according to OpenAI spec
@@ -1234,8 +1226,6 @@ class SessionManager {
 
       // Execute the function handler
       const result = await functionDef.handler(args);
-      console.log(`[Function Call] ${name} completed with result:`, result);
-
       // Track tool usage
       tracker.tool_calls(name, 1);
 

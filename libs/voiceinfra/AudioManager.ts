@@ -48,6 +48,21 @@ class AudioManager {
     this.initializeAudioManager();
   }
 
+  private async chooseAudioRouteIfAvailable(route: string): Promise<void> {
+    const maybeChoose = (InCallManager as any)?.chooseAudioRoute;
+    if (typeof maybeChoose !== "function") {
+      // Some builds of react-native-incall-manager don't expose chooseAudioRoute at runtime.
+      // In that case we rely on setSpeakerphoneOn + OS automatic routing for other devices.
+      return;
+    }
+
+    try {
+      await maybeChoose(route);
+    } catch (error) {
+      console.warn("Failed to choose audio route:", route, error);
+    }
+  }
+
   /**
    * Initialize the audio manager with platform-specific setup
    */
@@ -308,12 +323,12 @@ class AudioManager {
       switch (channel) {
         case AudioChannel.SPEAKER:
           InCallManager.setSpeakerphoneOn(true);
-          InCallManager.chooseAudioRoute("SPEAKER");
+          await this.chooseAudioRouteIfAvailable("SPEAKER");
           break;
 
         case AudioChannel.EARPIECE:
           InCallManager.setSpeakerphoneOn(false);
-          InCallManager.chooseAudioRoute("EARPIECE");
+          await this.chooseAudioRouteIfAvailable("EARPIECE");
           break;
 
         case AudioChannel.BLUETOOTH:
@@ -326,7 +341,7 @@ class AudioManager {
               device.type === "BluetoothSCO"
           );
           if (bluetoothDevice) {
-            InCallManager.chooseAudioRoute(bluetoothDevice.name);
+            await this.chooseAudioRouteIfAvailable(bluetoothDevice.name);
           }
           break;
 
@@ -339,7 +354,7 @@ class AudioManager {
               device.type === "WiredHeadphones"
           );
           if (wiredDevice) {
-            InCallManager.chooseAudioRoute(wiredDevice.name);
+            await this.chooseAudioRouteIfAvailable(wiredDevice.name);
           }
           break;
 

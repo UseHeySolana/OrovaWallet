@@ -32,6 +32,7 @@ const toolRouter = (SessionManager: SessionManager) => {
     new KalshiTool(SessionManager).activateKalshi,
     new KalshiTool(SessionManager).backupApiKey,
     new KalshiTool(SessionManager).kalshiStatus,
+    new KalshiTool(SessionManager).getSeries,
     new KalshiTool(SessionManager).searchMarkets,
     new KalshiTool(SessionManager).marketDetails,
     new KalshiTool(SessionManager).marketPriceData,

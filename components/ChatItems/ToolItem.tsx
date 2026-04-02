@@ -15,6 +15,7 @@ import Buttons from "../ButtonComp";
 import { useAi } from "@/context/AiContext";
 import Products from "./Products";
 import ProductDetails from "./ProductDetails";
+import KalshiMarkets from "./KalshiMarkets";
 
 interface ItemProps {
   item: any;
@@ -208,6 +209,10 @@ const ToolItem = (props: ItemProps) => {
 
       {item?.product && (
         <Products products={item?.product} sessionManager={sessionManager} source={item?.source} />
+      )}
+
+      {item?.messageType === "kalshi" && Array.isArray(item?.markets) && item.markets.length > 0 && (
+        <KalshiMarkets markets={item.markets} sessionManager={sessionManager} />
       )}
 
       {item?.product_details && (

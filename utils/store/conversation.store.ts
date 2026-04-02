@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface MessageType {
   role: "system" | "user" | "tool";
@@ -8,6 +8,7 @@ export interface MessageType {
   timestamp: number;
   id: string;
   conversation_id: string;
+  messageType?: "kalshi" | "commerce" | "generic" | string;
   tool?: {
     owner?: string;
     action: string;
@@ -24,6 +25,7 @@ export interface MessageType {
     link: string;
     rating: number;
   }[];
+  markets?: any[];
   product_details?: any;
   source: string;
 }

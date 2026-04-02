@@ -3,21 +3,28 @@ import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import UserItem from "@/utils/store/userstore.store";
+import Convo from "@/utils/store/conversation.store";
 import {
   activateKalshiWallet,
-  backupKalshiApiKey,
-  getKalshiCandlesticks,
-  getKalshiMarket,
-  getKalshiOrderbook,
   getKalshiPortfolioOrders,
   getKalshiPositions,
   getKalshiWalletStatus,
   placeKalshiOrder,
-  searchKalshiMarkets,
   cancelKalshiOrder,
 } from "@/services/kalshiApi";
+import {
+  getKalshiPublicCandlesticks,
+  getKalshiPublicMarket,
+  getKalshiPublicOrderbook,
+  getKalshiPublicSeries,
+  searchKalshiPublicMarkets,
+  type KalshiPublicEnvironment,
+} from "@/services/kalshiPublicApi";
 
+// NOTE: The app store entry is named "Kalshi", but earlier versions used
+// "Kalshi Prediction Markets". We support both to avoid missing locally-saved creds.
 const KALSHI_APP_NAME = "Kalshi Prediction Markets";
+const KALSHI_APP_NAME_ALT = "Kalshi";
 const KALSHI_CONFIG = "credentials";
 
 function getWalletAddress(): string {
@@ -37,22 +44,41 @@ function getIdentityPayload() {
   };
 }
 
+function getSettingValue(paramType: string): string {
+  const store = ToolsItem.getState();
+  return (
+    store.getParameterValue(KALSHI_APP_NAME, KALSHI_CONFIG, paramType).trim() ||
+    store.getParameterValue(KALSHI_APP_NAME_ALT, KALSHI_CONFIG, paramType).trim()
+  );
+}
+
 function getApiKeyIdFromSettings(): string {
-  return ToolsItem.getState()
-    .getParameterValue(KALSHI_APP_NAME, KALSHI_CONFIG, "kalshi_access_key_id")
-    .trim();
+  return getSettingValue("kalshi_access_key_id");
 }
 
 function getPrivateKeyFromSettings(): string {
-  return ToolsItem.getState()
-    .getParameterValue(KALSHI_APP_NAME, KALSHI_CONFIG, "private_key")
-    .trim();
+  return getSettingValue("private_key");
+}
+
+function getEnvironmentFromSettings(): "production" | "staging" | undefined {
+  const env = getSettingValue("environment");
+  if (env === "production" || env === "staging") return env;
+  return undefined;
+}
+
+function getKeyLabelFromSettings(): string {
+  return getSettingValue("key_label");
+}
+
+function getPublicEnv(): KalshiPublicEnvironment {
+  return getEnvironmentFromSettings() ?? "production";
 }
 
 export class KalshiTool {
   public activateKalshi: FunctionParams;
   public backupApiKey: FunctionParams;
   public kalshiStatus: FunctionParams;
+  public getSeries: FunctionParams;
   public searchMarkets: FunctionParams;
   public marketDetails: FunctionParams;
   public marketPriceData: FunctionParams;
@@ -65,6 +91,7 @@ export class KalshiTool {
     this.activateKalshi = this.activate_kalshi();
     this.backupApiKey = this.backup_api_key();
     this.kalshiStatus = this.kalshi_status();
+    this.getSeries = this.get_series();
     this.searchMarkets = this.search_markets();
     this.marketDetails = this.market_details();
     this.marketPriceData = this.market_price_data();
@@ -202,8 +229,87 @@ export class KalshiTool {
           return "User identity not available. Please sign in first.";
         }
 
-        const status = await getKalshiWalletStatus(getIdentityPayload());
-        return JSON.stringify(status);
+        const identity = getIdentityPayload();
+
+        // First read local creds (AsyncStorage-backed ToolsItem) so we can report
+        // readiness even if backend sync hasn't happened yet.
+        const localPrivateKey = getPrivateKeyFromSettings();
+        const localKeyId = getApiKeyIdFromSettings();
+        const localEnv = getEnvironmentFromSettings();
+        const localKeyLabel = getKeyLabelFromSettings();
+
+        const localStatus = {
+          has_private_key: !!localPrivateKey,
+          has_access_key_id: !!localKeyId,
+          environment: localEnv ?? null,
+          key_label: localKeyLabel || null,
+        };
+
+        // Always check backend status (source of truth for trading proxy readiness).
+        let backendStatus: any;
+        try {
+          backendStatus = await getKalshiWalletStatus(identity);
+        } catch (e: any) {
+          return JSON.stringify({
+            ok: false,
+            local: localStatus,
+            backend_error: e?.message || "Failed to fetch backend status",
+          });
+        }
+
+        // If local creds exist but backend is not ready, sync them up automatically.
+        const backendReady =
+          !!backendStatus?.is_active &&
+          !!backendStatus?.has_private_key &&
+          !!backendStatus?.has_access_key_id;
+
+        const localReady = localStatus.has_private_key && localStatus.has_access_key_id;
+
+        if (localReady && !backendReady) {
+          try {
+            await activateKalshiWallet({
+              ...identity,
+              private_key: localPrivateKey,
+              kalshi_access_key_id: localKeyId,
+              key_label: localKeyLabel || "HeySolana Wallet Key",
+              environment: (localEnv ?? "production") as "production" | "staging",
+            });
+            backendStatus = await getKalshiWalletStatus(identity);
+          } catch (e: any) {
+            return JSON.stringify({
+              ok: false,
+              local: localStatus,
+              backend: backendStatus,
+              sync_error: e?.message || "Failed to sync local creds to backend",
+            });
+          }
+        }
+
+        return JSON.stringify({
+          ok: true,
+          local: localStatus,
+          backend: backendStatus,
+          synced: localReady && !backendReady ? true : false,
+        });
+      },
+    };
+  }
+
+  get_series(): FunctionParams {
+    return {
+      name: "get-kalshi-series",
+      description: "Fetch a Kalshi series by its series ticker (public market data; no authentication required).",
+      parameters: {
+        type: "object",
+        properties: {
+          series_ticker: { type: "string", description: "Series ticker, e.g. KXHIGHNY" },
+        },
+        required: ["series_ticker"],
+      },
+      handler: async (args: { series_ticker: string }) => {
+        const env = getPublicEnv();
+        const data = await getKalshiPublicSeries({ series_ticker: args.series_ticker, env });
+        return JSON.stringify(data);
       },
     };
   }
@@ -211,7 +317,8 @@ export class KalshiTool {
   search_markets(): FunctionParams {
     return {
       name: "search-kalshi-markets",
-      description: "Search Kalshi prediction markets by filters like event ticker or status.",
+      description:
+        "Search Kalshi prediction markets by filters like series ticker, event ticker, or status (public market data; no authentication required).",
       parameters: {
         type: "object",
         properties: {
@@ -223,17 +330,33 @@ export class KalshiTool {
         required: [],
       },
       handler: async (args: { status?: string; event_ticker?: string; series_ticker?: string; limit?: number }) => {
-        const walletAddress = getWalletAddress();
-        const phoneNumber = getPhoneNumber();
-        if (!walletAddress && !phoneNumber) return "User identity not available. Please sign in first.";
-        const result = await searchKalshiMarkets({
-          ...getIdentityPayload(),
+        const messageId = this.session.functionMessageId;
+        const env = getPublicEnv();
+        const result = await searchKalshiPublicMarkets({
           status: args.status,
           event_ticker: args.event_ticker,
           series_ticker: args.series_ticker,
           limit: args.limit || 20,
+          env,
         });
-        return JSON.stringify(result?.data || result);
+        const payload = result?.data || result;
+
+        const markets = payload && typeof payload === "object" && Array.isArray((payload as any).markets)
+          ? (payload as any).markets
+          : null;
+
+        if (messageId && markets) {
+          Convo.getState().updateMessage({
+            messageId,
+            content: {
+              messageType: "kalshi",
+              markets,
+            },
+            source: "kalshi",
+          });
+        }
+
+        return JSON.stringify(payload);
       },
     };
   }
@@ -241,7 +364,8 @@ export class KalshiTool {
   market_details(): FunctionParams {
     return {
       name: "get-kalshi-market-details",
-      description: "Fetch details and orderbook for a specific Kalshi market ticker.",
+      description:
+        "Fetch details and orderbook for a specific Kalshi market ticker (public market data; no authentication required).",
       parameters: {
         type: "object",
         properties: {
@@ -251,16 +375,14 @@ export class KalshiTool {
         required: ["ticker"],
       },
       handler: async (args: { ticker: string; depth?: number }) => {
-        const walletAddress = getWalletAddress();
-        const phoneNumber = getPhoneNumber();
-        if (!walletAddress && !phoneNumber) return "User identity not available. Please sign in first.";
+        const env = getPublicEnv();
         const [market, orderbook] = await Promise.all([
-          getKalshiMarket({ ...getIdentityPayload(), ticker: args.ticker }),
-          getKalshiOrderbook({ ...getIdentityPayload(), ticker: args.ticker, depth: args.depth ?? 20 }),
+          getKalshiPublicMarket({ ticker: args.ticker, env }),
+          getKalshiPublicOrderbook({ ticker: args.ticker, depth: args.depth ?? 20, env }),
         ]);
         return JSON.stringify({
-          market: market?.data || market,
-          orderbook: orderbook?.data || orderbook,
+          market,
+          orderbook,
         });
       },
     };
@@ -269,7 +391,8 @@ export class KalshiTool {
   market_price_data(): FunctionParams {
     return {
       name: "get-kalshi-odds-and-chart",
-      description: "Get orderbook and candlestick price data for a Kalshi ticker.",
+      description:
+        "Get orderbook and candlestick price data for a Kalshi ticker (public market data; no authentication required).",
       parameters: {
         type: "object",
         properties: {
@@ -281,23 +404,21 @@ export class KalshiTool {
         required: ["ticker", "period_interval", "start_ts", "end_ts"],
       },
       handler: async (args: { ticker: string; period_interval: number; start_ts: number; end_ts: number }) => {
-        const walletAddress = getWalletAddress();
-        const phoneNumber = getPhoneNumber();
-        if (!walletAddress && !phoneNumber) return "User identity not available. Please sign in first.";
+        const env = getPublicEnv();
         const [orderbook, candles] = await Promise.all([
-          getKalshiOrderbook({ ...getIdentityPayload(), ticker: args.ticker, depth: 20 }),
-          getKalshiCandlesticks({
-            ...getIdentityPayload(),
+          getKalshiPublicOrderbook({ ticker: args.ticker, depth: 20, env }),
+          getKalshiPublicCandlesticks({
             market_tickers: args.ticker,
             start_ts: args.start_ts,
             end_ts: args.end_ts,
             period_interval: args.period_interval,
+            env,
           }),
         ]);
 
         return JSON.stringify({
-          orderbook: orderbook?.data || orderbook,
-          candlesticks: candles?.data || candles,
+          orderbook,
+          candlesticks: candles,
         });
       },
     };

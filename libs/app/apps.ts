@@ -364,7 +364,7 @@ Talk, ask, command, and get things done with just your voice. From managing your
     icon: "https://docs.bayse.markets/logo/light.svg",
     description:
       "Bayse lets you trade event outcomes across sports, politics, crypto, and more. Use API keys to activate secure server-side signed trading from HeySolana.",
-    banner: "https://docs.bayse.markets/og.png",
+    banner: require("@/assets/apps/bayse/banner.png"),
     url: "https://link.bayse.markets/app",
     tags: ["Prediction", "Markets", "Trading", "Finance", "NGN"],
     descriptionImages: [],
@@ -418,7 +418,7 @@ Talk, ask, command, and get things done with just your voice. From managing your
     ],
   },
   {
-    name: "Kalshi",
+    name: "Kalshi Prediction Markets",
     category: "Finance",
     short_des: "Trade real-world event markets with secure backend signing.",
     icon: require("@/assets/apps/kalshi/logo.png"),
