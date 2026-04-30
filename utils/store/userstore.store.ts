@@ -4,6 +4,7 @@ import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
 import { UserType } from '@/utils/types/user.types';
 import AppSettings from '@/utils/store/settingsstore.store';
 import WalletItem from '@/utils/store/wallet.store';
+import { deleteWalletSecret } from '@/utils/storage/secureStore';
 
 interface TokenAccount {
   symbol: string;
@@ -55,6 +56,7 @@ const UserItem = create(
       clearData: () => {
         AppSettings.getState().setDefault();
         WalletItem.getState().setDefault();
+        deleteWalletSecret();
         // Clear user state and wallet state
         set({
           user: null,

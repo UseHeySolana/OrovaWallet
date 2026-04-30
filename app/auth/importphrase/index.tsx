@@ -10,6 +10,7 @@ import { saveWalletAddress } from "@/utils/request/db";
 import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
 import { copyItem, pasteItem } from "@/utils/functions";
+import { setWalletSecret } from "@/utils/storage/secureStore";
 
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
@@ -53,9 +54,11 @@ export default function ImportPhrase({ navigation }: any) {
     setLoading(true);
 
     try {
-      const keyPair = await getKeypairFromMnemonic(mnemonic.trim());
+      const trimmed = mnemonic.trim();
+      const keyPair = await getKeypairFromMnemonic(trimmed);
       console.log(keyPair.publicKey, user);
-      updatePassphrase(mnemonic.trim());
+      await setWalletSecret(trimmed);
+      updatePassphrase(trimmed);
       // Only proceed once keypair is available
       if (keyPair && keyPair.publicKey && user) {
         try {

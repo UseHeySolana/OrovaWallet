@@ -25,6 +25,7 @@ import {
 } from "@gurukumparan/react-native-android-inapp-updates";
 import * as Updates from "expo-updates";
 import tracker from "@/utils/tracker";
+import { initWallet } from "@/utils/wallet/initWallet";
 
 const screens = [
   {
@@ -86,24 +87,38 @@ export default function Index() {
   };
 
   useEffect(() => {
-    (async () => {
-      const response = await tracker.app_open_count();
-    })();
-    setLoading(true);
-    // Delay navigation to make sure the layout is initialized
-    const timeout = setTimeout(() => {
-      const destination = getDestination();
-      if (destination) {
-        router.replace(destination);
-        // router.push({
-        //   pathname: '/settings/apps/appitem',
-        //   params: { app: "Airbills" },
-        // });
-      }
-      setLoading(false);
-    }, 100); // Delay by 500ms, adjust if needed
+    let cancelled = false;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
 
-    return () => clearTimeout(timeout); // Cleanup timeout on component unmount
+    (async () => {
+      try {
+        await tracker.app_open_count();
+      } catch {
+        // ignore
+      }
+
+      setLoading(true);
+
+      try {
+        await initWallet();
+      } catch {
+        // ignore
+      }
+
+      timeout = setTimeout(() => {
+        if (cancelled) return;
+        const destination = getDestination();
+        if (destination) {
+          router.replace(destination);
+        }
+        setLoading(false);
+      }, 75);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timeout) clearTimeout(timeout);
+    };
   }, [alreadyOpened, publicKey, user]);
 
   useEffect(() => {

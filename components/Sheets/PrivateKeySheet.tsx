@@ -2,7 +2,7 @@ import { KeyboardAvoidingView, View } from "react-native";
 import DragableSheet from "../CustomItems/DragableSheet";
 import CText from "../TextComp";
 import Buttons from "../ButtonComp";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { copyItem } from "@/utils/functions";
 import WalletItem from "@/utils/store/wallet.store";
@@ -15,12 +15,12 @@ interface PrivateKeySheetTypes {
   type: "private-key" | "passphrase";
 }
 const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
-  if (!open) return null;
   const [privateKey, setPrivateKey] = useState<any | null>(null);
   const { setToast } = AppSettings();
 
   useEffect(() => {
     (async () => {
+      if (!open) return;
       if (type === "private-key") {
         const sign = await keypairSign();
         if (sign) {
@@ -31,7 +31,7 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
         setPrivateKey(WalletItem.getState().passphrase);
       }
     })();
-  }, []);
+  }, [open, type]);
 
   const copyValue = () => {
     if (type === "private-key") {
@@ -42,6 +42,8 @@ const PrivateKeySheet = ({ open, setOpen, type }: PrivateKeySheetTypes) => {
       setToast("Copied to clipboard", "success");
     }
   };
+
+  if (!open) return null;
 
   return (
     <DragableSheet

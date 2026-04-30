@@ -15,6 +15,7 @@ import UserItem from "@/utils/store/userstore.store";
 import { router } from "expo-router";
 import IconLibrary from "@/utils/icons";
 import ConfirmPhraseSheet from "@/components/Sheets/ConfirmKeyWordsSheet";
+import { setWalletSecret } from "@/utils/storage/secureStore";
 
 
 
@@ -132,6 +133,7 @@ export default function SecretPhrase({ navigation }: any) {
         setCurrentState('set-pin');
         const keyPair = await getKeypairFromMnemonic(mnemonic);
         updateKeypair(keyPair)
+        await setWalletSecret(mnemonic);
         updatePassphrase(mnemonic);
 
         if (!user) {
