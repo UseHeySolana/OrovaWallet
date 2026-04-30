@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-const WALLET_SECRET_KEY = "walletSecret:v1";
+const WALLET_SECRET_KEY = "walletSecret_v1";
 
 export async function setWalletSecret(secret: string) {
   return SecureStore.setItemAsync(WALLET_SECRET_KEY, secret, {
