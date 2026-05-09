@@ -16,6 +16,7 @@ import { useAi } from "@/context/AiContext";
 import Products from "./Products";
 import ProductDetails from "./ProductDetails";
 import KalshiMarkets from "./KalshiMarkets";
+import MagicBlockTransfer from "./MagicBlockTransfer";
 
 interface ItemProps {
   item: any;
@@ -101,6 +102,19 @@ const ToolItem = (props: ItemProps) => {
                 className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
               />
             </View>
+          ) : item?.tool?.action?.includes("private_") ||
+            item?.tool?.action?.includes("magicblock") ||
+            item?.tool?.action === "check_private_balance" ? (
+            <View className="w-10 h-10 rounded-full overflow-hidden bg-[#7B5CFF]/20">
+              <Image
+                source={{
+                  uri: "https://avatars.githubusercontent.com/u/103751825?s=200&v=4",
+                }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
+                className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+              />
+            </View>
           ) : (
             <View className="w-10 h-10 rounded-full overflow-hidden">
               <Image
@@ -123,12 +137,16 @@ const ToolItem = (props: ItemProps) => {
                       : item?.tool?.action?.includes("swap") ||
                         item?.tool?.action?.includes("price")
                         ? "Jupiter"
-                        : item.tool?.arguments?.owner
-                          ? item?.tool?.arguments?.owner
-                          : item?.tool?.action?.includes("pajit") ||
-                            item?.tool?.action?.includes("naira-rate")
-                            ? "Pajcash"
-                            : aiName}
+                        : item?.tool?.action?.includes("private_") ||
+                          item?.tool?.action?.includes("magicblock") ||
+                          item?.tool?.action === "check_private_balance"
+                          ? "MagicBlock"
+                          : item.tool?.arguments?.owner
+                            ? item?.tool?.arguments?.owner
+                            : item?.tool?.action?.includes("pajit") ||
+                              item?.tool?.action?.includes("naira-rate")
+                              ? "Pajcash"
+                              : aiName}
               </CText>
             ) : (
               <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
@@ -213,6 +231,10 @@ const ToolItem = (props: ItemProps) => {
 
       {item?.messageType === "kalshi" && Array.isArray(item?.markets) && item.markets.length > 0 && (
         <KalshiMarkets markets={item.markets} sessionManager={sessionManager} />
+      )}
+
+      {item?.messageType === "magicblock" && item?.privateTransfer && (
+        <MagicBlockTransfer transfer={item.privateTransfer} />
       )}
 
       {item?.product_details && (

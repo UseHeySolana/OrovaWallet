@@ -215,13 +215,22 @@ const signTransactions = async ({
   tx,
   feeAmount,
   type,
+  connection: providedConnection,
+  confirmMessage,
+  skipConfirm,
 }: {
   tx: string;
   feeAmount?: number;
   type?: string;
+  /** Optional override RPC connection. Defaults to the configured base network. */
+  connection?: Connection;
+  /** Optional override prompt shown to the user before sending. */
+  confirmMessage?: string;
+  /** Skip the confirmation prompt. Default false. */
+  skipConfirm?: boolean;
 }) => {
   const network = AppSettings.getState().network;
-  const connection = new Connection(`${network}${api_key}`);
+  const connection = providedConnection ?? new Connection(`${network}${api_key}`);
 
   const keyPair = await keypairSign();
   if (!keyPair || !connection) {
@@ -243,7 +252,6 @@ const signTransactions = async ({
     const feeHolder =
       process.env.EXPO_FEE_HOLDER ||
       "13dqNw1su2UTYPVvqP6ahV8oHtghvoe2k2czkrx9uWJZ";
-    // "HeycuCVbaKuUXizfw8fQDuNadJu23igfK6G3ZomEwNmP"
     if (feeAmount) {
       transaction.add(
         SystemProgram.transfer({
@@ -254,23 +262,23 @@ const signTransactions = async ({
       );
     }
 
-    // Correct way to sign
     transaction.partialSign(keyPair);
   }
 
   try {
-    const response = await confirm({
-      message: "Are you sure you want to send this transaction?",
-      type: AppSettings.getState().openWithAuth ? "fingerprint" : undefined,
-    });
+    if (!skipConfirm) {
+      const response = await confirm({
+        message: confirmMessage ?? "Are you sure you want to send this transaction?",
+        type: AppSettings.getState().openWithAuth ? "fingerprint" : undefined,
+      });
 
-    if (!response) {
-      return { status: false, message: "You cancelled the transaction" };
-    } else {
-      const txid = await connection.sendRawTransaction(transaction.serialize());
-
-      return { status: true, message: txid };
+      if (!response) {
+        return { status: false, message: "You cancelled the transaction" };
+      }
     }
+
+    const txid = await connection.sendRawTransaction(transaction.serialize());
+    return { status: true, message: txid };
   } catch (error) {
     return {
       status: false,

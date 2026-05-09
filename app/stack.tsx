@@ -99,8 +99,8 @@ export default function StackView() {
             headerShown: false,
           }}
         />
-        {toast.show && <ToastModal type={toast.type} message={toast.message} />}
-        {isLoading && <LoadingScreen />}
+        {/* {toast.show && <ToastModal type={toast.type} message={toast.message} />} */}
+        {/* {isLoading && <LoadingScreen />} */}
         <ConfirmActionSheetGlobal />
         <PurchaseConfirmationSheet />
       </SafeAreaView>

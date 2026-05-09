@@ -2,13 +2,31 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+export interface PrivateTransferMeta {
+  visibility: "public" | "private";
+  fromBalance: "base" | "ephemeral";
+  toBalance: "base" | "ephemeral";
+  split: number;
+  minDelayMs: string;
+  maxDelayMs: string;
+  gasless: boolean;
+  amount: number;
+  tokenSymbol: string;
+  recipient: string;
+  validator?: string;
+  /** Number of split chunks settled so far (0..split). */
+  settlementProgress: number;
+  /** Submitted base-chain or ephemeral txid. */
+  txid?: string;
+}
+
 export interface MessageType {
   role: "system" | "user" | "tool";
   content: string;
   timestamp: number;
   id: string;
   conversation_id: string;
-  messageType?: "kalshi" | "commerce" | "generic" | string;
+  messageType?: "kalshi" | "commerce" | "generic" | "magicblock" | string;
   tool?: {
     owner?: string;
     action: string;
@@ -27,6 +45,7 @@ export interface MessageType {
   }[];
   markets?: any[];
   product_details?: any;
+  privateTransfer?: PrivateTransferMeta;
   source: string;
 }
 

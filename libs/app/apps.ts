@@ -1,5 +1,6 @@
 import { ImageSource } from "expo-image";
 import { airBills } from "@/libs/tools/airbills/airbills";
+import { magicblock } from "@/libs/tools/magicblock/magicblock";
 
 export interface App {
   name: string;
@@ -471,6 +472,95 @@ Talk, ask, command, and get things done with just your voice. From managing your
           { name: "default_side", type: "select", options: [{ value: "yes", name: "Yes" }, { value: "no", name: "No" }] },
           { name: "risk_mode", type: "select", options: [{ value: "conservative", name: "Conservative" }, { value: "balanced", name: "Balanced" }, { value: "aggressive", name: "Aggressive" }] },
         ],
+      },
+    ],
+  },
+  {
+    name: "MagicBlock Private Payments",
+    category: "Finance",
+    short_des: "Confidential SPL transfers via ephemeral rollup.",
+    icon: "https://avatars.githubusercontent.com/u/103751825?s=200&v=4",
+    description:
+      "Send SPL tokens privately on Solana. Powered by MagicBlock's ephemeral rollup, transfers can be delayed, split into multiple settlements, and shielded from on-chain observers.",
+    banner: "https://avatars.githubusercontent.com/u/103751825?s=400&v=4",
+    url: "https://payments.magicblock.app",
+    tags: ["Privacy", "Solana", "Stablecoin", "Rollup"],
+    descriptionImages: [],
+    brand_colors: {
+      primary: "#7B5CFF",
+      secondary: "#0A1825",
+    },
+    is_active: true,
+    is_featured: true,
+    is_new: true,
+    ratings: 4.7,
+    tools: [
+      {
+        name: "preferences",
+        params: [
+          {
+            name: "default_visibility",
+            type: "select",
+            label: "Default privacy mode",
+            options: [
+              { value: "private", name: "Private (delayed + split)" },
+              { value: "public", name: "Public (transparent)" },
+            ],
+          },
+          {
+            name: "default_split",
+            type: "select",
+            label: "Default split count",
+            options: [
+              { value: "1", name: "No split (1)" },
+              { value: "3", name: "3 chunks" },
+              { value: "5", name: "5 chunks" },
+              { value: "10", name: "10 chunks" },
+            ],
+            helper:
+              "How many queue entries to spread a private transfer across.",
+          },
+          {
+            name: "default_min_delay_ms",
+            type: "string",
+            label: "Min delay (ms)",
+            placeholder: "0",
+            helper: "Earliest a queued private transfer may settle.",
+          },
+          {
+            name: "default_max_delay_ms",
+            type: "string",
+            label: "Max delay (ms)",
+            placeholder: "60000",
+            helper:
+              "Latest a queued private transfer may settle. Max 600000 (10m).",
+          },
+          {
+            name: "default_mint",
+            type: "select",
+            label: "Default token",
+            options: [
+              { value: "USDC", name: "USDC" },
+              { value: "USDT", name: "USDT" },
+            ],
+          },
+          {
+            name: "gasless",
+            type: "select",
+            label: "Gasless (sponsor fees)",
+            options: [
+              { value: "on", name: "On — sponsor pays SOL fees" },
+              { value: "off", name: "Off — I pay my own SOL fees" },
+            ],
+            helper:
+              "When on, MagicBlock's relay sponsor pays the SOL fee and a small relay fee in the transferred token is added.",
+          },
+        ],
+        action: {
+          type: "Test connection",
+          url: magicblock.health,
+          params: [],
+        },
       },
     ],
   },

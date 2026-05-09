@@ -6,9 +6,11 @@ import { Crossmint } from "@/libs/tools/crossmint/crossmint.tool";
 import { JumiaTool } from "@/libs/tools/jumia/jumia.tool";
 import { KalshiTool } from "@/libs/tools/kalshi/kalshi.tool";
 import { BayseTool } from "@/libs/tools/bayse/bayse.tool";
+import { MagicBlockTool } from "@/libs/tools/magicblock/magicblock.tool";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 
 const toolRouter = (SessionManager: SessionManager) => {
+  const magicblock = new MagicBlockTool(SessionManager);
   return [
     new TransferFunction(SessionManager).transferFunction,
     new AirBills(SessionManager).buyAirtime,
@@ -17,6 +19,12 @@ const toolRouter = (SessionManager: SessionManager) => {
     new AirBills(SessionManager).buyElectricityBill,
     new PajCash(SessionManager).pajitOfframp,
     new PajCash(SessionManager).getNairaRate,
+
+    // MagicBlock Private Payments
+    magicblock.privateDeposit,
+    magicblock.privateTransfer,
+    magicblock.privateWithdraw,
+    magicblock.privateBalance,
 
     //crossmint
     new Crossmint(SessionManager).searchProductsAmazon,
