@@ -1,17 +1,14 @@
 import { Image } from "expo-image";
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import {
   Animated,
   Easing,
-  ScrollView,
-  StatusBar,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { Pressable, View } from "react-native";
-import CText from "../TextComp";
+import { CText } from "../TextComp";
 import { openURL } from "@/utils/functions/extrafunctions";
 import IconLibrary from "@/utils/icons";
-import Buttons from "../ButtonComp";
 import { useAi } from "@/context/AiContext";
 import Products from "./Products";
 import ProductDetails from "./ProductDetails";
@@ -25,7 +22,6 @@ interface ItemProps {
 }
 const ToolItem = (props: ItemProps) => {
   const { item, isSystem, aiName } = props;
-  const isUser = item.role === "user";
   const { sessionManager } = useAi();
   const params =
     (item?.tool?.arguments?.parameter &&
@@ -107,9 +103,7 @@ const ToolItem = (props: ItemProps) => {
             item?.tool?.action === "check_private_balance" ? (
             <View className="w-10 h-10 rounded-full overflow-hidden bg-[#7B5CFF]/20">
               <Image
-                source={{
-                  uri: "https://avatars.githubusercontent.com/u/103751825?s=200&v=4",
-                }}
+                source={require("@/assets/apps/magicblock/logo.png")}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="contain"
                 className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
@@ -163,7 +157,7 @@ const ToolItem = (props: ItemProps) => {
               source={iconSource}
               style={[
                 { width: "100%", height: "100%" },
-                item?.tool?.status == "pending" && {
+                item?.tool?.status === "pending" && {
                   transform: [{ rotate: spin }],
                 },
               ]}

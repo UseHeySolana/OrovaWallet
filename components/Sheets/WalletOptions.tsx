@@ -1,10 +1,8 @@
-import { KeyboardAvoidingView, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import DragableSheet from "../CustomItems/DragableSheet";
-import CText from "../TextComp";
-import { useThemeContext } from "@/context/ThemeContext";
+import { CText } from "../TextComp";
 
 import { router } from "expo-router";
-import AntDesign from "@expo/vector-icons/AntDesign";
 import { Image } from "expo-image";
 import IconLibrary from "@/utils/icons";
 
@@ -12,7 +10,6 @@ interface WalletSheetTypes {
     open: boolean;
 }
 const WalletSheet = ({ open }: WalletSheetTypes) => {
-    const { isDarkMode } = useThemeContext();
     if (!open) return null;
 
     return (

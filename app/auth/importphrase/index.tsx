@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { TextInput, View } from "react-native";
-import CText from "@/components/TextComp";
+import { CText } from "@/components/TextComp";
 import Buttons from "@/components/ButtonComp";
 import { getKeypairFromMnemonic, isJson } from "@/utils/wallet";
 
@@ -9,12 +9,11 @@ import WalletItem from "@/utils/store/wallet.store";
 import { saveWalletAddress } from "@/utils/request/db";
 import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
-import { copyItem, pasteItem } from "@/utils/functions";
+import { pasteItem } from "@/utils/functions";
 import { setWalletSecret } from "@/utils/storage/secureStore";
 
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
-import { useKeyboard } from "@/context/KeyboardContext";
 /**
   * What should be done here
   * 1. Notify what the secret phrase is for.
@@ -24,33 +23,34 @@ import { useKeyboard } from "@/context/KeyboardContext";
 
 export default function ImportPhrase({ navigation }: any) {
   const { isDarkMode } = useThemeContext();
-  const { isKeyboardVisible } = useKeyboard()
   const [mnemonic, setMnemonic] = useState("");
-  const { isLoading, setLoading, setToast } = AppSettings()
+  const { setLoading, setToast } = AppSettings()
   const { updateKeypair, updatePassphrase } = WalletItem();
-  const { setUser, user } = UserItem();
+  const { user } = UserItem();
 
   const importWallet = async () => {
-    if (mnemonic == "") {
+    console.log(mnemonic);
+    if (mnemonic === "") {
       setToast("No Phrase Imported", "error");
       setLoading(false);
       return;
     }
 
     if (isJson(mnemonic)) {
-      if (JSON.parse(mnemonic).length != 64) {
+      if (JSON.parse(mnemonic).length !== 64) {
         setToast("Awwn! this is not a valid private key!", "error");
         setLoading(false);
 
         return;
       }
-    } else {
-      if (mnemonic.trim().split(/\s+/).length != 12) {
-        setToast("Invalid phrase!, phrase must be 12.", "error");
-        setLoading(false);
-        return;
-      }
     }
+    // } else {
+    //   if (mnemonic.trim().split(/\s+/).length !== 12) {
+    //     setToast("Invalid phrase!, phrase must be 12.", "error");
+    //     setLoading(false);
+    //     return;
+    //   }
+    // }
     setLoading(true);
 
     try {

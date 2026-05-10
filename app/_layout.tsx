@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import '../global.css'
 import { SplashScreen } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
-import { useEffect } from "react";
 import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-google-fonts/dm-sans";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -19,11 +18,21 @@ import StackView from "./stack";
 import { useRouteTracking } from "@/components/hooks/navigation";
 import tracker from "@/utils/tracker";
 import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
+import { Brain } from "@/libs/brain";
+import { initWallet } from "@/utils/wallet/initWallet";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
+const brain = new Brain({
+  notificationsEnabled: true,
+  // Leave off by default; enable when your QVAC server is reachable from the device.
+  llmEnabled: false,
+  llmModel: "my-llm",
+});
+
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
+  const walletInitRanRef = React.useRef(false);
 
   const [loaded, error] = useFonts({
     reg: DMSans_400Regular,
@@ -50,6 +59,25 @@ export default function RootLayout() {
     }
     prepare();
   }, [loaded, error]);
+
+  useEffect(() => {
+    if (!appReady) return;
+
+    // Hydrate wallet for *any* route (refresh/deeplink safe).
+    if (!walletInitRanRef.current) {
+      walletInitRanRef.current = true;
+      initWallet().catch(() => {
+        // non-fatal
+      });
+    }
+
+    // Start Brain once per app launch.
+    if (!brain.isStarted()) {
+      brain.start().catch(() => {
+        // non-fatal
+      });
+    }
+  }, [appReady]);
 
   if (!loaded && !error) {
     return null;
