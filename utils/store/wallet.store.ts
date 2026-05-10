@@ -39,15 +39,32 @@ const WalletItem = create(
                 // Never persist secrets.
                 publicKeyBase58: state.publicKeyBase58,
               }) as unknown as Wallet,
-            onRehydrateStorage: () => (state) => {
-              const base58 = state?.publicKeyBase58;
-              if (base58 && !state.publicKey) {
+            // Rebuild `publicKey` from persisted base58 on startup/refresh.
+            // (Mutating `state` inside onRehydrateStorage doesn't reliably notify subscribers.)
+            merge: (persistedState: any, currentState: any) => {
+              // zustand persist commonly stores { state: {...}, version: n }
+              // but some storage adapters/versions may pass the plain state through.
+              const persisted =
+                persistedState && typeof persistedState === "object" && "state" in persistedState
+                  ? (persistedState.state ?? {})
+                  : (persistedState ?? {});
+
+              const persistedBase58 = persisted?.publicKeyBase58 ?? null;
+
+              if (typeof persistedBase58 === "string" && persistedBase58.length > 0) {
                 try {
-                  state.publicKey = new PublicKey(base58);
+                  return {
+                    ...currentState,
+                    ...persisted,
+                    publicKeyBase58: persistedBase58,
+                    publicKey: new PublicKey(persistedBase58),
+                  };
                 } catch {
-                  // ignore
+                  // ignore invalid base58
                 }
               }
+
+              return { ...currentState, ...persisted };
             },
         }
     )
