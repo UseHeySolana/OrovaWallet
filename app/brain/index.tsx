@@ -6,11 +6,14 @@ import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
 import BrainStore from "@/utils/store/brain.store";
 import { useThemeContext } from "@/context/ThemeContext";
+import { confirm } from "@/services/confirmation";
+import { useAi } from "@/context/AiContext";
 
 export default function BrainHome() {
   const { isDarkMode } = useThemeContext();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
   const { suggestions, dismissSuggestion, clearSuggestions } = BrainStore();
+  const { isSessionActive, startSession, setInputMode, sendChatMessage } = useAi();
 
   const ordered = useMemo(() => {
     const list = [...suggestions].sort((a, b) => b.createdAt - a.createdAt);
@@ -21,17 +24,50 @@ export default function BrainHome() {
     return [item, ...list];
   }, [suggestions, focus]);
 
-  const openSuggestion = (s: any) => {
+  const openSuggestion = async (s: any) => {
+    // Trade suggestions must be explicitly approved before initiating any action.
+    if (s?.type === "trade") {
+      const draft = s?.data?.swapDraft;
+      const summary =
+        draft && typeof draft === "object"
+          ? `${draft.amount} ${draft.fromToken} → ${draft.toToken}`
+          : undefined;
+
+      const approved = await confirm({
+        message: "Approve this trade?",
+        subtitle: summary ? `Proposed swap: ${summary}` : "This will prepare a swap in the assistant.",
+        type: "fingerprint",
+      });
+
+      if (!approved) return;
+
+      // Route to dashboard so the user sees the assistant context.
+      router.push("/dashboard");
+
+      // Ensure we are in chat mode (no mic required for approvals).
+      setInputMode("chat");
+      if (!isSessionActive) {
+        await startSession();
+      }
+
+      // Ask the assistant to execute the trade using existing tool flow (which also prompts before signing).
+      if (draft && typeof draft === "object") {
+        sendChatMessage(
+          `Swap ${draft.amount} ${draft.fromToken} to ${draft.toToken}. Show me the quote and execute after confirmation.`
+        );
+      } else {
+        sendChatMessage("I approved the trade. Please show the quote and execute after confirmation.");
+      }
+
+      return;
+    }
+
     if (s?.link && typeof s.link === "string") {
       router.push(s.link as any);
       return;
     }
 
     // Fallback routing based on suggestion type.
-    if (s?.type === "trade") {
-      router.push("/dashboard");
-      return;
-    }
     if (s?.type === "price_alert") {
       router.push("/settings");
       return;

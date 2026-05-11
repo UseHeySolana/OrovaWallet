@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import  {CText, CNumber } from "@/components/TextComp";
+import { CText, CNumber } from "@/components/TextComp";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -45,8 +45,8 @@ export default function WalletScreen({
     visibleTokenMints === null
       ? userWallet?.tokenAccounts ?? []
       : (userWallet?.tokenAccounts ?? []).filter((t: any) =>
-          visibleTokenMints.includes(t.mint)
-        );
+        visibleTokenMints.includes(t.mint)
+      );
 
   const [activeTab, setActiveTab] = useState("tokens");
   const { isDarkMode } = useThemeContext();
@@ -165,14 +165,14 @@ export default function WalletScreen({
                 onPress={() => {
                   router.push("/dashboard/send");
                 }}
-                type="secondary"
+                type="primary"
                 text="Send"
                 icon={
                   <View className="rotate-[230deg]">
                     <AntDesign
                       name="arrow-down"
                       size={16}
-                      color={isDarkMode ? "white" : "black"}
+                      color="white"
                     />
                   </View>
                 }
@@ -186,14 +186,14 @@ export default function WalletScreen({
                   // testFunctions()
                   router.push("/dashboard/qrcode");
                 }}
-                type="secondary"
+                type="primary"
                 text="Receive"
                 icon={
                   <View className="rotate-[40deg]">
                     <AntDesign
                       name="arrow-down"
                       size={16}
-                      color={isDarkMode ? "white" : "black"}
+                      color="white"
                     />
                   </View>
                 }
@@ -332,7 +332,7 @@ export default function WalletScreen({
               onPress={() => setActiveTab("tokens")}
             >
               <View
-                className={`w-[50%] py-5 border-b-2 ${activeTab == "tokens" ? "border-purple" : "border-grey"
+                className={`w-[50%] py-5 border-b-2 ${activeTab === "tokens" ? "border-purple" : "border-grey"
                   } `}
               >
                 <CText
@@ -348,7 +348,7 @@ export default function WalletScreen({
               onPress={() => setActiveTab("history")}
             >
               <View
-                className={`w-[50%] py-5 border-b-2 ${activeTab == "history"
+                className={`w-[50%] py-5 border-b-2 ${activeTab === "history"
                   ? "border-purple"
                   : "border-grey dark:border-dark"
                   } `}
@@ -358,7 +358,7 @@ export default function WalletScreen({
             </TouchableNativeFeedback>
           </View>
 
-          {activeTab == "tokens" ? (
+          {activeTab === "tokens" ? (
             <View className="flex-1">
               <View className="py-5 w-full">
                 <TouchableOpacity

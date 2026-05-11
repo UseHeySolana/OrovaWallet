@@ -1,9 +1,9 @@
-import React, { useEffect } from "react"; 
-import { ActivityIndicator, Pressable, Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { ActivityIndicator, Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import tracker from "@/utils/tracker";
 
 
-interface Buttons {
+interface ButtonsProp {
   loading?: boolean
   text: string;
   type?: "primary" | "secondary";
@@ -29,11 +29,11 @@ onPress:() => void;
 }
  * @returns 
  */
-export default function Buttons(props: Buttons) {
+export default function Buttons(props: ButtonsProp) {
   const { loading, style, textClass, text, className, type = "primary", onPress, buttonType } = props;
 
-  const buttonColor = type == "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
-  const textColor = type === "primary" ? "#FFFFFF" : "#111827"
+  const buttonColor = type === "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
+  const textColor = type === "primary" ? "#FFFFFF" : "#FFFFFF"
 
   const trackPress = () => {
     tracker.buttons(text, 1);

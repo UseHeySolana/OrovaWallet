@@ -185,7 +185,11 @@ export class SwapFunction {
                     return swapResponse.message;
                 }
 
-                const txid = await signTransactions({ tx: swapResponse.data.swapTransaction, type: "versioned" });
+                const txid = await signTransactions({
+                    tx: swapResponse.data.swapTransaction,
+                    type: "versioned",
+                    confirmMessage: `Confirm swap: ${amount} ${fromToken} → ${toToken}?`,
+                });
                 if (!txid.status) {
                     if (messageId !== null) completeConversation(messageId, "failed");
                     return txid.message;
