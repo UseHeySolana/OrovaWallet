@@ -52,6 +52,26 @@ export interface BrainReminder {
   notificationId?: string;
 }
 
+export type BrainEventType =
+  | "conversation.tool.status_changed"
+  | "conversation.message.created"
+  | "price.alert.triggered"
+  | "app.opened"
+  | string;
+
+export interface BrainEventLogItem {
+  id: string;
+  type: BrainEventType;
+  createdAt: number;
+  /** short text summary for on-device digesting */
+  summary: string;
+  /** arbitrary data for local processing (never includes secrets) */
+  data?: any;
+  /** optional conversation linkage */
+  conversationId?: string;
+  messageId?: string;
+}
+
 interface BrainState {
   /** Whether the brain is allowed to run background-ish tasks while app is active */
   enabled: boolean;
@@ -74,6 +94,17 @@ interface BrainState {
   addReminder: (r: BrainReminder) => void;
   removeReminder: (id: string) => void;
   updateReminder: (id: string, patch: Partial<BrainReminder>) => void;
+
+  /** Rolling on-device event journal used to generate 12h digests */
+  eventLog: BrainEventLogItem[];
+  appendEvent: (e: BrainEventLogItem) => void;
+  clearEventLog: () => void;
+
+  /** Digest scheduling */
+  lastDigestAt: number | null;
+  setLastDigestAt: (ts: number) => void;
+  digestIntervalMs: number;
+  setDigestIntervalMs: (ms: number) => void;
 }
 
 const BrainStore = create(
@@ -114,6 +145,15 @@ const BrainStore = create(
         set({
           reminders: get().reminders.map((r) => (r.id === id ? { ...r, ...patch } : r)),
         }),
+
+      eventLog: [],
+      appendEvent: (e) => set({ eventLog: [e, ...get().eventLog].slice(0, 500) }),
+      clearEventLog: () => set({ eventLog: [] }),
+
+      lastDigestAt: null,
+      setLastDigestAt: (ts) => set({ lastDigestAt: ts }),
+      digestIntervalMs: 12 * 60 * 60_000,
+      setDigestIntervalMs: (ms) => set({ digestIntervalMs: Math.max(60_000, ms) }),
     }),
     {
       name: "brain",

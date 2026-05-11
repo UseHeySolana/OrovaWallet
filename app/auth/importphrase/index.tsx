@@ -14,6 +14,7 @@ import { setWalletSecret } from "@/utils/storage/secureStore";
 
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
+import { useKeyboard } from "@/context/KeyboardContext";
 /**
   * What should be done here
   * 1. Notify what the secret phrase is for.
@@ -27,6 +28,7 @@ export default function ImportPhrase({ navigation }: any) {
   const { setLoading, setToast } = AppSettings()
   const { updateKeypair, updatePassphrase } = WalletItem();
   const { user } = UserItem();
+  const { isKeyboardVisible } = useKeyboard();
 
   const importWallet = async () => {
     console.log(mnemonic);
@@ -115,7 +117,7 @@ export default function ImportPhrase({ navigation }: any) {
                 <TextInput
                   style={{ fontFamily: "bold" }}
                   multiline
-                  returnKeyType="done"
+                  returnKeyType="next"
                   value={mnemonic}
                   numberOfLines={100}
                   className=" px-4  w-full h-[12.43rem] text-[1rem] text-dark dark:text-white"
@@ -152,17 +154,17 @@ export default function ImportPhrase({ navigation }: any) {
           </View>
         </View>
       </View>
-      {/* {!isKeyboardVisible && ( */}
-      <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 relative">
-        <Buttons onPress={importWallet} text="Import Wallet" />
-        <Buttons
-          buttonType="feedback"
-          type="secondary"
-          onPress={() => router.push("/auth/secretphrase")}
-          text="I don't know what a secret phrase is"
-        />
-      </View>
-      {/* )} */}
+      {!isKeyboardVisible && (
+        <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 relative">
+          <Buttons onPress={importWallet} text="Import Wallet" />
+          <Buttons
+            buttonType="feedback"
+            type="secondary"
+            onPress={() => router.push("/auth/secretphrase")}
+            text="I don't know what a secret phrase is"
+          />
+        </View>
+      )}
     </View>
   );
 }

@@ -12,13 +12,12 @@ import {
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
 import { router } from "expo-router";
 import WalletItem from "@/utils/store/wallet.store";
 import UserItem from "@/utils/store/userstore.store";
-import CText from "@/components/TextComp";
+import { CText } from "@/components/TextComp";
 import {
   startUpdateFlow,
   UpdateFlow,
@@ -172,7 +171,7 @@ export default function Index() {
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        className=""
+        contentContainerStyle={{ justifyContent: 'flex-end', alignItems: 'center' }}
       >
         {screens.map((screen, index) => (
           <ImageBackground
@@ -181,28 +180,25 @@ export default function Index() {
             contentPosition="top center"
             key={index}
             style={{ width, height }}
-            className="flex flex-1 items-center justify-start gap-y-3 relative"
+            className="flex-1 items-center justify-end h-screen gap-y-3 relative"
           >
             <View
-              className={`items-center mt-5 absolute ${height > 891 ? "bottom-[25%]" : "bottom-[15%]"
-                } flex-1 px-6`}
-            >
-              <CText className="text-[1.2rem]  text-center font-bold text-primary dark:text-white">
-                {screen.title}
-              </CText>
-              <CText className="text-[0.8rem] mt-2 text-gray-600 dark:text-white text-center">
-                {screen.subtitle}
-              </CText>
-            </View>
-
-            <View
-              className={`px-3 w-full absolute h-fit ${height > 891 ? "bottom-[15%]" : "bottom-[5%]"
+              className={`px-3 absolute bottom-20 h-[100%]"
                 } left-0`}
             >
+              <View
+                className={`items-center mt-5 mb-5 flex-1 px-6`}
+              >
+                <CText className="text-[1.2rem]  text-center font-bold text-primary dark:text-white">
+                  {screen.title}
+                </CText>
+                <CText className="text-[0.8rem] mt-2 text-gray-600 dark:text-white text-center">
+                  {screen.subtitle}
+                </CText>
+              </View>
               <Buttons
                 className=""
                 text="Next"
-                // textClass="text-[#000000]"
                 onPress={() => {
                   if (currentIndex >= 2) {
                     markOpened();

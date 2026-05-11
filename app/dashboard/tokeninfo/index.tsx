@@ -134,14 +134,14 @@ export default function TokenInfo() {
                     params: { mint: mint },
                   });
                 }}
-                type="secondary"
+                type="primary"
                 text="Send"
                 icon={
                   <View className="rotate-[230deg]">
                     <AntDesign
                       name="arrow-down"
                       size={16}
-                      color={isDarkMode ? "white" : "black"}
+                      color="white"
                     />
                   </View>
                 }
@@ -156,14 +156,14 @@ export default function TokenInfo() {
 
                   // sendMessage()
                 }}
-                type="secondary"
+                type="primary"
                 text="Receive"
                 icon={
                   <View className="rotate-[40deg]">
                     <AntDesign
                       name="arrow-down"
                       size={16}
-                      color={isDarkMode ? "white" : "black"}
+                      color="white"
                     />
                   </View>
                 }

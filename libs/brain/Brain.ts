@@ -8,6 +8,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import BrainStore from "@/utils/store/brain.store";
 import { defaultLocalOpenAIBaseUrl } from "./localBaseUrl";
 import { PriceWatcher } from "./priceWatcher";
+import { runBrainDigest } from "./digest";
 import type { BrainConfig, BrainEvent } from "./types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -47,6 +48,7 @@ export class Brain {
   private prevMessagesSnapshot: MessageType[] = [];
   private priceWatcher = new PriceWatcher();
   private appStateSub: { remove: () => void } | null = null;
+  private digestTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config?: BrainConfig) {
     this.config = {
@@ -87,6 +89,8 @@ export class Brain {
     this.priceWatcher.stop();
     this.appStateSub?.remove?.();
     this.appStateSub = null;
+    if (this.digestTimer) clearInterval(this.digestTimer);
+    this.digestTimer = null;
   }
 
   private initLlm() {
@@ -131,12 +135,30 @@ export class Brain {
 
     // Start/stop foreground pollers based on app state for battery.
     const onAppState = (state: string) => {
-      if (state === "active") this.priceWatcher.start();
-      else this.priceWatcher.stop();
+      if (state === "active") {
+        this.priceWatcher.start();
+        this.kickDigest().catch(() => {});
+      } else {
+        this.priceWatcher.stop();
+      }
     };
 
     this.appStateSub = AppState.addEventListener("change", onAppState);
     onAppState(AppState.currentState);
+
+    // Periodic digest check while active (actual digest only runs if 12h elapsed).
+    this.digestTimer = setInterval(() => {
+      if (AppState.currentState !== "active") return;
+      this.kickDigest().catch(() => {});
+    }, 5 * 60_000);
+  }
+
+  private async kickDigest() {
+    await runBrainDigest({
+      llm: this.config.llmEnabled && this.llmClient
+        ? { client: this.llmClient, model: this.config.llmModel ?? "my-llm" }
+        : null,
+    });
   }
 
   private subscribeToConversationStore() {
@@ -168,7 +190,7 @@ export class Brain {
       const prev = prevById.get(msg.id);
 
       if (!prev) {
-        this.emit({
+        const e: BrainEvent = {
           type: "conversation.message.created",
           timestamp: msg.timestamp ?? now(),
           conversationId: msg.conversation_id,
@@ -176,7 +198,8 @@ export class Brain {
           role: msg.role,
           content: msg.content,
           source: msg.source,
-        });
+        };
+        this.emit(e);
       }
 
       const tool = msg.tool;
@@ -201,71 +224,43 @@ export class Brain {
         });
 
         this.emit(event);
-        this.handleToolStatusChanged(event);
       }
     }
   }
 
   private emit(_event: BrainEvent) {
-    // Placeholder for future: store to Brain feed / analytics / memory.
-  }
-
-  private async handleToolStatusChanged(event: Extract<BrainEvent, { type: "conversation.tool.status_changed" }>) {
-    // Avoid notifying on "pending" transitions.
-    if (!this.config.notificationsEnabled) return;
-    if (!AppSettings.getState().notifications) return;
-    if (event.status === "pending") return;
-
-    // Add an in-app suggestion so users can act later (even if they dismiss notifications).
-    // Keep this lightweight and deduped by messageId + status.
+    // Append to on-device event journal (used by 12h digest).
     try {
-      BrainStore.getState().addSuggestion({
-        id: uuidv4(),
-        type: event.status === "failed" ? "insight" : "generic",
-        title: `${buildToolTitle(event.toolAction)} ${event.status === "complete" ? "completed" : "failed"}`,
-        body:
-          event.status === "complete"
-            ? "View details and continue."
-            : "Review what happened and retry if needed.",
-        createdAt: Date.now(),
-        link: `/brain?focus=${encodeURIComponent(event.messageId)}`,
-        dedupeKey: `tool:${event.messageId}:${event.status}`,
-        data: {
-          conversationId: event.conversationId,
-          messageId: event.messageId,
-          toolAction: event.toolAction,
-          status: event.status,
-        },
-      });
+      if (_event.type === "conversation.message.created") {
+        // Avoid logging huge messages; keep a short summary.
+        const summary = (_event.content || "").trim().slice(0, 180);
+        BrainStore.getState().appendEvent({
+          id: uuidv4(),
+          type: _event.type,
+          createdAt: _event.timestamp,
+          summary: summary ? `Message: ${summary}` : "Message created",
+          conversationId: _event.conversationId,
+          messageId: _event.messageId,
+          data: { role: _event.role, source: _event.source },
+        });
+        return;
+      }
+
+      if (_event.type === "conversation.tool.status_changed") {
+        BrainStore.getState().appendEvent({
+          id: uuidv4(),
+          type: _event.type,
+          createdAt: _event.timestamp,
+          summary: `${buildToolTitle(_event.toolAction)} ${_event.status}`,
+          conversationId: _event.conversationId,
+          messageId: _event.messageId,
+          data: { toolAction: _event.toolAction, status: _event.status },
+        });
+        return;
+      }
     } catch {
-      // non-fatal
+      // ignore
     }
-
-    const title = `${buildToolTitle(event.toolAction)} ${event.status === "complete" ? "completed" : "failed"}`;
-    const fallbackBody =
-      event.status === "complete"
-        ? "Tap to view details."
-        : "Tap to review and retry.";
-
-    const body = this.config.llmEnabled
-      ? await this.generateNotificationBodyWithLlm(event).catch(() => fallbackBody)
-      : fallbackBody;
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        sound: "default",
-        ...(Platform.OS === "android" ? { channelId: ANDROID_CHANNEL_ID } : null),
-        data: {
-          conversationId: event.conversationId,
-          messageId: event.messageId,
-          toolAction: event.toolAction,
-          status: event.status,
-        },
-      },
-      trigger: null,
-    });
   }
 
   private async generateNotificationBodyWithLlm(
