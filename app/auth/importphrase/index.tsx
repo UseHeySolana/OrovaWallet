@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { TextInput, View } from "react-native";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  TextInput,
+  View,
+} from "react-native";
 import { CText } from "@/components/TextComp";
 import Buttons from "@/components/ButtonComp";
 import { getKeypairFromMnemonic, isJson } from "@/utils/wallet";
@@ -90,82 +97,107 @@ export default function ImportPhrase({ navigation }: any) {
     }
   };
   return (
-    <View className="pt-4 relative bg-gray dark:bg-dark h-[100%]">
-      <View className="gap-y-5 w-full px-4 flex flex-1 flex-col justify-start ">
-        <View className=" bg-white dark:bg-accent rounded-3xl px-3 py-10 gap-y-5">
-          <View className="gap-x-5">
-            <CText
-              style={{ fontFamily: "bold" }}
-              className="text-[1.5em] text-center"
-            >
-              Import existing wallet
-            </CText>
-            <CText className="text-[1em] text-center">
-              Enter the secret phrase to restore your Solana wallet.
-            </CText>
-          </View>
+    <KeyboardAvoidingView
+      className="bg-gray dark:bg-dark flex-1"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 16 : 0}
+    >
+      <Pressable className="flex-1 pt-4" onPress={Keyboard.dismiss}>
+        <View className="gap-y-5 w-full px-4 flex flex-1 flex-col justify-start ">
+          <View className=" bg-white dark:bg-accent rounded-3xl px-3 py-10 gap-y-5">
+            <View className="gap-x-5">
+              <CText
+                style={{ fontFamily: "bold" }}
+                className="text-[1.5em] text-center"
+              >
+                Import existing wallet
+              </CText>
+              <CText className="text-[1em] text-center">
+                Enter the secret phrase to restore your Solana wallet.
+              </CText>
+            </View>
 
-          <View className="w-100 m-auto bg-grey dark:bg-accent w-full rounded-2xl p-2  ">
-            <View className="bg-white dark:bg-accent2 p-3 rounded-2xl">
-              <View className="py-4">
-                <CText className="text-[1em]" style={{ fontFamily: "bold" }}>
-                  Secret Phrase or Private Key
-                </CText>
-              </View>
-              <View className="border-b border-gray-200"></View>
-              <View className="relative">
-                <TextInput
-                  style={{ fontFamily: "bold" }}
-                  multiline
-                  returnKeyType="next"
-                  value={mnemonic}
-                  numberOfLines={100}
-                  className=" px-4  w-full h-[12.43rem] text-[1rem] text-dark dark:text-white"
-                  onChangeText={(text) => {
-                    setMnemonic(text);
-                  }}
-                />
-                <View className="w-[6.25rem] absolute right-0 bottom-0">
-                  <Buttons
-                    buttonType="feedback"
-                    type={isDarkMode ? "primary" : "secondary"}
-                    onPress={async () => {
-                      setMnemonic(await pasteItem());
+            <View className="w-100 m-auto bg-grey dark:bg-accent w-full rounded-2xl p-2  ">
+              <View className="bg-white dark:bg-accent2 p-3 rounded-2xl">
+                <View className="py-4">
+                  <CText className="text-[1em]" style={{ fontFamily: "bold" }}>
+                    Secret Phrase or Private Key
+                  </CText>
+                </View>
+                <View className="border-b border-gray-200"></View>
+                <View className="relative">
+                  <TextInput
+                    style={{ fontFamily: "bold" }}
+                    multiline
+                    returnKeyType="done"
+                    blurOnSubmit
+                    value={mnemonic}
+                    numberOfLines={100}
+                    className=" px-4  w-full h-[12.43rem] text-[1rem] text-dark dark:text-white"
+                    onChangeText={(text) => {
+                      setMnemonic(text);
                     }}
-                    text="Paste"
+                    onSubmitEditing={Keyboard.dismiss}
                   />
+                  <View className="w-[6.25rem] absolute right-0 bottom-0">
+                    <Buttons
+                      buttonType="feedback"
+                      type={isDarkMode ? "primary" : "secondary"}
+                      onPress={async () => {
+                        setMnemonic(await pasteItem());
+                      }}
+                      text="Paste"
+                    />
+                  </View>
                 </View>
               </View>
             </View>
           </View>
-        </View>
-        <View className="bg-[#9DE0E5]/30 border-[##65F5FF33] border-2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
-          <View className="1">
-            <IconLibrary.question />
+          <View className="bg-[#9DE0E5]/30 border-[##65F5FF33] border-2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
+            <View className="1">
+              <IconLibrary.question />
+            </View>
+            <View className="w-[12.5rem] flex-1 ">
+              <CText
+                style={{ fontFamily: "md" }}
+                className="text-[1em] text-start text-wrap"
+              >
+                The secret phrase is typically 12 words separated by single
+                spaces.
+              </CText>
+            </View>
           </View>
-          <View className="w-[12.5rem] flex-1 ">
-            <CText
-              style={{ fontFamily: "md" }}
-              className="text-[1em] text-start text-wrap"
-            >
-              The secret phrase is typically 12 words separated by single
-              spaces.
-            </CText>
+
+          <View className="w-full px-0 m-auto p-2 gap-y-3 mt-auto pb-4">
+            {!isKeyboardVisible ? (
+              <Buttons
+                onPress={() => {
+                  Keyboard.dismiss();
+                  return importWallet();
+                }}
+                text="Import Wallet"
+              />
+            ) : (
+              <Buttons
+                onPress={() => {
+                  Keyboard.dismiss();
+                }}
+                text="Done"
+              />
+            )}
+            <Buttons
+              buttonType="feedback"
+              type="secondary"
+              onPress={() => {
+                Keyboard.dismiss();
+                router.push("/auth/secretphrase");
+              }}
+              text="I don't know what a secret phrase is"
+            />
           </View>
         </View>
-      </View>
-      {!isKeyboardVisible && (
-        <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 relative">
-          <Buttons onPress={importWallet} text="Import Wallet" />
-          <Buttons
-            buttonType="feedback"
-            type="secondary"
-            onPress={() => router.push("/auth/secretphrase")}
-            text="I don't know what a secret phrase is"
-          />
-        </View>
-      )}
-    </View>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
