@@ -10,11 +10,12 @@ import {
 } from "@/utils/functions/extrafunctions";
 import {
   completeConversation,
-  getInTokenBalance,
   getUserDetails,
+  verifiedTokens,
 } from "@/utils/functions";
 import { airBills } from "@/libs/tools/airbills/airbills";
 import ToolsItem from "@/utils/store/toolsitems.store";
+import { getTokenBalance } from "@/libs/tools/transfer/transfers";
 
 export class AirBills {
   public buyAirtime: FunctionParams;
@@ -155,18 +156,26 @@ export class AirBills {
       },
 
       handler: async (args: { username: string; amount: number }) => {
-        const userDetails = this.session.userDetails;
-        // Check if the user has that token
-        const exist = userDetails.tokenAccounts.find(
-          (item: any) => item?.symbol?.toLowerCase() === "usdc"
-        );
-
-        if (!exist) {
-          return "You do not have any USDC in your wallet, please swap some token and try again";
+        const pk = WalletItem.getState().publicKey?.toString() || "";
+        if (!pk) {
+          return "Please connect your wallet to proceed";
         }
 
-        const usdcBalance = getInTokenBalance("usdc");
-        if (usdcBalance <= 0) return "Insufficient balance to purchase airtime";
+        const usdcMeta = verifiedTokens.find((t) => t.symbol === "USDC");
+        if (!usdcMeta) {
+          return "USDC is not configured. Please try again later.";
+        }
+
+        const usdcBalance = await getTokenBalance(
+          pk,
+          usdcMeta.address,
+          usdcMeta.decimals,
+          this.session.connection
+        );
+
+        if (usdcBalance <= 0) {
+          return "You do not have any USDC in your wallet, please swap some token and try again";
+        }
 
         const user = UserItem.getState().user;
         let mobileNumber: string;

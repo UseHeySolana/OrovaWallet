@@ -1,5 +1,15 @@
 import WalletItem from "@/utils/store/wallet.store";
+import AppSettings from "@/utils/store/settingsstore.store";
 import { BASE_URL, HELIUS } from "@/utils/constant";
+
+/** Helius enhanced transactions API (cluster-specific; api.helius.xyz is mainnet-only). */
+function heliusEnhancedApiBaseForCluster(
+  cluster: "devnet" | "mainnet"
+): string {
+  return cluster === "devnet"
+    ? "https://api-devnet.helius-rpc.com"
+    : "https://api-mainnet.helius-rpc.com";
+}
 
 export type MessageData = {
   id: string;
@@ -270,12 +280,19 @@ const getCode = async (phone_number: string, country?: string) => {
 };
 
 /**
- * @param publicKey
- * @returns
+ * @param publicKey wallet address
+ * @param cluster optional; when set, fetches that cluster regardless of app network setting
  */
-const getTransactionHistory = async (publicKey: string) => {
+const getTransactionHistory = async (
+  publicKey: string,
+  cluster?: "devnet" | "mainnet"
+) => {
+  const resolved: "devnet" | "mainnet" =
+    cluster ??
+    (AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet");
+  const base = heliusEnhancedApiBaseForCluster(resolved);
   const response = await request.getRan(
-    `https://api.helius.xyz/v0/addresses/${publicKey}/transactions?api-key=${HELIUS}`
+    `${base}/v0/addresses/${publicKey}/transactions?api-key=${HELIUS}`
   );
 
   if (!response.ok) {

@@ -130,13 +130,16 @@ export class Brain {
   }
 
   private startForegroundServices() {
-    // Respect app-level notification toggle.
-    if (!AppSettings.getState().notifications) return;
-
     // Start/stop foreground pollers based on app state for battery.
+    // Digest / in-app Brain suggestions run regardless of the notifications toggle;
+    // PriceWatcher already no-ops ticks when notifications are off.
     const onAppState = (state: string) => {
       if (state === "active") {
-        this.priceWatcher.start();
+        if (AppSettings.getState().notifications) {
+          this.priceWatcher.start();
+        } else {
+          this.priceWatcher.stop();
+        }
         this.kickDigest().catch(() => {});
       } else {
         this.priceWatcher.stop();

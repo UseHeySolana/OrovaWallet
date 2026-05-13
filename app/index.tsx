@@ -46,11 +46,29 @@ const screens = [
 ];
 const { width, height } = Dimensions.get("window");
 
+/** Read stores after `initWallet()` — avoids stale hook values in the same tick as hydration. */
+function getPostWalletInitDestination(): string | null {
+  const { openWithAuth, pin, alreadyOpened } = AppSettings.getState();
+  const { publicKey } = WalletItem.getState();
+  const { session } = UserItem.getState();
+
+  if (!openWithAuth && publicKey !== null) {
+    return "/dashboard";
+  }
+
+  if ((openWithAuth && !session) || pin.length >= 4) {
+    return "/auth/login";
+  }
+
+  if (alreadyOpened) {
+    return "/auth/username";
+  }
+
+  return null;
+}
+
 export default function Index() {
-  const { alreadyOpened, markOpened, openWithAuth, pin, setLoading } =
-    AppSettings();
-  const { publicKey } = WalletItem();
-  const { user, session } = UserItem();
+  const { markOpened, setLoading } = AppSettings();
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -58,31 +76,6 @@ export default function Index() {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / width);
     setCurrentIndex(index);
-  };
-
-  const getDestination = () => {
-    // User is logged in
-    if (!openWithAuth && publicKey !== null) {
-      return "/dashboard";
-    }
-
-    //Go to verification if verification is enabled
-    if ((openWithAuth && !session) || pin.length >= 4) {
-      return "/auth/login";
-    }
-
-    // // User has a wallet connected but needs to log in
-    // if (alreadyOpened && user === null && publicKey !== null) {
-    //   return '/auth/login';
-    // }
-
-    // User has opened the app before but needs to set username
-    if (alreadyOpened) {
-      return "/auth/username";
-    }
-
-    // Default case - no destination
-    return null;
   };
 
   useEffect(() => {
@@ -106,7 +99,7 @@ export default function Index() {
 
       timeout = setTimeout(() => {
         if (cancelled) return;
-        const destination = getDestination();
+        const destination = getPostWalletInitDestination();
         if (destination) {
           router.replace(destination);
         }
@@ -118,7 +111,7 @@ export default function Index() {
       cancelled = true;
       if (timeout) clearTimeout(timeout);
     };
-  }, [alreadyOpened, publicKey, user]);
+  }, [setLoading]);
 
   useEffect(() => {
     const runComboUpdateFlow = async () => {

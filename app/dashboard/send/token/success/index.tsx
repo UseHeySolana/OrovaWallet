@@ -117,7 +117,7 @@ export default function SuccessSent() {
         </View>
 
         {/* Action Buttons */}
-        <View className="space-y-4 mb-6">
+        <View className="gap-y-4 mb-6">
           <TouchableOpacity
             onPress={openExplorer}
             className="bg-blue-500 py-4 rounded-xl"

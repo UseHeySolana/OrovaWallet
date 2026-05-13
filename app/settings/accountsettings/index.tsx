@@ -144,8 +144,12 @@ export default function AccountSettings() {
         {settingsMenu2.map((item, index) => {
           return (
             <Pressable onPress={() => {
-              //@ts-expect-error
-              { item.route ? router.push(item.route) : logout(); router.replace('/') }
+              if (item.route) {
+                router.push(item.route);
+              } else {
+                logout();
+                router.replace("/auth/login");
+              }
             }} key={index} className="py-1 flex flex-row justify-between items-center">
               <View className="flex flex-row justify-start items-center gap-x-2">
                 <View className="h-6 flex flex-row justify-center items-center w-6">

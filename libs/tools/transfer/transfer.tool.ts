@@ -1,14 +1,14 @@
 import { Connection } from "@solana/web3.js";
-import { userWalletType } from "@/utils/store/userstore.store";
-import { fetchData } from "@/utils/request/db";
-import { transferSol, transferToken } from "@/libs/tools/transfer/transfers";
+import { transferSol, transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { completeConversation, getUserDetails } from "@/utils/functions";
+import { completeConversation, getUserDetails, verifiedTokens } from "@/utils/functions";
+import WalletItem from "@/utils/store/wallet.store";
+import { getBalance } from "@/utils/wallet";
 
-const aiTransfer = async (userDetails: userWalletType, connection: Connection, args: { amount: number, token: string, recipient: string }) => {
+const aiTransfer = async (connection: Connection, args: { amount: number, token: string, recipient: string }) => {
     const { amount, token, recipient } = args;
     //check if the user exist on app
     const userCheck = await getUserDetails(recipient)
@@ -22,10 +22,15 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
         return data;
     }
 
-    if (token.toLowerCase() == "sol") {
-        let balance = userDetails?.solBalance
-        //check if the balance is sufficient
-        if (Number(balance?.toFixed(2)) < Number(amount)) {
+    const sender = WalletItem.getState().publicKey;
+    if (!sender) {
+        const response = await convertSpeech("Please connect your wallet to transfer.");
+        return { status: false, txId: "", comment: response };
+    }
+
+    if (token.toLowerCase() === "sol") {
+        const balance = await getBalance(sender, connection);
+        if (balance < amount) {
             const response = await convertSpeech("You do not have sufficient SOL to perform this transaction!")
             const data = {
                 status: false,
@@ -66,57 +71,64 @@ const aiTransfer = async (userDetails: userWalletType, connection: Connection, a
             return data;
         }
     } else {
-        const tokens: any = userDetails.tokenAccounts.filter((item: any) => item?.symbol?.toLowerCase() === token.toLowerCase());
-        if (tokens.length < 1) {
-            const response = await convertSpeech(`You do not have ${token} in your account!`)
+        const meta = verifiedTokens.find(
+            (t) => t.symbol.toLowerCase() === token.toLowerCase()
+        );
+        if (!meta || meta.symbol === "SOL") {
+            const response = await convertSpeech(
+                `You do not have ${token} in your account or this token is not supported for transfer here.`
+            );
+            return { status: false, txId: "", comment: response };
+        }
+
+        const balance = await getTokenBalance(
+            sender.toBase58(),
+            meta.address,
+            meta.decimals,
+            connection
+        );
+        if (balance < amount) {
+            const response = await convertSpeech(
+                `You do not have sufficient ${meta.name} to perform this transaction!`
+            );
+            return { status: false, txId: "", comment: response };
+        }
+
+        const transfer = await transferToken(
+            userCheck.wallet_address,
+            meta.address,
+            amount,
+            meta.decimals,
+            connection
+        );
+
+        if (!transfer.status) {
+            return {
+                status: false,
+                txId: "",
+                comment: transfer.message,
+            };
+        }
+        const confirmation = await connection.confirmTransaction(transfer.message, "confirmed");
+
+        if (confirmation) {
+            const transferRes = await convertSpeech(`You have transferred ${amount} ${meta.name} to ${recipient} Successfully`);
+            const data = {
+                status: true,
+                txId: transfer.message,
+                comment: transferRes,
+            };
+            return data;
+        } else {
+            const transferRes = await convertSpeech(
+                `Sorry, I couldn't perform the transfer as ${token} is not supported yet . Please try again.`
+            );
             const data = {
                 status: false,
-                txId: '',
-                comment: response,
-            }
-
+                txId: "",
+                comment: transferRes,
+            };
             return data;
-
-        } else {
-            const balance = tokens[0].balance;
-            if (Number(balance?.toFixed(2)) < Number(amount)) {
-                const response = await convertSpeech(`You do not have sufficient ${tokens[0].name} to perform this transaction!`)
-                const data = {
-                    status: false,
-                    txId: '',
-                    comment: response,
-                }
-                return data;
-            }
-                const transfer = await transferToken(userCheck.wallet_address, tokens[0].mint, amount, tokens[0].decimals, connection)
-
-            if(!transfer.status){
-                return{
-                    status: false,
-                    txId: '',
-                    comment: transfer.message,
-                }
-            }
-            const confirmation = await connection.confirmTransaction(transfer.message, "confirmed");
-
-            if (confirmation) {
-
-                const transferRes = await convertSpeech(`You have transferred ${amount} ${tokens[0].name} to ${recipient} Successfully`)
-                const data = {
-                    status: true,
-                    txId: transfer.message,
-                    comment: transferRes,
-                }
-                return data;
-            } else {
-                const transferRes = await convertSpeech(`Sorry, I couldn't perform the transfer as ${token} is not supported yet . Please try again.`)
-                const data = {
-                    status: false,
-                    txId: '',
-                    comment: transferRes,
-                }
-                return data;
-            }
         }
     }
 }
@@ -151,7 +163,7 @@ export class TransferFunction {
             },
             handler: async (args: { amount: number, token: string, recipient: string }) => {
                 const messageId = this.session.functionMessageId
-                let response = await aiTransfer(this.session.userDetails, this.session.connection, args)
+                let response = await aiTransfer(this.session.connection, args)
                 if (response.status) {
                     const network = AppSettings.getState().networkShort
                     if (messageId !== null) {

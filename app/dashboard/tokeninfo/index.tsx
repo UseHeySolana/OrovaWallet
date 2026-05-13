@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import IconLibrary from "@/utils/icons";
@@ -10,6 +10,7 @@ import Buttons from "@/components/ButtonComp";
 import {
   formatDate,
   getTokenTransactions,
+  getTxHistoryCacheKey,
   shortenPub,
   showToast,
 } from "@/utils/functions/extrafunctions";
@@ -18,6 +19,141 @@ import { useThemeContext } from "@/context/ThemeContext";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import WalletItem from "@/utils/store/wallet.store";
+import AppSettings from "@/utils/store/settingsstore.store";
+
+/** SPL transfer row from Helius enhanced tx — pick the leg for this mint (and user when possible). */
+function pickTransferForMint(
+  tokenHistory: any,
+  mintAddress: string,
+  userPk: string | undefined
+): any | null {
+  const list = tokenHistory.tokenTransfers ?? [];
+  const forMint = list.filter((t: any) => t?.mint === mintAddress);
+  if (forMint.length === 0) return null;
+  if (!userPk) return forMint[0];
+  const involvingUser = forMint.find(
+    (t: any) =>
+      t.fromUserAccount === userPk || t.toUserAccount === userPk
+  );
+  return involvingUser ?? forMint[0];
+}
+
+function TokenHistoryRows({
+  rows,
+  mintStr,
+  publicKeyStr,
+  token,
+}: {
+  rows: any[];
+  mintStr: string;
+  publicKeyStr: string;
+  token: any;
+}) {
+  if (rows.length === 0) {
+    return (
+      <View className="px-4 py-8">
+        <CText className="text-center text-grey/60">
+          No history for this token yet.
+        </CText>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      {rows.map((tokenHistory: any, index: number) => {
+        const transfer = pickTransferForMint(
+          tokenHistory,
+          mintStr,
+          publicKeyStr
+        );
+        const txType = String(tokenHistory.type ?? "");
+        const showTransferRow = !!transfer;
+        const rowKey = String(tokenHistory.signature ?? `tx-${index}`);
+
+        return (
+          <View key={rowKey}>
+            <TouchableNativeFeedback
+              background={TouchableNativeFeedback.Ripple("#971BB2", false)}
+              onPress={() => {}}
+            >
+              <View className=" px-4 py-4  w-full   flex flex-row items-start justify-between text-[1.14rem]">
+                <View className="gap-y-2">
+                  <CText>{formatDate(tokenHistory.timestamp)}</CText>
+                  <View className="flex flex-row items-center gap-x-2">
+                    <View
+                      style={{
+                        width: scale(30),
+                        height: scale(30),
+                      }}
+                      className="overflow-hidden rounded-full"
+                    >
+                      <Image
+                        source={
+                          token?.image ??
+                          require("@/assets/images/icon.png")
+                        }
+                        alt={token?.name}
+                        style={{ height: "100%", width: "100%" }}
+                        contentFit="cover"
+                      />
+                    </View>
+
+                    <View className="text-[14px]">
+                      {showTransferRow ? (
+                        <View>
+                          <CText style={{ fontFamily: "bold" }}>
+                            {transfer.fromUserAccount === publicKeyStr
+                              ? "SENT"
+                              : "RECEIVED"}
+                          </CText>
+                          <CText
+                            style={{ fontFamily: "reg" }}
+                            textColor="text-grey/40"
+                          >
+                            {transfer.fromUserAccount === publicKeyStr
+                              ? "to " + shortenPub(transfer?.toUserAccount)
+                              : "from " +
+                                shortenPub(transfer?.fromUserAccount)}
+                          </CText>
+                        </View>
+                      ) : (
+                        <View>
+                          <CText>
+                            {txType.toLowerCase().includes("swap")
+                              ? "Swapped"
+                              : "Activity"}
+                          </CText>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+                <View className="flex flex-col justify-end">
+                  {showTransferRow && (
+                    <CText
+                      textColor={
+                        transfer.fromUserAccount === publicKeyStr
+                          ? "text-red-400"
+                          : "text-green-400"
+                      }
+                      style={{ fontFamily: "reg" }}
+                      className="text-[1rem]"
+                    >
+                      {transfer.fromUserAccount === publicKeyStr ? "-" : "+"}{" "}
+                      {transfer.tokenAmount} {token?.symbol}
+                    </CText>
+                  )}
+                </View>
+              </View>
+            </TouchableNativeFeedback>
+            <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
+          </View>
+        );
+      })}
+    </>
+  );
+}
 
 /**
  * What should be done here
@@ -27,9 +163,11 @@ import WalletItem from "@/utils/store/wallet.store";
 export default function TokenInfo() {
   const { mint } = useLocalSearchParams();
   const [token, setToken] = useState<any>(null);
-  const [history, setTokenHistory] = useState<any[] | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [histLoading, setHistLoading] = useState(true);
   const { isDarkMode } = useThemeContext();
   const { publicKey } = WalletItem();
+  const { networkShort } = AppSettings();
 
   const [update, setUpdate] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,23 +182,27 @@ export default function TokenInfo() {
       setToken(tokens[0]);
     }
     const getTx = async () => {
-      if (publicKey) {
-        const txHistory = await getTokenTransactions(mint as string);
-        if (txHistory.status) {
-          setTokenHistory(txHistory.data);
-        }
+      const mintStr = typeof mint === "string" ? mint : String(mint ?? "");
+      if (!publicKey || !mintStr) {
+        setHistory([]);
+        setHistLoading(false);
         setRefreshing(false);
+        return;
       }
+      setHistLoading(true);
+      const res = await getTokenTransactions(mintStr);
+      setHistory(res.status && res.data ? res.data : []);
+      setHistLoading(false);
+      setRefreshing(false);
     };
     getTx();
-  }, [mint, publicKey, update]);
+  }, [mint, publicKey, update, networkShort]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       if (publicKey) {
-        const cacheKey = `txHistory:${publicKey.toString()}`;
-        await cache.remove(cacheKey);
+        await cache.remove(getTxHistoryCacheKey(publicKey.toString()));
       }
     } catch (e) {
     } finally {
@@ -180,108 +322,22 @@ export default function TokenInfo() {
           </View>
 
           <View className="flex-1">
-            {history?.map((tokenHistory: any, index: number) => {
-              const isNativeTransfer = tokenHistory.nativeTransfers.length;
-              const isTokenTransfer = tokenHistory.tokenTransfers.length;
-              const txType = tokenHistory.type;
-              const transfer = isTokenTransfer
-                ? tokenHistory.tokenTransfers[0]
-                : null;
-
-              return (
-                <View key={index}>
-                  <TouchableNativeFeedback
-                    key={index}
-                    background={TouchableNativeFeedback.Ripple(
-                      "#971BB2",
-                      false
-                    )}
-                    onPress={() => {
-                      // router.push({
-                      //   pathname: '/dashboard/tokeninfo',
-                      //   params: { mint: token.mint },
-                      // });
-                    }}
-                  >
-                    <View className=" px-4 py-4  w-full   flex flex-row items-start justify-between text-[1.14rem]">
-                      <View className="gap-y-2">
-                        <CText>{formatDate(tokenHistory.timestamp)}</CText>
-                        <View className="flex flex-row items-center gap-x-2">
-                          <View
-                            style={{
-                              width: scale(30),
-                              height: scale(30),
-                            }}
-                            className="overflow-hidden rounded-full"
-                          >
-                            <Image
-                              source={
-                                token?.image ??
-                                require("@/assets/images/icon.png")
-                              }
-                              alt={token?.name}
-                              style={{ height: "100%", width: "100%" }}
-                              contentFit="cover"
-                            />
-                          </View>
-
-                          <View className="text-[14px]">
-                            {txType.toLowerCase() == "transfer" ? (
-                              <View>
-                                <CText style={{ fontFamily: "bold" }}>
-                                  {transfer?.fromUserAccount ===
-                                    publicKey?.toString()
-                                    ? "SENT"
-                                    : "RECEIVED"}
-                                </CText>
-                                <CText
-                                  style={{ fontFamily: "reg" }}
-                                  textColor="text-grey/40"
-                                >
-                                  {transfer?.fromUserAccount ===
-                                    publicKey?.toString()
-                                    ? "to " +
-                                    shortenPub(transfer?.toUserAccount)
-                                    : "from " +
-                                    shortenPub(transfer?.fromUserAccount)}
-                                </CText>
-                              </View>
-                            ) : (
-                              <View>
-                                <CText>Swapped</CText>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      </View>
-                      <View className="flex flex-col justify-end">
-                        {/* <CText className="text-[14px]">
-                            {token?.balance?.toFixed(Math.min(token?.decimals, 2))}
-                          </CText> */}
-                        {isTokenTransfer && (
-                          <CText
-                            textColor={
-                              transfer?.fromUserAccount ===
-                                publicKey?.toString()
-                                ? "text-red-400"
-                                : "text-green-400"
-                            }
-                            style={{ fontFamily: "reg" }}
-                            className="text-[1rem]"
-                          >
-                            {transfer?.fromUserAccount === publicKey?.toString()
-                              ? "-"
-                              : "+"}{" "}
-                            {transfer?.tokenAmount} {token?.symbol}
-                          </CText>
-                        )}
-                      </View>
-                    </View>
-                  </TouchableNativeFeedback>
-                  <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
-                </View>
-              );
-            })}
+            {histLoading ? (
+              <View className="px-4 py-10">
+                <CText className="text-center text-grey/60">
+                  Loading history…
+                </CText>
+              </View>
+            ) : (
+              <TokenHistoryRows
+                rows={history}
+                mintStr={
+                  typeof mint === "string" ? mint : String(mint ?? "")
+                }
+                publicKeyStr={publicKey?.toString() ?? ""}
+                token={token}
+              />
+            )}
           </View>
         </View>
       </ScrollView>

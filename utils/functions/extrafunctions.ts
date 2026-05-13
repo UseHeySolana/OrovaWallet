@@ -61,68 +61,25 @@ const summarizeConversation = async (sentence: any) => {
   return result;
 };
 
-const getTokenTransactions = async (mintAddress: string) => {
-  const response = {
-    status: false,
-    data: null,
-  };
+export type SolanaHistoryCluster = "devnet" | "mainnet";
 
-  const publicKey = WalletItem.getState().publicKey;
-  if (!publicKey) {
-    response.status = false;
-    return response;
-  }
+const getTxHistoryCacheKeyForCluster = (
+  publicKey: string,
+  cluster: SolanaHistoryCluster
+) => `txHistory:${cluster}:${publicKey}`;
 
-  const cacheKey = `txHistory:${publicKey.toString()}`;
-  const txHistory = await cache.get(cacheKey);
-  if (!txHistory) {
-    const fetchedTxHistory = await getTransactionHistory(publicKey.toString());
-    if (!fetchedTxHistory.status) {
-      return response;
-    }
-    // Cache for 5 minutes
-    await cache.set(cacheKey, JSON.stringify(fetchedTxHistory), 5 * 60 * 1000);
+/** Cache key for the wallet's current app network (mainnet vs devnet). */
+const getTxHistoryCacheKey = (publicKey: string) =>
+  getTxHistoryCacheKeyForCluster(
+    publicKey,
+    AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet"
+  );
 
-    const filtered = fetchedTxHistory.data.filter((tx: any) => {
-      const mintInTokenTransfers = tx.tokenTransfers?.some(
-        (t: any) => t.mint === mintAddress
-      );
-      const mintInAccountData = tx.accountData?.some((account: any) =>
-        account.tokenBalanceChanges?.some((t: any) => t.mint === mintAddress)
-      );
-      const mintInSwapInputs = tx.events?.swap?.tokenInputs?.some(
-        (t: any) => t.mint === mintAddress
-      );
-      const mintInSwapOutputs = tx.events?.swap?.tokenOutputs?.some(
-        (t: any) => t.mint === mintAddress
-      );
-      const mintInInnerSwaps = tx.events?.swap?.innerSwaps?.some(
-        (swap: any) =>
-          swap.tokenInputs?.some((t: any) => t.mint === mintAddress) ||
-          swap.tokenOutputs?.some((t: any) => t.mint === mintAddress) ||
-          swap.tokenFees?.some((t: any) => t.mint === mintAddress)
-      );
-      const mintInNfts = tx.events?.nft?.nfts?.some(
-        (nft: any) => nft.mint === mintAddress
-      );
-
-      return (
-        mintInTokenTransfers ||
-        mintInAccountData ||
-        mintInSwapInputs ||
-        mintInSwapOutputs ||
-        mintInInnerSwaps ||
-        mintInNfts
-      );
-    });
-
-    response.status = true;
-    response.data = filtered;
-    return response;
-  }
-
-  const parsedTx = JSON.parse(txHistory);
-  const filtered = parsedTx.data.filter((tx: any) => {
+function filterTransactionsForMint(
+  transactions: any[],
+  mintAddress: string
+): any[] {
+  return transactions.filter((tx: any) => {
     const mintInTokenTransfers = tx.tokenTransfers?.some(
       (t: any) => t.mint === mintAddress
     );
@@ -154,8 +111,114 @@ const getTokenTransactions = async (mintAddress: string) => {
       mintInNfts
     );
   });
+}
+
+/** Per-token history for one cluster (Helius enhanced + client-side mint filter). */
+const getTokenTransactions = async (
+  mintAddress: string,
+  options?: { cluster?: SolanaHistoryCluster }
+) => {
+  const response: {
+    status: boolean;
+    data: any[] | null;
+    message?: string;
+  } = { status: false, data: null };
+
+  const publicKey = WalletItem.getState().publicKey;
+  if (!publicKey) {
+    return response;
+  }
+
+  const cluster: SolanaHistoryCluster =
+    options?.cluster ??
+    (AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet");
+
+  const cacheKey = getTxHistoryCacheKeyForCluster(
+    publicKey.toString(),
+    cluster
+  );
+  const txHistory = await cache.get(cacheKey);
+  if (!txHistory) {
+    const fetchedTxHistory = await getTransactionHistory(
+      publicKey.toString(),
+      cluster
+    );
+    if (!fetchedTxHistory.status || fetchedTxHistory.data == null) {
+      response.message =
+        typeof (fetchedTxHistory as { message?: string }).message === "string"
+          ? (fetchedTxHistory as { message: string }).message
+          : undefined;
+      return response;
+    }
+    const raw = Array.isArray(fetchedTxHistory.data) ? fetchedTxHistory.data : [];
+    await cache.set(
+      cacheKey,
+      JSON.stringify({ status: true, data: raw }),
+      5 * 60 * 1000
+    );
+
+    response.status = true;
+    response.data = filterTransactionsForMint(raw, mintAddress);
+    return response;
+  }
+
+  try {
+    const parsedTx = JSON.parse(txHistory);
+    const raw = Array.isArray(parsedTx?.data) ? parsedTx.data : [];
+    response.status = true;
+    response.data = filterTransactionsForMint(raw, mintAddress);
+    return response;
+  } catch {
+    await cache.remove(cacheKey);
+    return response;
+  }
+};
+
+const getWalletTransactions = async (options?: {
+  invalidateCache?: boolean;
+}) => {
+  const response: {
+    status: boolean;
+    data: any[] | null;
+    message?: string;
+  } = { status: false, data: null };
+
+  const publicKey = WalletItem.getState().publicKey;
+  if (!publicKey) return response;
+
+  const cacheKey = getTxHistoryCacheKey(publicKey.toString());
+  if (options?.invalidateCache) {
+    await cache.remove(cacheKey);
+  }
+
+  const rawCached = await cache.get(cacheKey);
+  if (rawCached) {
+    try {
+      const parsed = JSON.parse(rawCached);
+      if (parsed?.status && parsed.data != null) {
+        const list = Array.isArray(parsed.data) ? parsed.data : [];
+        response.status = true;
+        response.data = list;
+        return response;
+      }
+    } catch {
+      await cache.remove(cacheKey);
+    }
+  }
+
+  const fetched = await getTransactionHistory(publicKey.toString());
+  if (!fetched.status || fetched.data == null) {
+    response.message =
+      typeof (fetched as { message?: string }).message === "string"
+        ? (fetched as { message: string }).message
+        : undefined;
+    return response;
+  }
+
+  const list = Array.isArray(fetched.data) ? fetched.data : [];
+  await cache.set(cacheKey, JSON.stringify({ status: true, data: list }), 5 * 60 * 1000);
   response.status = true;
-  response.data = filtered;
+  response.data = list;
   return response;
 };
 
@@ -302,6 +365,9 @@ export {
   cleanNumber,
   convertSpeech,
   summarizeConversation,
+  getTxHistoryCacheKey,
+  getTxHistoryCacheKeyForCluster,
+  getWalletTransactions,
   getTokenTransactions,
   formatDate,
   shortenPub,

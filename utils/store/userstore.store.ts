@@ -70,7 +70,8 @@ const UserItem = create(
         })
       },
       logout: () => {
-        set({ session: null })
+        get().clearData();
+        set({ session: null });
       },
     }),
     {

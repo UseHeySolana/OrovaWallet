@@ -20,11 +20,9 @@ export async function runBrainDigest(options: DigestOptions): Promise<void> {
 
   if (lastDigestAt && now - lastDigestAt < digestIntervalMs) return;
 
-  // If there is nothing to summarize, just update lastDigestAt to avoid spamming.
-  if (!eventLog.length) {
-    BrainStore.getState().setLastDigestAt(now);
-    return;
-  }
+  // Nothing to digest yet — do not advance lastDigestAt, or the 12h interval would
+  // block the first digest after the user later gets chat/tool events in the journal.
+  if (!eventLog.length) return;
 
   const recent = [...eventLog]
     .filter((e) => !lastDigestAt || e.createdAt > lastDigestAt)

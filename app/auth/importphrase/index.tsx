@@ -66,7 +66,14 @@ export default function ImportPhrase({ navigation }: any) {
       const trimmed = mnemonic.trim();
       const keyPair = await getKeypairFromMnemonic(trimmed);
       console.log(keyPair.publicKey, user);
-      await setWalletSecret(trimmed);
+      try {
+        await setWalletSecret(trimmed);
+      } catch (e) {
+        setLoading(false);
+        setToast("Could not save your phrase securely on this device.", "error");
+        console.error("setWalletSecret failed:", e);
+        return;
+      }
       updatePassphrase(trimmed);
       // Only proceed once keypair is available
       if (keyPair && keyPair.publicKey && user) {
