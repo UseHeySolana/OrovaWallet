@@ -132,8 +132,15 @@ export default function SecretPhrase({ navigation }: any) {
       try {
         setCurrentState('set-pin');
         const keyPair = await getKeypairFromMnemonic(mnemonic);
-        updateKeypair(keyPair)
-        await setWalletSecret(mnemonic);
+        try {
+          await setWalletSecret(mnemonic);
+        } catch (e) {
+          setLoading(false);
+          setToast("Could not save your phrase securely on this device.", "error");
+          console.error("setWalletSecret failed:", e);
+          return;
+        }
+        updateKeypair(keyPair);
         updatePassphrase(mnemonic);
 
         if (!user) {

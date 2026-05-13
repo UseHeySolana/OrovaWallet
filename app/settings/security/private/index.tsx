@@ -63,7 +63,7 @@ export default function Security() {
     }
     if (route == "logout") {
       logout();
-      router.replace("/");
+      router.replace("/auth/login");
       return;
     }
     if (route !== null) {

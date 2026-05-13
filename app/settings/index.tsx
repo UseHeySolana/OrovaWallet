@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  BackHandler,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -131,12 +129,7 @@ export default function Settings() {
     }
     if (route == "logout") {
       logout();
-      router.replace("/");
-      if (Platform.OS === "ios") {
-        BackHandler.exitApp();
-      } else {
-        BackHandler.exitApp();
-      }
+      router.replace("/auth/login");
       return;
     }
     if (route !== null) {

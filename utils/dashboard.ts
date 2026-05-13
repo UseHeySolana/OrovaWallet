@@ -15,7 +15,7 @@ const setUserItems = async (
   updateUserWallet: any,
   publicKey: PublicKey,
   network: string
-) => {
+): Promise<boolean> => {
   const connection = new Connection(`${network}${api_key}`);
   const pubConvert = new PublicKey(publicKey);
   try {
@@ -66,9 +66,12 @@ const setUserItems = async (
         tokenAccounts: tokens ? fungible : [sol],
         totalUsdBalance: usdBalance,
       });
+      return true;
     }
+    return false;
   } catch (error) {
     console.log("Error fetching user data", error);
+    return false;
   }
 };
 

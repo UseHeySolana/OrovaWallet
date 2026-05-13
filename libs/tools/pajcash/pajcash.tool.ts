@@ -1,23 +1,16 @@
 import AppSettings from "@/utils/store/settingsstore.store";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
-import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
-import {
-  cleanNumber,
-  convertSpeech,
-  signTransactions,
-} from "@/utils/functions/extrafunctions";
-import Convo from "@/utils/store/conversation.store";
+import { convertSpeech } from "@/utils/functions/extrafunctions";
 import {
   completeConversation,
-  getInTokenBalance,
-  getUserDetails,
-  } from "@/utils/functions";
-import { pajcash } from "@/libs/tools/pajcash/pajcash";
-import { TransferFunction } from "@/libs/tools/transfer/transfer.tool";
-import { transferSol, transferToken } from "@/libs/tools/transfer/transfers";
+  verifiedTokens,
+} from "@/utils/functions";
+import { transferSol, transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
 import ToolsItem from "@/utils/store/toolsitems.store";
+import { getBalance } from "@/utils/wallet";
+import { pajcash } from "@/libs/tools/pajcash/pajcash";
 
 export class PajCash {
   public pajitOfframp: FunctionParams;
@@ -53,12 +46,32 @@ export class PajCash {
 
       handler: async (args: { amount: number; token: string }) => {
         const messageId = this.session.functionMessageId;
-        const tokenBalance = getInTokenBalance(args.token);
+        const pk = WalletItem.getState().publicKey;
+        if (!pk) return "Please connect your wallet";
 
-        const tokens: any = this.session.userDetails.tokenAccounts.filter(
-          (item: any) =>
-            item?.symbol?.toLowerCase() === args.token.toLowerCase()
-        );
+        const conn = this.session.connection;
+        let tokenBalance: number;
+        let splMint: string | undefined;
+        let splDecimals: number | undefined;
+
+        if (args.token.toLowerCase() === "sol") {
+          tokenBalance = await getBalance(pk, conn);
+        } else {
+          const meta = verifiedTokens.find(
+            (t) => t.symbol.toLowerCase() === args.token.toLowerCase()
+          );
+          if (!meta || meta.symbol === "SOL") {
+            return `Unsupported token for offramp: ${args.token}`;
+          }
+          splMint = meta.address;
+          splDecimals = meta.decimals;
+          tokenBalance = await getTokenBalance(
+            pk.toBase58(),
+            meta.address,
+            meta.decimals,
+            conn
+          );
+        }
 
         if (tokenBalance < args.amount)
           return `Insufficient ${args.token} balance to offramp`;
@@ -77,7 +90,7 @@ export class PajCash {
         let confirmation = null;
         let transfer: { status: boolean; message: string } | null = null;
 
-        if (args.token.toLowerCase() == "sol") {
+        if (args.token.toLowerCase() === "sol") {
           transfer = await transferSol(
             recipient,
             args.amount,
@@ -92,11 +105,14 @@ export class PajCash {
             "confirmed"
           );
         } else {
+          if (!splMint || splDecimals == null) {
+            return `Unsupported token for offramp: ${args.token}`;
+          }
           transfer = await transferToken(
             recipient,
-            tokens[0].mint,
+            splMint,
             args.amount,
-            tokens[0].decimals,
+            splDecimals,
             this.session.connection
           );
           if (!transfer.status) {
@@ -153,7 +169,27 @@ export class PajCash {
       handler: async (args: { amount: number; token: string }) => {
         const messageId = this.session.functionMessageId;
 
-        const tokenBalance = getInTokenBalance(args.token);
+        const pk = WalletItem.getState().publicKey;
+        if (!pk) return "Please connect your wallet";
+        const conn = this.session.connection;
+
+        let tokenBalance: number;
+        if (args.token.toLowerCase() === "sol") {
+          tokenBalance = await getBalance(pk, conn);
+        } else {
+          const meta = verifiedTokens.find(
+            (t) => t.symbol.toLowerCase() === args.token.toLowerCase()
+          );
+          if (!meta || meta.symbol === "SOL") {
+            return `Unsupported token: ${args.token}`;
+          }
+          tokenBalance = await getTokenBalance(
+            pk.toBase58(),
+            meta.address,
+            meta.decimals,
+            conn
+          );
+        }
 
         if (tokenBalance < args.amount)
           return `Insufficient balance  of ${args.token} to offramp`;

@@ -28,10 +28,10 @@ import {
 } from "@/utils/functions/extrafunctions";
 import {
   completeConversation,
-  getInTokenBalance,
   getUserDetails,
   verifiedTokens,
 } from "@/utils/functions";
+import { getTokenBalance } from "@/libs/tools/transfer/transfers";
 
 import {
   defaultUsdcMint,
@@ -307,8 +307,13 @@ export class MagicBlockTool {
 
         if (fromBalance === "base") {
           const symbolGuess = args.token ?? "USDC";
-          const heldBalance = getInTokenBalance(symbolGuess);
-          if (heldBalance > 0 && heldBalance < args.amount) {
+          const heldBalance = await getTokenBalance(
+            owner,
+            mint,
+            decimals,
+            this.session.connection
+          );
+          if (heldBalance < args.amount) {
             return this.fail(
               messageId,
               await convertSpeech(`Insufficient ${symbolGuess} balance.`)

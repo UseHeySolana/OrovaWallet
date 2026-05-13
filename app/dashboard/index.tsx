@@ -1,11 +1,21 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
-import { ScrollView, View, TouchableOpacity } from "react-native";
+import {
+  AppState,
+  type AppStateStatus,
+  View,
+  TouchableOpacity,
+} from "react-native";
 import CText from "@/components/TextComp";
 import Feather from "@expo/vector-icons/Feather";
 import { Image } from "expo-image";
 import UserItem from "@/utils/store/userstore.store";
 import setUserItems from "@/utils/dashboard";
+import {
+  notifyWalletSnapshotChanges,
+  resetWalletChangeNotifyCooldowns,
+  snapshotUserWallet,
+} from "@/utils/wallet/walletChangeNotify";
 import { router, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -22,6 +32,8 @@ import QuickActions from "@/services/WidgetService/QuickActions";
 import ChatInterface from "@/components/DashboardComponents/Chatinterface";
 import WalletScreen from "@/components/DashboardComponents/WalletScreen";
 
+/** How often to sync balances / token list while the dashboard is open */
+const WALLET_POLL_INTERVAL_MS = 10_000;
 
 const colors = {
   loading: {
@@ -57,7 +69,6 @@ export default function Dashboard() {
   } = useAi();
   const { publicKey } = WalletItem();
   const [refreshing, setRefreshing] = useState(false);
-  const [update, setUpdate] = useState(0);
   const animation = useRef<LottieView>(null);
 
   const [showWallet, setShowWallet] = useState(false);
@@ -65,6 +76,13 @@ export default function Dashboard() {
 
   const [message, setMessage] = useState<MessageType[]>([]);
   const [setPinOpen, setSetPinOpen] = useState(false);
+  /** After first successful full wallet sync, silent refreshes may toast / notify on incoming deltas */
+  const walletNotifyPrimedRef = useRef(false);
+
+  useEffect(() => {
+    walletNotifyPrimedRef.current = false;
+    resetWalletChangeNotifyCooldowns();
+  }, [user?.username, publicKey?.toBase58()]);
 
   useEffect(() => {
     console.log(
@@ -108,22 +126,69 @@ export default function Dashboard() {
     }
   }, [sessionManager]);
 
-  useEffect(() => {
-    const getUser = async () => {
-      await setLoading(true);
+  const refreshWallet = useCallback(
+    async (options: { showLoading?: boolean } = {}) => {
+      const { showLoading = false } = options;
       if (!user || !publicKey) return;
-      await setUserItems(user, updateUserWallet, publicKey, network);
-      setLoading(false);
+      if (showLoading) {
+        await setLoading(true);
+      }
+      const prevWallet = snapshotUserWallet(UserItem.getState().userWallet);
+      try {
+        const ok = await setUserItems(user, updateUserWallet, publicKey, network);
+        if (showLoading && ok) {
+          walletNotifyPrimedRef.current = true;
+        }
+        if (!showLoading && walletNotifyPrimedRef.current && ok) {
+          notifyWalletSnapshotChanges(
+            prevWallet,
+            UserItem.getState().userWallet
+          );
+        }
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
+      }
+    },
+    [user, publicKey, network, updateUserWallet, setLoading]
+  );
+
+  useEffect(() => {
+    void refreshWallet({ showLoading: true });
+  }, [refreshWallet]);
+
+  useEffect(() => {
+    if (!user || !publicKey) return undefined;
+
+    const pollIfActive = () => {
+      if (AppState.currentState === "active") {
+        void refreshWallet({ showLoading: false });
+      }
     };
 
-    getUser();
-  }, [user, network, updateUserWallet, publicKey, update]);
+    const id = setInterval(pollIfActive, WALLET_POLL_INTERVAL_MS);
+
+    const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+      if (next === "active") {
+        void refreshWallet({ showLoading: false });
+      }
+    });
+
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, [user, publicKey, refreshWallet]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setUpdate(Math.random());
-    setShowWallet(false);
-    setRefreshing(false);
+    try {
+      await refreshWallet({ showLoading: false });
+    } finally {
+      setRefreshing(false);
+      setShowWallet(false);
+    }
   };
 
   const startStreamingSession = async () => {
