@@ -1,6 +1,7 @@
 import type { VerifiedTokenDef } from "@/utils/tokenList/types";
 import type { TokenSearchPickRow } from "@/utils/store/conversation.store";
 import { getVerifiedTokens } from "@/utils/store/verifiedTokens.store";
+import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 
 const SEARCH_URL = "https://api.jup.ag/tokens/v2/search";
 
@@ -64,10 +65,28 @@ export async function searchTokenHitsV2(query: string): Promise<TokenSearchHit[]
     if (!q) return [];
 
     const url = `${SEARCH_URL}?query=${encodeURIComponent(q)}`;
+    const startedAt = Date.now();
     const res = await fetch(url, { headers: jupHeaders() });
+    const text = await res.text();
+    if (__DEV__) {
+        pushDevNetworkLog({
+            label: "Jupiter tokens v2 /search",
+            method: "GET",
+            url,
+            status: res.status,
+            durationMs: Date.now() - startedAt,
+            requestSummary: `query=${q}`,
+            responseBody: text,
+        });
+    }
     if (!res.ok) return [];
 
-    const json: unknown = await res.json();
+    let json: unknown;
+    try {
+        json = text ? JSON.parse(text) : null;
+    } catch {
+        return [];
+    }
     if (!Array.isArray(json)) return [];
 
     const hits: TokenSearchHit[] = [];

@@ -13,6 +13,7 @@ import { userWalletType } from "@/utils/store/userstore.store";
 import { Audio } from "expo-av";
 import { toolFunctions } from "@/libs/tool-implemetation/tools";
 import { env } from "@/env";
+import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 
 interface Part {
     text?: string;
@@ -342,6 +343,17 @@ class GeminiSessionManager {
             try {
                 parsedArgs = JSON.parse(args);
             } catch (e) {
+                if (__DEV__) {
+                    pushDevNetworkLog({
+                        label: `Gemini tool args JSON.parse failed: ${name}`,
+                        method: "INTERNAL",
+                        url: `gemini-function:${name}`,
+                        status: 0,
+                        durationMs: 0,
+                        requestSummary: String(args).slice(0, 12_000),
+                        responseBody: String(e),
+                    });
+                }
                 console.warn("Could not parse args as JSON, using as is:", args);
             }
         }
@@ -354,6 +366,29 @@ class GeminiSessionManager {
             })
             .catch(error => {
                 console.error(`Error executing function ${name}:`, error);
+                if (__DEV__) {
+                    let req = "";
+                    try {
+                        req =
+                            typeof args === "string"
+                                ? args.slice(0, 4000)
+                                : JSON.stringify(args).slice(0, 4000);
+                    } catch {
+                        req = "«unavailable»";
+                    }
+                    pushDevNetworkLog({
+                        label: `Gemini tool handler error: ${name}`,
+                        method: "INTERNAL",
+                        url: `gemini-handler:${name}`,
+                        status: 0,
+                        durationMs: 0,
+                        requestSummary: req,
+                        responseBody: [error?.name, error?.message, error?.stack]
+                            .filter(Boolean)
+                            .join("\n")
+                            .slice(0, 12_000),
+                    });
+                }
                 this.sendToolResponse(id, { error: error.message || "Unknown error" });
             });
     }
