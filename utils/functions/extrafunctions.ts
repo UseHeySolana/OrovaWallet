@@ -447,6 +447,30 @@ const signTransactions = async ({
   }
 };
 
+/** Sign a base64 versioned transaction from Jupiter (or similar); does not broadcast. */
+const signVersionedTxFromBase64 = async (
+  txBase64: string
+): Promise<{ status: true; signedBase64: string } | { status: false; message: string }> => {
+  const keyPair = await keypairSign();
+  if (!keyPair) {
+    return { status: false, message: "Keypair not initialized!" };
+  }
+  try {
+    const txBuffer = Buffer.from(txBase64, "base64");
+    const transaction = VersionedTransaction.deserialize(txBuffer);
+    transaction.sign([keyPair]);
+    const signedBase64 = Buffer.from(transaction.serialize()).toString("base64");
+    return { status: true, signedBase64 };
+  } catch (error) {
+    return {
+      status: false,
+      message: `Signing failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    };
+  }
+};
+
 const openURL = async (url: string) => {
   const supported = await Linking.canOpenURL(url);
   if (supported) {
@@ -470,6 +494,7 @@ export {
   shortenPub,
   keypairSign,
   signTransactions,
+  signVersionedTxFromBase64,
   openURL,
   summarizeProduct,
 };

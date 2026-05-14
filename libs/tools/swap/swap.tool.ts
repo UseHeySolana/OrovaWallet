@@ -3,7 +3,9 @@ import { FunctionParams } from "@/utils/types/types";
 import {
     convertSpeech,
     signTransactions,
+    signVersionedTxFromBase64,
 } from "@/utils/functions/extrafunctions";
+import { confirm } from "@/services/confirmation";
 import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import Convo from "@/utils/store/conversation.store";
@@ -25,11 +27,20 @@ const jupSwapV2Headers = (): HeadersInit => ({
 type JupiterSwapV2Order = {
     transaction?: string | null;
     requestId?: string;
+    lastValidBlockHeight?: string;
     inAmount?: string;
     outAmount?: string;
     errorCode?: number;
     errorMessage?: string;
     error?: string;
+};
+
+type JupiterSwapV2ExecuteResult = {
+    status?: string;
+    signature?: string;
+    slot?: string;
+    error?: string;
+    code?: number;
 };
 
 async function readJsonBody(
@@ -150,6 +161,92 @@ const getSwapV2Order = async (params: {
         return {
             status: false,
             message: (e as Error).message || "Failed to reach Jupiter Swap API",
+        };
+    }
+};
+
+/**
+ * Jupiter Swap API v2 POST /execute — broadcast + landing via Jupiter (requires requestId from /order).
+ */
+const postSwapV2Execute = async (params: {
+    signedTransaction: string;
+    requestId: string;
+    lastValidBlockHeight?: string;
+}): Promise<{ status: boolean; data?: JupiterSwapV2ExecuteResult; message: string }> => {
+    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
+    if (!key) {
+        return {
+            status: false,
+            message: "Set EXPO_PUBLIC_JUP_API_KEY for Jupiter Swap API v2.",
+        };
+    }
+
+    const url = `${JUPITER_SWAP_V2}/execute`;
+    const body: Record<string, string> = {
+        signedTransaction: params.signedTransaction,
+        requestId: params.requestId,
+    };
+    if (params.lastValidBlockHeight) {
+        body.lastValidBlockHeight = params.lastValidBlockHeight;
+    }
+
+    const startedAt = Date.now();
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                ...jupSwapV2Headers(),
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+        const text = await res.text();
+        if (__DEV__) {
+            pushDevNetworkLog({
+                label: "Jupiter swap v2 /execute",
+                method: "POST",
+                url,
+                status: res.status,
+                durationMs: Date.now() - startedAt,
+                requestSummary: `requestId=${params.requestId}`,
+                responseBody: text,
+            });
+        }
+
+        let data: JupiterSwapV2ExecuteResult | null = null;
+        try {
+            data = text ? (JSON.parse(text) as JupiterSwapV2ExecuteResult) : null;
+        } catch {
+            return {
+                status: false,
+                message: text.slice(0, 280) || "Invalid JSON from Jupiter /execute",
+            };
+        }
+
+        if (!res.ok) {
+            return {
+                status: false,
+                message: data?.error || text.slice(0, 240) || `HTTP ${res.status}`,
+            };
+        }
+
+        if (data?.status === "Failed" || !data?.signature) {
+            return {
+                status: false,
+                message:
+                    data?.error ||
+                    (data?.code != null
+                        ? `Execute failed (code ${data.code})`
+                        : "Execute failed"),
+            };
+        }
+
+        return { status: true, data };
+    } catch (e) {
+        console.error("Jupiter swap v2 /execute error:", e);
+        return {
+            status: false,
+            message: (e as Error).message || "Failed to reach Jupiter /execute",
         };
     }
 };
@@ -279,8 +376,83 @@ export class SwapFunction {
                     return orderRes.message;
                 }
 
+                const orderData = orderRes.data;
+                const requestId =
+                    typeof orderData.requestId === "string" &&
+                    orderData.requestId.length > 0
+                        ? orderData.requestId
+                        : null;
+
+                if (requestId) {
+                    const userApproved = await confirm({
+                        message: `Confirm swap: ${amount} ${fromToken} → ${toToken}?`,
+                        type: AppSettings.getState().openWithAuth
+                            ? "fingerprint"
+                            : undefined,
+                    });
+                    if (!userApproved) {
+                        if (messageId !== null) {
+                            completeConversation(messageId, "failed");
+                        }
+                        return "You cancelled the swap.";
+                    }
+
+                    const signed = await signVersionedTxFromBase64(
+                        orderData.transaction
+                    );
+                    if (!signed.status) {
+                        if (messageId !== null) {
+                            completeConversation(messageId, "failed");
+                        }
+                        return signed.message;
+                    }
+
+                    const execRes = await postSwapV2Execute({
+                        signedTransaction: signed.signedBase64,
+                        requestId,
+                        lastValidBlockHeight:
+                            typeof orderData.lastValidBlockHeight === "string"
+                                ? orderData.lastValidBlockHeight
+                                : undefined,
+                    });
+                    if (!execRes.status || !execRes.data?.signature) {
+                        if (messageId !== null) {
+                            completeConversation(messageId, "failed");
+                        }
+                        return execRes.message;
+                    }
+
+                    const sig = execRes.data.signature;
+                    const network = AppSettings.getState().networkShort;
+                    if (messageId !== null) {
+                        completeConversation(
+                            messageId,
+                            "complete",
+                            `https://explorer.solana.com/tx/${sig}?cluster=${network}`
+                        );
+                    }
+                    const outRaw = orderData.outAmount
+                        ? Number(orderData.outAmount)
+                        : 0;
+                    const outHuman =
+                        outRaw > 0 ? outRaw / Math.pow(10, toDecimals) : 0;
+                    const outLabel =
+                        outHuman > 0
+                            ? String(
+                                  outHuman >= 1
+                                      ? outHuman
+                                            .toFixed(6)
+                                            .replace(/\.?0+$/, "")
+                                      : outHuman.toPrecision(4)
+                              )
+                            : orderData.outAmount ?? "the quoted";
+                    return await convertSpeech(
+                        `You have swapped ${amount} ${fromToken} for about ${outLabel} ${toToken} successfully`
+                    );
+                }
+
                 const txid = await signTransactions({
-                    tx: orderRes.data.transaction,
+                    tx: orderData.transaction,
                     type: "versioned",
                     confirmMessage: `Confirm swap: ${amount} ${fromToken} → ${toToken}?`,
                 });
@@ -295,8 +467,8 @@ export class SwapFunction {
                     if (messageId !== null) {
                         completeConversation(messageId, "complete", `https://explorer.solana.com/tx/${txid.message}?cluster=${network}`)
                     }
-                    const outRaw = orderRes.data.outAmount
-                        ? Number(orderRes.data.outAmount)
+                    const outRaw = orderData.outAmount
+                        ? Number(orderData.outAmount)
                         : 0;
                     const outHuman =
                         outRaw > 0 ? outRaw / Math.pow(10, toDecimals) : 0;
@@ -307,7 +479,7 @@ export class SwapFunction {
                                       ? outHuman.toFixed(6).replace(/\.?0+$/, "")
                                       : outHuman.toPrecision(4)
                               )
-                            : orderRes.data.outAmount ?? "the quoted";
+                            : orderData.outAmount ?? "the quoted";
                     return await convertSpeech(
                         `You have swapped ${amount} ${fromToken} for about ${outLabel} ${toToken} successfully`
                     );

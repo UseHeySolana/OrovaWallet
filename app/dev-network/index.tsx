@@ -7,9 +7,11 @@ import {
     View,
 } from "react-native";
 import { router } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 
 import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
+import AppSettings from "@/utils/store/settingsstore.store";
 import {
     runDevSampleSwapV2Quote,
     runDevSampleTokenSearch,
@@ -24,6 +26,15 @@ function formatTime(at: number) {
         return new Date(at).toLocaleString();
     } catch {
         return String(at);
+    }
+}
+
+async function copyToClipboard(toastLabel: string, text: string) {
+    try {
+        await Clipboard.setStringAsync(text);
+        AppSettings.getState().setToast(`${toastLabel} copied`, "success");
+    } catch {
+        AppSettings.getState().setToast("Copy failed", "error");
     }
 }
 
@@ -74,8 +85,8 @@ export default function DevNetworkScreen() {
             </View>
 
             <CText className="text-[0.85rem] opacity-70 mb-3">
-                In-app Jupiter swap and token-search requests are appended here automatically. Use the
-                samples below to verify connectivity without running a voice session.
+                In-app Jupiter swap (/order and /execute), token search, and tool traces are logged here.
+                Use the samples below to verify connectivity without running a voice session.
             </CText>
 
             <View className="gap-y-2 mb-4">
@@ -186,10 +197,68 @@ export default function DevNetworkScreen() {
                                     ) : null}
                                     <CText
                                         style={{ fontFamily: "bold" }}
-                                        className="text-[0.9rem] mb-1"
+                                        className="text-[0.9rem] mb-2"
                                     >
                                         Response body
                                     </CText>
+                                    <View className="flex-row flex-wrap gap-2 mb-3">
+                                        <Pressable
+                                            onPress={() =>
+                                                void copyToClipboard(
+                                                    "Response",
+                                                    detail.responseBody
+                                                )
+                                            }
+                                            className="px-3 py-2 rounded-full bg-purple"
+                                        >
+                                            <CText className="text-white text-[0.85rem]">
+                                                Copy response
+                                            </CText>
+                                        </Pressable>
+                                        <Pressable
+                                            onPress={() =>
+                                                void copyToClipboard("URL", detail.url)
+                                            }
+                                            className="px-3 py-2 rounded-full bg-white dark:bg-accent border border-grey/15"
+                                        >
+                                            <CText className="text-[0.85rem]">Copy URL</CText>
+                                        </Pressable>
+                                        {detail.requestSummary ? (
+                                            <Pressable
+                                                onPress={() =>
+                                                    void copyToClipboard(
+                                                        "Request",
+                                                        detail.requestSummary ?? ""
+                                                    )
+                                                }
+                                                className="px-3 py-2 rounded-full bg-white dark:bg-accent border border-grey/15"
+                                            >
+                                                <CText className="text-[0.85rem]">
+                                                    Copy request
+                                                </CText>
+                                            </Pressable>
+                                        ) : null}
+                                        <Pressable
+                                            onPress={() =>
+                                                void copyToClipboard(
+                                                    "Full log",
+                                                    [
+                                                        `${detail.method} ${detail.status} ${detail.durationMs}ms`,
+                                                        detail.url,
+                                                        detail.requestSummary
+                                                            ? `--- request ---\n${detail.requestSummary}`
+                                                            : "",
+                                                        `--- body ---\n${detail.responseBody}`,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join("\n\n")
+                                                )
+                                            }
+                                            className="px-3 py-2 rounded-full bg-white dark:bg-accent border border-grey/15"
+                                        >
+                                            <CText className="text-[0.85rem]">Copy all</CText>
+                                        </Pressable>
+                                    </View>
                                     <CText
                                         className="text-[0.75rem] mb-6"
                                         style={{ fontFamily: "monospace" }}
