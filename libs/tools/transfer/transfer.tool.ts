@@ -4,7 +4,7 @@ import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { completeConversation, getUserDetails, verifiedTokens } from "@/utils/functions";
+import { completeConversation, getUserDetails, resolveTokenByQuery } from "@/utils/functions";
 import WalletItem from "@/utils/store/wallet.store";
 import { getBalance } from "@/utils/wallet";
 
@@ -71,12 +71,10 @@ const aiTransfer = async (connection: Connection, args: { amount: number, token:
             return data;
         }
     } else {
-        const meta = verifiedTokens.find(
-            (t) => t.symbol.toLowerCase() === token.toLowerCase()
-        );
+        const meta = await resolveTokenByQuery(token);
         if (!meta || meta.symbol === "SOL") {
             const response = await convertSpeech(
-                `You do not have ${token} in your account or this token is not supported for transfer here.`
+                `Could not resolve "${token}" to an SPL token, or SOL was requested as SPL. Use SOL for native transfers or a valid token symbol/mint.`
             );
             return { status: false, txId: "", comment: response };
         }

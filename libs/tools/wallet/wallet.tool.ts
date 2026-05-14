@@ -4,7 +4,8 @@ import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
-import { completeConversation, verifiedTokens } from "@/utils/functions";
+import UserItem from "@/utils/store/userstore.store";
+import { completeConversation, resolveMetasForMints } from "@/utils/functions";
 import { getBalance } from "@/utils/wallet";
 import { getTokenBalance } from "@/libs/tools/transfer/transfers";
 
@@ -23,7 +24,7 @@ export class WalletBalanceTool {
       name: "check_wallet_balance",
       owner: "HeySolana",
       description:
-        "Read the connected wallet's SOL and supported SPL token balances directly from the Solana blockchain. Use whenever the user asks for their balance, how much SOL or tokens they have, or you need up-to-date amounts (do not rely on earlier conversation or cached wallet summaries).",
+        "Read the connected wallet's SOL and SPL token balances from chain. SPL rows use Jupiter token search (v2) for labels when an API key is set; otherwise cached wallet symbols.",
       parameters: {
         type: "object",
         properties: {},
@@ -41,17 +42,24 @@ export class WalletBalanceTool {
         const sol = await getBalance(owner, conn);
         const parts: string[] = [`${sol.toFixed(4)} SOL`];
 
-        for (const t of verifiedTokens) {
-          if (t.symbol === "SOL") continue;
+        const accounts = UserItem.getState().userWallet.tokenAccounts;
+        const mints = accounts.map((a) => a.mint).filter(Boolean);
+        const metaByMint = await resolveMetasForMints(mints);
+
+        for (const acc of accounts) {
+          if (acc.balance <= 0) continue;
+          const meta = metaByMint.get(acc.mint);
+          const label = meta?.symbol ?? acc.symbol;
+          const decimals = meta?.decimals ?? acc.decimals;
           const bal = await getTokenBalance(
             owner.toBase58(),
-            t.address,
-            t.decimals,
+            acc.mint,
+            decimals,
             conn
           );
           if (bal > 0) {
             parts.push(
-              `${bal < 1 ? bal.toFixed(Math.min(t.decimals, 6)) : bal.toFixed(2)} ${t.symbol}`
+              `${bal < 1 ? bal.toFixed(Math.min(decimals, 6)) : bal.toFixed(2)} ${label}`
             );
           }
         }

@@ -20,6 +20,7 @@ import tracker from "@/utils/tracker";
 import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
 import { Brain } from "@/libs/brain";
 import { initWallet } from "@/utils/wallet/initWallet";
+import { bootstrapVerifiedTokensList } from "@/utils/functions";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -70,6 +71,7 @@ export default function RootLayout() {
       initWallet().catch(() => {
         // non-fatal
       });
+      bootstrapVerifiedTokensList();
     }
 
     // Start Brain once per app launch.
