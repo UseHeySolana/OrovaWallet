@@ -267,6 +267,23 @@ export default function Settings() {
             Version: {Updates.runtimeVersion}
           </CText>
         </View>
+
+        {__DEV__ ? (
+          <View className="w-11/12 m-auto mt-4 mb-10 px-4 py-4 rounded-2xl bg-white dark:bg-accent border border-dashed border-grey/30">
+            <CText style={{ fontFamily: "bold" }} className="text-[1rem] mb-2">
+              Developer
+            </CText>
+            <Pressable
+              onPress={() => router.push("/dev-network")}
+              className="py-3 px-4 rounded-xl bg-purple"
+            >
+              <CText className="text-white text-center">Network request log</CText>
+            </Pressable>
+            <CText className="text-[0.8rem] opacity-60 mt-2 text-center">
+              Jupiter swap / search responses and tool errors (dev only)
+            </CText>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );

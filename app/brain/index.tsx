@@ -217,6 +217,13 @@ export default function BrainHome() {
               >
                 <CText className="text-center">Clear dev price alerts</CText>
               </Pressable>
+
+              <Pressable
+                onPress={() => router.push("/dev-network")}
+                className="py-3 px-4 rounded-xl bg-white dark:bg-accent border border-grey/15"
+              >
+                <CText className="text-center">Open network request log</CText>
+              </Pressable>
             </View>
           </View>
         ) : null}

@@ -13,110 +13,146 @@ import {
     tokenSearchHitsToPickerRows,
 } from "@/utils/functions";
 import type { TokenSearchHit } from "@/libs/jupiter/tokensV2Search";
+import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 
-/**
- * 
- * @param inputMint 
- * @param outputMint 
- * @param amount 
- * @returns {
- * status: boolean,
- * data?: any,
- * message: string,
- * }
- */
+const JUPITER_SWAP_V2 = "https://api.jup.ag/swap/v2";
 
-const getQuote = async (
-    inputMint: string,
-    outputMint: string,
-    amount: number
-) => {
-    if (inputMint === "" || outputMint === "" || amount <= 0) {
-        return { status: false, message: "Invalid input" };
-    }
+const jupSwapV2Headers = (): HeadersInit => ({
+    Accept: "application/json",
+    "x-api-key": (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim(),
+});
 
-    try {
-        // Get quote for ExactOut swap to USDC
-        const quoteUrl = `https://lite-api.jup.ag/swap/v1/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&swapMode=ExactOut&slippageBps=50`;
-        const response = await fetch(quoteUrl);
-        const quoteData = await response.json();
-
-        if (response.status !== 200) {
-            return {
-                status: false,
-                message: quoteData.error || "Failed to get quote",
-            };
-        }
-
-        return { status: true, data: quoteData };
-    } catch (error) {
-        console.error("Error getting quote:", error);
-        return { status: false, message: "Failed to get quote" };
-    }
+type JupiterSwapV2Order = {
+    transaction?: string | null;
+    requestId?: string;
+    inAmount?: string;
+    outAmount?: string;
+    errorCode?: number;
+    errorMessage?: string;
+    error?: string;
 };
 
-/**
- *
- * @param quoteResponse
- * @param userPublicKey
- * @returns {
- * status: boolean,
- * data?: any,
- * message: string,
- * }
- */
-const performSwap = async (quoteResponse: any, userPublicKey: string) => {
-    const swapResponse = await (
-        await fetch("https://lite-api.jup.ag/swap", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                quoteResponse,
-                userPublicKey,
-            }),
-        })
-    ).json();
-
-    if (!swapResponse) {
-        return { status: false, message: "Failed to perform swap" };
+async function readJsonBody(
+    res: Response,
+    log?: {
+        label: string;
+        method: string;
+        url: string;
+        requestSummary?: string;
+        startedAt: number;
     }
-
-    return { status: true, data: swapResponse };
-};
-
-/**
- * 
- * @param fromMint 
- * @param toMint 
- * @returns {
- * status: boolean,
- * data?: any,
- * message: string,
- * }
- */
-
-
-const getPrice = async (fromMint: string, toMint: string, amount: number) => {
+): Promise<{
+    ok: boolean;
+    data: JupiterSwapV2Order | null;
+    message: string;
+}> {
+    const text = await res.text();
+    if (__DEV__ && log) {
+        pushDevNetworkLog({
+            label: log.label,
+            method: log.method,
+            url: log.url,
+            status: res.status,
+            durationMs: Date.now() - log.startedAt,
+            requestSummary: log.requestSummary,
+            responseBody: text,
+        });
+    }
     try {
-        const options = { method: 'GET', headers: { 'x-api-key': process.env.EXPO_PUBLIC_JUP_API_KEY || '' } };
-        const res = await fetch(
-            `https://api.jup.ag/swap/v1/quote?swapMode=ExactIn&maxAccounts=64&instructionVersion=V1&inputMint=${fromMint}&outputMint=${toMint}&amount=${amount}`,
-            options
-        );
-        const priceData = await res.json();
-        if (res.status !== 200 || priceData.error) {
-            return { status: false, message: priceData.error || priceData.message || 'Failed to get price' };
+        const data = text ? (JSON.parse(text) as JupiterSwapV2Order) : null;
+        if (!res.ok) {
+            const err =
+                (data as { error?: string; message?: string } | null)?.error ||
+                (data as { message?: string } | null)?.message ||
+                text.slice(0, 240) ||
+                `HTTP ${res.status}`;
+            return { ok: false, data: null, message: err };
         }
-        return { status: true, data: priceData };
-    } catch (error) {
-        console.error('Error getting price:', error);
-        return { status: false, message: (error as Error).message || 'Failed to get price' };
+        return { ok: true, data, message: "" };
+    } catch {
+        return {
+            ok: false,
+            data: null,
+            message: text.slice(0, 240) || `HTTP ${res.status}`,
+        };
     }
 }
 
+/**
+ * Jupiter Swap API v2 GET /order. Amount is smallest units of **input** (ExactIn only in v2).
+ * Omit `taker` for quote-only (no serialized transaction).
+ */
+const getSwapV2Order = async (params: {
+    inputMint: string;
+    outputMint: string;
+    amountSmallestInput: string;
+    taker?: string;
+    slippageBps?: number;
+}): Promise<{ status: boolean; data?: JupiterSwapV2Order; message: string }> => {
+    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
+    if (!key) {
+        return {
+            status: false,
+            message: "Set EXPO_PUBLIC_JUP_API_KEY for Jupiter Swap API v2.",
+        };
+    }
 
+    if (!params.inputMint || !params.outputMint || !params.amountSmallestInput) {
+        return { status: false, message: "Invalid swap parameters" };
+    }
+
+    const search = new URLSearchParams({
+        inputMint: params.inputMint,
+        outputMint: params.outputMint,
+        amount: params.amountSmallestInput,
+        swapMode: "ExactIn",
+    });
+    if (params.taker) search.set("taker", params.taker);
+    if (params.slippageBps != null && params.slippageBps >= 0) {
+        search.set("slippageBps", String(params.slippageBps));
+    }
+
+    try {
+        const orderUrl = `${JUPITER_SWAP_V2}/order?${search.toString()}`;
+        const startedAt = Date.now();
+        const res = await fetch(orderUrl, {
+            method: "GET",
+            headers: jupSwapV2Headers(),
+        });
+        const parsed = await readJsonBody(res, {
+            label: "Jupiter swap v2 /order",
+            method: "GET",
+            url: orderUrl,
+            requestSummary: search.toString(),
+            startedAt,
+        });
+        if (!parsed.ok || !parsed.data) {
+            return { status: false, message: parsed.message || "Swap order failed" };
+        }
+        const d = parsed.data;
+        if (params.taker) {
+            if (d.errorCode != null && d.errorCode !== 0) {
+                return {
+                    status: false,
+                    message: d.errorMessage || d.error || "Could not build swap transaction",
+                };
+            }
+            if (!d.transaction || d.transaction.length === 0) {
+                return {
+                    status: false,
+                    message: d.errorMessage || d.error || "No transaction in Jupiter response",
+                };
+            }
+        }
+        return { status: true, data: d };
+    } catch (e) {
+        console.error("Jupiter swap v2 /order error:", e);
+        return {
+            status: false,
+            message: (e as Error).message || "Failed to reach Jupiter Swap API",
+        };
+    }
+};
 
 export class SwapFunction {
     public swapFunction: FunctionParams;
@@ -137,7 +173,8 @@ export class SwapFunction {
                 properties: {
                     amount: {
                         type: "number",
-                        description: "The amount to swap (human units): amount of toToken you want to receive (exact-out quote).",
+                        description:
+                            "Human amount of fromToken to sell (ExactIn). Jupiter Swap API v2 returns how much toToken you receive for that input.",
                     },
                     fromToken: {
                         type: "string",
@@ -215,25 +252,35 @@ export class SwapFunction {
                 const toMint = toRes.meta;
 
                 const userPublicKey = WalletItem.getState().publicKey;
-
-                const quoteResponse = await getQuote(fromMint?.address || '', toMint?.address || '', amount * Math.pow(10, toMint.decimals));
-                if (!quoteResponse.status) {
-                    if (messageId !== null) {
-                        completeConversation(messageId, 'failed')
-                    }
-                    return quoteResponse.message;
+                if (!userPublicKey) {
+                    return fail("Wallet not connected.");
                 }
 
-                const swapResponse = await performSwap(quoteResponse.data, userPublicKey?.toString() || '');
-                if (!swapResponse.status) {
+                const fromDecimals = fromMint.decimals ?? 0;
+                const toDecimals = toMint.decimals ?? 0;
+                const amountSmallest = Math.round(
+                    amount * Math.pow(10, fromDecimals)
+                );
+                if (!Number.isFinite(amountSmallest) || amountSmallest <= 0) {
+                    return fail("Invalid swap amount.");
+                }
+
+                const orderRes = await getSwapV2Order({
+                    inputMint: fromMint.address,
+                    outputMint: toMint.address,
+                    amountSmallestInput: String(amountSmallest),
+                    taker: userPublicKey.toString(),
+                    slippageBps: 50,
+                });
+                if (!orderRes.status || !orderRes.data?.transaction) {
                     if (messageId !== null) {
-                        completeConversation(messageId, 'failed')
+                        completeConversation(messageId, "failed");
                     }
-                    return swapResponse.message;
+                    return orderRes.message;
                 }
 
                 const txid = await signTransactions({
-                    tx: swapResponse.data.swapTransaction,
+                    tx: orderRes.data.transaction,
                     type: "versioned",
                     confirmMessage: `Confirm swap: ${amount} ${fromToken} → ${toToken}?`,
                 });
@@ -248,7 +295,22 @@ export class SwapFunction {
                     if (messageId !== null) {
                         completeConversation(messageId, "complete", `https://explorer.solana.com/tx/${txid.message}?cluster=${network}`)
                     }
-                    return await convertSpeech(`You have swapped ${amount} ${fromToken} for ${swapResponse.data.outputAmount} ${toToken} successfully`);
+                    const outRaw = orderRes.data.outAmount
+                        ? Number(orderRes.data.outAmount)
+                        : 0;
+                    const outHuman =
+                        outRaw > 0 ? outRaw / Math.pow(10, toDecimals) : 0;
+                    const outLabel =
+                        outHuman > 0
+                            ? String(
+                                  outHuman >= 1
+                                      ? outHuman.toFixed(6).replace(/\.?0+$/, "")
+                                      : outHuman.toPrecision(4)
+                              )
+                            : orderRes.data.outAmount ?? "the quoted";
+                    return await convertSpeech(
+                        `You have swapped ${amount} ${fromToken} for about ${outLabel} ${toToken} successfully`
+                    );
                 } else {
                     if (messageId !== null) {
                         completeConversation(messageId, 'failed')
@@ -278,8 +340,8 @@ export class SwapFunction {
                     },
                     amount: {
                         type: "number",
-                        description: "The amount of the token I want to swap"
-                    }
+                        description: "Human amount of fromToken (ExactIn quote via Jupiter Swap API v2).",
+                    },
                 },
                 required: ["fromToken", "toToken", "amount"],
             },
@@ -347,13 +409,18 @@ export class SwapFunction {
                 const fromMintToken = fromRes.meta;
                 const toMintToken = toRes.meta;
 
-                console.log("PRICE DATA", fromMintToken.address, toMintToken.address, amount * Math.pow(10, fromMintToken.decimals || 0));
-
-                const priceData = await getPrice(
-                    fromMintToken.address,
-                    toMintToken.address,
+                const amtSmallest = Math.round(
                     amount * Math.pow(10, fromMintToken.decimals || 0)
                 );
+                if (!Number.isFinite(amtSmallest) || amtSmallest <= 0) {
+                    return fail("Invalid amount for price check.");
+                }
+                const priceData = await getSwapV2Order({
+                    inputMint: fromMintToken.address,
+                    outputMint: toMintToken.address,
+                    amountSmallestInput: String(amtSmallest),
+                    slippageBps: 50,
+                });
 
                 if (!priceData?.status) {
                     if (messageId !== null) {
@@ -362,7 +429,6 @@ export class SwapFunction {
                     return priceData?.message || 'Failed to get price';
                 }
 
-                // Jupiter quote returns { inAmount, outAmount, ... } - outAmount is expected output in smallest units
                 const outAmountRaw = priceData.data?.outAmount;
                 const expectedOutAmount = outAmountRaw
                     ? Number(outAmountRaw) / Math.pow(10, toMintToken.decimals || 0)

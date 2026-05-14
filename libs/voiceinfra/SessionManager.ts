@@ -22,6 +22,7 @@ import setUserItems from "@/utils/dashboard";
 import WalletItem from "@/utils/store/wallet.store";
 import tracker from "../../utils/tracker";
 import { request } from "../../utils/request/db";
+import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 
 import InCallManager from "react-native-incall-manager";
 import AudioManager from "./AudioManager";
@@ -1199,6 +1200,20 @@ class SessionManager {
         try {
           args = JSON.parse(argsJson);
         } catch (parseError) {
+          if (__DEV__) {
+            pushDevNetworkLog({
+              label: `Realtime tool args JSON.parse failed: ${name}`,
+              method: "INTERNAL",
+              url: `function:${name}`,
+              status: 0,
+              durationMs: 0,
+              requestSummary:
+                typeof argsJson === "string"
+                  ? argsJson.slice(0, 12_000)
+                  : String(argsJson).slice(0, 12_000),
+              responseBody: String(parseError),
+            });
+          }
           throw new Error(`Failed to parse function arguments: ${parseError}`);
         }
       } else {
@@ -1269,6 +1284,30 @@ class SessionManager {
       }, 300);
     } catch (error: any) {
       console.error(`[Function Call] Error executing ${name}:`, error);
+
+      if (__DEV__) {
+        let argsSummary = "";
+        try {
+          argsSummary =
+            typeof argsJson === "string"
+              ? argsJson.slice(0, 4000)
+              : JSON.stringify(argsJson).slice(0, 4000);
+        } catch {
+          argsSummary = "«args unavailable»";
+        }
+        pushDevNetworkLog({
+          label: `Tool handler error: ${name}`,
+          method: "INTERNAL",
+          url: `handler:${name}`,
+          status: 0,
+          durationMs: 0,
+          requestSummary: argsSummary,
+          responseBody: [error?.name, error?.message, error?.stack]
+            .filter(Boolean)
+            .join("\n")
+            .slice(0, 12_000),
+        });
+      }
 
       AppSettings.getState().setLoading(false);
 
