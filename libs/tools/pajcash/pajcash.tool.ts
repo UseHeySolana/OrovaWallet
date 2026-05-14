@@ -5,7 +5,7 @@ import WalletItem from "@/utils/store/wallet.store";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import {
   completeConversation,
-  verifiedTokens,
+  resolveTokenByQuery,
 } from "@/utils/functions";
 import { transferSol, transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
 import ToolsItem from "@/utils/store/toolsitems.store";
@@ -57,11 +57,9 @@ export class PajCash {
         if (args.token.toLowerCase() === "sol") {
           tokenBalance = await getBalance(pk, conn);
         } else {
-          const meta = verifiedTokens.find(
-            (t) => t.symbol.toLowerCase() === args.token.toLowerCase()
-          );
+          const meta = await resolveTokenByQuery(args.token);
           if (!meta || meta.symbol === "SOL") {
-            return `Unsupported token for offramp: ${args.token}`;
+            return `Could not resolve token for offramp: ${args.token}`;
           }
           splMint = meta.address;
           splDecimals = meta.decimals;
@@ -106,7 +104,7 @@ export class PajCash {
           );
         } else {
           if (!splMint || splDecimals == null) {
-            return `Unsupported token for offramp: ${args.token}`;
+            return `Could not resolve token for offramp: ${args.token}`;
           }
           transfer = await transferToken(
             recipient,
@@ -177,11 +175,9 @@ export class PajCash {
         if (args.token.toLowerCase() === "sol") {
           tokenBalance = await getBalance(pk, conn);
         } else {
-          const meta = verifiedTokens.find(
-            (t) => t.symbol.toLowerCase() === args.token.toLowerCase()
-          );
+          const meta = await resolveTokenByQuery(args.token);
           if (!meta || meta.symbol === "SOL") {
-            return `Unsupported token: ${args.token}`;
+            return `Could not resolve token: ${args.token}`;
           }
           tokenBalance = await getTokenBalance(
             pk.toBase58(),

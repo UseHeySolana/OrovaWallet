@@ -14,6 +14,7 @@ import Products from "./Products";
 import ProductDetails from "./ProductDetails";
 import KalshiMarkets from "./KalshiMarkets";
 import MagicBlockTransfer from "./MagicBlockTransfer";
+import TokenSearchPicker from "./TokenSearchPicker";
 
 interface ItemProps {
   item: any;
@@ -78,6 +79,15 @@ const ToolItem = (props: ItemProps) => {
                 className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
               />
             </View>
+          ) : item?.tool?.action?.includes("search_spl_tokens") ? (
+            <View className="w-10 h-10 rounded-full overflow-hidden">
+              <Image
+                source={require("@/assets/apps/jup.png")}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
+                className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
+              />
+            </View>
           ) : item?.tool?.action?.includes("swap") ||
             item?.tool?.action?.includes("price") ? (
             <View className="w-10 h-10 rounded-full overflow-hidden">
@@ -128,9 +138,11 @@ const ToolItem = (props: ItemProps) => {
                     ? "Crossmint"
                     : item?.tool?.action?.includes("airtime")
                       ? "AirBills"
-                      : item?.tool?.action?.includes("swap") ||
-                        item?.tool?.action?.includes("price")
+                      : item?.tool?.action?.includes("search_spl_tokens")
                         ? "Jupiter"
+                        : item?.tool?.action?.includes("swap") ||
+                            item?.tool?.action?.includes("price")
+                          ? "Jupiter"
                         : item?.tool?.action?.includes("private_") ||
                           item?.tool?.action?.includes("magicblock") ||
                           item?.tool?.action === "check_private_balance"
@@ -222,6 +234,16 @@ const ToolItem = (props: ItemProps) => {
       {item?.product && (
         <Products products={item?.product} sessionManager={sessionManager} source={item?.source} />
       )}
+
+      {item?.tokenSearchPicker &&
+        Array.isArray(item.tokenSearchPicker.hits) &&
+        item.tokenSearchPicker.hits.length > 1 && (
+          <TokenSearchPicker
+            query={item.tokenSearchPicker.query}
+            hits={item.tokenSearchPicker.hits}
+            swapLeg={item.tokenSearchPicker.swapLeg}
+          />
+        )}
 
       {item?.messageType === "kalshi" && Array.isArray(item?.markets) && item.markets.length > 0 && (
         <KalshiMarkets markets={item.markets} sessionManager={sessionManager} />

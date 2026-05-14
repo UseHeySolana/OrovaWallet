@@ -1,20 +1,18 @@
-import { Connection } from "@solana/web3.js";
-import { userWalletType } from "@/utils/store/userstore.store";
-import { fetchData } from "@/utils/request/db";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import {
     convertSpeech,
     signTransactions,
 } from "@/utils/functions/extrafunctions";
-import Convo from "@/utils/store/conversation.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
+import Convo from "@/utils/store/conversation.store";
 import {
     completeConversation,
-    supportedTokens,
-    verifiedTokens,
+    resolveTokenForSwapDisambiguation,
+    tokenSearchHitsToPickerRows,
 } from "@/utils/functions";
+import type { TokenSearchHit } from "@/libs/jupiter/tokensV2Search";
 
 /**
  * 
@@ -132,21 +130,22 @@ export class SwapFunction {
         return {
             name: "swap_tokens",
             owner: "HeySolana",
-            description: "This function is used to swap between two tokens",
+            description:
+                "Execute a token swap on Solana via Jupiter. fromToken and toToken are ANY symbols or mint strings the user names—the handler resolves them with Jupiter Tokens API v2 (not a fixed app list). If several tokens match a symbol, the app shows a picker on this tool card (verified first); prefer that over asking the user to type a mint. Always call this tool for swap requests; do not refuse because a token was not listed in chat context.",
             parameters: {
                 type: "object",
                 properties: {
                     amount: {
                         type: "number",
-                        description: "The amount to swap, this is the amount of the token the user is swapping to, the toToken amount'"
+                        description: "The amount to swap (human units): amount of toToken you want to receive (exact-out quote).",
                     },
                     fromToken: {
                         type: "string",
-                        description: "the token that being swapped'"
+                        description: "Token you sell: symbol (e.g. SOL) or mint address; resolved via Jupiter token search.",
                     },
                     toToken: {
                         type: "string",
-                        description: "the token user wants to receive'"
+                        description: "Token you buy: symbol or mint address; resolved via Jupiter token search.",
                     },
                 },
                 required: ["amount", "fromToken", "toToken"],
@@ -156,16 +155,64 @@ export class SwapFunction {
                 const { amount, fromToken, toToken } = args;
                 const messageId = this.session.functionMessageId
 
-
-                const fromMint = verifiedTokens.find(token => token.symbol === fromToken);
-                const toMint = verifiedTokens.find(token => token.symbol === toToken);
-
-                if (!fromMint || !toMint) {
+                const fail = async (msg: string) => {
                     if (messageId !== null) {
                         completeConversation(messageId, 'failed')
                     }
-                    return "Token swap not supported yet!";
+                    return msg;
+                };
+
+                const fromRes = await resolveTokenForSwapDisambiguation(fromToken);
+                const toRes = await resolveTokenForSwapDisambiguation(toToken);
+
+                if (fromRes.kind === "none" || toRes.kind === "none") {
+                    return fail("Could not resolve one or both tokens. Try a mint address, or set EXPO_PUBLIC_JUP_API_KEY for Jupiter token search.");
                 }
+
+                let picker: { leg: "from" | "to"; query: string; hits: TokenSearchHit[] } | null = null;
+                if (fromRes.kind === "many") {
+                    picker = { leg: "from", query: fromRes.query, hits: fromRes.hits };
+                } else if (toRes.kind === "many") {
+                    picker = { leg: "to", query: toRes.query, hits: toRes.hits };
+                }
+
+                if (picker !== null) {
+                    if (messageId === null) {
+                        return "Several tokens matched; I need the in-chat tool card to show the picker. Try again from chat, or paste a mint address for the token you want.";
+                    }
+                    const existing = Convo.getState().messages.find((m) => m.id === messageId);
+                    Convo.getState().updateMessage({
+                        messageId,
+                        source: existing?.source ?? "voice",
+                        content: {
+                            messageType: "token_search",
+                            tokenSearchPicker: {
+                                query: picker.query,
+                                hits: tokenSearchHitsToPickerRows(picker.hits),
+                                swapLeg: picker.leg,
+                            },
+                        },
+                    });
+                    completeConversation(messageId, "complete");
+                    const legPhrase =
+                        picker.leg === "from"
+                            ? "token you're selling (fromToken)"
+                            : "token you're buying (toToken)";
+                    const bothNote =
+                        fromRes.kind === "many" && toRes.kind === "many"
+                            ? " After you pick this side, ask for the same swap again so we can choose the other token."
+                            : "";
+                    return await convertSpeech(
+                        `Several tokens matched for the ${legPhrase}. Tap the right one in the list under this card.${bothNote}`
+                    );
+                }
+
+                if (fromRes.kind !== "one" || toRes.kind !== "one") {
+                    return fail("Could not resolve one or both tokens. Try a mint address, or set EXPO_PUBLIC_JUP_API_KEY for Jupiter token search.");
+                }
+
+                const fromMint = fromRes.meta;
+                const toMint = toRes.meta;
 
                 const userPublicKey = WalletItem.getState().publicKey;
 
@@ -216,17 +263,18 @@ export class SwapFunction {
         return {
             name: "check_price",
             owner: "HeySolana",
-            description: "This function is used to check the price of a token",
+            description:
+                "Check expected swap output. Tokens are resolved by symbol or mint via Jupiter token search (v2). If several tokens match, a picker appears on this card—do not ask for a mint in chat only.",
             parameters: {
                 type: "object",
                 properties: {
                     fromToken: {
                         type: "string",
-                        description: "The token I want to swap from"
+                        description: "Token to swap from: symbol or mint address",
                     },
                     toToken: {
                         type: "string",
-                        description: "The token I want to swap to"
+                        description: "Token to swap to: symbol or mint address",
                     },
                     amount: {
                         type: "number",
@@ -240,15 +288,64 @@ export class SwapFunction {
 
                 const { fromToken, toToken, amount } = args;
 
-                const fromMintToken = verifiedTokens.find(token => token.symbol === fromToken);
-                const toMintToken = verifiedTokens.find(token => token.symbol === toToken);
-
-                if (!fromMintToken || !toMintToken) {
+                const fail = async (msg: string) => {
                     if (messageId !== null) {
                         completeConversation(messageId, 'failed')
                     }
-                    return "Token  swap not supported yet!";
+                    return msg;
+                };
+
+                const fromRes = await resolveTokenForSwapDisambiguation(fromToken);
+                const toRes = await resolveTokenForSwapDisambiguation(toToken);
+
+                if (fromRes.kind === "none" || toRes.kind === "none") {
+                    return fail("Could not resolve one or both tokens for a quote. Try mint addresses or configure EXPO_PUBLIC_JUP_API_KEY.");
                 }
+
+                let picker: { leg: "from" | "to"; query: string; hits: TokenSearchHit[] } | null = null;
+                if (fromRes.kind === "many") {
+                    picker = { leg: "from", query: fromRes.query, hits: fromRes.hits };
+                } else if (toRes.kind === "many") {
+                    picker = { leg: "to", query: toRes.query, hits: toRes.hits };
+                }
+
+                if (picker !== null) {
+                    if (messageId === null) {
+                        return "Several tokens matched; I need the in-chat tool card to show the picker. Try again from chat, or paste a mint address for the token you want.";
+                    }
+                    const existing = Convo.getState().messages.find((m) => m.id === messageId);
+                    Convo.getState().updateMessage({
+                        messageId,
+                        source: existing?.source ?? "voice",
+                        content: {
+                            messageType: "token_search",
+                            tokenSearchPicker: {
+                                query: picker.query,
+                                hits: tokenSearchHitsToPickerRows(picker.hits),
+                                swapLeg: picker.leg,
+                            },
+                        },
+                    });
+                    completeConversation(messageId, "complete");
+                    const legPhrase =
+                        picker.leg === "from"
+                            ? "from token"
+                            : "to token";
+                    const bothNote =
+                        fromRes.kind === "many" && toRes.kind === "many"
+                            ? " After you pick this side, ask for the quote again to choose the other token."
+                            : "";
+                    return await convertSpeech(
+                        `Several tokens matched for the ${legPhrase}. Tap one in the list under this card.${bothNote}`
+                    );
+                }
+
+                if (fromRes.kind !== "one" || toRes.kind !== "one") {
+                    return fail("Could not resolve one or both tokens for a quote. Try mint addresses or configure EXPO_PUBLIC_JUP_API_KEY.");
+                }
+
+                const fromMintToken = fromRes.meta;
+                const toMintToken = toRes.meta;
 
                 console.log("PRICE DATA", fromMintToken.address, toMintToken.address, amount * Math.pow(10, fromMintToken.decimals || 0));
 

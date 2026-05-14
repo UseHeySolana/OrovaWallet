@@ -17,7 +17,7 @@ import { toolRouter } from "../tool-implemetation/toolsregistry";
 import { FunctionParams } from "../../utils/types/types";
 
 import { summarizeConversation } from "../../utils/functions/extrafunctions";
-import { AgentContacts, supportedTokens } from "../../utils/functions";
+import { AgentContacts } from "../../utils/functions";
 import setUserItems from "@/utils/dashboard";
 import WalletItem from "@/utils/store/wallet.store";
 import tracker from "../../utils/tracker";
@@ -129,13 +129,15 @@ class SessionManager {
             These are the list of contacts I have on the App,
                 ${JSON.stringify(AgentContacts())}
             \n
-            These are the list of supported tokens for swaps,
-                ${JSON.stringify(
-        supportedTokens
-      )} always map the token to the correct symbol, correct with right spelling always if the token doesn't fall you can use as provided.
+            Token resolution: users may name **any SPL token** by symbol or mint address.
+            Swaps and prices use **Jupiter** on the backend. There is **no fixed "allowed swap list"** in this prompt—never tell the user a token is unsupported because it is not named here.
 
-                \n 
-                to swap first get the quote of the tokens and then respond to the user with the quote and then ask for confirmation to swap.
+                \n
+                When the user asks to **find a token**, **search for a mint**, **look up a ticker**, or **which address is token X**, call **search_spl_tokens** with their query first if they did not give a mint.
+                \n
+                When the user wants to **swap**, **trade**, or **exchange** tokens, you MUST call **swap_tokens** with their \`fromToken\`, \`toToken\`, and \`amount\` (see tool schema for what \`amount\` means). The app resolves symbols/mints via Jupiter token search—do not refuse before calling the tool. If a symbol is ambiguous, **swap_tokens** shows a token picker on the swap tool card (verified first); tell the user to tap a row there—do not ask them to paste a mint unless they prefer to. You may still call **search_spl_tokens** if they only want to explore tokens without swapping.
+                \n
+                Optional: call **check_price** before **swap_tokens** if the user wants a quote first.
                 \n
             always map the username i am interacting to any of these, correct with right spelling always if the username doesn't fall you can use as provided.
                 \n
@@ -1229,18 +1231,19 @@ class SessionManager {
       // Track tool usage
       tracker.tool_calls(name, 1);
 
-      // Update conversation message with success status
+      // Update conversation message with success status (use toolUpdates so we do not wipe tool.arguments or extra fields)
       if (this.conversation_id !== null && this.functionMessageId) {
+        const toolMsg = Convo.getState().messages.find(
+          (m) => m.id === this.functionMessageId
+        );
         Convo.getState().updateMessage({
           messageId: this.functionMessageId,
-          content: {
-            tool: {
-              status: "complete",
-              action: functionDef.name,
-              owner: functionDef.owner,
-            }
+          source: toolMsg?.source ?? "voice",
+          toolUpdates: {
+            status: "complete",
+            action: functionDef.name,
+            owner: functionDef.owner,
           },
-          source: "voice",
         });
       }
 
@@ -1277,14 +1280,14 @@ class SessionManager {
 
         Convo.getState().updateMessage({
           messageId: this.functionMessageId,
-          content: {
-            tool: {
-              status: "failed",
-              action: functionDef?.name || name,
-              owner: functionDef?.owner,
-            }
+          source:
+            Convo.getState().messages.find((m) => m.id === this.functionMessageId)
+              ?.source ?? "voice",
+          toolUpdates: {
+            status: "failed",
+            action: functionDef?.name || name,
+            owner: functionDef?.owner,
           },
-          source: "voice",
         });
       }
 

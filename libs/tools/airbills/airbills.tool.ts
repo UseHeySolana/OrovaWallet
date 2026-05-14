@@ -11,7 +11,7 @@ import {
 import {
   completeConversation,
   getUserDetails,
-  verifiedTokens,
+  resolveTokenByQuery,
 } from "@/utils/functions";
 import { airBills } from "@/libs/tools/airbills/airbills";
 import ToolsItem from "@/utils/store/toolsitems.store";
@@ -161,9 +161,9 @@ export class AirBills {
           return "Please connect your wallet to proceed";
         }
 
-        const usdcMeta = verifiedTokens.find((t) => t.symbol === "USDC");
+        const usdcMeta = await resolveTokenByQuery("USDC");
         if (!usdcMeta) {
-          return "USDC is not configured. Please try again later.";
+          return "USDC could not be resolved (configure EXPO_PUBLIC_JUP_API_KEY for Jupiter token search).";
         }
 
         const usdcBalance = await getTokenBalance(

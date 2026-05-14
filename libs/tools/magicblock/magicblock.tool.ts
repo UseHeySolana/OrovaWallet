@@ -29,7 +29,8 @@ import {
 import {
   completeConversation,
   getUserDetails,
-  verifiedTokens,
+  getVerifiedTokens,
+  resolveTokenByQuery,
 } from "@/utils/functions";
 import { getTokenBalance } from "@/libs/tools/transfer/transfers";
 
@@ -68,25 +69,27 @@ const baseRpcUrl = () => {
 const getPref = (configType: string, paramType: string, fallback = "") =>
   ToolsItem.getState().getParameterValue(APP_NAME, configType, paramType) || fallback;
 
-const resolveMint = (input: string | undefined, c: MbCluster): string => {
-  if (!input) {
+const resolveMintFromUserInput = async (
+  input: string | undefined,
+  c: MbCluster
+): Promise<string> => {
+  if (!input?.trim()) {
     const defaultSymbol = getPref("preferences", "default_mint", "USDC");
     if (defaultSymbol === "USDC") return defaultUsdcMint(c);
-    const known = verifiedTokens.find(
-      (t) => t.symbol.toLowerCase() === defaultSymbol.toLowerCase()
-    );
-    return known?.address || defaultUsdcMint(c);
+    const meta = await resolveTokenByQuery(defaultSymbol);
+    return meta?.address ?? defaultUsdcMint(c);
   }
-  if (PUBKEY_REGEX.test(input)) return input;
-  const known = verifiedTokens.find(
-    (t) => t.symbol.toLowerCase() === input.toLowerCase()
-  );
-  return known?.address || defaultUsdcMint(c);
+  const raw = input.trim();
+  if (PUBKEY_REGEX.test(raw)) return raw;
+  const meta = await resolveTokenByQuery(raw);
+  return meta?.address ?? defaultUsdcMint(c);
 };
 
-const decimalsForMint = (mint: string): number => {
-  const known = verifiedTokens.find((t) => t.address === mint);
-  return known?.decimals ?? 6;
+const getDecimalsForMint = async (mint: string): Promise<number> => {
+  const known = getVerifiedTokens().find((t) => t.address === mint);
+  if (known) return known.decimals;
+  const meta = await resolveTokenByQuery(mint);
+  return meta?.decimals ?? 6;
 };
 
 const toBaseUnits = (amount: number, decimals: number): number =>
@@ -168,8 +171,8 @@ export class MagicBlockTool {
         if (!owner) return this.fail(messageId, "Please connect your wallet to proceed.");
 
         const c = cluster();
-        const mint = resolveMint(args.token, c);
-        const decimals = decimalsForMint(mint);
+        const mint = await resolveMintFromUserInput(args.token, c);
+        const decimals = await getDecimalsForMint(mint);
         const baseUnits = toBaseUnits(args.amount, decimals);
         if (!Number.isFinite(baseUnits) || baseUnits < 1) {
           return this.fail(messageId, "Deposit amount must be at least 1 base unit.");
@@ -298,8 +301,8 @@ export class MagicBlockTool {
           );
         }
 
-        const mint = resolveMint(args.token, c);
-        const decimals = decimalsForMint(mint);
+        const mint = await resolveMintFromUserInput(args.token, c);
+        const decimals = await getDecimalsForMint(mint);
         const baseUnits = toBaseUnits(args.amount, decimals);
         if (!Number.isFinite(baseUnits) || baseUnits < 1) {
           return this.fail(messageId, "Transfer amount must be at least 1 base unit.");
@@ -502,8 +505,8 @@ export class MagicBlockTool {
         if (!owner) return this.fail(messageId, "Please connect your wallet to proceed.");
 
         const c = cluster();
-        const mint = resolveMint(args.token, c);
-        const decimals = decimalsForMint(mint);
+        const mint = await resolveMintFromUserInput(args.token, c);
+        const decimals = await getDecimalsForMint(mint);
         const baseUnits = toBaseUnits(args.amount, decimals);
         if (!Number.isFinite(baseUnits) || baseUnits < 1) {
           return this.fail(messageId, "Withdraw amount must be at least 1 base unit.");
@@ -567,7 +570,7 @@ export class MagicBlockTool {
         if (!owner) return this.fail(messageId, "Please connect your wallet to proceed.");
 
         const c = cluster();
-        const mint = resolveMint(args.token, c);
+        const mint = await resolveMintFromUserInput(args.token, c);
 
         let bearer: string;
         try {
@@ -599,7 +602,7 @@ export class MagicBlockTool {
           return this.fail(messageId, `Could not read private balance: ${res.message}`);
         }
 
-        const decimals = decimalsForMint(mint);
+        const decimals = await getDecimalsForMint(mint);
         const human = Number(res.data.balance) / Math.pow(10, decimals);
 
         if (messageId !== null) completeConversation(messageId, "complete");

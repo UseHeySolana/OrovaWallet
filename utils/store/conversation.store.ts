@@ -2,6 +2,17 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+/** Rows for Jupiter token search picker (verified sorted first in UI). */
+export interface TokenSearchPickRow {
+  mint: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  logo: string;
+  isVerified: boolean;
+  organicScore?: number;
+}
+
 export interface PrivateTransferMeta {
   visibility: "public" | "private";
   fromBalance: "base" | "ephemeral";
@@ -26,7 +37,7 @@ export interface MessageType {
   timestamp: number;
   id: string;
   conversation_id: string;
-  messageType?: "kalshi" | "commerce" | "generic" | "magicblock" | string;
+  messageType?: "kalshi" | "commerce" | "generic" | "magicblock" | "token_search" | string;
   tool?: {
     owner?: string;
     action: string;
@@ -46,6 +57,13 @@ export interface MessageType {
   markets?: any[];
   product_details?: any;
   privateTransfer?: PrivateTransferMeta;
+  /** Jupiter token disambiguation (search_spl_tokens / swap / price, multiple hits). */
+  tokenSearchPicker?: {
+    query: string;
+    hits: TokenSearchPickRow[];
+    /** When shown under swap_tokens or check_price, which leg is being chosen. */
+    swapLeg?: "from" | "to";
+  };
   source: string;
 }
 

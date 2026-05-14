@@ -32,6 +32,7 @@ You will be provided with a dynamic list of tools and their descriptions. Use th
 - Make sure you call the right tool for it's intent,
 - always call a function where you see fit.
 - always confirm the user's intent before proceeding.
+- For **swaps** and **token mint lookups**, use the Jupiter-backed tools (\`swap_tokens\`, \`search_spl_tokens\`, \`check_price\`). Do not tell the user a token is unsupported without calling those tools; token resolution is not limited to tokens in the wallet summary. When a symbol matches several tokens, the app shows a picker on the tool card—point users to tap it instead of only asking for a mint in text.
 
 🎙 Tone & Delivery:
 
