@@ -1,8 +1,10 @@
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { Image } from "expo-image";
 import { useAi } from "@/context/AiContext";
 import type { TokenSearchPickRow } from "@/utils/store/conversation.store";
 import { CText } from "@/components/TextComp";
+import Buttons from "@/components/ButtonComp";
+import IconLibrary from "@/utils/icons";
 
 type Props = {
   query: string;
@@ -11,9 +13,14 @@ type Props = {
   swapLeg?: "from" | "to";
 };
 
+function shortMint(mint: string) {
+  if (mint.length <= 14) return mint;
+  return `${mint.slice(0, 6)}…${mint.slice(-6)}`;
+}
+
 /**
- * Shown when Jupiter returns multiple matches (search, swap, or price).
- * Verified tokens are sorted first (see sortTokenSearchHitsForDisplay).
+ * Horizontal token cards (same layout idea as the Amazon product widget).
+ * Verified tokens show a green check badge on the logo.
  */
 export default function TokenSearchPicker({ query, hits, swapLeg }: Props) {
   const { sendChatMessage } = useAi();
@@ -43,50 +50,76 @@ export default function TokenSearchPicker({ query, hits, swapLeg }: Props) {
           Choose a token
         </CText>
         <CText className="text-[12px] text-gray-600 dark:text-gray-400 mt-0.5">
-          Verified matches first · {hits.length} result{hits.length === 1 ? "" : "s"}
+          Swipe for more · verified first · {hits.length} match{hits.length === 1 ? "" : "es"}
         </CText>
       </View>
+
       <ScrollView
-        style={{ maxHeight: 280 }}
+        horizontal
+        showsHorizontalScrollIndicator={false}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ gap: 10, paddingVertical: 10, paddingHorizontal: 10, paddingRight: 28 }}
       >
         {hits.map((row) => (
-          <Pressable
+          <View
             key={row.mint}
-            onPress={() => onPick(row)}
-            className="flex-row items-center gap-3 px-3 py-3 border-b border-gray-200/80 dark:border-white/10 active:bg-[#971BB2]/10"
+            className="flex flex-col items-stretch justify-start bg-white dark:bg-accent shadow-lg p-2 w-[200px] rounded-xl"
           >
-            <Image
-              source={{ uri: row.logo }}
-              style={{ width: 40, height: 40, borderRadius: 20 }}
-              contentFit="cover"
-            />
-            <View className="flex-1 min-w-0">
-              <View className="flex-row items-center gap-2 flex-wrap">
-                <CText style={{ fontFamily: "bold" }} className="text-[15px] text-dark dark:text-white">
-                  {row.symbol}
-                </CText>
-                {row.isVerified ? (
-                  <View className="px-2 py-0.5 rounded-full bg-emerald-500/20">
-                    <CText className="text-[11px] text-emerald-700 dark:text-emerald-300" style={{ fontFamily: "md" }}>
-                      Verified
-                    </CText>
-                  </View>
-                ) : null}
-              </View>
-              <CText numberOfLines={1} className="text-[13px] text-gray-600 dark:text-gray-400">
+            <View className="w-full h-[100px] rounded-lg overflow-hidden bg-grey/30 dark:bg-accent2/50 relative">
+              <Image
+                source={{ uri: row.logo }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
+              />
+              {row.isVerified ? (
+                <View
+                  className="absolute top-2 right-2 rounded-full bg-emerald-500 items-center justify-center"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 2,
+                    elevation: 3,
+                  }}
+                >
+                  <IconLibrary.check color="#FFFFFF" size={16} />
+                </View>
+              ) : null}
+            </View>
+
+            <View className="mt-2 gap-y-1 flex-1">
+              <CText
+                numberOfLines={1}
+                className="text-[13px]"
+                style={{ fontFamily: "bold" }}
+              >
+                {row.symbol}
+              </CText>
+              <CText
+                numberOfLines={2}
+                className="text-[10px] text-gray-600 dark:text-gray-400 leading-tight"
+              >
                 {row.name}
               </CText>
               <CText
                 selectable
-                numberOfLines={2}
-                className="text-[11px] text-gray-500 dark:text-gray-500 mt-1"
+                numberOfLines={1}
+                className="text-[9px] text-gray-500 dark:text-gray-500"
               >
-                {row.mint}
+                {shortMint(row.mint)}
+              </CText>
+              <CText className="text-[9px] text-gray-500 dark:text-gray-500">
+                Decimals {row.decimals}
               </CText>
             </View>
-          </Pressable>
+
+            <View className="mt-2">
+              <Buttons text="Select" onPress={() => onPick(row)} />
+            </View>
+          </View>
         ))}
       </ScrollView>
     </View>
