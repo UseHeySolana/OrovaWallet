@@ -102,7 +102,7 @@ interface BrainState {
 
   /** Digest scheduling */
   lastDigestAt: number | null;
-  setLastDigestAt: (ts: number) => void;
+  setLastDigestAt: (ts: number | null) => void;
   digestIntervalMs: number;
   setDigestIntervalMs: (ms: number) => void;
 }

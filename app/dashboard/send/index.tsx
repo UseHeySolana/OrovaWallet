@@ -61,8 +61,18 @@ const Items = [
 export default function Send() {
   const { user, userWallet } = UserItem()
   const { isDarkMode } = useThemeContext()
-  const [selectedToken, setTokenSelected] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("")
 
+  const tokens = userWallet?.tokenAccounts ?? []
+  const q = searchQuery.trim().toLowerCase()
+  const filteredTokens = q
+    ? tokens.filter((token: any) => {
+        const name = (token?.name ?? "").toLowerCase()
+        const symbol = (token?.symbol ?? "").toLowerCase()
+        const mint = (token?.mint ?? "").toLowerCase()
+        return name.includes(q) || symbol.includes(q) || mint.includes(q)
+      })
+    : tokens
 
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark h-full w-100 flex items-start justify-start flex-col gap-y-4">
@@ -75,10 +85,17 @@ export default function Send() {
         </Pressable>
       </View>
       <View className=" flex-1 gap-y-2 flex-col justify-start items-center rounded-2xl w-11/12 py-2 m-auto">
-        <SearchInput onSearch={() => { }} value={""} />
+        <SearchInput onSearch={setSearchQuery} value={searchQuery} />
         <View className="bg-white dark:bg-accent rounded-xl overflow-hidden">
-          {userWallet?.tokenAccounts.map((token: any, index: number) => (
-            <View key={index}>
+          {filteredTokens.length === 0 ? (
+            <View className="px-4 py-8">
+              <CText className="text-center text-gray-500 dark:text-gray-400">
+                No tokens match your search.
+              </CText>
+            </View>
+          ) : null}
+          {filteredTokens.map((token: any, index: number) => (
+            <View key={token?.mint ?? String(index)}>
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple("#971BB2", false)}
                 onPress={() => {

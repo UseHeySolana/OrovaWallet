@@ -13,6 +13,7 @@ import Buttons from "@/components/ButtonComp";
 import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import ButtonComp from "@/components/ButtonComp";
 import TxQueue from "@/utils/store/txqueue.store";
+import { SendFlowScreenSkeleton } from "@/components/skeletons";
 
 /**
  * What should be done here
@@ -146,11 +147,7 @@ export default function TokenAmount() {
   };
 
   if (!token) {
-    return (
-      <View className="relative w-full bg-grey dark:bg-dark flex-1 py-4 items-center justify-center">
-        <CText>Loading token...</CText>
-      </View>
-    );
+    return <SendFlowScreenSkeleton />;
   }
 
   return (

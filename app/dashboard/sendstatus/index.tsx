@@ -4,7 +4,6 @@ import {
   Pressable,
   View,
   TouchableOpacity,
-  ActivityIndicator,
   Linking,
 } from "react-native";
 import IconLibrary from "@/utils/icons";
@@ -12,6 +11,7 @@ import TxQueue from "@/utils/store/txqueue.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { useEffect } from "react";
 import Buttons from "@/components/ButtonComp";
+import { TransactionStatusRingSkeleton } from "@/components/skeletons";
 
 export default function SendStatus() {
   const { id, amount, recipient, tokenName, displayName, mint } =
@@ -74,7 +74,7 @@ export default function SendStatus() {
 
       <View className="px-4 flex-1 items-center justify-center gap-y-6">
         {item?.status !== "failed" ? (
-          <ActivityIndicator size="large" color="#971BB2" />
+          <TransactionStatusRingSkeleton />
         ) : (
           <View className="w-24 h-24 bg-red-500 rounded-full items-center justify-center">
             <IconLibrary.cancel size={48} color="white" />

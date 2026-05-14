@@ -1,6 +1,7 @@
 import React from "react";
-import { ActivityIndicator, Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
+import { Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import tracker from "@/utils/tracker";
+import { ButtonInlineLoader } from "@/components/skeletons";
 
 
 interface ButtonsProp {
@@ -13,6 +14,7 @@ interface ButtonsProp {
   style?: {};
   icon?: React.ReactNode;
   buttonType?: "feedback" | "pressable"
+  accessibilityLabel?: string;
 }
 
 /**
@@ -30,16 +32,32 @@ onPress:() => void;
  * @returns 
  */
 export default function Buttons(props: ButtonsProp) {
-  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType } = props;
+  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType, accessibilityLabel } = props;
+  const loaderVariant = type === "primary" ? "primary" : "secondary";
 
   const buttonColor = type === "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
   const textColor = type === "primary" ? "#FFFFFF" : "#FFFFFF"
 
   const trackPress = () => {
-    tracker.buttons(text, 1);
+    tracker.buttons(text || accessibilityLabel || "Button", 1);
     onPress();
   }
 
+  const innerContent = (
+    <>
+      {props.icon}
+      {loading ? (
+        <ButtonInlineLoader variant={loaderVariant} />
+      ) : text ? (
+        <Text
+          style={{ fontFamily: "bold", color: textColor, textAlign: "center", fontSize: 16 }}
+          className={textClass}
+        >
+          {text}
+        </Text>
+      ) : null}
+    </>
+  );
 
   return (
     <>
@@ -54,20 +72,25 @@ export default function Buttons(props: ButtonsProp) {
               style={{ ...style }}
               background={TouchableNativeFeedback.Ripple('#971BB2', false)}
               onPress={trackPress}>
-              <View className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}>
-                {props.icon}
-                <Text style={{ fontFamily: "bold", color: textColor, textAlign: "center", fontSize: 16 }}>
-                  {loading ? <ActivityIndicator color={textColor} /> : text}
-                </Text>
+              <View
+                accessibilityRole="button"
+                accessibilityLabel={accessibilityLabel}
+                className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}
+              >
+                {innerContent}
               </View>
             </TouchableNativeFeedback>
           </View>
         </>
       ) :
-        <TouchableOpacity onPress={onPress} style={[style, className?.includes?.("flex-1") && { flex: 1 }]}>
+        <TouchableOpacity
+          accessibilityLabel={accessibilityLabel}
+          accessibilityRole="button"
+          onPress={trackPress}
+          style={[style, className?.includes?.("flex-1") && { flex: 1 }]}
+        >
           <View className={`${buttonColor} ${className ? className : "py-5  rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}>
-            {props.icon}
-            <Text style={{ fontFamily: "bold", color: textColor, textAlign: "center", fontSize: 16 }}>{text}</Text>
+            {innerContent}
           </View>
         </TouchableOpacity>
       }

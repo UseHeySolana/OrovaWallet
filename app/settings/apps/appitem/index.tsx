@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import { apps, reviews } from "@/libs/app/apps";
 import Buttons from "@/components/ButtonComp";
+import { InlinePillSkeleton } from "@/components/skeletons";
 import { useThemeContext } from "@/context/ThemeContext";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { delay, delayPromise } from "@/utils/functions";
@@ -337,7 +338,7 @@ export default function AppItems() {
             {appData?.is_active && (
               <View className="absolute top-0 right-0 flex-1 h-full">
                 {isLoading ? (
-                  <ActivityIndicator size="small" color="#0000ff" />
+                  <InlinePillSkeleton width={88} height={36} />
                 ) : (
                   <Buttons
                     type={activated ? "primary" : "secondary"}

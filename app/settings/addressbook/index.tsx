@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FlatList, Pressable, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
@@ -10,7 +10,6 @@ import {
   fetchData,
   getContacts,
 } from "@/utils/request/db";
-import Buttons from "@/components/ButtonComp";
 import PhoneBook from "@/utils/store/phonebook.store";
 import { shortenPub } from "@/utils/functions/extrafunctions";
 import AddContactSheet from "@/components/Sheets/AddContactSheet";
@@ -157,16 +156,33 @@ export default function AddressBook() {
           <CText className="text-[1.4rem]">Address Book</CText>
         </View>
 
-        <View className="gap-y-4  overflow-hidden flex-1">
-          <View className="flex flex-row justify-between items-center gap-x-2">
-            <TouchableOpacity onPress={() => setShowContactOnHey(!showContactonHey)}>
-              <CText style={{ fontFamily: "bold" }} className="p-4 text-primary text-[16px] text-start rounded-xl">Contacts on HeySolana</CText>
+        <View className="gap-y-4 overflow-hidden w-full flex-1">
+          <View className="flex w-full flex-row items-center gap-x-2">
+            <TouchableOpacity
+              onPress={() => setShowContactOnHey(!showContactonHey)}
+              className="min-w-0 flex-1"
+            >
+              <CText
+                style={{ fontFamily: "bold" }}
+                className="rounded-xl py-2 pl-0 pr-1 text-start text-[16px] text-primary"
+              >
+                Contacts on HeySolana
+              </CText>
             </TouchableOpacity>
-
-            <Buttons loading={isLoading}
+            <Pressable
               onPress={fetchContacts}
-              type="primary" className="p-2 rounded-xl" text="Import Contact" />
-
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Import contacts from device"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 4 }}
+              className="shrink-0 p-1"
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#971BB2" />
+              ) : (
+                <IconLibrary.importContacts size={22} />
+              )}
+            </Pressable>
           </View>
 
 
@@ -218,13 +234,32 @@ export default function AddressBook() {
         </View>
 
         <View className="gap-y-4 overflow-hidden flex-1">
-          <View className="flex flex-row justify-between items-center gap-x-2">
-            <View>
-              <CText style={{ fontFamily: "bold" }} className="p-4 text-primary text-[16px] text-start rounded-xl">Personal Contacts</CText>
+          <View className="flex w-full flex-row items-center gap-x-2">
+            <View className="min-w-0 flex-1">
+              <CText
+                style={{ fontFamily: "bold" }}
+                className="rounded-xl py-2 pl-0 pr-1 text-start text-[16px] text-primary"
+              >
+                Personal Contacts
+              </CText>
             </View>
-            <Buttons loading={isLoading}
-              onPress={() => { setAddContactModal(true); setSelectedContact(null) }}
-              type="primary" className="p-2 rounded-xl" text="Add Contact" />
+            <Pressable
+              onPress={() => {
+                setAddContactModal(true);
+                setSelectedContact(null);
+              }}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Add personal contact"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 4 }}
+              className="shrink-0 p-1"
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#971BB2" />
+              ) : (
+                <IconLibrary.personAdd size={22} />
+              )}
+            </Pressable>
           </View>
 
 

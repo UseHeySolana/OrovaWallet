@@ -71,7 +71,10 @@ export class Brain {
       await this.initNotifications();
     }
 
-    if (this.config.llmEnabled) {
+    const suggestionsLlmEnv =
+      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "1" ||
+      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "true";
+    if (this.config.llmEnabled || suggestionsLlmEnv) {
       this.initLlm();
     }
 
@@ -157,8 +160,13 @@ export class Brain {
   }
 
   private async kickDigest() {
+    const suggestionsLlmEnv =
+      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "1" ||
+      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "true";
+    const useDigestLlm =
+      !!this.llmClient && (this.config.llmEnabled || suggestionsLlmEnv);
     await runBrainDigest({
-      llm: this.config.llmEnabled && this.llmClient
+      llm: useDigestLlm
         ? { client: this.llmClient, model: this.config.llmModel ?? "my-llm" }
         : null,
     });
