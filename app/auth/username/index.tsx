@@ -151,7 +151,14 @@ export default function Username() {
         </KeyboardAvoidingView>
         <View>
 
-          <Buttons buttonType="pressable" onPress={() => saveUserToDB()} className="" text={isLoading ? "loading" : "Sign up"} type="primary" />
+          <Buttons
+            buttonType="pressable"
+            onPress={() => saveUserToDB()}
+            className=""
+            text="Sign up"
+            loading={isLoading}
+            type="primary"
+          />
           <View className="px-4 my-3">
             <CText className="text-[1rem] text-center">
               I have read, understood and agreed to the <CText style={{ fontFamily: 'bold' }} textColor="text-purple">Terms&Conditions </CText>and

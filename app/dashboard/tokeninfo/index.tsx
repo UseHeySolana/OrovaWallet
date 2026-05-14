@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, RefreshControl, ScrollView, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  TouchableNativeFeedback,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import UserItem from "@/utils/store/userstore.store";
@@ -10,12 +17,14 @@ import Buttons from "@/components/ButtonComp";
 import {
   formatDate,
   getTokenTransactions,
+  getTokenTxHistorySliceCacheKey,
   getTxHistoryCacheKey,
+  peekTokenTxHistoryFromCache,
   shortenPub,
   showToast,
 } from "@/utils/functions/extrafunctions";
 import { cache } from "@/utils/storage/cache";
-import { useThemeContext } from "@/context/ThemeContext";
+import { TxHistoryRowsSkeleton } from "@/components/skeletons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import WalletItem from "@/utils/store/wallet.store";
@@ -165,7 +174,6 @@ export default function TokenInfo() {
   const [token, setToken] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [histLoading, setHistLoading] = useState(true);
-  const { isDarkMode } = useThemeContext();
   const { publicKey } = WalletItem();
   const { networkShort } = AppSettings();
 
@@ -181,21 +189,47 @@ export default function TokenInfo() {
       );
       setToken(tokens[0]);
     }
-    const getTx = async () => {
-      const mintStr = typeof mint === "string" ? mint : String(mint ?? "");
+
+    let cancelled = false;
+    const mintStr = typeof mint === "string" ? mint : String(mint ?? "");
+
+    const load = async () => {
       if (!publicKey || !mintStr) {
         setHistory([]);
         setHistLoading(false);
         setRefreshing(false);
         return;
       }
+
       setHistLoading(true);
-      const res = await getTokenTransactions(mintStr);
-      setHistory(res.status && res.data ? res.data : []);
-      setHistLoading(false);
-      setRefreshing(false);
+
+      try {
+        const peek = await peekTokenTxHistoryFromCache(mintStr);
+        if (cancelled) return;
+        if (peek.hit) {
+          setHistory(peek.rows);
+          setHistLoading(false);
+        }
+
+        const res = await getTokenTransactions(mintStr);
+        if (cancelled) return;
+        if (res.status) {
+          setHistory(res.data ?? []);
+        } else if (!peek.hit) {
+          setHistory([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setHistLoading(false);
+          setRefreshing(false);
+        }
+      }
     };
-    getTx();
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [mint, publicKey, update, networkShort]);
 
   const onRefresh = async () => {
@@ -203,6 +237,12 @@ export default function TokenInfo() {
     try {
       if (publicKey) {
         await cache.remove(getTxHistoryCacheKey(publicKey.toString()));
+        const mintStr = typeof mint === "string" ? mint : String(mint ?? "");
+        if (mintStr) {
+          await cache.remove(
+            getTokenTxHistorySliceCacheKey(publicKey.toString(), mintStr)
+          );
+        }
       }
     } catch (e) {
     } finally {
@@ -323,11 +363,7 @@ export default function TokenInfo() {
 
           <View className="flex-1">
             {histLoading ? (
-              <View className="px-4 py-10">
-                <CText className="text-center text-grey/60">
-                  Loading history…
-                </CText>
-              </View>
+              <TxHistoryRowsSkeleton rows={7} />
             ) : (
               <TokenHistoryRows
                 rows={history}

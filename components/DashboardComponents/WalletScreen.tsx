@@ -26,6 +26,7 @@ import {
   getWalletTransactions,
   shortenPub,
 } from "@/utils/functions/extrafunctions";
+import { TxHistoryRowsSkeleton } from "@/components/skeletons";
 
 function lamportsToSolDisplay(lamports: number): string {
   const sol = lamports / 1e9;
@@ -570,11 +571,7 @@ export default function WalletScreen({
             </View>
           ) : (
             <View className="flex-1 min-h-[200px]">
-              {historyLoading && (
-                <View className="py-8 items-center">
-                  <CText>Loading activity…</CText>
-                </View>
-              )}
+              {historyLoading && <TxHistoryRowsSkeleton rows={6} />}
               {!historyLoading && historyError && (
                 <View className="px-4 py-6">
                   <CText className="text-center text-red-500">

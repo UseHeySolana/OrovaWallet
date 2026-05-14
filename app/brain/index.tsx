@@ -1,18 +1,22 @@
 import { useMemo } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
 import BrainStore from "@/utils/store/brain.store";
-import { useThemeContext } from "@/context/ThemeContext";
 import { confirm } from "@/services/confirmation";
 import { useAi } from "@/context/AiContext";
+import {
+  addDevSolPriceAlert,
+  clearDevPriceAlerts,
+  runDevBrainDigestNow,
+  seedDevBrainJournalSample,
+} from "@/libs/brain";
 
 export default function BrainHome() {
-  const { isDarkMode } = useThemeContext();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
-  const { suggestions, dismissSuggestion, clearSuggestions } = BrainStore();
+  const { suggestions, dismissSuggestion, clearSuggestions, priceAlerts } = BrainStore();
   const { isSessionActive, startSession, setInputMode, sendChatMessage } = useAi();
 
   const ordered = useMemo(() => {
@@ -99,16 +103,20 @@ export default function BrainHome() {
         )}
       </View>
 
-      {ordered.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <CText>No suggestions yet.</CText>
-          <CText className="opacity-70 text-center mt-2">
-            Use the app and the brain will surface reminders, trade ideas, and price alerts.
-          </CText>
-        </View>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-          <View className="gap-y-3 pb-8">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
+        {ordered.length === 0 ? (
+          <View className="py-12 items-center justify-center px-2">
+            <CText>No suggestions yet.</CText>
+            <CText className="opacity-70 text-center mt-2">
+              Use the app and the brain will surface reminders, trade ideas, and price alerts.
+            </CText>
+          </View>
+        ) : (
+          <View className="gap-y-3">
             {ordered.map((s) => (
               <View
                 key={s.id}
@@ -146,8 +154,73 @@ export default function BrainHome() {
               </View>
             ))}
           </View>
-        </ScrollView>
-      )}
+        )}
+
+        {__DEV__ ? (
+          <View className="mt-8 pt-6 border-t border-grey/20 dark:border-white/10">
+            <CText style={{ fontFamily: "bold" }} className="text-[1rem] mb-1">
+              Developer — Brain
+            </CText>
+            <CText className="text-[0.85rem] opacity-70 mb-4">
+              Price alerts: keep app in foreground, enable notifications in Settings, then add the
+              test SOL alert. Digest: seeds sample chat/tool events then builds suggestion cards. Set
+              EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM=true (and your OpenAI-compatible URL) for model-written
+              cards with contextual rules as fallback.
+            </CText>
+            <CText className="text-[0.8rem] opacity-60 mb-3">
+              Active price alerts: {priceAlerts.length}
+            </CText>
+
+            <View className="gap-y-2">
+              <Pressable
+                onPress={() => {
+                  seedDevBrainJournalSample();
+                  void runDevBrainDigestNow().then(() =>
+                    Alert.alert("Brain", "Sample events added and digest ran. Scroll up for a new card.")
+                  );
+                }}
+                className="py-3 px-4 rounded-xl bg-purple"
+              >
+                <CText className="text-white text-center">Seed sample journal + run digest</CText>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  void runDevBrainDigestNow().then(() =>
+                    Alert.alert("Brain", "Digest ran from your current journal (if any events).")
+                  );
+                }}
+                className="py-3 px-4 rounded-xl bg-white dark:bg-accent border border-grey/15"
+              >
+                <CText className="text-center">Run digest only (no seed)</CText>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  addDevSolPriceAlert();
+                  Alert.alert(
+                    "Brain",
+                    "Test SOL alert added. With notifications on and app active, you should get a local alert within ~1 minute (poll interval)."
+                  );
+                }}
+                className="py-3 px-4 rounded-xl bg-white dark:bg-accent border border-grey/15"
+              >
+                <CText className="text-center">Add test SOL price alert</CText>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  clearDevPriceAlerts();
+                  Alert.alert("Brain", "Removed dev test price alerts.");
+                }}
+                className="py-3 px-4 rounded-xl bg-white dark:bg-accent border border-grey/15"
+              >
+                <CText className="text-center">Clear dev price alerts</CText>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }

@@ -10,7 +10,6 @@ import AppSettings from "@/utils/store/settingsstore.store";
 // Configure notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
     shouldShowBanner: true,

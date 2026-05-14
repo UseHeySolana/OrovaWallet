@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View, TextInput, TouchableOpacity } from "react-native";
+import { Pressable, View, TextInput, TouchableOpacity, FlatList } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import UserItem from "@/utils/store/userstore.store";
@@ -11,14 +11,27 @@ import { PublicKey } from "@solana/web3.js";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { getUserDetails } from "@/utils/functions";
 import ButtonComp from "@/components/ButtonComp";
+import { SendFlowScreenSkeleton } from "@/components/skeletons";
+import DragableSheet from "@/components/CustomItems/DragableSheet";
+import SearchInput from "@/components/SearchInput/SearchInput";
 
 /**
  * What should be done here
  * Send Token Info
  */
+function normalizeMintParam(
+  raw: string | string[] | undefined
+): string | undefined {
+  if (typeof raw === "string") return raw;
+  return raw?.[0];
+}
+
 export default function SendToken() {
-  const { mint } = useLocalSearchParams();
+  const params = useLocalSearchParams<{ mint?: string | string[] }>();
+  const mint = normalizeMintParam(params.mint);
   const [token, setToken] = useState<any>(null);
+  const [tokenPickerOpen, setTokenPickerOpen] = useState(false);
+  const [sheetSearchQuery, setSheetSearchQuery] = useState("");
   const [recipientInput, setRecipientInput] = useState("");
   const [isValidInput, setIsValidInput] = useState<boolean | null>(null);
   const [isCheckingInput, setIsCheckingInput] = useState(false);
@@ -30,14 +43,36 @@ export default function SendToken() {
   const { userWallet } = UserItem();
   const { isDarkMode } = useThemeContext();
 
+  const sheetTokens = userWallet?.tokenAccounts ?? [];
+  const sheetQ = sheetSearchQuery.trim().toLowerCase();
+  const filteredSheetTokens = useMemo(() => {
+    if (!sheetQ) return sheetTokens;
+    return sheetTokens.filter((t: any) => {
+      const name = (t?.name ?? "").toLowerCase();
+      const symbol = (t?.symbol ?? "").toLowerCase();
+      const m = (t?.mint ?? "").toLowerCase();
+      return name.includes(sheetQ) || symbol.includes(sheetQ) || m.includes(sheetQ);
+    });
+  }, [sheetTokens, sheetQ]);
+
   useEffect(() => {
-    if (mint) {
+    if (mint && userWallet?.tokenAccounts?.length) {
       const tokens = userWallet.tokenAccounts.filter(
         (item: any) => item.mint === mint
       );
-      setToken(tokens[0]);
+      setToken(tokens[0] ?? null);
     }
-  }, [mint]);
+  }, [mint, userWallet]);
+
+  const closeTokenPicker = () => {
+    setTokenPickerOpen(false);
+    setSheetSearchQuery("");
+  };
+
+  const selectTokenFromSheet = (newMint: string) => {
+    router.setParams({ mint: newMint });
+    closeTokenPicker();
+  };
 
   const validateSolanaAddress = (address: string) => {
     try {
@@ -108,11 +143,11 @@ export default function SendToken() {
   };
 
   const handleNext = () => {
-    if (isValidInput && resolvedAddress) {
+    if (isValidInput && resolvedAddress && mint) {
       router.push({
         pathname: "/dashboard/send/token/amount",
         params: {
-          mint: mint,
+          mint,
           recipient: resolvedAddress,
           displayName:
             inputType === "username"
@@ -124,11 +159,7 @@ export default function SendToken() {
   };
 
   if (!token) {
-    return (
-      <View className="relative w-full bg-grey dark:bg-dark flex-1 py-4 items-center justify-center">
-        <CText>Loading token...</CText>
-      </View>
-    );
+    return <SendFlowScreenSkeleton />;
   }
 
   return (
@@ -145,8 +176,11 @@ export default function SendToken() {
       </View>
 
       <View className="px-4 flex-1">
-        {/* Token Selection Card */}
-        <View className="bg-white dark:bg-accent rounded-xl p-4 mb-6 flex-row items-center justify-between">
+        <Pressable
+          android_ripple={{ color: "#971BB2" }}
+          onPress={() => setTokenPickerOpen(true)}
+          className="bg-white dark:bg-accent rounded-xl p-4 mb-6 flex-row items-center justify-between active:opacity-80"
+        >
           <View className="flex-row items-center gap-x-3">
             <View className="h-14 w-14 overflow-hidden rounded-full">
               <Image
@@ -176,7 +210,7 @@ export default function SendToken() {
             size={20}
             color={isDarkMode ? "white" : "black"}
           />
-        </View>
+        </Pressable>
 
         {/* Recipient Input */}
         <View className="mb-6 p-2 rounded-xl bg-white dark:bg-accent2">
@@ -257,6 +291,86 @@ export default function SendToken() {
           />
         </View>
       </View>
+
+      {tokenPickerOpen ? (
+        <DragableSheet
+          close={closeTokenPicker}
+          panClose
+          snapPoints={["72%", "88%"]}
+          child={
+            <View className="w-full flex-1 gap-y-3 pb-6">
+              <CText style={{ fontFamily: "bold" }} className="text-[18px] text-center">
+                Select token
+              </CText>
+              <SearchInput
+                onSearch={setSheetSearchQuery}
+                value={sheetSearchQuery}
+              />
+              {filteredSheetTokens.length === 0 ? (
+                <View className="py-8">
+                  <CText className="text-center text-gray-500 dark:text-gray-400">
+                    No tokens match your search.
+                  </CText>
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredSheetTokens}
+                  keyExtractor={(item: any) => item.mint}
+                  keyboardShouldPersistTaps="handled"
+                  style={{ flex: 1 }}
+                  renderItem={({ item: t }: { item: any }) => {
+                    const selected = t.mint === mint;
+                    return (
+                      <Pressable
+                        android_ripple={{ color: "#971BB2" }}
+                        onPress={() => selectTokenFromSheet(t.mint)}
+                        className="flex-row items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <View className="flex-row items-center gap-x-3 flex-1">
+                          <View className="h-12 w-12 overflow-hidden rounded-full">
+                            <Image
+                              source={
+                                t?.image ?? require("@/assets/images/icon.png")
+                              }
+                              alt={t?.name}
+                              style={{ height: "100%", width: "100%" }}
+                              contentFit="cover"
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <CText
+                              style={{ fontFamily: "bold" }}
+                              className="text-[16px]"
+                            >
+                              {t?.name || "?"}
+                            </CText>
+                            <CText
+                              style={{ fontFamily: "reg" }}
+                              className="text-[14px] text-gray-600 dark:text-gray-300"
+                            >
+                              {t?.balance < 1
+                                ? t?.balance?.toFixed(
+                                    Math.min(t?.decimals, 5)
+                                  )
+                                : t?.balance.toFixed(
+                                    Math.min(t?.decimals, 3)
+                                  )}{" "}
+                              {t.symbol}
+                            </CText>
+                          </View>
+                        </View>
+                        {selected ? (
+                          <AntDesign name="check" size={20} color="#971BB2" />
+                        ) : null}
+                      </Pressable>
+                    );
+                  }}
+                />
+              )}
+            </View>
+          }
+        />
+      ) : null}
     </View>
   );
 }

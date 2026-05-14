@@ -336,7 +336,27 @@ const IconLibrary = {
                 color={props.color || (isDarkMode ? "white" : "black")}
             />
         );
-    }
+    },
+    importContacts: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <MaterialIcons
+                name="import-contacts"
+                size={props.size || 22}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
+    personAdd: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <MaterialIcons
+                name="person-add"
+                size={props.size || 22}
+                color={props.color || (isDarkMode ? "white" : "black")}
+            />
+        );
+    },
 };
 
 export default IconLibrary;

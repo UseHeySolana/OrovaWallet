@@ -101,7 +101,7 @@ export default function Index() {
         if (cancelled) return;
         const destination = getPostWalletInitDestination();
         if (destination) {
-          router.replace(destination);
+          router.replace(destination as any);
         }
         setLoading(false);
       }, 75);

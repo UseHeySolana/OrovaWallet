@@ -5,28 +5,11 @@ import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { Image } from "expo-image";
 import { Stack } from "expo-router";
 import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-
-function LoadingScreen() {
-  return (
-    <View
-      className="h-screen absolute w-full flex-1 z-40 bg-white/55 dark:bg-black/55 justify-center items-center"
-      accessibilityViewIsModal
-      accessibilityLabel="Loading"
-    >
-      <Image
-        source={require("@/assets/images/splaash.gif")}
-        alt="Loading"
-        style={{ height: 70, width: 70 }}
-        contentFit="contain"
-      />
-    </View>
-  );
-}
+import { AppLoadingOverlay } from "@/components/skeletons";
 
 export default function StackView() {
   const { isDarkMode } = useThemeContext();
@@ -99,8 +82,7 @@ export default function StackView() {
             headerShown: false,
           }}
         />
-        {/* {toast.show && <ToastModal type={toast.type} message={toast.message} />} */}
-        {/* {isLoading && <LoadingScreen />} */}
+        {isLoading && <AppLoadingOverlay />}
         <ConfirmActionSheetGlobal />
         <PurchaseConfirmationSheet />
       </SafeAreaView>

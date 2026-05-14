@@ -244,7 +244,8 @@ export default function Login() {
                     Login();
                   }}
                 className=""
-                text={isLoading ? "loading" : "Login"}
+                text="Login"
+                loading={isLoading}
                 type="primary"
               />
               <View className="py-2 flex flex-row justify-center items-center gap-x-2">
@@ -316,7 +317,8 @@ export default function Login() {
                 buttonType="pressable"
                 onPress={() => verifyPin()}
                 className=""
-                text={isLoading ? "loading" : "Login"}
+                text="Login"
+                loading={isLoading}
                 type="primary"
               />
               <View className="py-2 flex flex-row justify-center items-center gap-x-2">

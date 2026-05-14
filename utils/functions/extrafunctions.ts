@@ -113,6 +113,72 @@ function filterTransactionsForMint(
   });
 }
 
+/** Wallet-wide Helius blob TTL (AsyncStorage). */
+const WALLET_TX_HISTORY_TTL_MS = 5 * 60 * 1000;
+/** Pre-filtered per-mint list TTL — faster repeat opens of the same token. */
+const TOKEN_TX_SLICE_TTL_MS = 10 * 60 * 1000;
+
+const tokenTxHistorySliceKey = (
+  cluster: SolanaHistoryCluster,
+  walletPk: string,
+  mintAddress: string
+) => `tokenTxHist:v1:${cluster}:${walletPk}:${mintAddress}`;
+
+/** AsyncStorage key for the mint-filtered history slice (current app cluster). */
+const getTokenTxHistorySliceCacheKey = (
+  walletAddress: string,
+  mintAddress: string
+) => {
+  const cluster: SolanaHistoryCluster =
+    AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet";
+  return tokenTxHistorySliceKey(cluster, walletAddress, mintAddress);
+};
+
+/**
+ * Instant paint from cache: mint slice first, else filter wallet blob.
+ * `hit` is true when any usable cache entry existed (rows may be empty).
+ */
+const peekTokenTxHistoryFromCache = async (
+  mintAddress: string,
+  options?: { cluster?: SolanaHistoryCluster }
+): Promise<{ hit: boolean; rows: any[] }> => {
+  const publicKey = WalletItem.getState().publicKey;
+  if (!publicKey) return { hit: false, rows: [] };
+
+  const cluster: SolanaHistoryCluster =
+    options?.cluster ??
+    (AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet");
+
+  const sliceKey = tokenTxHistorySliceKey(
+    cluster,
+    publicKey.toString(),
+    mintAddress
+  );
+  const sliceRaw = await cache.get(sliceKey);
+  if (sliceRaw) {
+    try {
+      const rows = JSON.parse(sliceRaw);
+      if (Array.isArray(rows)) return { hit: true, rows };
+    } catch {
+      await cache.remove(sliceKey);
+    }
+  }
+
+  const walletKey = getTxHistoryCacheKeyForCluster(
+    publicKey.toString(),
+    cluster
+  );
+  const blob = await cache.get(walletKey);
+  if (!blob) return { hit: false, rows: [] };
+  try {
+    const parsed = JSON.parse(blob);
+    const raw = Array.isArray(parsed?.data) ? parsed.data : [];
+    return { hit: true, rows: filterTransactionsForMint(raw, mintAddress) };
+  } catch {
+    return { hit: false, rows: [] };
+  }
+};
+
 /** Per-token history for one cluster (Helius enhanced + client-side mint filter). */
 const getTokenTransactions = async (
   mintAddress: string,
@@ -132,6 +198,25 @@ const getTokenTransactions = async (
   const cluster: SolanaHistoryCluster =
     options?.cluster ??
     (AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet");
+
+  const sliceKey = tokenTxHistorySliceKey(
+    cluster,
+    publicKey.toString(),
+    mintAddress
+  );
+  const sliceRaw = await cache.get(sliceKey);
+  if (sliceRaw) {
+    try {
+      const rows = JSON.parse(sliceRaw);
+      if (Array.isArray(rows)) {
+        response.status = true;
+        response.data = rows;
+        return response;
+      }
+    } catch {
+      await cache.remove(sliceKey);
+    }
+  }
 
   const cacheKey = getTxHistoryCacheKeyForCluster(
     publicKey.toString(),
@@ -154,11 +239,16 @@ const getTokenTransactions = async (
     await cache.set(
       cacheKey,
       JSON.stringify({ status: true, data: raw }),
-      5 * 60 * 1000
+      WALLET_TX_HISTORY_TTL_MS
     );
 
     response.status = true;
     response.data = filterTransactionsForMint(raw, mintAddress);
+    await cache.set(
+      sliceKey,
+      JSON.stringify(response.data),
+      TOKEN_TX_SLICE_TTL_MS
+    );
     return response;
   }
 
@@ -167,6 +257,11 @@ const getTokenTransactions = async (
     const raw = Array.isArray(parsedTx?.data) ? parsedTx.data : [];
     response.status = true;
     response.data = filterTransactionsForMint(raw, mintAddress);
+    await cache.set(
+      sliceKey,
+      JSON.stringify(response.data),
+      TOKEN_TX_SLICE_TTL_MS
+    );
     return response;
   } catch {
     await cache.remove(cacheKey);
@@ -216,7 +311,7 @@ const getWalletTransactions = async (options?: {
   }
 
   const list = Array.isArray(fetched.data) ? fetched.data : [];
-  await cache.set(cacheKey, JSON.stringify({ status: true, data: list }), 5 * 60 * 1000);
+  await cache.set(cacheKey, JSON.stringify({ status: true, data: list }), WALLET_TX_HISTORY_TTL_MS);
   response.status = true;
   response.data = list;
   return response;
@@ -367,6 +462,8 @@ export {
   summarizeConversation,
   getTxHistoryCacheKey,
   getTxHistoryCacheKeyForCluster,
+  getTokenTxHistorySliceCacheKey,
+  peekTokenTxHistoryFromCache,
   getWalletTransactions,
   getTokenTransactions,
   formatDate,
