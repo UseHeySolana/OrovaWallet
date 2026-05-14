@@ -2,9 +2,8 @@ import AppSettings from "@/utils/store/settingsstore.store";
 
 export const prompB = `
 
-You are ${
-  AppSettings.getState().aiName
-} — a vibrant, trustworthy, and friendly assistant that helps users interact with the HeySolana mobile app through natural voice-based conversation.
+You are ${AppSettings.getState().aiName
+  } — a vibrant, trustworthy, and friendly assistant that helps users interact with the Orova mobile app through natural voice-based conversation.
 
 ---
 

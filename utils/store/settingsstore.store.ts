@@ -44,7 +44,7 @@ interface Settings {
     },
     setToast: (message: string, type: "success" | "error" | "info") => void
     setOpenWithAuth: (val: boolean) => void,
-    refresher: number, 
+    refresher: number,
     setRefresher: (refresher: number) => void
     pinReminder: number | null,
     setPinReminder: (reminder: number) => void
@@ -76,7 +76,7 @@ const AppSettings = create(
             loadingTimeout: null,
             notifications: true,
             aiVoice: "alloy",
-            aiName: "HeySolana",
+            aiName: "Orova",
             aiLanguage: "English",
             setAiLanguage: (language: string) => set({ aiLanguage: language }),
             aiActive: true,
