@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
+import type { WalletMode } from '@/utils/wallet/types';
 
 interface Settings {
     pin: string;
@@ -48,6 +49,12 @@ interface Settings {
     setRefresher: (refresher: number) => void
     pinReminder: number | null,
     setPinReminder: (reminder: number) => void
+    /** `local` = mnemonic in Keychain; `mpc` = passkey wallet with device share A */
+    walletMode: WalletMode;
+    setWalletMode: (mode: WalletMode) => void;
+    /** Epoch ms when user dismissed passkey upgrade banner */
+    mpcUpgradeReminderDismissedAt: number | null;
+    dismissMpcUpgradeReminder: () => void;
 }
 
 
@@ -56,6 +63,11 @@ const AppSettings = create(
         (set, get) => ({
             pinReminder: null,
             setPinReminder: (reminder: number) => set({ pinReminder: reminder }),
+            walletMode: "local",
+            setWalletMode: (mode: WalletMode) => set({ walletMode: mode }),
+            mpcUpgradeReminderDismissedAt: null,
+            dismissMpcUpgradeReminder: () =>
+                set({ mpcUpgradeReminderDismissedAt: Date.now() }),
             pin: "",
             setPin: (pin: string) => set({ pin: pin }),
             refresher: 0,
@@ -117,6 +129,8 @@ const AppSettings = create(
                         alreadyOpened: false,
                         skippedAiSettings: false,
                         createdWallet: false,
+                        walletMode: "local",
+                        mpcUpgradeReminderDismissedAt: null,
                     })
             },
             setToast: (message: string, type: "success" | "error" | "info") => {

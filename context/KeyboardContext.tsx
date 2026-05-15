@@ -1,6 +1,6 @@
 // KeyboardContext.tsx
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Keyboard } from "react-native";
+import { Keyboard, Platform, Pressable } from "react-native";
 
 interface ColorScheme {
     isKeyboardVisible: boolean,
@@ -27,14 +27,24 @@ export const KeyboardProvider = ({ children }: { children: ReactNode }) => {
         };
     }, []);
 
-
-
-    return (
-
-        <KeyboardContext.Provider
-            value={{ isKeyboardVisible }}>
+    const content = (
+        <KeyboardContext.Provider value={{ isKeyboardVisible }}>
             {children}
         </KeyboardContext.Provider>
+    );
+
+    if (Platform.OS !== "ios") {
+        return content;
+    }
+
+    return (
+        <Pressable
+            style={{ flex: 1 }}
+            onPress={Keyboard.dismiss}
+            accessible={false}
+        >
+            {content}
+        </Pressable>
     );
 };
 

@@ -5,6 +5,10 @@ import { UserType } from '@/utils/types/user.types';
 import AppSettings from '@/utils/store/settingsstore.store';
 import WalletItem from '@/utils/store/wallet.store';
 import { deleteWalletSecret } from '@/utils/storage/secureStore';
+import { deleteMpcShareA } from '@/utils/storage/mpcShareStore';
+import { deletePasskeyCredential } from '@/utils/storage/passkeyStore';
+import { clearMpcSession } from '@/utils/passkey/mpcSessionStorage';
+import { invalidateWalletSignerCache } from '@/utils/wallet/signerManager';
 
 interface TokenAccount {
   symbol: string;
@@ -57,6 +61,10 @@ const UserItem = create(
         AppSettings.getState().setDefault();
         WalletItem.getState().setDefault();
         deleteWalletSecret();
+        deleteMpcShareA();
+        deletePasskeyCredential();
+        clearMpcSession();
+        invalidateWalletSignerCache();
         // Clear user state and wallet state
         set({
           user: null,

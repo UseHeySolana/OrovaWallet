@@ -12,6 +12,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.maskyray.heysolana",
+      "associatedDomains": [
+        "webcredentials:hey.yraytestings.com.ng"
+      ],
       "bitcode": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -29,7 +32,8 @@
             ]
           }
         ]
-      }
+      },
+      "appleTeamId": "HRN328485T"
     },
     "android": {
       "versionCode": 23,
@@ -108,6 +112,9 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "deploymentTarget": "15.1"
+          },
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 35,

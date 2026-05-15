@@ -83,6 +83,9 @@ export default function StackView() {
           }}
         />
         {isLoading && <AppLoadingOverlay />}
+        {toast.show && (
+          <ToastModal type={toast.type} message={toast.message} />
+        )}
         <ConfirmActionSheetGlobal />
         <PurchaseConfirmationSheet />
       </SafeAreaView>

@@ -79,20 +79,30 @@ export default function Voicereg() {
                 </View>
 
                 <Pressable onPress={() => {
+                  router.push('/auth/passkey-wallet')
+                }} >
+                  <View className="flex flex-row justify-start items-center px-5  bg-violet-100 dark:bg-violet-950 border border-violet-300 py-5 rounded-full gap-x-3">
+                    <View className="">
+                      <AntDesign name="pluscircleo" size={24} color="black" />
+                    </View>
+                    <View className="">
+                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Seedless wallet</CText>
+                      <CText className="text-primary text-[14px] text-start">No seed phrase — recommended</CText>
+                    </View>
+                  </View>
+                </Pressable>
+                <Pressable onPress={() => {
                   router.push('/auth/secretphrase')
                 }} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
                     <View className="">
                       <AntDesign name="pluscircleo" size={24} color="black" />
                     </View>
-
                     <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Create new Wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Create a new Solana Wallet</CText>
-
+                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Recovery phrase wallet</CText>
+                      <CText className="text-primary text-[14px]  text-start">12-word backup</CText>
                     </View>
                   </View>
-
                 </Pressable>
                 <Pressable onPress={() => router.replace('/auth/importphrase')} >
                   <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">

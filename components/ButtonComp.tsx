@@ -6,6 +6,7 @@ import { ButtonInlineLoader } from "@/components/skeletons";
 
 interface ButtonsProp {
   loading?: boolean
+  disabled?: boolean;
   text: string;
   type?: "primary" | "secondary";
   className?: string;
@@ -32,13 +33,15 @@ onPress:() => void;
  * @returns 
  */
 export default function Buttons(props: ButtonsProp) {
-  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType, accessibilityLabel } = props;
+  const { loading, disabled, style, textClass, text, className, type = "primary", onPress, buttonType, accessibilityLabel } = props;
   const loaderVariant = type === "primary" ? "primary" : "secondary";
+  const isDisabled = disabled || loading;
 
   const buttonColor = type === "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
   const textColor = type === "primary" ? "#FFFFFF" : "#FFFFFF"
 
   const trackPress = () => {
+    if (isDisabled) return;
     tracker.buttons(text || accessibilityLabel || "Button", 1);
     onPress();
   }
@@ -71,11 +74,13 @@ export default function Buttons(props: ButtonsProp) {
             <TouchableNativeFeedback
               style={{ ...style }}
               background={TouchableNativeFeedback.Ripple('#971BB2', false)}
-              onPress={trackPress}>
+              onPress={trackPress}
+              disabled={isDisabled}>
               <View
                 accessibilityRole="button"
                 accessibilityLabel={accessibilityLabel}
-                className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}
+                accessibilityState={{ disabled: isDisabled }}
+                className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2 ${isDisabled ? "opacity-50" : ""}`}
               >
                 {innerContent}
               </View>
@@ -86,8 +91,10 @@ export default function Buttons(props: ButtonsProp) {
         <TouchableOpacity
           accessibilityLabel={accessibilityLabel}
           accessibilityRole="button"
+          accessibilityState={{ disabled: isDisabled }}
           onPress={trackPress}
-          style={[style, className?.includes?.("flex-1") && { flex: 1 }]}
+          disabled={isDisabled}
+          style={[style, className?.includes?.("flex-1") && { flex: 1 }, isDisabled && { opacity: 0.5 }]}
         >
           <View className={`${buttonColor} ${className ? className : "py-5  rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}>
             {innerContent}

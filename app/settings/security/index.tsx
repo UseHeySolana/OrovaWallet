@@ -9,8 +9,6 @@ import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
 import SetPin from "@/components/Sheets/SetPinSheet";
 
-
-
 const settingsMenu2 = [
   {
     title: "Biometric Signin",
@@ -27,10 +25,25 @@ const settingsMenu2 = [
     icon: <IconLibrary.password />,
   },
   {
+    title: "Seedless wallet",
+    route: '/settings/security/passkey-upgrade',
+    subtitle: "Upgrade — no seed phrase (same address)",
+    icon: <IconLibrary.security />,
+    id: 'seedless-upgrade',
+  },
+  {
+    title: "Approve new device",
+    route: '/settings/security/approve-device-link',
+    subtitle: "Link another phone with Face ID",
+    icon: <IconLibrary.security />,
+    id: 'approve-device-link',
+  },
+  {
     title: "Private Key",
     route: '/settings/security/private',
     subtitle: "View your private key/key phrases",
     icon: <IconLibrary.security />,
+    id: 'private-key',
   },
   {
     title: "Delete Account",
@@ -46,7 +59,7 @@ const settingsMenu2 = [
   */
 export default function Security() {
   const { isDarkMode, toggleTheme } = useThemeContext();
-  const { setDefault, openWithAuth, setOpenWithAuth, setToast, pin } =
+  const { setDefault, openWithAuth, setOpenWithAuth, setToast, pin, walletMode } =
     AppSettings();
   const { user, userWallet, logout } = UserItem();
   const [setPinOpen, setSetPinOpen] = useState<boolean>(false);
@@ -87,29 +100,43 @@ export default function Security() {
 
         <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow-sm     bg-white dark:bg-accent ">
           {settingsMenu2.map((item, index) => {
+            if (item.id === "private-key" && walletMode === "mpc") {
+              return null;
+            }
+            if (item.id === "approve-device-link" && walletMode !== "mpc") {
+              return null;
+            }
+            const row =
+              item.id === "seedless-upgrade" && walletMode === "mpc"
+                ? {
+                    ...item,
+                    title: "Seedless wallet",
+                    subtitle: "Manage your seedless wallet",
+                  }
+                : item;
             return (
               <Pressable
                 onPress={() => {
-                  routeNavigation(item.route, item.type);
+                  routeNavigation(row.route, row.type);
                 }}
                 key={index}
                 className="py-1 flex flex-row justify-between items-center"
               >
                 <View className="flex-1 flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
-                    {item.icon ? item.icon : <IconLibrary.angle_right />}
+                    {row.icon ? row.icon : <IconLibrary.angle_right />}
                   </View>
                   <View className="flex-1">
-                    <CText className="text-[1.2rem]">{item.title}</CText>
+                    <CText className="text-[1.2rem]">{row.title}</CText>
                     <CText textColor="text-gray-400" className="text-[1rem] ">
-                      {item.subtitle}
+                      {row.subtitle}
                     </CText>
                   </View>
                 </View>
 
-                {item.route && item.route !== "logout" && (
+                {row.route && row.route !== "logout" && (
                   <>
-                    {item.type === "toggle" ? (
+                    {row.type === "toggle" ? (
                       <Switch
                         trackColor={{ false: "red", true: "green" }}
                         thumbColor={"white"}

@@ -4,6 +4,12 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import UserItem from "@/utils/store/userstore.store";
 import { getKeypairFromMnemonic } from "@/utils/wallet";
 import { getWalletSecret, setWalletSecret } from "@/utils/storage/secureStore";
+import { hasMpcShareA } from "@/utils/storage/mpcShareStore";
+import {
+  invalidateWalletSignerCache,
+  resolveWalletMode,
+} from "@/utils/wallet/signerManager";
+import { getWalletSigner } from "@/utils/wallet/signerManager";
 
 type StoreWithPersist = {
   persist: {
@@ -77,6 +83,38 @@ async function tryMigrateLegacyWalletSecretFromAsyncStorage() {
 }
 
 async function hydrateWalletFromSecureStore() {
+  const mode = await resolveWalletMode();
+  const hasShare = await hasMpcShareA();
+
+  if (mode === "mpc") {
+    if (hasShare) {
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
+        console.log(
+          "[WalletSecret]",
+          "hydrate mpc — share A present; unlock via seedless session"
+        );
+      }
+      invalidateWalletSignerCache();
+      try {
+        const signer = await getWalletSigner();
+        const kp = await signer.getKeypair();
+        if (kp) {
+          WalletItem.getState().updateKeypair(kp);
+        }
+      } catch (e) {
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          console.warn("[WalletSecret]", "mpc hydrate — open app to unlock seedless wallet", e);
+        }
+      }
+    } else if (typeof __DEV__ !== "undefined" && __DEV__) {
+      console.warn(
+        "[WalletSecret]",
+        "seedless mode but device share missing — re-run seedless upgrade on this device"
+      );
+    }
+    return Boolean(WalletItem.getState().publicKey);
+  }
+
   const secret = await getWalletSecret();
   if (!secret) {
     if (typeof __DEV__ !== "undefined" && __DEV__) {
@@ -86,11 +124,13 @@ async function hydrateWalletFromSecureStore() {
   }
 
   const keypair = await getKeypairFromMnemonic(secret);
-  WalletItem.getState().updatePassphrase(secret); // in-memory only
-  WalletItem.getState().updateKeypair(keypair); // in-memory + persists public key only
+  WalletItem.getState().updatePassphrase(secret);
+  WalletItem.getState().updateKeypair(keypair);
+  invalidateWalletSignerCache();
   if (typeof __DEV__ !== "undefined" && __DEV__) {
     const pk = keypair.publicKey.toBase58();
-    console.log("[WalletSecret]", "hydrate OK — wallet unlocked from stored secret", {
+    console.log("[WalletSecret]", "hydrate OK — wallet unlocked", {
+      mode,
       publicKeyPreview: `${pk.slice(0, 4)}…${pk.slice(-4)}`,
     });
   }
@@ -105,9 +145,9 @@ export async function initWallet() {
   ]);
   await tryMigrateLegacyWalletSecretFromAsyncStorage();
   const hydrated = await hydrateWalletFromSecureStore();
+  const mode = await resolveWalletMode();
   if (typeof __DEV__ !== "undefined" && __DEV__) {
-    console.log("[WalletSecret]", "initWallet finished", { hydrated });
+    console.log("[WalletSecret]", "initWallet finished", { hydrated, mode });
   }
-  return { hydrated };
+  return { hydrated, mode };
 }
-

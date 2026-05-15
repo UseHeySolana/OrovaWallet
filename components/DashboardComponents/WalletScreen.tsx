@@ -27,6 +27,7 @@ import {
   shortenPub,
 } from "@/utils/functions/extrafunctions";
 import { TxHistoryRowsSkeleton } from "@/components/skeletons";
+import MpcUpgradeBanner from "@/components/MpcUpgradeBanner";
 
 function lamportsToSolDisplay(lamports: number): string {
   const sol = lamports / 1e9;
@@ -222,6 +223,7 @@ export default function WalletScreen({
       }
     >
       <View className=" min-h-[50px] gap-y-3 px-1">
+        <MpcUpgradeBanner />
         <View className="m-auto  w-full shadow-sm bg-white dark:bg-transparent rounded-3xl py-4">
           <View className="flex flex-row  justify-between items-center px-5 py-3">
             <View className="">

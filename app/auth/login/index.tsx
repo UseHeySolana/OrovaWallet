@@ -33,12 +33,14 @@ export default function Login() {
     username: "",
     mobileNumber: "",
     wallet_address: "",
+    wallet_type: "" as string,
   });
 
   const [otpValue, setOtpValue] = useState("");
   const { setUser, user, session, clearData } = UserItem();
   const { keypair, updateKeypair, publicKey } = WalletItem();
-  const { setLoading, isLoading, setToast, openWithAuth, pin } = AppSettings();
+  const { setLoading, isLoading, setToast, openWithAuth, pin, setWalletMode } =
+    AppSettings();
   const [currentState, setCurrentState] = useState<
     "verify-phrase" | "start-wallet" | "sign-up" | "set-pin" | ""
   >("");
@@ -101,7 +103,8 @@ export default function Login() {
       setUserDetails({
         ...userDetails,
         username: response.data.username,
-        wallet_address: response.data.wallet_address,
+        wallet_address: response.data.wallet_address ?? "",
+        wallet_type: response.data.wallet_type ?? "local",
       });
       setCurrentState("set-pin");
       setLoading(false);
@@ -154,6 +157,9 @@ export default function Login() {
     if (response.status !== false) {
       setToast("Verification Successfull", "success");
       //check if the publick key stored is the same as the address coming, route to dashboard
+      const isMpcAccount =
+        userDetails.wallet_type === "mpc" && Boolean(userDetails.wallet_address);
+
       if (
         publicKey !== null &&
         publicKey.toString() === userDetails.wallet_address
@@ -162,19 +168,31 @@ export default function Login() {
           username: userDetails.username,
           mobileNumber: userDetails.mobileNumber,
           pin: "",
+          wallet_address: userDetails.wallet_address,
+          wallet_type: userDetails.wallet_type,
         });
         router.replace("/dashboard");
         return;
-      } else {
-        setUser({
-          username: userDetails.username,
-          mobileNumber: userDetails.mobileNumber,
-          pin: "",
-        });
-        setCurrentState("start-wallet");
+      }
+
+      setUser({
+        username: userDetails.username,
+        mobileNumber: userDetails.mobileNumber,
+        pin: "",
+        wallet_address: userDetails.wallet_address,
+        wallet_type: userDetails.wallet_type,
+      });
+
+      if (isMpcAccount) {
+        setWalletMode("mpc");
         setLoading(false);
+        router.replace("/auth/mpc-restore");
         return;
       }
+
+      setCurrentState("start-wallet");
+      setLoading(false);
+      return;
     } else {
       setToast(response.message || "Something went wrong", "error");
       setLoading(false);

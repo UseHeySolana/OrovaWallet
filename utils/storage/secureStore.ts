@@ -11,6 +11,15 @@ const useDevSimulatorInsecureStore =
 
 const LOG = "[WalletSecret]";
 
+const SECRET_READ_CACHE_MS = 2_000;
+let cachedSecret: { value: string | null; at: number } | null = null;
+let secretReadInflight: Promise<string | null> | null = null;
+let lastMissLoggedAt = 0;
+
+export function invalidateWalletSecretCache(): void {
+  cachedSecret = null;
+}
+
 function describeSecret(secret: string) {
   const trimmed = secret.trim();
   const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
@@ -35,12 +44,14 @@ export async function setWalletSecret(secret: string) {
   try {
     if (useDevSimulatorInsecureStore) {
       await AsyncStorage.setItem(DEV_SIM_WALLET_SECRET_KEY, secret);
+      invalidateWalletSecretCache();
       devLog("write OK", { backend, key: DEV_SIM_WALLET_SECRET_KEY, ...meta });
       return;
     }
     await SecureStore.setItemAsync(WALLET_SECRET_KEY, secret, {
       keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
     });
+    invalidateWalletSecretCache();
     devLog("write OK", { backend, key: WALLET_SECRET_KEY, ...meta });
   } catch (e) {
     devLog("write FAILED", { backend, ...meta, error: String(e) });
@@ -48,7 +59,7 @@ export async function setWalletSecret(secret: string) {
   }
 }
 
-export async function getWalletSecret() {
+async function readWalletSecretFromStorage(): Promise<string | null> {
   const backendPrimary = useDevSimulatorInsecureStore
     ? "AsyncStorage(dev-simulator)"
     : "SecureStore(iOS Keychain / Android Keystore)";
@@ -72,7 +83,11 @@ export async function getWalletSecret() {
       });
       return secure;
     }
-    devLog("read MISS", { checked: [DEV_SIM_WALLET_SECRET_KEY, WALLET_SECRET_KEY] });
+    const now = Date.now();
+    if (now - lastMissLoggedAt > SECRET_READ_CACHE_MS) {
+      lastMissLoggedAt = now;
+      devLog("read MISS", { checked: [DEV_SIM_WALLET_SECRET_KEY, WALLET_SECRET_KEY] });
+    }
     return null;
   }
 
@@ -84,9 +99,33 @@ export async function getWalletSecret() {
       ...describeSecret(secure),
     });
   } else {
-    devLog("read MISS", { key: WALLET_SECRET_KEY, backend: backendPrimary });
+    const now = Date.now();
+    if (now - lastMissLoggedAt > SECRET_READ_CACHE_MS) {
+      lastMissLoggedAt = now;
+      devLog("read MISS", { key: WALLET_SECRET_KEY, backend: backendPrimary });
+    }
   }
   return secure;
+}
+
+export async function getWalletSecret(): Promise<string | null> {
+  const now = Date.now();
+  if (cachedSecret && now - cachedSecret.at < SECRET_READ_CACHE_MS) {
+    return cachedSecret.value;
+  }
+  if (secretReadInflight) {
+    return secretReadInflight;
+  }
+
+  secretReadInflight = (async () => {
+    const value = await readWalletSecretFromStorage();
+    cachedSecret = { value, at: Date.now() };
+    return value;
+  })().finally(() => {
+    secretReadInflight = null;
+  });
+
+  return secretReadInflight;
 }
 
 export async function deleteWalletSecret() {
@@ -101,6 +140,7 @@ export async function deleteWalletSecret() {
   } catch {
     // Item may never have been written on simulator.
   }
+  invalidateWalletSecretCache();
   devLog("delete done");
 }
 

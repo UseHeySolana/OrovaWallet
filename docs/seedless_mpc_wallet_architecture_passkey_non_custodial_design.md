@@ -178,5 +178,23 @@ Recovery options:
 
 ---
 
+## 13. Implementation status (app)
+
+- **Dual mode**: `walletMode` `local` | `mpc` in app settings; legacy users default to `local`.
+- **Same-address upgrade**: `utils/wallet/mpc/keyImport.ts` splits scalar on device; Share A in Keychain (`mpcShareA_v1`), Share B via `POST /v2/mpc/upgrade/complete`.
+- **New seedless users**: `app/auth/passkey-wallet` → `createSeedlessPasskeyWallet()` → `POST /v2/mpc/wallets/create` (no mnemonic).
+- **WebAuthn**: `react-native-passkeys` + `PasskeyController` (`/v2/passkey/*`); RP ID `EXPO_PUBLIC_PASSKEY_RP_ID` / `PASSKEY_RP_ID` in Laravel.
+- **MPC signing**: Client fetches Share B after passkey session (`POST /v2/mpc/sign/share-b`), combines with Share A in `combineSign.ts` — full key only in memory during sign.
+- **Sessions**: `POST /v2/passkey/auth/verify` or `POST /v2/mpc/session/open` (wallet signature fallback for simulator).
+- **UI**: Settings → Security → Passkey wallet; dashboard banner; wallet sheet offers passkey vs recovery phrase.
+
+### Deploy checklist
+
+1. Run Laravel migrations (`wallet_type`, `mpc_wallet_shares`, `passkey_credentials`).
+2. Set `PASSKEY_RP_ID=hey.yraytestings.com.ng` in Laravel `.env`.
+3. Host `public/.well-known/apple-app-site-association` (set Apple Team ID) and Android `assetlinks.json`.
+4. Set `EXPO_PUBLIC_PASSKEY_RP_ID` in app `.env`; rebuild native app (`expo prebuild`).
+5. `npx expo run:ios` / `run:android` (passkeys require dev client, not Expo Go).
+
 ## End of Document
 

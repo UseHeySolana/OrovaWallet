@@ -359,14 +359,15 @@ const shortenPub = (pub: string) => {
 };
 
 const keypairSign = async () => {
-  const keypair = WalletItem.getState().keypair;
-  if (!keypair) {
-    return null;
-  }
-  const secretKeyArray = Object.values(keypair["_keypair"].secretKey);
-  const keypairNew = Keypair.fromSecretKey(Uint8Array.from(secretKeyArray));
+  const { getWalletSigner } = await import("@/utils/wallet/signerManager");
+  const signer = await getWalletSigner();
+  const keypair = await signer.getKeypair();
+  if (keypair) return keypair;
 
-  return keypairNew;
+  const inMemory = WalletItem.getState().keypair;
+  if (!inMemory) return null;
+  const secretKeyArray = Object.values(inMemory["_keypair"].secretKey);
+  return Keypair.fromSecretKey(Uint8Array.from(secretKeyArray));
 };
 
 const signTransactions = async ({
@@ -402,9 +403,21 @@ const signTransactions = async ({
 
   let transaction: Transaction | VersionedTransaction;
 
+  const { getWalletMode } = await import("@/utils/wallet/signerManager");
+  const { signTransactionWithMpcCombine } = await import("@/utils/wallet/mpc/combineSign");
+  const mode = await getWalletMode();
+  const walletAddress = keyPair.publicKey.toBase58();
+
   if (type === "versioned") {
     transaction = VersionedTransaction.deserialize(txBuffer);
-    transaction.sign([keyPair]);
+    if (mode === "mpc") {
+      transaction = (await signTransactionWithMpcCombine(
+        transaction,
+        walletAddress
+      )) as VersionedTransaction;
+    } else {
+      transaction.sign([keyPair]);
+    }
   } else {
     transaction = Transaction.from(txBuffer);
     const feeHolder =
@@ -420,7 +433,14 @@ const signTransactions = async ({
       );
     }
 
-    transaction.partialSign(keyPair);
+    if (mode === "mpc") {
+      transaction = (await signTransactionWithMpcCombine(
+        transaction,
+        walletAddress
+      )) as Transaction;
+    } else {
+      transaction.partialSign(keyPair);
+    }
   }
 
   try {

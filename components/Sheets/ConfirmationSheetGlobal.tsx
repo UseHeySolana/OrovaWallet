@@ -29,36 +29,36 @@ const ConfirmActionSheetGlobal = () => {
     };
 
     const handleResponse = async (response: boolean) => {
-        if (type === 'fingerprint' && response) {
-            const res = await LocalAuthentication.hasHardwareAsync()
-            if (AppSettings.getState().openWithAuth && res) {
+        if (!response) {
+            setVisible(false);
+            resolver?.(false);
+            resolver = null;
+            return;
+        }
+
+        if (type === "fingerprint") {
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            if (AppSettings.getState().openWithAuth && hasHardware) {
                 try {
                     const result = await LocalAuthentication.authenticateAsync({
                         promptMessage: message,
                     });
-                    if (!result.success) {
-                        setVisible(false);
-                        resolver?.(false);
-                        resolver = null;
-                        return;
-                    } else {
-                        setVisible(false);
-                        resolver?.(true);
-                        resolver = null;
-                        return;
-                    }
-                } catch (error) {
+                    setVisible(false);
+                    resolver?.(result.success);
+                    resolver = null;
+                    return;
+                } catch {
                     setVisible(false);
                     resolver?.(false);
                     resolver = null;
                     return;
                 }
             }
-        } else {
-            setVisible(false);
-            resolver?.(response);
-            resolver = null;
         }
+
+        setVisible(false);
+        resolver?.(true);
+        resolver = null;
     };
 
     useEffect(() => {

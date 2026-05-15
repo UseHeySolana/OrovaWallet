@@ -1734,7 +1734,7 @@
     "@emnapi/runtime" "^1.4.3"
     "@tybys/wasm-util" "^0.10.0"
 
-"@noble/curves@^1.4.2":
+"@noble/curves@^1.4.2", "@noble/curves@^1.9.0":
   version "1.9.7"
   resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
   integrity sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==
@@ -10536,6 +10536,11 @@ react-native-otp-textinput@^1.1.6:
   version "1.1.7"
   resolved "https://registry.yarnpkg.com/react-native-otp-textinput/-/react-native-otp-textinput-1.1.7.tgz#c7c3611c35701996777d117a1990c58ca94796da"
   integrity sha512-XIMwDRoAKaQTCBnnPaSu94a1y/gfARsVYV6ybu8r4OcdUiMLirrcGgo2iZEnzaodrFIU5GoF4cUcLtsFcWcsew==
+
+react-native-passkeys@^0.4.1:
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/react-native-passkeys/-/react-native-passkeys-0.4.1.tgz#47043256989be1e5b13aedafab68b7d6480f807c"
+  integrity sha512-oD377j4LLg8KQLxKBkHIuVDi/Ai7YckJH2ygJd4W4H6jeAzq0grXphEUYRoFF7iHJU1rpbz9HQIL9ARiEGOKRA==
 
 react-native-qrcode-svg@^6.3.15:
   version "6.3.21"
