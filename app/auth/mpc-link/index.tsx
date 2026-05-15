@@ -111,8 +111,18 @@ export default function MpcLinkNewDeviceScreen() {
           ) : (
             <Buttons text="I've approved on my primary phone" onPress={onWaitForApproval} disabled={!linkId} />
           )}
+          <Pressable
+            onPress={() => router.replace("/auth/login")}
+            className="py-3"
+          >
+            <CText className="text-center text-violet-600">
+              Try passkey restore (same Apple / Google account)
+            </CText>
+          </Pressable>
           <Pressable onPress={() => router.replace("/auth/importphrase")} className="py-3">
-            <CText className="text-center text-violet-600">Use recovery phrase instead</CText>
+            <CText className="text-center text-violet-600 dark:text-violet-300">
+              Use recovery phrase instead
+            </CText>
           </Pressable>
         </View>
       </ScrollView>

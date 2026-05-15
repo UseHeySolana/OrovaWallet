@@ -13,7 +13,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.maskyray.heysolana",
       "associatedDomains": [
-        "webcredentials:hey.yraytestings.com.ng"
+        "webcredentials:hey.yraytestings.com.ng",
+        "webcredentials:hey.yraytestings.com.ng?mode=developer"
       ],
       "bitcode": false,
       "infoPlist": {

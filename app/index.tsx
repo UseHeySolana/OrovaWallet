@@ -48,12 +48,20 @@ const { width, height } = Dimensions.get("window");
 
 /** Read stores after `initWallet()` — avoids stale hook values in the same tick as hydration. */
 function getPostWalletInitDestination(): string | null {
-  const { openWithAuth, pin, alreadyOpened } = AppSettings.getState();
-  const { publicKey } = WalletItem.getState();
-  const { session } = UserItem.getState();
+  const { openWithAuth, pin, alreadyOpened, walletMode } = AppSettings.getState();
+  const { publicKey, keypair } = WalletItem.getState();
+  const { session, user } = UserItem.getState();
+  const walletUnlocked = keypair !== null && publicKey !== null;
+  const isMpcAccount =
+    walletMode === "mpc" ||
+    (user?.wallet_type === "mpc" && Boolean(user?.wallet_address));
 
-  if (!openWithAuth && publicKey !== null) {
+  if (walletUnlocked && !openWithAuth) {
     return "/dashboard";
+  }
+
+  if (isMpcAccount && user && !walletUnlocked) {
+    return "/auth/login";
   }
 
   if ((openWithAuth && !session) || pin.length >= 4) {

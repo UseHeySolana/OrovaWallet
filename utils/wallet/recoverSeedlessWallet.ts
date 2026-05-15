@@ -2,13 +2,13 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import UserItem from "@/utils/store/userstore.store";
 import { setMpcShareA, hasMpcShareA, deleteMpcShareA } from "@/utils/storage/mpcShareStore";
-import { authenticateWithPasskey, registerWebAuthnPasskey } from "@/utils/passkey/webAuthnClient";
+import { authenticateWithPasskey } from "@/utils/passkey/webAuthnClient";
 import { setStoredMpcSession } from "@/utils/passkey/mpcSessionStorage";
 import { fetchMpcShareB } from "@/utils/request/mpcWallet";
 import { fetchPasskeyAuthOptions } from "@/utils/request/passkey";
 import { combineSharesToKeypair, decodeShareBase64 } from "@/utils/wallet/mpc/keyImport";
 import { invalidateWalletSignerCache } from "@/utils/wallet/signerManager";
-import { setPasskeyCredentialLocal } from "@/utils/storage/passkeyStore";
+import { restoreShareAFromPrfBackup } from "@/utils/passkey/shareAPrfBackup";
 
 export interface RecoverSeedlessWalletResult {
   ok: boolean;
@@ -18,8 +18,7 @@ export interface RecoverSeedlessWalletResult {
 }
 
 /**
- * Restore on this device using synced passkey (iCloud Keychain / Google).
- * Device Share A is never loaded from the server — use link flow for a new phone.
+ * Restore seedless wallet: local Share A, or PRF backup (synced passkey), or device link.
  */
 export async function recoverSeedlessWallet(params: {
   walletAddress: string;
@@ -38,27 +37,44 @@ export async function recoverSeedlessWallet(params: {
       ok: false,
       needsDeviceLink: true,
       message:
-        "No passkey on this device yet. Use Link from primary phone — your device key never lives on our servers.",
+        "No passkey on this device yet. Use Link from primary phone or sign in with your synced passkey after OTP.",
     };
   }
 
-  if (!(await hasMpcShareA())) {
+  let shareAB64: string | null = null;
+  let mpcSessionToken: string | null = null;
+
+  if (await hasMpcShareA()) {
+    shareAB64 = await import("@/utils/storage/mpcShareStore").then((m) => m.getMpcShareA());
+  }
+
+  if (!shareAB64) {
+    const prfRestore = await restoreShareAFromPrfBackup({ walletAddress, username });
+    if (!prfRestore.ok) {
+      return {
+        ok: false,
+        needsDeviceLink: true,
+        message: prfRestore.message,
+      };
+    }
+    shareAB64 = prfRestore.shareABase64 ?? null;
+    mpcSessionToken = prfRestore.mpcSessionToken ?? null;
+  }
+
+  if (!shareAB64) {
     return {
       ok: false,
       needsDeviceLink: true,
-      message:
-        "Device share is not on this phone. Link from your primary device (Settings → Approve new device on that phone).",
+      message: "Device share missing. Link from your primary phone or use recovery phrase.",
     };
   }
 
   try {
-    const { mpcSessionToken } = await authenticateWithPasskey(walletAddress, username);
-    await setStoredMpcSession(mpcSessionToken);
-
-    const shareAB64 = await import("@/utils/storage/mpcShareStore").then((m) => m.getMpcShareA());
-    if (!shareAB64) {
-      return { ok: false, needsDeviceLink: true, message: "Device share missing on this phone." };
+    if (!mpcSessionToken) {
+      const auth = await authenticateWithPasskey(walletAddress, username);
+      mpcSessionToken = auth.mpcSessionToken;
     }
+    await setStoredMpcSession(mpcSessionToken);
 
     const shareBRes = await fetchMpcShareB(walletAddress, mpcSessionToken);
     if (!shareBRes.status) {
@@ -75,7 +91,7 @@ export async function recoverSeedlessWallet(params: {
         ok: false,
         needsDeviceLink: true,
         message:
-          "This phone has a device share from another wallet. Link from your primary phone instead.",
+          "Restored device share does not match this wallet. Link from your primary phone instead.",
       };
     }
 
@@ -89,14 +105,7 @@ export async function recoverSeedlessWallet(params: {
       UserItem.getState().setUser({ ...user, wallet_address: walletAddress, wallet_type: "mpc" });
     }
 
-    try {
-      const { credentialId } = await registerWebAuthnPasskey(walletAddress, username);
-      await setPasskeyCredentialLocal(walletAddress, credentialId);
-    } catch {
-      // passkey may already exist on this device
-    }
-
-    return { ok: true, message: "Seedless wallet restored", walletAddress };
+    return { ok: true, message: "Wallet unlocked", walletAddress };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Could not restore seedless wallet";
     if (msg.includes("cancelled")) {

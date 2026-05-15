@@ -17,6 +17,7 @@ import { getWalletSigner, invalidateWalletSignerCache } from "@/utils/wallet/sig
 import { getPasskeyCredential, setPasskeyCredentialLocal } from "@/utils/storage/passkeyStore";
 import { registerSeedlessAuth } from "@/utils/passkey/registerSeedlessAuth";
 import { clearMpcSession } from "@/utils/passkey/mpcSessionStorage";
+import { uploadShareAPrfBackup } from "@/utils/passkey/shareAPrfBackup";
 
 export interface UpgradeSeedlessWalletResult {
   ok: boolean;
@@ -102,12 +103,18 @@ export async function upgradeToSeedlessWallet(params: {
       const { credentialId } = await registerSeedlessAuth(walletAddress, username);
       await setPasskeyCredentialLocal(walletAddress, credentialId);
     }
+    const backup = await uploadShareAPrfBackup({ walletAddress, username });
+    if (backup.ok) {
+      seedlessMessage += " Passkey backup saved for reinstall.";
+    } else {
+      seedlessMessage += ` ${backup.message}`;
+    }
     await clearMpcSession();
   } catch (e) {
-    seedlessMessage =
-      "Wallet upgraded to seedless. Unlock with biometrics may need another try in Settings.";
+    const err = e instanceof Error ? e.message : "Passkey setup failed";
+    seedlessMessage = `Wallet upgraded to seedless. ${err}`;
     if (typeof __DEV__ !== "undefined" && __DEV__) {
-      console.warn("[SeedlessUpgrade] auth registration:", e);
+      console.warn("[SeedlessUpgrade] passkey/backup:", e);
     }
   }
 

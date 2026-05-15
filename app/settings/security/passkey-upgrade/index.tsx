@@ -13,6 +13,7 @@ import {
   removeMnemonicAfterSeedlessUpgrade,
   canOfferSeedlessUpgrade,
 } from "@/utils/wallet/upgradeToPasskeyWallet";
+import { backupSeedlessDeviceShare } from "@/utils/wallet/backupSeedlessDeviceShare";
 import { confirm } from "@/services/confirmation";
 import * as LocalAuthentication from "expo-local-authentication";
 
@@ -41,6 +42,22 @@ export default function SeedlessUpgradeScreen() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const onBackupShareA = async () => {
+    if (!username || !walletAddress) {
+      setToast("Wallet details missing", "error");
+      return;
+    }
+    setLoading(true);
+    setStatus("Backing up device share with passkey…");
+    try {
+      const result = await backupSeedlessDeviceShare({ walletAddress, username });
+      setToast(result.message, result.ok ? "success" : "error");
+      setStatus(result.ok ? "Passkey backup saved (iCloud / Google)." : result.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onUpgrade = async () => {
     if (!username) {
@@ -154,8 +171,8 @@ export default function SeedlessUpgradeScreen() {
                 Seedless wallet active
               </CText>
               <CText textColor="text-gray-500">
-                Device share stays on your phone only. Server holds one share for signing — never
-                the full key. Link another phone from Security → Approve new device.
+                Your device share can be encrypted with your passkey (iCloud Keychain / Google) for
+                reinstall. Server stores only ciphertext — not your key.
               </CText>
               {walletAddress ? (
                 <CText textColor="text-gray-400" className="text-sm">
@@ -163,7 +180,13 @@ export default function SeedlessUpgradeScreen() {
                 </CText>
               ) : null}
               <Buttons
+                text="Back up device share to passkey"
+                onPress={onBackupShareA}
+                disabled={loading}
+              />
+              <Buttons
                 text="Approve new device"
+                type="secondary"
                 onPress={() => router.push("/settings/security/approve-device-link")}
                 disabled={loading}
               />

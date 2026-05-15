@@ -104,7 +104,84 @@ export async function createMpcWalletOnServer(params: {
   });
 }
 
+export async function backupMpcShareAPrf(
+  shareAPrfEncrypted: string,
+  mpcSessionToken: string,
+  walletAddress?: string
+): Promise<ApiResult<{ ok: boolean }>> {
+  try {
+    const response = await fetch(`${BASE_URL}/v2/mpc/share-a/prf/backup`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${mpcSessionToken}`,
+        "X-Mpc-Session-Token": mpcSessionToken,
+      },
+      body: JSON.stringify({
+        share_a_prf_encrypted: shareAPrfEncrypted,
+        ...(walletAddress ? { wallet_address: walletAddress } : {}),
+      }),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const base =
+        typeof json?.message === "string" ? json.message : "Backup failed";
+      const hint =
+        response.status === 404
+          ? " Deploy backend with /v2/mpc/share-a/prf/backup or check EXPO_PUBLIC_API_URL."
+          : "";
+      return {
+        status: false,
+        message: `${base} (${response.status})${hint}`,
+      };
+    }
+    return { status: true, data: json as { ok: boolean } };
+  } catch (e) {
+    return { status: false, message: e instanceof Error ? e.message : "Request failed" };
+  }
+}
+
+export async function fetchMpcShareAPrfBackup(
+  walletAddress: string,
+  mpcSessionToken: string
+): Promise<ApiResult<{ share_a_prf_encrypted: string; wallet_address: string }>> {
+  try {
+    const response = await fetch(`${BASE_URL}/v2/mpc/share-a/prf/fetch`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${mpcSessionToken}`,
+        "X-Mpc-Session-Token": mpcSessionToken,
+      },
+      body: JSON.stringify({ wallet_address: walletAddress }),
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return {
+        status: false,
+        message: typeof json?.message === "string" ? json.message : "No passkey backup found",
+      };
+    }
+    return {
+      status: true,
+      data: json as { share_a_prf_encrypted: string; wallet_address: string },
+    };
+  } catch (e) {
+    return { status: false, message: e instanceof Error ? e.message : "Request failed" };
+  }
+}
+
+/** @deprecated Use backupMpcShareAPrf */
 export async function backupMpcShareA(
+  shareAEncryptedBase64: string,
+  mpcSessionToken: string
+): Promise<ApiResult<{ ok: boolean }>> {
+  return backupMpcShareAPrf(shareAEncryptedBase64, mpcSessionToken);
+}
+
+export async function backupMpcShareALegacy(
   shareAEncryptedBase64: string,
   mpcSessionToken: string
 ): Promise<ApiResult<{ ok: boolean }>> {

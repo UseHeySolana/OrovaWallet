@@ -10,6 +10,7 @@ import { createMpcWalletOnServer } from "@/utils/request/mpcWallet";
 import { invalidateWalletSignerCache } from "@/utils/wallet/signerManager";
 import { registerSeedlessAuth } from "@/utils/passkey/registerSeedlessAuth";
 import { setPasskeyCredentialLocal } from "@/utils/storage/passkeyStore";
+import { uploadShareAPrfBackup } from "@/utils/passkey/shareAPrfBackup";
 
 export interface CreateSeedlessWalletResult {
   ok: boolean;
@@ -64,9 +65,14 @@ export async function createSeedlessPasskeyWallet(params?: {
   WalletItem.getState().updatePassphrase(null);
   invalidateWalletSignerCache();
 
+  const backup = await uploadShareAPrfBackup({ walletAddress, username });
+  const backupNote = backup.ok
+    ? " Passkey backup saved."
+    : ` Backup: ${backup.message}`;
+
   return {
     ok: true,
-    message: "Seedless wallet created",
+    message: `Seedless wallet created.${backupNote}`,
     walletAddress,
     keypair,
   };

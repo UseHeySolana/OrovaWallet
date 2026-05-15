@@ -27,6 +27,8 @@ export interface userWalletType {
 }
 export interface Userstore {
   session: string | null;
+  /** Lock wallet in memory; keep device MPC share, passkey, and account profile. */
+  lockWallet: () => void;
   clearData: () => void;
   user: UserType | null;
   setUser: (user: UserType | null) => void;
@@ -57,6 +59,20 @@ const UserItem = create(
         const session = `${Math.random()}${new Date().getTime()}${Math.random()}`;
         set({ session });
       },
+      lockWallet: () => {
+        WalletItem.getState().setDefault();
+        clearMpcSession();
+        invalidateWalletSignerCache();
+        set({
+          userWallet: {
+            balance: 0,
+            solBalance: 0,
+            tokenAccounts: [],
+            totalUsdBalance: 0,
+          },
+          visibleTokenMints: null,
+        });
+      },
       clearData: () => {
         AppSettings.getState().setDefault();
         WalletItem.getState().setDefault();
@@ -65,7 +81,6 @@ const UserItem = create(
         deletePasskeyCredential();
         clearMpcSession();
         invalidateWalletSignerCache();
-        // Clear user state and wallet state
         set({
           user: null,
           userWallet: {
@@ -75,7 +90,7 @@ const UserItem = create(
             totalUsdBalance: 0,
           },
           visibleTokenMints: null,
-        })
+        });
       },
       logout: () => {
         get().clearData();

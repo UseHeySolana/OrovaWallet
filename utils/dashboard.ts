@@ -7,6 +7,9 @@ import { UserType } from "@/utils/types/user.types";
 import { Connection, PublicKey } from "@solana/web3.js";
 import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
+import AppSettings from "@/utils/store/settingsstore.store";
+import UserItem from "@/utils/store/userstore.store";
+import { recoverSeedlessWallet } from "@/utils/wallet/recoverSeedlessWallet";
 
 export const api_key = process.env.EXPO_PUBLIC_HELIUS_API || "";
 
@@ -80,6 +83,23 @@ const setUserItems = async (
 // }
 
 export const BiometricAuth = async () => {
+  const { walletMode } = AppSettings.getState();
+  const user = UserItem.getState().user;
+  const isMpc =
+    walletMode === "mpc" ||
+    (user?.wallet_type === "mpc" && Boolean(user?.wallet_address));
+
+  if (isMpc && user?.wallet_address) {
+    const unlocked = await recoverSeedlessWallet({
+      walletAddress: user.wallet_address,
+      username: user.username ?? "",
+    });
+    if (unlocked.ok) {
+      router.replace("/dashboard");
+    }
+    return;
+  }
+
   const res = await LocalAuthentication.hasHardwareAsync();
   if (res) {
     const result = await LocalAuthentication.authenticateAsync();

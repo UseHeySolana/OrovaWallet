@@ -23,6 +23,8 @@ import { cleanNumber } from "@/utils/functions/extrafunctions";
 import { delay } from "@/utils/functions";
 import { BiometricAuth } from "@/utils/dashboard";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
+import { hasMpcShareA } from "@/utils/storage/mpcShareStore";
+import { recoverSeedlessWallet } from "@/utils/wallet/recoverSeedlessWallet";
 
 /**
   * What should be done here
@@ -53,6 +55,8 @@ export default function Login() {
     subregion: "Western Africa",
   });
   const [fingerPrintSigning, setFingerPrintSigning] = useState(false);
+  const [seedlessPasskeySignin, setSeedlessPasskeySignin] = useState(false);
+  const [passkeyUnlockBusy, setPasskeyUnlockBusy] = useState(false);
   const [pinSignin, setPinSignin] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const { isDarkMode } = useThemeContext();
@@ -62,24 +66,68 @@ export default function Login() {
   const [pinValue, setPinValue] = useState("");
   useEffect(() => {
     (async () => {
-      if (user) {
-        setUserDetails({
-          ...userDetails,
-          mobileNumber: user.mobileNumber,
-        });
-        if (pin.length > 0 && openWithAuth) {
-          setPinSignin(true);
-        } else if (openWithAuth) {
-          setFingerPrintSigning(true);
-          setTimeout(() => {
-            BiometricAuth();
-          }, 1000);
-        } else {
-          setCurrentState("start-wallet");
+      if (!user) return;
+
+      setUserDetails((prev) => ({
+        ...prev,
+        mobileNumber: user.mobileNumber,
+        username: user.username ?? prev.username,
+        wallet_address: user.wallet_address ?? prev.wallet_address,
+        wallet_type: user.wallet_type ?? prev.wallet_type,
+      }));
+
+      const isMpc =
+        user.wallet_type === "mpc" && Boolean(user.wallet_address?.trim());
+      if (isMpc) {
+        setWalletMode("mpc");
+        const shareOnDevice = await hasMpcShareA();
+        if (shareOnDevice) {
+          setSeedlessPasskeySignin(true);
+          return;
         }
+      }
+
+      if (pin.length > 0 && openWithAuth) {
+        setPinSignin(true);
+      } else if (openWithAuth) {
+        setFingerPrintSigning(true);
+        setTimeout(() => {
+          BiometricAuth();
+        }, 1000);
+      } else if (!isMpc) {
+        setCurrentState("start-wallet");
       }
     })();
   }, [user]);
+
+  const unlockWithPasskey = async () => {
+    const walletAddress =
+      user?.wallet_address?.trim() || userDetails.wallet_address?.trim();
+    const username = user?.username?.trim() || userDetails.username?.trim();
+    if (!walletAddress || !username) {
+      setToast("Account details missing. Sign in with your phone number.", "error");
+      setSeedlessPasskeySignin(false);
+      return;
+    }
+
+    setPasskeyUnlockBusy(true);
+    try {
+      const result = await recoverSeedlessWallet({ walletAddress, username });
+      if (!result.ok) {
+        setToast(result.message, "error");
+        if (result.needsDeviceLink) {
+          router.replace("/auth/mpc-link");
+        }
+        return;
+      }
+      setToast(result.message, "success");
+      router.replace("/dashboard");
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "Passkey sign-in failed", "error");
+    } finally {
+      setPasskeyUnlockBusy(false);
+    }
+  };
 
   const Login = async () => {
 
@@ -185,8 +233,24 @@ export default function Login() {
 
       if (isMpcAccount) {
         setWalletMode("mpc");
+        const shareOnDevice = await hasMpcShareA();
+        if (shareOnDevice) {
+          const unlocked = await recoverSeedlessWallet({
+            walletAddress: userDetails.wallet_address,
+            username: userDetails.username,
+          });
+          setLoading(false);
+          if (unlocked.ok) {
+            setToast(unlocked.message, "success");
+            router.replace("/dashboard");
+            return;
+          }
+          setToast(unlocked.message, "error");
+          setSeedlessPasskeySignin(true);
+          return;
+        }
         setLoading(false);
-        router.replace("/auth/mpc-restore");
+        router.replace("/auth/mpc-link");
         return;
       }
 
@@ -202,7 +266,47 @@ export default function Login() {
   return (
     <View className="relative bg-grey dark:bg-dark h-full w-100 flex justify-center items-center">
       <View className=" py-5 w-full px-4 gap-y-10 flex-col justify-center ">
-        {!fingerPrintSigning && !pinSignin ? (
+        {seedlessPasskeySignin ? (
+          <>
+            <View className="flex flex-col justify-center items-center gap-y-2">
+              <View className="w-full flex justify-center items-center">
+                <View className="h-[3.125em] w-[3.125em] rounded-full">
+                  <Image
+                    source={require("@/assets/images/ballicon.png")}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="contain"
+                  />
+                </View>
+              </View>
+              <View className="w-10/12 m-auto">
+                <CText style={{ fontFamily: "bold" }} className="text-[1.25em] text-center">
+                  Welcome back{user?.username ? `, ${user.username}` : ""}
+                </CText>
+                <CText className="text-[1em] text-center text-gray-500 dark:text-gray-300">
+                  Sign in with your passkey to unlock your seedless wallet
+                </CText>
+              </View>
+            </View>
+
+            <View className="w-10/12 m-auto flex justify-center gap-y-4 items-center">
+              <Buttons
+                text="Sign in with Passkey"
+                loading={passkeyUnlockBusy}
+                onPress={unlockWithPasskey}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  setSeedlessPasskeySignin(false);
+                  UserItem.getState().clearData();
+                }}
+              >
+                <CText textColor="text-purple" className="text-center">
+                  Use a different account
+                </CText>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : !fingerPrintSigning && !pinSignin ? (
           <>
             <View className="flex flex-col justify-center items-center gap-y-2">
               <View className="w-full flex justify-center items-center">

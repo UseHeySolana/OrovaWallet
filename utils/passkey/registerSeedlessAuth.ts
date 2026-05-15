@@ -11,10 +11,10 @@ import { registerWebAuthnPasskey } from "@/utils/passkey/webAuthnClient";
 export async function registerSeedlessAuth(
   walletAddress: string,
   username: string
-): Promise<{ credentialId: string }> {
+): Promise<{ credentialId: string; prfKey: Uint8Array | null }> {
   if (useDevSimulatorInsecureStore) {
     const dev = await registerDevicePasskey(walletAddress);
-    return { credentialId: dev.credentialId };
+    return { credentialId: dev.credentialId, prfKey: null };
   }
 
   return registerWebAuthnPasskey(walletAddress, username);
