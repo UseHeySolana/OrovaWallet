@@ -62,6 +62,20 @@
       "intentFilters": [
         {
           "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "hey.yraytestings.com.ng"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
           "data": [
             {
               "scheme": "heysolana"
