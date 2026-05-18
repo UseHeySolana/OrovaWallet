@@ -6,9 +6,10 @@ import {
   View,
   TouchableOpacity,
 } from "react-native";
-import CText from "@/components/TextComp";
-import Feather from "@expo/vector-icons/Feather";
-import { Image } from "expo-image";
+import DashboardOverlayRoot from "@/components/DashboardComponents/DashboardOverlayRoot";
+import DashboardWalletHeader from "@/components/DashboardComponents/DashboardWalletHeader";
+import FloatingWalletBalance from "@/components/DashboardComponents/FloatingWalletBalance";
+import { WalletScrollProvider } from "@/context/WalletScrollContext";
 import UserItem from "@/utils/store/userstore.store";
 import setUserItems from "@/utils/dashboard";
 import {
@@ -207,70 +208,34 @@ export default function Dashboard() {
   };
 
   return (
-    <View className="flex-1 pt-3 pb-2 w-screen  px-4 h-screen gap-y-4 bg-grey dark:bg-dark ">
-      <View className="flex  flex-row justify-between items-center">
-        <TouchableOpacity
-          onPress={() => router.push("/dashboard/account")}
-          activeOpacity={0.8}
-          className="bg-white dark:bg-accent p-3 rounded-3xl flex flex-row items-center gap-x-1"
-        >
-          <View className="h-6 w-6  rounded-full overflow-hidden">
-            {user?.profileImageUri ? (
-              <Image
-                source={{ uri: user.profileImageUri }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-              />
-            ) : (
-              <Image
-                source={require("@/assets/images/ballicon.png")}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="contain"
-              />
-            )}
-          </View>
-          <CText
-            style={{ fontFamily: "md" }}
-            className="text-dark dark:text-white"
-          >
-            @{user?.username}
-          </CText>
-        </TouchableOpacity>
-        <View className="flex flex-row gap-x-2">
-          <TouchableOpacity
-            onPress={() => router.push("/settings")}
-            className="p-3  rounded-full bg-white dark:bg-accent "
-          >
-            <Feather
-              name="settings"
-              size={16}
-              color={isDarkMode ? "white" : "black"}
-            />
-          </TouchableOpacity>
-          {/* <TouchableOpacity onPress={() => router.push('/dashboard/scan')} className="p-3  rounded-full bg-white dark:bg-accent">
-            <AntDesign name="scan1" size={16} color={isDarkMode ? "white" : "black"} />
-          </TouchableOpacity> */}
+    <WalletScrollProvider active={showWallet}>
+      <DashboardOverlayRoot
+        overlay={<FloatingWalletBalance showWallet={showWallet} />}
+      >
+        <View className="flex-1 pt-3 pb-2 w-screen px-4 h-screen gap-y-4">
+          <DashboardWalletHeader
+            showWallet={showWallet}
+            isDarkMode={isDarkMode}
+          />
+          {showWallet ? (
+            <WalletScreen onRefresh={onRefresh} refreshing={refreshing} />
+          ) : (
+            <>
+              <ChatInterface messages={message} />
+              <QuickActions showInDashboard={false} />
+            </>
+          )}
+          <Base
+            showWallet={showWallet}
+            setShowWallet={setShowWallet}
+            stopSession={stopStreamingSession}
+            startSession={startStreamingSession}
+            isSessionActive={isSessionActive}
+          />
+
+          <SetPin open={setPinOpen} setOpen={setSetPinOpen} usage="first-time" />
         </View>
-      </View>
-      {showWallet ? (
-        <WalletScreen onRefresh={onRefresh} refreshing={refreshing} />
-      ) : (
-        <>
-          <ChatInterface messages={message} />
-          <QuickActions showInDashboard={false} />
-        </>
-      )}
-      <Base
-        showWallet={showWallet}
-        setShowWallet={setShowWallet}
-        stopSession={stopStreamingSession}
-        startSession={startStreamingSession}
-        isSessionActive={isSessionActive}
-      />
-
-      <SetPin open={setPinOpen} setOpen={setSetPinOpen} usage="first-time" />
-
-      {/* <Base showWallet={showWallet} setShowWallet={setShowWallet} stopSession={stopStreamingSession} startSession={testFunctions} isSessionActive={isSessionActive} /> */}
-    </View>
+      </DashboardOverlayRoot>
+    </WalletScrollProvider>
   );
 }

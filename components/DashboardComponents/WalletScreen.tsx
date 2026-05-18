@@ -6,7 +6,14 @@ import {
   TouchableNativeFeedback,
   TouchableOpacity,
   View,
+  type LayoutChangeEvent,
 } from "react-native";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { CText, CNumber } from "@/components/TextComp";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
@@ -29,6 +36,10 @@ import {
 import { TxHistoryRowsSkeleton } from "@/components/skeletons";
 import { buildHelperCards } from "@/utils/walletHelperCards";
 import WalletToolsSection from "@/components/DashboardComponents/WalletToolsSection";
+import { useWalletScroll } from "@/context/WalletScrollContext";
+import { measureInOverlay } from "@/utils/measureInOverlay";
+
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 function lamportsToSolDisplay(lamports: number): string {
   const sol = lamports / 1e9;
@@ -100,6 +111,9 @@ export default function WalletScreen({
   onRefresh,
   refreshing,
 }: WalletScreenProps) {
+  const { scrollY, collapseRange, overlayRootRef, setSourceLayout } =
+    useWalletScroll();
+  const sourceMeasureRef = useRef<View>(null);
   const { userWallet, visibleTokenMints } = UserItem();
   const { publicKey } = WalletItem();
   const { networkShort } = AppSettings();
@@ -187,32 +201,80 @@ export default function WalletScreen({
     }
   }, [onRefresh, activeTab, publicKey, networkShort]);
 
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const onBalanceHeaderLayout = (event: LayoutChangeEvent) => {
+    const height = event.nativeEvent.layout.height;
+    if (height > 0) {
+      collapseRange.value = height;
+    }
+  };
+
+  const measureSource = useCallback(() => {
+    measureInOverlay(sourceMeasureRef, overlayRootRef, setSourceLayout);
+  }, [overlayRootRef, setSourceLayout]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => measureSource());
+    return () => cancelAnimationFrame(id);
+  }, [measureSource, userWallet?.totalUsdBalance]);
+
+  const inlineBalanceStyle = useAnimatedStyle(() => {
+    const range = Math.max(collapseRange.value, 1);
+    const progress = interpolate(
+      scrollY.value,
+      [0, range * 0.12],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    return { opacity: 1 - progress };
+  });
+
   return (
-    <ScrollView
+    <AnimatedScrollView
       className=""
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      onScroll={scrollHandler}
+      scrollEventThrottle={16}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
     >
       <View className=" min-h-[50px] gap-y-3 px-1">
         <View className="m-auto  w-full shadow-sm bg-white dark:bg-transparent rounded-3xl py-4">
-          <View className="flex flex-row  justify-between items-center px-5 py-3">
+          <View
+            onLayout={onBalanceHeaderLayout}
+            className="flex flex-row justify-between items-center px-5 py-3"
+          >
             <View className="">
               <View>
                 <CText className="text-[12px]">Wallet balance</CText>
               </View>
-              <CText className="text-[45px]">
-                $
-                <CText className="text-[45px]">
-                  <CNumber
-                    // value={50}
-                    value={Number(userWallet?.totalUsdBalance.toFixed(2))}
-                    className="text-[45px]"
-                  />
-                </CText>
-              </CText>
+              <View
+                ref={sourceMeasureRef}
+                onLayout={measureSource}
+                collapsable={false}
+              >
+                <Animated.View
+                  style={inlineBalanceStyle}
+                  className="flex-row items-baseline"
+                >
+                  <CText className="text-[45px]">
+                    $
+                    <CText className="text-[45px]">
+                      <CNumber
+                        value={Number(userWallet?.totalUsdBalance.toFixed(2))}
+                        className="text-[45px]"
+                      />
+                    </CText>
+                  </CText>
+                </Animated.View>
+              </View>
             </View>
             <View className="flex flex-row justify-center items-center gap-2">
               <TouchableOpacity
@@ -582,6 +644,6 @@ export default function WalletScreen({
           )}
         </View>
       </View>
-    </ScrollView>
+    </AnimatedScrollView>
   );
 }
