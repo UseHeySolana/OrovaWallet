@@ -12,6 +12,7 @@ import { AiServiceProvider } from "@/context/AiContext";
 import { KeyboardProvider } from "@/context/KeyboardContext";
 import { PIPManager } from "@/services/PIPService/PIPManager";
 import { WidgetManager } from "@/services/WidgetService/WidgetManager";
+import { PushNotificationManager } from "@/services/push/PushNotificationManager";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import StackView from "./stack";
@@ -110,9 +111,11 @@ export default function RootLayout() {
             <AiServiceProvider>
               <PIPManager>
                 <PIPDeepLinkHandler />
-                <WidgetManager>
-                  <StackView />
-                </WidgetManager>
+                <PushNotificationManager>
+                  <WidgetManager>
+                    <StackView />
+                  </WidgetManager>
+                </PushNotificationManager>
               </PIPManager>
             </AiServiceProvider>
           </ThemeProvider>
