@@ -23,6 +23,7 @@ import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
 import { Brain } from "@/libs/brain";
 import { initWallet } from "@/utils/wallet/initWallet";
 import { bootstrapVerifiedTokensList } from "@/utils/functions";
+import { initBugReporting } from "@/services/bugReport/initBugReporting";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -63,6 +64,10 @@ export default function RootLayout() {
     }
     prepare();
   }, [loaded, error]);
+
+  useEffect(() => {
+    initBugReporting();
+  }, []);
 
   useEffect(() => {
     if (!appReady) return;
