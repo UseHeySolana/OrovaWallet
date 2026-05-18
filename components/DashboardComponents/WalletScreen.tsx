@@ -27,6 +27,7 @@ import {
   shortenPub,
 } from "@/utils/functions/extrafunctions";
 import { TxHistoryRowsSkeleton } from "@/components/skeletons";
+import { buildHelperCards } from "@/utils/walletHelperCards";
 
 function lamportsToSolDisplay(lamports: number): string {
   const sol = lamports / 1e9;
@@ -89,13 +90,6 @@ function walletTxRowSummary(tx: any, userPk: string) {
   };
 }
 
-type HelperCard = {
-  id: string;
-  title: string;
-  caption: string;
-  link: string;
-};
-
 interface WalletScreenProps {
   onRefresh: () => void;
   refreshing: boolean;
@@ -123,7 +117,6 @@ export default function WalletScreen({
   const [historyError, setHistoryError] = useState<string | null>(null);
   const { isDarkMode } = useThemeContext();
 
-  const [isHelpersExpanded, setIsHelpersExpanded] = useState(false);
   const helpersScrollRef = useRef<ScrollView>(null);
   const [activeHelperIndex, setActiveHelperIndex] = useState(0);
 
@@ -131,36 +124,17 @@ export default function WalletScreen({
   const CARD_GAP = 10;
   const AUTO_SCROLL_INTERVAL = 4000;
 
-  /** Carousel content comes only from Brain suggestions (no static marketing cards). */
-  const helperCards: HelperCard[] = useMemo(() => {
-    const fromBrain = suggestions
-      .slice()
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 12)
-      .map((s) => ({
-        id: s.id,
-        title: s.title,
-        caption: s.body,
-        link: s.link ?? `/brain?focus=${encodeURIComponent(s.id)}`,
-      }));
-    if (fromBrain.length === 0) {
-      return [
-        {
-          id: "brain-empty",
-          title: "Brain",
-          caption: "No suggestions yet. Tap to open Brain for alerts and actions.",
-          link: "/brain",
-        },
-      ];
-    }
-    return fromBrain;
-  }, [suggestions]);
+  /** Carousel shows up to 12 Brain suggestions; full list is on /dashboard/aicards. */
+  const helperCards = useMemo(
+    () => buildHelperCards(suggestions, { limit: 12 }),
+    [suggestions]
+  );
 
   const hasBrainSuggestions = suggestions.length > 0;
 
   // Auto-scroll AI helpers carousel
   useEffect(() => {
-    if (isHelpersExpanded || !hasBrainSuggestions || helperCards.length <= 1) return;
+    if (!hasBrainSuggestions || helperCards.length <= 1) return;
     const id = setInterval(() => {
       setActiveHelperIndex((prev) => {
         const next = (prev + 1) % helperCards.length;
@@ -172,7 +146,7 @@ export default function WalletScreen({
       });
     }, AUTO_SCROLL_INTERVAL);
     return () => clearInterval(id);
-  }, [isHelpersExpanded, helperCards.length, hasBrainSuggestions]);
+  }, [helperCards.length, hasBrainSuggestions]);
 
   useEffect(() => {
     if (activeTab !== "history" || !publicKey) return;
@@ -313,44 +287,7 @@ export default function WalletScreen({
         </View>
 
         <View className="relative w-full">
-          {isHelpersExpanded ? (
-            <View className="gap-3 pb-2">
-              {helperCards.map((item, index) => (
-                <TouchableOpacity
-                  key={item.id}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    if (item?.link) router.push(item.link as any);
-                  }}
-                  className="w-full"
-                >
-                  <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-4 rounded-2xl bg-white dark:bg-accent w-full">
-                    <View className="h-8 w-8 rounded-full">
-                      <Image
-                        source={require("@/assets/images/ballicon.png")}
-                        style={{ width: "100%", height: "100%" }}
-                        contentFit="contain"
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <CText
-                        style={{ fontFamily: "bold" }}
-                        className="text-[1.1rem]"
-                      >
-                        {item.title}
-                      </CText>
-                      <CText className="text-[1rem]">{item.caption}</CText>
-                    </View>
-                    <MaterialCommunityIcons
-                      name="greater-than"
-                      size={12}
-                      color={isDarkMode ? "white" : "black"}
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : hasBrainSuggestions ? (
+          {hasBrainSuggestions ? (
             <View className="w-full">
               <ScrollView
                 ref={helpersScrollRef}
@@ -375,10 +312,7 @@ export default function WalletScreen({
                   <TouchableOpacity
                     key={item.id}
                     className="w-[300px]"
-                    onPress={() => {
-                      // Tap expands; second tap (expanded list) navigates.
-                      setIsHelpersExpanded(true);
-                    }}
+                    onPress={() => router.push("/dashboard/aicards")}
                   >
                     <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-4 py-5 rounded-2xl bg-white dark:bg-accent w-full ">
                       <View className="h-8 w-8 rounded-full">
