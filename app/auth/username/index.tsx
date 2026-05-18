@@ -17,6 +17,7 @@ import { useThemeContext } from "@/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
 import { cleanNumber } from "@/utils/functions/extrafunctions";
+import { toPhoneE164 } from "@/utils/phone/phoneE164";
 import { delay } from "@/utils/functions";
 import { useKeyboard } from "@/context/KeyboardContext";
 /**
@@ -97,6 +98,10 @@ export default function Username() {
       setUser({
         username: userDetails.username,
         mobileNumber: userDetails.mobileNumber,
+        phoneE164: toPhoneE164(
+          userDetails.mobileNumber,
+          selectedValue.callingCode
+        ),
         pin: "",
       })
       setCurrentState('start-wallet')

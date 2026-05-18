@@ -10,6 +10,34 @@ import {
   registerPushTokenWithBackend,
 } from "@/services/push/pushNotifications";
 
+/** Remote/local payloads differ by platform; `notification.request` may be missing on Android. */
+function getNotificationContent(
+  notification: Notifications.Notification | undefined
+): Notifications.NotificationContent | null {
+  if (!notification) return null;
+  return notification.request?.content ?? null;
+}
+
+function parseNotificationData(
+  raw: unknown
+): Record<string, unknown> | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   if (!data) return;
 
@@ -49,9 +77,13 @@ export const PushNotificationManager: React.FC<Props> = ({ children }) => {
 
   const syncTokenForUser = async (mobileNumber: string | undefined) => {
     if (!mobileNumber?.trim() || registeringRef.current) return;
+    if (!AppSettings.getState().notifications) return;
     registeringRef.current = true;
     try {
-      await registerPushTokenWithBackend({ phone_number: mobileNumber.trim() });
+      await registerPushTokenWithBackend({
+        phone_number: mobileNumber.trim(),
+        user: UserItem.getState().user,
+      });
     } finally {
       registeringRef.current = false;
     }
@@ -81,31 +113,52 @@ export const PushNotificationManager: React.FC<Props> = ({ children }) => {
     });
 
     const unsubToken = attachPushTokenRefreshListener(() => {
+      if (!AppSettings.getState().notifications) return;
       const phone = UserItem.getState().user?.mobileNumber;
       if (phone) void syncTokenForUser(phone);
     });
 
     const receivedSub = Notifications.addNotificationReceivedListener((event) => {
-      const data = event.notification.request.content.data as Record<string, unknown>;
-      if (AppSettings.getState().notifications && data?.preview_in_app !== false) {
-        const body = event.notification.request.content.body;
-        if (body) {
-          AppSettings.getState().setToast(String(body).slice(0, 200), "info");
+      try {
+        const content = getNotificationContent(event.notification);
+        if (!content) return;
+
+        const data = parseNotificationData(content.data);
+        if (AppSettings.getState().notifications && data?.preview_in_app !== false) {
+          const body = content.body;
+          if (body) {
+            AppSettings.getState().setToast(String(body).slice(0, 200), "info");
+          }
         }
+      } catch (err) {
+        console.warn("[push] notification received handler:", err);
       }
     });
 
     const responseSub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        const data = response.notification.request.content.data as
-          | Record<string, unknown>
-          | undefined;
-        routeFromNotificationData(data);
+        try {
+          const content = getNotificationContent(response.notification);
+          routeFromNotificationData(parseNotificationData(content?.data));
+        } catch (err) {
+          console.warn("[push] notification response handler:", err);
+        }
       }
     );
 
+    const unsubSettings = AppSettings.subscribe((state, prev) => {
+      if (state.notifications === prev.notifications) return;
+      const phone = UserItem.getState().user?.mobileNumber?.trim();
+      if (!state.notifications) {
+        void deactivatePushTokenOnBackend();
+      } else if (phone) {
+        void syncTokenForUser(phone);
+      }
+    });
+
     return () => {
       unsubUser();
+      unsubSettings();
       unsubToken();
       receivedSub.remove();
       responseSub.remove();
