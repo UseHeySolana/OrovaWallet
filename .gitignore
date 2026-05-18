@@ -44,8 +44,13 @@ app-example
 build-*
 
 
-google-services.json
+# Firebase client config (public IDs). Commit if your team shares one Firebase project;
+# otherwise keep ignored and each dev downloads from Firebase Console.
+# google-services.json
 
+# FCM V1 service account private key — upload to EAS only, never commit
+*-firebase-adminsdk-*.json
+fcm-service-account.json
 
 # Android build artifacts
 /android/.gradle
