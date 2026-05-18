@@ -3,7 +3,8 @@ import type { TokenSearchPickRow } from "@/utils/store/conversation.store";
 import { getVerifiedTokens } from "@/utils/store/verifiedTokens.store";
 import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 
-const SEARCH_URL = "https://api.jup.ag/tokens/v2/search";
+const TOKENS_V2_BASE = "https://api.jup.ag/tokens/v2";
+const SEARCH_URL = `${TOKENS_V2_BASE}/search`;
 
 const jupHeaders = (): HeadersInit => ({
     Accept: "application/json",
@@ -54,6 +55,83 @@ function rowToHit(row: JupiterTokenRow): TokenSearchHit | null {
                 ? row.organicScore
                 : Number(row.organicScore),
     };
+}
+
+async function fetchJupiterTokenRows(
+    url: string,
+    logLabel: string
+): Promise<TokenSearchHit[]> {
+    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
+    if (!key) return [];
+
+    const startedAt = Date.now();
+    const res = await fetch(url, { headers: jupHeaders() });
+    const text = await res.text();
+    if (__DEV__) {
+        pushDevNetworkLog({
+            label: logLabel,
+            method: "GET",
+            url,
+            status: res.status,
+            durationMs: Date.now() - startedAt,
+            responseBody: text,
+        });
+    }
+    if (!res.ok) return [];
+
+    let json: unknown;
+    try {
+        json = text ? JSON.parse(text) : null;
+    } catch {
+        return [];
+    }
+    if (!Array.isArray(json)) return [];
+
+    const hits: TokenSearchHit[] = [];
+    for (const row of json as JupiterTokenRow[]) {
+        const h = rowToHit(row);
+        if (h) hits.push(h);
+    }
+    return hits;
+}
+
+/** Jupiter Tokens v2 verified tag list. */
+export async function fetchVerifiedTokenHitsV2(): Promise<TokenSearchHit[]> {
+    return fetchJupiterTokenRows(
+        `${TOKENS_V2_BASE}/tag?query=verified`,
+        "Jupiter tokens v2 /tag verified"
+    );
+}
+
+/** Jupiter Tokens v2 top organic score (24h). */
+export async function fetchTopOrganicTokenHitsV2(
+    limit = 50
+): Promise<TokenSearchHit[]> {
+    return fetchJupiterTokenRows(
+        `${TOKENS_V2_BASE}/toporganicscore/24h?limit=${limit}`,
+        "Jupiter tokens v2 /toporganicscore"
+    );
+}
+
+/**
+ * Swap picker browse: search when query is set, otherwise verified Jupiter tokens
+ * (fallback to top organic if verified is empty).
+ */
+export async function browseTokenHitsForSwap(
+    query: string
+): Promise<TokenSearchHit[]> {
+    const q = query.trim();
+    if (q) {
+        const hits = await searchTokenHitsV2(q);
+        return sortTokenSearchHitsForDisplay(hits).slice(0, 50);
+    }
+
+    const verified = await fetchVerifiedTokenHitsV2();
+    const sorted = sortTokenSearchHitsForDisplay(verified);
+    if (sorted.length > 0) return sorted.slice(0, 100);
+
+    const top = await fetchTopOrganicTokenHitsV2(50);
+    return sortTokenSearchHitsForDisplay(top);
 }
 
 /** Raw Jupiter search; returns empty if no API key or bad response. */

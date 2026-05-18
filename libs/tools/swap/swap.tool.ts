@@ -15,241 +15,24 @@ import {
     tokenSearchHitsToPickerRows,
 } from "@/utils/functions";
 import type { TokenSearchHit } from "@/libs/jupiter/tokensV2Search";
-import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
+import { getSwapV2Order, postSwapV2Execute } from "@/libs/jupiter/swapV2";
+import { getSwapFeeConfig } from "@/services/swapFeeConfig";
 
-const JUPITER_SWAP_V2 = "https://api.jup.ag/swap/v2";
+const SLIPPAGE_BPS = 50;
 
-const jupSwapV2Headers = (): HeadersInit => ({
-    Accept: "application/json",
-    "x-api-key": (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim(),
-});
-
-type JupiterSwapV2Order = {
-    transaction?: string | null;
-    requestId?: string;
-    lastValidBlockHeight?: string;
-    inAmount?: string;
-    outAmount?: string;
-    errorCode?: number;
-    errorMessage?: string;
-    error?: string;
-};
-
-type JupiterSwapV2ExecuteResult = {
-    status?: string;
-    signature?: string;
-    slot?: string;
-    error?: string;
-    code?: number;
-};
-
-async function readJsonBody(
-    res: Response,
-    log?: {
-        label: string;
-        method: string;
-        url: string;
-        requestSummary?: string;
-        startedAt: number;
-    }
-): Promise<{
-    ok: boolean;
-    data: JupiterSwapV2Order | null;
-    message: string;
-}> {
-    const text = await res.text();
-    if (__DEV__ && log) {
-        pushDevNetworkLog({
-            label: log.label,
-            method: log.method,
-            url: log.url,
-            status: res.status,
-            durationMs: Date.now() - log.startedAt,
-            requestSummary: log.requestSummary,
-            responseBody: text,
-        });
-    }
-    try {
-        const data = text ? (JSON.parse(text) as JupiterSwapV2Order) : null;
-        if (!res.ok) {
-            const err =
-                (data as { error?: string; message?: string } | null)?.error ||
-                (data as { message?: string } | null)?.message ||
-                text.slice(0, 240) ||
-                `HTTP ${res.status}`;
-            return { ok: false, data: null, message: err };
-        }
-        return { ok: true, data, message: "" };
-    } catch {
-        return {
-            ok: false,
-            data: null,
-            message: text.slice(0, 240) || `HTTP ${res.status}`,
-        };
-    }
-}
-
-/**
- * Jupiter Swap API v2 GET /order. Amount is smallest units of **input** (ExactIn only in v2).
- * Omit `taker` for quote-only (no serialized transaction).
- */
-const getSwapV2Order = async (params: {
-    inputMint: string;
-    outputMint: string;
-    amountSmallestInput: string;
-    taker?: string;
-    slippageBps?: number;
-}): Promise<{ status: boolean; data?: JupiterSwapV2Order; message: string }> => {
-    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
-    if (!key) {
-        return {
-            status: false,
-            message: "Set EXPO_PUBLIC_JUP_API_KEY for Jupiter Swap API v2.",
-        };
-    }
-
-    if (!params.inputMint || !params.outputMint || !params.amountSmallestInput) {
-        return { status: false, message: "Invalid swap parameters" };
-    }
-
-    const search = new URLSearchParams({
-        inputMint: params.inputMint,
-        outputMint: params.outputMint,
-        amount: params.amountSmallestInput,
-        swapMode: "ExactIn",
-    });
-    if (params.taker) search.set("taker", params.taker);
-    if (params.slippageBps != null && params.slippageBps >= 0) {
-        search.set("slippageBps", String(params.slippageBps));
-    }
-
-    try {
-        const orderUrl = `${JUPITER_SWAP_V2}/order?${search.toString()}`;
-        const startedAt = Date.now();
-        const res = await fetch(orderUrl, {
-            method: "GET",
-            headers: jupSwapV2Headers(),
-        });
-        const parsed = await readJsonBody(res, {
-            label: "Jupiter swap v2 /order",
-            method: "GET",
-            url: orderUrl,
-            requestSummary: search.toString(),
-            startedAt,
-        });
-        if (!parsed.ok || !parsed.data) {
-            return { status: false, message: parsed.message || "Swap order failed" };
-        }
-        const d = parsed.data;
-        if (params.taker) {
-            if (d.errorCode != null && d.errorCode !== 0) {
-                return {
-                    status: false,
-                    message: d.errorMessage || d.error || "Could not build swap transaction",
-                };
-            }
-            if (!d.transaction || d.transaction.length === 0) {
-                return {
-                    status: false,
-                    message: d.errorMessage || d.error || "No transaction in Jupiter response",
-                };
-            }
-        }
-        return { status: true, data: d };
-    } catch (e) {
-        console.error("Jupiter swap v2 /order error:", e);
-        return {
-            status: false,
-            message: (e as Error).message || "Failed to reach Jupiter Swap API",
-        };
-    }
-};
-
-/**
- * Jupiter Swap API v2 POST /execute — broadcast + landing via Jupiter (requires requestId from /order).
- */
-const postSwapV2Execute = async (params: {
-    signedTransaction: string;
-    requestId: string;
-    lastValidBlockHeight?: string;
-}): Promise<{ status: boolean; data?: JupiterSwapV2ExecuteResult; message: string }> => {
-    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
-    if (!key) {
-        return {
-            status: false,
-            message: "Set EXPO_PUBLIC_JUP_API_KEY for Jupiter Swap API v2.",
-        };
-    }
-
-    const url = `${JUPITER_SWAP_V2}/execute`;
-    const body: Record<string, string> = {
-        signedTransaction: params.signedTransaction,
-        requestId: params.requestId,
+async function swapOrderParams(taker?: string) {
+    const fee = await getSwapFeeConfig();
+    return {
+        ...(taker ? { taker } : {}),
+        slippageBps: SLIPPAGE_BPS,
+        ...(fee.referralAccount && fee.referralFeeBps >= 50
+            ? {
+                  referralAccount: fee.referralAccount,
+                  referralFeeBps: fee.referralFeeBps,
+              }
+            : {}),
     };
-    if (params.lastValidBlockHeight) {
-        body.lastValidBlockHeight = params.lastValidBlockHeight;
-    }
-
-    const startedAt = Date.now();
-    try {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: {
-                ...jupSwapV2Headers(),
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(body),
-        });
-        const text = await res.text();
-        if (__DEV__) {
-            pushDevNetworkLog({
-                label: "Jupiter swap v2 /execute",
-                method: "POST",
-                url,
-                status: res.status,
-                durationMs: Date.now() - startedAt,
-                requestSummary: `requestId=${params.requestId}`,
-                responseBody: text,
-            });
-        }
-
-        let data: JupiterSwapV2ExecuteResult | null = null;
-        try {
-            data = text ? (JSON.parse(text) as JupiterSwapV2ExecuteResult) : null;
-        } catch {
-            return {
-                status: false,
-                message: text.slice(0, 280) || "Invalid JSON from Jupiter /execute",
-            };
-        }
-
-        if (!res.ok) {
-            return {
-                status: false,
-                message: data?.error || text.slice(0, 240) || `HTTP ${res.status}`,
-            };
-        }
-
-        if (data?.status === "Failed" || !data?.signature) {
-            return {
-                status: false,
-                message:
-                    data?.error ||
-                    (data?.code != null
-                        ? `Execute failed (code ${data.code})`
-                        : "Execute failed"),
-            };
-        }
-
-        return { status: true, data };
-    } catch (e) {
-        console.error("Jupiter swap v2 /execute error:", e);
-        return {
-            status: false,
-            message: (e as Error).message || "Failed to reach Jupiter /execute",
-        };
-    }
-};
+}
 
 export class SwapFunction {
     public swapFunction: FunctionParams;
@@ -366,8 +149,7 @@ export class SwapFunction {
                     inputMint: fromMint.address,
                     outputMint: toMint.address,
                     amountSmallestInput: String(amountSmallest),
-                    taker: userPublicKey.toString(),
-                    slippageBps: 50,
+                    ...(await swapOrderParams(userPublicKey.toString())),
                 });
                 if (!orderRes.status || !orderRes.data?.transaction) {
                     if (messageId !== null) {
@@ -591,7 +373,7 @@ export class SwapFunction {
                     inputMint: fromMintToken.address,
                     outputMint: toMintToken.address,
                     amountSmallestInput: String(amtSmallest),
-                    slippageBps: 50,
+                    ...(await swapOrderParams()),
                 });
 
                 if (!priceData?.status) {
