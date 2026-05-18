@@ -3,7 +3,7 @@ import { Pressable, ScrollView, TouchableOpacity, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 
-import CText from "@/components/TextComp";
+import { CText } from "@/components/TextComp";
 import type { App } from "@/libs/app/apps";
 import { getFeaturedApps } from "@/utils/integrations";
 
