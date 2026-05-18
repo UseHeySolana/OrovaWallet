@@ -28,6 +28,7 @@ import {
 } from "@/utils/functions/extrafunctions";
 import { TxHistoryRowsSkeleton } from "@/components/skeletons";
 import { buildHelperCards } from "@/utils/walletHelperCards";
+import WalletToolsSection from "@/components/DashboardComponents/WalletToolsSection";
 
 function lamportsToSolDisplay(lamports: number): string {
   const sol = lamports / 1e9;
@@ -285,6 +286,8 @@ export default function WalletScreen({
             </View>
           </View>
         </View>
+
+        <WalletToolsSection />
 
         <View className="relative w-full">
           {hasBrainSuggestions ? (
