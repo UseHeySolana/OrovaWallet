@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import {
   Pressable,
   ScrollView,
-  StyleSheet,
   Switch,
   TouchableOpacity,
   View,
@@ -14,8 +13,25 @@ import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
 import * as Updates from "expo-updates";
 
+import Ionicons from "@expo/vector-icons/Ionicons";
+
 import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
+import {
+  deactivatePushTokenOnBackend,
+  registerPushTokenWithBackend,
+} from "@/services/push/pushNotifications";
+import { PushNotificationDevTools } from "@/services/push/PushNotificationDevTools";
+
+type SettingsMenu2Item = {
+  title: string;
+  route: string | null;
+  subtitle?: string;
+  icon?: React.ReactNode;
+  type?: "toggle";
+  /** When `type` is `toggle`, which setting the switch controls */
+  toggleFor?: "theme" | "notifications";
+};
 
 const settingsMenu = [
   // {
@@ -72,7 +88,7 @@ const settingsMenu = [
   // },
 ];
 
-const settingsMenu2 = [
+const settingsMenu2: SettingsMenu2Item[] = [
   {
     title: "Address Book",
     route: "/settings/addressbook",
@@ -94,9 +110,17 @@ const settingsMenu2 = [
   //   icon: <IconLibrary.commenting />,
   // },
   {
+    title: "Notifications",
+    route: "notifications",
+    type: "toggle",
+    toggleFor: "notifications",
+    subtitle: "Wallet alerts, price alerts, and server push",
+  },
+  {
     title: "Dark mode",
     route: "dark",
     type: "toggle",
+    toggleFor: "theme",
     subtitle: "Change the app mode",
     icon: <IconLibrary.moon />,
   },
@@ -113,21 +137,18 @@ const settingsMenu2 = [
   * 1. Updates Settings and Shows Settings and What to Change
   */
 export default function Settings() {
-  const [recording, setRecording] = useState(false);
-
   const { isDarkMode, toggleTheme } = useThemeContext();
-  const { setDefault, setLoading } = AppSettings();
+  const { setLoading, notifications, updateNotifications, setToast } = AppSettings();
   const { user, userWallet, logout } = UserItem();
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
 
   const routeNavigation = (route: any, type?: string) => {
-    if (type == "toggle") {
+    if (type === "toggle") {
       return;
     }
     if (route == null) {
       return;
     }
-    if (route == "logout") {
+    if (route === "logout") {
       logout();
       router.replace("/auth/login");
       return;
@@ -227,7 +248,17 @@ export default function Settings() {
               >
                 <View className="flex-1 flex-row justify-start items-center gap-x-2">
                   <View className="h-6 flex flex-row justify-center items-center w-6">
-                    {item.icon ? item.icon : <IconLibrary.angle_right />}
+                    {item.toggleFor === "notifications" ? (
+                      <Ionicons
+                        name="notifications-outline"
+                        size={20}
+                        color={isDarkMode ? "#f3f4f6" : "#374151"}
+                      />
+                    ) : item.icon ? (
+                      item.icon
+                    ) : (
+                      <IconLibrary.angle_right />
+                    )}
                   </View>
                   <View className="flex-1">
                     <CText className="text-[1.2rem]">{item.title}</CText>
@@ -244,11 +275,34 @@ export default function Settings() {
                         trackColor={{ false: "red", true: "green" }}
                         thumbColor={"white"}
                         ios_backgroundColor="#3e3e3e"
-                        onValueChange={() => {
-                          toggleTheme(isDarkMode ? "light" : "dark");
+                        onValueChange={(enabled) => {
+                          if (item.toggleFor === "notifications") {
+                            updateNotifications(enabled);
+                            if (enabled) {
+                              void registerPushTokenWithBackend({
+                                user,
+                              }).then((ok) => {
+                                if (!ok) {
+                                  setToast(
+                                    "Could not enable push. Check system notification permission and EXPO_PUBLIC_API_URL.",
+                                    "error"
+                                  );
+                                  updateNotifications(false);
+                                }
+                              });
+                            } else {
+                              void deactivatePushTokenOnBackend();
+                            }
+                            return;
+                          }
+                          toggleTheme(enabled ? "dark" : "light");
                           setLoading(false);
                         }}
-                        value={isDarkMode}
+                        value={
+                          item.toggleFor === "notifications"
+                            ? notifications
+                            : isDarkMode
+                        }
                       />
                     ) : (
                       <Pressable onPress={() => router.back()} className="p-3">
@@ -282,6 +336,7 @@ export default function Settings() {
             <CText className="text-[0.8rem] opacity-60 mt-2 text-center">
               Jupiter swap / search responses and tool errors (dev only)
             </CText>
+            <PushNotificationDevTools />
           </View>
         ) : null}
       </ScrollView>
