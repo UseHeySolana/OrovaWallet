@@ -28,6 +28,9 @@ import InCallManager from "react-native-incall-manager";
 import AudioManager from "./AudioManager";
 
 class SessionManager {
+  private static readonly REALTIME_MODEL = "gpt-realtime-mini";
+  private static readonly SESSION_UPDATE_TIMEOUT_MS = 10_000;
+
   private isSessionActive: boolean;
   private events: any[];
   private dataChannel: any | null; // RTCDataChannel equivalent
@@ -74,6 +77,12 @@ class SessionManager {
     prefix_padding_ms: 300,
     silence_duration_ms: 500,
   };
+  private sessionUpdateWaiters: {
+    resolve: () => void;
+    reject: (err: Error) => void;
+  }[] = [];
+  /** Ignore session.updated until we have sent a session.update (avoids early server ack). */
+  private awaitingSessionUpdateAck = false;
   // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
   public callbacks: {
     setMode: (mode: "loading" | "human" | "aispeaking") => void;
@@ -108,12 +117,32 @@ class SessionManager {
 
   async getToken({ instructions }: { instructions: string }) {
     const url = "/open-token";
+    const aiName = AppSettings.getState().aiName || "Orova";
+    const transcriptionPrompt =
+      `Transcribe speech for ${aiName}, HeySolana crypto wallet assistant. ` +
+      "Expect token symbols (SOL, USDC), amounts, mint addresses, swap, transfer, send, and usernames.";
+
     const item = {
       prompt: instructions,
+      transcription_prompt: transcriptionPrompt,
+      voice: AppSettings.getState().aiVoice || "alloy",
     };
     const tokenResponse = await request.postJson(item, url);
     const data = await tokenResponse.json();
-    this.token = data.client_secret.value;
+
+    if (data?.error) {
+      const msg =
+        data.error?.message ??
+        data.error?.code ??
+        "OpenAI client secret request failed";
+      throw new Error(msg);
+    }
+
+    this.token =
+      data?.value ?? data?.client_secret?.value ?? data?.client_secret ?? null;
+    if (!this.token) {
+      throw new Error("Open token response missing client secret value");
+    }
     return this.token;
   }
 
@@ -155,7 +184,7 @@ class SessionManager {
     }
 
     const EPHEMERAL_KEY = await this.getToken({
-      instructions: "",
+      instructions: this.systemInstructions,
     });
 
     if (this.isSessionActive || this.peerConnection || this.dataChannel) {
@@ -219,8 +248,8 @@ class SessionManager {
       await this.peerConnection.setLocalDescription(offer);
 
       // Send offer to API
-      const baseUrl = "https://api.openai.com/v1/realtime";
-      const model = "gpt-4o-mini-realtime-preview-2024-12-17";
+      const baseUrl = "https://api.openai.com/v1/realtime/calls";
+      const model = SessionManager.REALTIME_MODEL;
       const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
         method: "POST",
         body: offer.sdp,
@@ -327,6 +356,178 @@ class SessionManager {
     });
   }
 
+  private formatTools(functions: FunctionParams[]) {
+    return functions.map((fn) => {
+      if (!fn.name) console.warn(`[Functions] Function missing name:`, fn);
+      if (!fn.description) {
+        console.warn(`[Functions] Function ${fn.name} missing description`);
+      }
+      if (!fn.parameters) {
+        console.warn(`[Functions] Function ${fn.name} missing parameters`);
+      }
+      return {
+        type: "function" as const,
+        name: fn.name,
+        description: fn.description,
+        parameters: fn.parameters,
+      };
+    });
+  }
+
+  private getTurnDetectionConfig():
+    | {
+      type: "server_vad";
+      threshold: number;
+      prefix_padding_ms: number;
+      silence_duration_ms: number;
+      create_response: boolean;
+      interrupt_response: boolean;
+    }
+    | null {
+    if (!this.useAudioThisSession || this.pushToTalkMode) {
+      return null;
+    }
+    return {
+      type: "server_vad",
+      threshold: this.vadConfig.threshold,
+      prefix_padding_ms: this.vadConfig.prefix_padding_ms,
+      silence_duration_ms: this.vadConfig.silence_duration_ms,
+      create_response: true,
+      interrupt_response: true,
+    };
+  }
+
+  private buildGaSessionPayload(
+    overrides: Record<string, unknown> = {}
+  ): Record<string, unknown> {
+    const {
+      turn_detection: turnDetectionOverride,
+      audio: audioOverride,
+      ...restOverrides
+    } = overrides;
+
+    const session: Record<string, unknown> = {
+      type: "realtime",
+      model: SessionManager.REALTIME_MODEL,
+      output_modalities: this.useAudioThisSession ? ["audio"] : ["text"],
+      ...restOverrides,
+    };
+
+    if (
+      overrides.instructions === undefined &&
+      this.systemInstructions.length > 0
+    ) {
+      session.instructions = this.systemInstructions;
+    }
+
+    if (overrides.tools === undefined && this.availableFunctions.length > 0) {
+      session.tools = this.formatTools(this.availableFunctions);
+      session.tool_choice = "auto";
+    } else if (overrides.tools !== undefined) {
+      session.tool_choice = overrides.tool_choice ?? "auto";
+    }
+
+    // GA Realtime: turn_detection lives under session.audio.input, not session root.
+    const audioFromOverride =
+      audioOverride && typeof audioOverride === "object"
+        ? (audioOverride as Record<string, unknown>)
+        : {};
+    const inputFromOverride =
+      audioFromOverride.input && typeof audioFromOverride.input === "object"
+        ? (audioFromOverride.input as Record<string, unknown>)
+        : {};
+
+    const turnDetection =
+      turnDetectionOverride !== undefined
+        ? turnDetectionOverride
+        : this.getTurnDetectionConfig();
+
+    session.audio = {
+      ...audioFromOverride,
+      input: {
+        ...inputFromOverride,
+        turn_detection: turnDetection,
+      },
+    };
+
+    return session;
+  }
+
+  private onSessionUpdated(serverSession: Record<string, unknown> | undefined) {
+    if (!this.awaitingSessionUpdateAck) {
+      return;
+    }
+    this.awaitingSessionUpdateAck = false;
+
+    const tools = serverSession?.tools;
+    const toolCount = Array.isArray(tools) ? tools.length : 0;
+    const instructionsLen =
+      typeof serverSession?.instructions === "string"
+        ? serverSession.instructions.length
+        : 0;
+    console.log(
+      `[Session] session.updated — tools: ${toolCount}, instructions chars: ${instructionsLen}`
+    );
+    const waiters = this.sessionUpdateWaiters.splice(0);
+    waiters.forEach((w) => w.resolve());
+  }
+
+  private rejectSessionUpdateWaiters(reason: string) {
+    this.awaitingSessionUpdateAck = false;
+    const err = new Error(reason);
+    const waiters = this.sessionUpdateWaiters.splice(0);
+    waiters.forEach((w) => w.reject(err));
+  }
+
+  private waitForSessionUpdated(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const waiter = { resolve, reject };
+      this.sessionUpdateWaiters.push(waiter);
+      setTimeout(() => {
+        const idx = this.sessionUpdateWaiters.indexOf(waiter);
+        if (idx >= 0) {
+          this.sessionUpdateWaiters.splice(idx, 1);
+          this.awaitingSessionUpdateAck = false;
+          reject(new Error("session.updated timeout"));
+        }
+      }, SessionManager.SESSION_UPDATE_TIMEOUT_MS);
+    });
+  }
+
+  private async sendSessionUpdate(
+    overrides: Record<string, unknown> = {},
+    waitForAck = true
+  ): Promise<void> {
+    const session = this.buildGaSessionPayload(overrides);
+    const event = { type: "session.update", session };
+
+    if (__DEV__) {
+      const tools = session.tools;
+      const toolCount = Array.isArray(tools) ? tools.length : 0;
+      console.log(
+        `[Session] session.update — tools: ${toolCount}, instructions chars: ${typeof session.instructions === "string"
+          ? session.instructions.length
+          : 0
+        }`
+      );
+    }
+
+    if (!waitForAck) {
+      this.sendClientEvent(event);
+      return;
+    }
+
+    this.awaitingSessionUpdateAck = true;
+    const ack = this.waitForSessionUpdated();
+    this.sendClientEvent(event);
+    try {
+      await ack;
+    } catch (e) {
+      this.awaitingSessionUpdateAck = false;
+      console.warn("[Session] session.updated not received, continuing:", e);
+    }
+  }
+
   private setupDataChannelEventHandlers(): void {
     if (!this.dataChannel) return;
 
@@ -335,6 +536,19 @@ class SessionManager {
       try {
         const message = JSON.parse(e.data);
         this.events.unshift(message);
+
+        if (message.type === "session.updated") {
+          this.onSessionUpdated(message.session);
+        }
+
+        if (message.type === "error") {
+          console.error("[Realtime error]", message);
+          if (message.event_id) {
+            this.rejectSessionUpdateWaiters(
+              message.message ?? "Realtime API error"
+            );
+          }
+        }
 
         if (this.conversation_id === null) {
           throw new Error("Conversation has not been set");
@@ -628,47 +842,10 @@ class SessionManager {
 
   private async initializeSession(): Promise<void> {
     try {
-      // Step 1: Send system instructions first
-      if (this.systemInstructions) {
-        console.log("Sending system instructions");
-        await this.sendWithDelay(
-          {
-            type: "session.update",
-            session: {
-              instructions: this.systemInstructions,
-            },
-          },
-          0
-        );
-      }
-
-      // Step 2: set vad mode (only for voice sessions; chat uses text-only)
-      this.setVadMode();
-
-      // Step 2: Register functions after system instructions
-      if (this.availableFunctions.length > 0) {
-        this.registerFunctions(this.availableFunctions);
-      }
-
-      // Step 3: Send an initial greeting to establish context
-      await this.sendWithDelay(
-        {
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "system",
-            content: [
-              {
-                type: "input_text",
-                text: "Session initialized. System is ready for interaction.",
-              },
-            ],
-          },
-        },
-        3000
+      console.log(
+        "[Session] Applying GA session (instructions + tools + VAD in one update)"
       );
-
-      this.sendClientEvent({ type: "response.create" });
+      await this.sendSessionUpdate({}, true);
 
       console.log("Session fully initialized");
       AppSettings.getState().setLoading(false);
@@ -685,52 +862,6 @@ class SessionManager {
         resolve();
       }, delayMs);
     });
-  }
-
-  private async setVadMode(): Promise<void> {
-    // Chat-only sessions: no voice activity detection; responses only via response.create
-    if (!this.useAudioThisSession) {
-      await this.sendWithDelay(
-        {
-          type: "session.update",
-          session: {
-            turn_detection: null as any, // disable VAD for text-only
-          },
-        },
-        200
-      );
-      return;
-    }
-
-    // If push-to-talk mode is enabled, disable VAD
-    if (this.pushToTalkMode) {
-      await this.sendWithDelay(
-        {
-          type: "session.update",
-          session: {
-            turn_detection: null as any,
-          },
-        },
-        200
-      );
-      return;
-    }
-
-    // Normal VAD mode with configurable parameters
-    const eventServer = {
-      type: "session.update",
-      session: {
-        turn_detection: {
-          type: "server_vad",
-          threshold: this.vadConfig.threshold,
-          prefix_padding_ms: this.vadConfig.prefix_padding_ms,
-          silence_duration_ms: this.vadConfig.silence_duration_ms,
-          create_response: true,
-          interrupt_response: true,
-        },
-      },
-    };
-    await this.sendWithDelay(eventServer, 200);
   }
 
   private async requestAudioPermission(): Promise<boolean> {
@@ -790,6 +921,8 @@ class SessionManager {
       this.cancelFlushAi();
       this.pendingHumanDeltas = "";
       this.pendingAiDeltas = "";
+
+      this.rejectSessionUpdateWaiters("Session stopped");
 
       this.isSessionActive = false;
       this.connectionEstablished = false;
@@ -915,22 +1048,9 @@ class SessionManager {
     this.systemInstructions = instructions;
 
     if (this.isSessionActive) {
-      // Unified approach for system instructions
-      const event = {
-        type: "session.update",
-        session: {
-          instructions: instructions,
-          // Include both formats to ensure compatibility
-          system_message: {
-            content: instructions,
-          },
-        },
-      };
-
-      console.log("Sending system instructions event", instructions);
-      this.sendClientEvent(event);
+      void this.sendSessionUpdate({ instructions }, true);
     } else {
-      console.error(
+      console.log(
         "Session not active, instructions will be sent when session starts"
       );
     }
@@ -948,24 +1068,12 @@ class SessionManager {
       return;
     }
 
-    await this.sendWithDelay(
-      {
-        type: "session.update",
-        session: {
-          turn_detection: enabled ? null : {
-            type: "server_vad",
-            threshold: this.vadConfig.threshold,
-            prefix_padding_ms: this.vadConfig.prefix_padding_ms,
-            silence_duration_ms: this.vadConfig.silence_duration_ms,
-            create_response: true,
-            interrupt_response: true,
-          },
-        },
-      },
-      0
+    await this.sendSessionUpdate(
+      { turn_detection: enabled ? null : this.getTurnDetectionConfig() },
+      true
     );
 
-    console.log(`Push-to-talk mode ${enabled ? 'enabled' : 'disabled'}`);
+    console.log(`Push-to-talk mode ${enabled ? "enabled" : "disabled"}`);
   }
 
   /**
@@ -1084,25 +1192,11 @@ class SessionManager {
       this.vadConfig.silence_duration_ms = settings.silenceDurationMs;
     }
 
-    // Apply to session if active
     if (this.isSessionActive) {
-      await this.sendWithDelay(
-        {
-          type: "session.update",
-          session: {
-            turn_detection: {
-              type: "server_vad",
-              threshold: this.vadConfig.threshold,
-              prefix_padding_ms: this.vadConfig.prefix_padding_ms,
-              silence_duration_ms: this.vadConfig.silence_duration_ms,
-              create_response: true,
-              interrupt_response: true,
-            },
-          },
-        },
-        0
+      await this.sendSessionUpdate(
+        { turn_detection: this.getTurnDetectionConfig() },
+        true
       );
-
       console.log("VAD settings updated:", this.vadConfig);
     }
   }
@@ -1122,44 +1216,18 @@ class SessionManager {
   registerFunctions(functions: FunctionParams[]): void {
     this.availableFunctions = functions;
 
-
     if (this.isSessionActive) {
-      // Format functions according to OpenAI spec
-      const tools = functions.map((fn) => {
-        // Validate required fields
-        if (!fn.name) {
-          console.warn(`[Functions] Function missing name:`, fn);
-        }
-        if (!fn.description) {
-          console.warn(`[Functions] Function ${fn.name} missing description`);
-        }
-        if (!fn.parameters) {
-          console.warn(`[Functions] Function ${fn.name} missing parameters`);
-        }
-
-        return {
-          type: "function",
-          name: fn.name,
-          description: fn.description,
-          parameters: fn.parameters,
-        };
-      });
-
-      const event = {
-        type: "session.update",
-        session: {
-          tools,
-          tool_choice: "auto", // Let the model decide when to call functions
+      void this.sendSessionUpdate(
+        {
+          tools: this.formatTools(functions),
+          tool_choice: "auto",
         },
-      };
-
-      console.log(`[Functions] Sending session.update with tools:`,
-        JSON.stringify(event, null, 2)
+        true
       );
-
-      this.sendClientEvent(event);
     } else {
-      console.log(`[Functions] Session not active, functions will be registered on session start`);
+      console.log(
+        "[Functions] Session not active, functions will be registered on session start"
+      );
     }
   }
 
