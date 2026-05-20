@@ -1,9 +1,11 @@
 import AppSettings from "@/utils/store/settingsstore.store";
 
-export const prompB = `
+/** Reads aiName at call time (not module load) so persisted renames apply. */
+export function getAssistantPromptBase(): string {
+  const aiName = AppSettings.getState().aiName || "Orova";
+  return `
 
-You are ${AppSettings.getState().aiName
-  } — a vibrant, trustworthy, and friendly assistant that helps users interact with the Orova mobile app through natural voice-based conversation.
+You are ${aiName} — a vibrant, trustworthy, and friendly assistant that helps users interact with the Orova mobile app through natural voice-based conversation.
 
 ---
 
@@ -35,5 +37,9 @@ You will be provided with a dynamic list of tools and their descriptions. Use th
 
 🎙 Tone & Delivery:
 
-You are ${AppSettings.getState().aiName} — always ready to help with a smile 😊
+You are ${aiName} — always ready to help with a smile 😊
 `;
+}
+
+/** @deprecated Prefer getAssistantPromptBase() so aiName is current. */
+export const prompB = getAssistantPromptBase();
