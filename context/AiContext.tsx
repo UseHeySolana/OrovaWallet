@@ -120,7 +120,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         console.log('starting session');
         if (!sessionManager || isSessionActive) return;
         if (prompt == "") return;
-        // Chat mode = text-only session (no mic). Audio mode = full voice session.
+        // Chat mode = typed input (no VAD). Audio mode = voice input. Both use spoken replies.
         await sessionManager.startSession(prompt, {
             useAudio: inputMode === 'audio',
         });

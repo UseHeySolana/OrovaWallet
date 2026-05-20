@@ -47,7 +47,11 @@ class SessionManager {
   public activeAiMessageId: string | null = null;
   public activeHumanMessageId: string | null = null;
   public token: string | null = null;
-  private useAudioThisSession: boolean = true;
+  /** When false (chat mode): text input only, no VAD; audio output still enabled. */
+  private useVoiceInputThisSession: boolean = true;
+  private sessionReadyResolve: (() => void) | null = null;
+  private sessionReadyReject: ((err: Error) => void) | null = null;
+  private sessionReadyPromise: Promise<void> | null = null;
   /** Batched transcript deltas to avoid "Maximum update depth" from rapid store updates */
   private pendingHumanDeltas: string = "";
   private pendingAiDeltas: string = "";
@@ -119,7 +123,7 @@ class SessionManager {
     const url = "/open-token";
     const aiName = AppSettings.getState().aiName || "Orova";
     const transcriptionPrompt =
-      `Transcribe speech for ${aiName}, HeySolana crypto wallet assistant. ` +
+      `Transcribe speech for ${aiName}, Orova crypto wallet assistant. ` +
       "Expect token symbols (SOL, USDC), amounts, mint addresses, swap, transfer, send, and usernames.";
 
     const item = {
@@ -150,8 +154,12 @@ class SessionManager {
     systemInstructions?: string,
     options?: { useAudio?: boolean }
   ): Promise<void> {
-    const useAudio = options?.useAudio !== false;
-    this.useAudioThisSession = useAudio;
+    const useVoiceInput = options?.useAudio !== false;
+    this.useVoiceInputThisSession = useVoiceInput;
+    this.sessionReadyPromise = new Promise((resolve, reject) => {
+      this.sessionReadyResolve = resolve;
+      this.sessionReadyReject = reject;
+    });
     AppSettings.getState().setLoading(true);
     // Set system instructions if provided
     if (systemInstructions) {
@@ -242,7 +250,7 @@ class SessionManager {
       const offer = await this.peerConnection.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: false,
-        voiceActivityDetection: useAudio, // only listen for voice in audio mode
+        voiceActivityDetection: useVoiceInput, // only listen for voice in audio mode
       });
 
       await this.peerConnection.setLocalDescription(offer);
@@ -288,12 +296,44 @@ class SessionManager {
         id: this.conversation_id,
         summary: "",
       });
+
+      const ready = this.sessionReadyPromise;
+      if (ready) {
+        await Promise.race([
+          ready,
+          new Promise<void>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Session ready timeout")),
+              30_000
+            )
+          ),
+        ]);
+      }
     } catch (error) {
       console.error("Error starting session:", error);
+      this.rejectSessionReady(error instanceof Error ? error : new Error(String(error)));
       this.cleanupResources();
       AppSettings.getState().setLoading(false);
       throw error;
     }
+  }
+
+  private rejectSessionReady(err: Error): void {
+    this.sessionReadyReject?.(err);
+    this.sessionReadyResolve = null;
+    this.sessionReadyReject = null;
+    this.sessionReadyPromise = null;
+  }
+
+  private resolveSessionReady(): void {
+    this.sessionReadyResolve?.();
+    this.sessionReadyResolve = null;
+    this.sessionReadyReject = null;
+    this.sessionReadyPromise = null;
+  }
+
+  private getMessageSource(): "voice" | "chat" {
+    return this.useVoiceInputThisSession ? "voice" : "chat";
   }
 
   private scheduleFlushHuman(): void {
@@ -352,7 +392,7 @@ class SessionManager {
     Convo.getState().updateMessage({
       messageId: this.activeAiMessageId,
       content: { content: currentContent + toApply },
-      source: "voice",
+      source: this.getMessageSource(),
     });
   }
 
@@ -384,7 +424,7 @@ class SessionManager {
       interrupt_response: boolean;
     }
     | null {
-    if (!this.useAudioThisSession || this.pushToTalkMode) {
+    if (!this.useVoiceInputThisSession || this.pushToTalkMode) {
       return null;
     }
     return {
@@ -409,7 +449,8 @@ class SessionManager {
     const session: Record<string, unknown> = {
       type: "realtime",
       model: SessionManager.REALTIME_MODEL,
-      output_modalities: this.useAudioThisSession ? ["audio"] : ["text"],
+      // Always use audio output so chat mode gets spoken replies + transcript events.
+      output_modalities: ["audio"],
       ...restOverrides,
     };
 
@@ -677,7 +718,7 @@ class SessionManager {
               content: message.delta ?? "",
               timestamp: new Date().getTime(),
               conversation_id: this.conversation_id,
-              source: "voice",
+              source: this.getMessageSource(),
             });
           }
         }
@@ -693,7 +734,53 @@ class SessionManager {
               content: {
                 content: message.transcript ?? "",
               },
-              source: "voice",
+              source: this.getMessageSource(),
+            });
+            setTimeout(() => {
+              this.activeAiMessageId = null;
+            }, 200);
+          }
+        }
+
+        if (message.type === "response.output_text.delta") {
+          if (this.activeAiMessageId) {
+            this.pendingAiDeltas += message.delta ?? "";
+            this.scheduleFlushAi();
+          } else {
+            this.activeAiMessageId = "temp" + new Date().getTime().toString();
+            Convo.getState().setMessages({
+              id: this.activeAiMessageId,
+              role: "system",
+              content: message.delta ?? "",
+              timestamp: new Date().getTime(),
+              conversation_id: this.conversation_id,
+              source: this.getMessageSource(),
+            });
+          }
+        }
+
+        if (message.type === "response.output_text.done") {
+          this.cancelFlushAi();
+          this.flushAiNow();
+          const finalText = message.text ?? "";
+          if (this.activeAiMessageId) {
+            Convo.getState().updateMessage({
+              messageId: this.activeAiMessageId,
+              content: { content: finalText },
+              source: this.getMessageSource(),
+            });
+            setTimeout(() => {
+              this.activeAiMessageId = null;
+            }, 200);
+          } else if (finalText) {
+            this.activeAiMessageId = "temp" + new Date().getTime().toString();
+            Convo.getState().setMessages({
+              id: this.activeAiMessageId,
+              role: "system",
+              content: finalText,
+              timestamp: new Date().getTime(),
+              conversation_id: this.conversation_id,
+              source: this.getMessageSource(),
             });
             setTimeout(() => {
               this.activeAiMessageId = null;
@@ -740,6 +827,8 @@ class SessionManager {
           this.currentResponseId = null;
           this.responseState = { id: null, status: 'completed', audioItemId: null };
 
+          let hasPendingFunctionCall = false;
+
           // Process response output items according to OpenAI Realtime API spec
           if (message.response?.output && message.response.output.length > 0) {
             const output = message.response.output;
@@ -748,6 +837,7 @@ class SessionManager {
               // Handle function calls (as per OpenAI docs)
               // When type is "function_call", indicates this response contains arguments for a named function call
               if (item.type === "function_call" && item.status === "completed") {
+                hasPendingFunctionCall = true;
                 console.log("Function call detected:", {
                   name: item.name,
                   call_id: item.call_id,
@@ -762,50 +852,54 @@ class SessionManager {
                 continue;
               }
 
-              // Handle AI message with transcript
+              // Handle AI message with transcript or text
               if (item.type === "message" && item.role === "assistant" && item.content) {
-                // Find the transcript in the content array
                 for (const contentItem of item.content) {
-                  if (contentItem.type === "output_audio" && contentItem.transcript) {
-                    const transcript = contentItem.transcript;
+                  const transcript =
+                    contentItem.type === "output_audio"
+                      ? contentItem.transcript
+                      : contentItem.type === "output_text"
+                        ? contentItem.text
+                        : null;
 
-                    // Flush any pending AI deltas first
-                    this.cancelFlushAi();
-                    this.flushAiNow();
+                  if (!transcript) continue;
 
-                    // Update or create AI message with final transcript
-                    if (this.activeAiMessageId) {
-                      Convo.getState().updateMessage({
-                        messageId: this.activeAiMessageId,
-                        content: {
-                          content: transcript,
-                        },
-                        source: "voice",
-                      });
-                    } else {
-                      // Create new message if no active AI message exists
-                      this.activeAiMessageId = "temp" + new Date().getTime().toString();
-                      Convo.getState().setMessages({
-                        id: this.activeAiMessageId,
-                        role: "system",
-                        content: transcript,
-                        timestamp: new Date().getTime(),
-                        conversation_id: this.conversation_id!,
-                        source: "voice",
-                      });
-                    }
+                  this.cancelFlushAi();
+                  this.flushAiNow();
 
-                    // Clear active message ID after a brief delay
-                    setTimeout(() => {
-                      this.activeAiMessageId = null;
-                    }, 200);
-
-                    this.updateMemory({ type: "ai_transcript_completed", transcript });
-                    break;
+                  if (this.activeAiMessageId) {
+                    Convo.getState().updateMessage({
+                      messageId: this.activeAiMessageId,
+                      content: { content: transcript },
+                      source: this.getMessageSource(),
+                    });
+                  } else {
+                    this.activeAiMessageId = "temp" + new Date().getTime().toString();
+                    Convo.getState().setMessages({
+                      id: this.activeAiMessageId,
+                      role: "system",
+                      content: transcript,
+                      timestamp: new Date().getTime(),
+                      conversation_id: this.conversation_id!,
+                      source: this.getMessageSource(),
+                    });
                   }
+
+                  setTimeout(() => {
+                    this.activeAiMessageId = null;
+                  }, 200);
+
+                  this.updateMemory({ type: "ai_transcript_completed", transcript });
+                  break;
                 }
               }
             }
+          }
+
+          if (!hasPendingFunctionCall) {
+            this.callbacks.setMode(
+              this.useVoiceInputThisSession ? "human" : "loading"
+            );
           }
 
           // Reset function call state after processing response
@@ -847,12 +941,40 @@ class SessionManager {
       );
       await this.sendSessionUpdate({}, true);
 
+      if (!this.useVoiceInputThisSession) {
+        this.muteMic(true);
+      }
+
+      this.triggerInitialWelcome();
+
       console.log("Session fully initialized");
       AppSettings.getState().setLoading(false);
+      this.resolveSessionReady();
     } catch (error) {
       console.error("Error during session initialization:", error);
       AppSettings.getState().setLoading(false);
+      this.rejectSessionReady(
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
+  }
+
+  private triggerInitialWelcome(): void {
+    const aiName = AppSettings.getState().aiName || "Orova";
+    const username = UserItem.getState().user?.username?.trim();
+    const nameHint = username ? ` The user's name is ${username}.` : "";
+
+    setTimeout(() => {
+      this.sendClientEvent({
+        type: "response.create",
+        response: {
+          instructions:
+            `You are ${aiName}, the Orova wallet assistant.${nameHint} ` +
+            "The user just started a new session. Greet them warmly in one or two short sentences and ask how you can help. " +
+            "Do not call any tools for this greeting.",
+        },
+      });
+    }, 150);
   }
 
   private async sendWithDelay(event: any, delayMs: number): Promise<void> {
@@ -923,6 +1045,7 @@ class SessionManager {
       this.pendingAiDeltas = "";
 
       this.rejectSessionUpdateWaiters("Session stopped");
+      this.rejectSessionReady(new Error("Session stopped"));
 
       this.isSessionActive = false;
       this.connectionEstablished = false;
@@ -994,13 +1117,21 @@ class SessionManager {
   }
 
   sendTextMessage(message: string): void {
-    // Check if session is active
     if (!this.isSessionActive) {
       console.error("Cannot send message - session not active");
       return;
     }
 
+    if (
+      !this.dataChannel ||
+      this.dataChannel.readyState !== "open"
+    ) {
+      console.error("Cannot send message - data channel not open");
+      return;
+    }
+
     try {
+      this.callbacks.setMode("loading");
       // When user sends a new message: stop current AI audio and cancel in-flight response
       // so we move to the new item and the new response's audio plays instead.
       if (this.currentResponseId) {
@@ -1171,8 +1302,8 @@ class SessionManager {
     prefixPaddingMs?: number;
     silenceDurationMs?: number;
   }): Promise<void> {
-    if (!this.useAudioThisSession) {
-      console.warn("Cannot update VAD settings in text-only mode");
+    if (!this.useVoiceInputThisSession) {
+      console.warn("Cannot update VAD settings in chat (text input) mode");
       return;
     }
 
