@@ -51,6 +51,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_CONNECT",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.RECEIVE_BOOT_COMPLETED"

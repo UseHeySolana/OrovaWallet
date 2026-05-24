@@ -1,0 +1,185 @@
+diff --git a/node_modules/react-native-incall-manager/ios/RNInCallManager/RNInCallManager.m b/node_modules/react-native-incall-manager/ios/RNInCallManager/RNInCallManager.m
+index 7c54f6e..570b455 100644
+--- a/node_modules/react-native-incall-manager/ios/RNInCallManager/RNInCallManager.m
++++ b/node_modules/react-native-incall-manager/ios/RNInCallManager/RNInCallManager.m
+@@ -120,7 +120,8 @@ - (void)dealloc
+ - (NSArray<NSString *> *)supportedEvents
+ {
+     return @[@"Proximity",
+-             @"WiredHeadset"];
++             @"WiredHeadset",
++             @"onAudioDeviceChanged"];
+ }
+ 
+ RCT_EXPORT_METHOD(start:(NSString *)mediaType
+@@ -143,7 +144,7 @@ - (void)dealloc
+     _forceSpeakerOn = 0;
+     [self startAudioSessionNotification];
+     [self audioSessionSetCategory:_incallAudioCategory
+-                          options:0
++                          options:[self incallAudioCategoryOptions]
+                        callerMemo:NSStringFromSelector(_cmd)];
+     [self audioSessionSetMode:_incallAudioMode
+                    callerMemo:NSStringFromSelector(_cmd)];
+@@ -161,6 +162,7 @@ - (void)dealloc
+     }
+     [self setKeepScreenOn:YES];
+     _audioSessionInitialized = YES;
++    [self sendAudioDeviceChangedEvent];
+     //self.debugAudioSession()
+ }
+ 
+@@ -283,6 +285,40 @@ - (void)dealloc
+     [self updateAudioRoute];
+ }
+ 
++RCT_EXPORT_METHOD(chooseAudioRoute:(NSString *)audioRoute
++                  resolver:(RCTPromiseResolveBlock)resolve
++                  rejecter:(RCTPromiseRejectBlock)reject)
++{
++    NSLog(@"RNInCallManager.chooseAudioRoute(): user choose audioDevice = %@", audioRoute);
++
++    if ([audioRoute isEqualToString:@"SPEAKER_PHONE"]) {
++        [self setSpeakerphoneOn:YES];
++    } else if ([audioRoute isEqualToString:@"EARPIECE"]) {
++        [self setSpeakerphoneOn:NO];
++    } else if ([audioRoute isEqualToString:@"BLUETOOTH"]) {
++        @try {
++            [self audioSessionSetCategory:_incallAudioCategory
++                                  options:[self incallAudioCategoryOptions]
++                               callerMemo:NSStringFromSelector(_cmd)];
++            [self audioSessionSetMode:_incallAudioMode
++                            callerMemo:NSStringFromSelector(_cmd)];
++            [_audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideNone error:nil];
++            [self audioSessionSetActive:YES
++                                options:0
++                             callerMemo:NSStringFromSelector(_cmd)];
++        } @catch (NSException *e) {
++            NSLog(@"RNInCallManager.chooseAudioRoute(): caught error = %@", e.reason);
++            reject(@"error_code", @"chooseAudioRoute() failed", RCTErrorWithMessage(e.reason));
++            return;
++        }
++    } else if ([audioRoute isEqualToString:@"WIRED_HEADSET"]) {
++        [_audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideNone error:nil];
++    }
++
++    [self sendAudioDeviceChangedEvent];
++    resolve([self getAudioDeviceStatusMap]);
++}
++
+ RCT_EXPORT_METHOD(setMicrophoneMute:(BOOL)enable)
+ {
+     NSLog(@"RNInCallManager.setMicrophoneMute(): ios doesn't support setMicrophoneMute()");
+@@ -319,7 +355,7 @@ - (void)dealloc
+ 
+         //self.audioSessionSetCategory(self.incallAudioCategory, [.DefaultToSpeaker, .AllowBluetooth], #function)
+         [self audioSessionSetCategory:_incallAudioCategory
+-                              options:0
++                              options:[self incallAudioCategoryOptions]
+                            callerMemo:NSStringFromSelector(_cmd)];
+         [self audioSessionSetMode:_incallAudioMode
+                        callerMemo:NSStringFromSelector(_cmd)];
+@@ -493,7 +529,7 @@ - (void)updateAudioRoute
+ 
+     if (![_audioSession.category isEqualToString:_incallAudioCategory]) {
+         [self audioSessionSetCategory:_incallAudioCategory
+-                              options:0
++                              options:[self incallAudioCategoryOptions]
+                            callerMemo:NSStringFromSelector(_cmd)];
+         NSLog(@"RNInCallManager.updateAudioRoute() audio category has changed to %@", _incallAudioCategory);
+     } else {
+@@ -559,7 +595,7 @@ - (BOOL)startBusytone:(NSString *)_busytoneUriType
+ 
+         //self.audioSessionSetCategory(self.incallAudioCategory, [.DefaultToSpeaker, .AllowBluetooth], #function)
+         [self audioSessionSetCategory:_incallAudioCategory
+-                              options:0
++                              options:[self incallAudioCategoryOptions]
+                            callerMemo:NSStringFromSelector(_cmd)];
+         [self audioSessionSetMode:_incallAudioMode
+                        callerMemo:NSStringFromSelector(_cmd)];
+@@ -589,6 +625,76 @@ - (BOOL)isWiredHeadsetPluggedIn
+                        routeType:@"input"];
+ }
+ 
++- (AVAudioSessionCategoryOptions)incallAudioCategoryOptions
++{
++    AVAudioSessionCategoryOptions options = AVAudioSessionCategoryOptionAllowBluetooth;
++    if (@available(iOS 10.0, *)) {
++        options = options | AVAudioSessionCategoryOptionAllowBluetoothA2DP;
++    }
++    return options;
++}
++
++- (BOOL)isBluetoothRouteAvailable
++{
++    NSArray<NSString *> *bluetoothPortTypes = @[
++        AVAudioSessionPortBluetoothHFP,
++        AVAudioSessionPortBluetoothA2DP,
++        AVAudioSessionPortBluetoothLE,
++    ];
++
++    if ([self checkAudioRoute:bluetoothPortTypes routeType:@"output"]
++            || [self checkAudioRoute:bluetoothPortTypes routeType:@"input"]) {
++        return YES;
++    }
++
++    NSArray<AVAudioSessionPortDescription *> *availableInputs = [_audioSession availableInputs];
++    for (AVAudioSessionPortDescription *portDescription in availableInputs) {
++        if ([bluetoothPortTypes containsObject:portDescription.portType]) {
++            return YES;
++        }
++    }
++    return NO;
++}
++
++- (NSString *)selectedAudioDeviceName
++{
++    if ([self checkAudioRoute:@[AVAudioSessionPortBuiltInSpeaker] routeType:@"output"]) {
++        return @"SPEAKER_PHONE";
++    }
++    if ([self isBluetoothRouteAvailable]) {
++        return @"BLUETOOTH";
++    }
++    if ([self isWiredHeadsetPluggedIn]) {
++        return @"WIRED_HEADSET";
++    }
++    return @"EARPIECE";
++}
++
++- (NSDictionary *)getAudioDeviceStatusMap
++{
++    NSMutableArray<NSString *> *availableAudioDevices = [NSMutableArray arrayWithObjects:@"SPEAKER_PHONE", @"EARPIECE", nil];
++    if ([self isBluetoothRouteAvailable]) {
++        [availableAudioDevices addObject:@"BLUETOOTH"];
++    }
++    if ([self isWiredHeadsetPluggedIn]) {
++        [availableAudioDevices addObject:@"WIRED_HEADSET"];
++    }
++
++    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:availableAudioDevices options:0 error:nil];
++    NSString *availableAudioDeviceList = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
++
++    return @{
++        @"availableAudioDeviceList": availableAudioDeviceList ?: @"[]",
++        @"selectedAudioDevice": [self selectedAudioDeviceName],
++    };
++}
++
++- (void)sendAudioDeviceChangedEvent
++{
++    [self sendEventWithName:@"onAudioDeviceChanged"
++                       body:[self getAudioDeviceStatusMap]];
++}
++
+ - (void)audioSessionSetCategory:(NSString *)audioCategory
+                         options:(AVAudioSessionCategoryOptions)options
+                      callerMemo:(NSString *)callerMemo
+@@ -855,6 +961,8 @@ - (void)startAudioSessionRouteChangeNotification
+                     break;
+             }
+ 
++            [self sendAudioDeviceChangedEvent];
++
+             NSNumber *silenceSecondaryAudioHintType = [notification.userInfo objectForKey:@"AVAudioSessionSilenceSecondaryAudioHintTypeKey"];
+             NSUInteger silenceSecondaryAudioHintTypeValue = [silenceSecondaryAudioHintType unsignedIntegerValue];
+             switch (silenceSecondaryAudioHintTypeValue) {

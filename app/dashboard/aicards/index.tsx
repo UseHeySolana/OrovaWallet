@@ -37,7 +37,7 @@ export default function AiCardsScreen() {
 
       <CText className="px-4 pt-2 pb-4 text-[0.95rem] text-gray-600 dark:text-gray-400">
         {hasSuggestions
-          ? "All AI suggestions and actions for your wallet."
+          ? "Latest AI suggestions and actions for your wallet."
           : "Open Brain to get personalized alerts and actions."}
       </CText>
 

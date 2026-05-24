@@ -13,6 +13,7 @@ import {
   runDevBrainDigestNow,
   seedDevBrainJournalSample,
 } from "@/libs/brain";
+import { LATEST_BRAIN_SUGGESTION_LIMIT } from "@/utils/walletHelperCards";
 
 export default function BrainHome() {
   const { focus } = useLocalSearchParams<{ focus?: string }>();
@@ -20,7 +21,9 @@ export default function BrainHome() {
   const { isSessionActive, startSession, setInputMode, sendChatMessage } = useAi();
 
   const ordered = useMemo(() => {
-    const list = [...suggestions].sort((a, b) => b.createdAt - a.createdAt);
+    const list = [...suggestions]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, LATEST_BRAIN_SUGGESTION_LIMIT);
     if (!focus) return list;
     const idx = list.findIndex((s) => s.id === focus);
     if (idx <= 0) return list;

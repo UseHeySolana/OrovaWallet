@@ -139,9 +139,9 @@ export default function WalletScreen({
   const CARD_GAP = 10;
   const AUTO_SCROLL_INTERVAL = 4000;
 
-  /** Carousel shows up to 12 Brain suggestions; full list is on /dashboard/aicards. */
+  /** Carousel shows the latest Brain suggestions. */
   const helperCards = useMemo(
-    () => buildHelperCards(suggestions, { limit: 12 }),
+    () => buildHelperCards(suggestions),
     [suggestions]
   );
 

@@ -1,5 +1,7 @@
 import type { BrainSuggestion } from "@/utils/store/brain.store";
 
+export const LATEST_BRAIN_SUGGESTION_LIMIT = 4;
+
 export type HelperCard = {
   id: string;
   title: string;
@@ -13,7 +15,7 @@ export function buildHelperCards(
 ): HelperCard[] {
   const sorted = [...suggestions].sort((a, b) => b.createdAt - a.createdAt);
   const sliced =
-    options?.limit != null ? sorted.slice(0, options.limit) : sorted;
+    sorted.slice(0, options?.limit ?? LATEST_BRAIN_SUGGESTION_LIMIT);
 
   const fromBrain = sliced.map((s) => ({
     id: s.id,

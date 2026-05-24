@@ -1,6 +1,11 @@
 import { MediaStream } from 'react-native-webrtc';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
-import { Platform } from "react-native";
+import {
+  DeviceEventEmitter,
+  PermissionsAndroid,
+  Platform,
+  type EmitterSubscription,
+} from "react-native";
 import InCallManager from "react-native-incall-manager";
 
 // Audio output channel types
@@ -10,19 +15,6 @@ export enum AudioChannel {
   BLUETOOTH = "bluetooth",
   WIRED_HEADSET = "wired_headset",
   AUTO = "auto",
-}
-
-// Audio mode configuration interface
-interface AudioModeConfig {
-  // iOS-specific settings
-  allowsRecordingIOS?: boolean;
-  interruptionModeIOS?: number;
-  playsInSilentModeIOS?: boolean;
-  staysActiveInBackground?: boolean;
-  // Android-specific settings
-  shouldDuckAndroid?: boolean;
-  interruptionModeAndroid?: number;
-  playThroughEarpieceAndroid?: boolean;
 }
 
 // Audio device info interface
@@ -43,6 +35,7 @@ class AudioManager {
   private availableDevices: AudioDeviceInfo[] = [];
   private isInCallManagerActive: boolean = false;
   private stopPlaybackTimeout: ReturnType<typeof setTimeout> | null = null;
+  private eventSubscriptions: EmitterSubscription[] = [];
 
   constructor() {
     this.initializeAudioManager();
@@ -88,10 +81,11 @@ class AudioManager {
       // Detect available audio devices
       await this.detectAvailableDevices();
 
+      this.isInitialized = true;
+
       // Set initial audio mode
       await this.setAudioChannel(AudioChannel.AUTO);
 
-      this.isInitialized = true;
       console.log("AudioManager initialized successfully for", Platform.OS);
     } catch (error) {
       console.error("Failed to initialize AudioManager:", error);
@@ -103,25 +97,36 @@ class AudioManager {
    */
   private async initializeInCallManager(): Promise<void> {
     try {
-      // Import DeviceEventEmitter for event handling
-      const { DeviceEventEmitter } = require("react-native");
-
       // Setup InCallManager event listeners using DeviceEventEmitter
-      DeviceEventEmitter.addListener(
-        "WiredHeadset",
-        this.handleWiredHeadsetEvent.bind(this)
+      this.eventSubscriptions.push(
+        DeviceEventEmitter.addListener(
+          "WiredHeadset",
+          this.handleWiredHeadsetEvent.bind(this)
+        )
       );
-      DeviceEventEmitter.addListener(
-        "Proximity",
-        this.handleProximityEvent.bind(this)
+      this.eventSubscriptions.push(
+        DeviceEventEmitter.addListener(
+          "Proximity",
+          this.handleProximityEvent.bind(this)
+        )
       );
-      DeviceEventEmitter.addListener(
-        "NoisyAudio",
-        this.handleNoisyAudioEvent.bind(this)
+      this.eventSubscriptions.push(
+        DeviceEventEmitter.addListener(
+          "NoisyAudio",
+          this.handleNoisyAudioEvent.bind(this)
+        )
       );
-      DeviceEventEmitter.addListener(
-        "MediaButton",
-        this.handleMediaButtonEvent.bind(this)
+      this.eventSubscriptions.push(
+        DeviceEventEmitter.addListener(
+          "MediaButton",
+          this.handleMediaButtonEvent.bind(this)
+        )
+      );
+      this.eventSubscriptions.push(
+        DeviceEventEmitter.addListener(
+          "onAudioDeviceChanged",
+          this.handleAudioDeviceChangedEvent.bind(this)
+        )
       );
 
       // Start InCallManager
@@ -158,6 +163,8 @@ class AudioManager {
    */
   private async initializeAndroid(): Promise<void> {
     try {
+      await this.requestAndroidBluetoothPermission();
+
       // Configure Android audio manager for WebRTC
       await Audio.setAudioModeAsync({
         shouldDuckAndroid: true,
@@ -169,6 +176,23 @@ class AudioManager {
       console.log("Android audio manager configured for WebRTC");
     } catch (error) {
       console.error("Failed to configure Android audio manager:", error);
+    }
+  }
+
+  private async requestAndroidBluetoothPermission(): Promise<void> {
+    if (Platform.OS !== "android" || Platform.Version < 31) {
+      return;
+    }
+
+    const permission = PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT;
+    const hasPermission = await PermissionsAndroid.check(permission);
+    if (hasPermission) {
+      return;
+    }
+
+    const result = await PermissionsAndroid.request(permission);
+    if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+      console.warn("Bluetooth connect permission not granted");
     }
   }
 
@@ -185,6 +209,31 @@ class AudioManager {
       this.removeAvailableChannel(AudioChannel.WIRED_HEADSET);
       // Fall back to speaker when unplugged
       this.setAudioChannel(AudioChannel.SPEAKER);
+    }
+  }
+
+  private handleAudioDeviceChangedEvent(data: any): void {
+    console.log("Audio device changed event:", data);
+    const availableDevices = this.parseAvailableAudioDevices(
+      data?.availableAudioDeviceList
+    );
+
+    if (availableDevices.length === 0) {
+      return;
+    }
+
+    this.updateAvailableChannels(availableDevices);
+
+    if (
+      availableDevices.some((device) => device.type === "Bluetooth") &&
+      this.currentChannel !== AudioChannel.BLUETOOTH
+    ) {
+      this.setAudioChannel(AudioChannel.BLUETOOTH);
+      return;
+    }
+
+    if (this.currentChannel === AudioChannel.BLUETOOTH) {
+      this.setAudioChannel(AudioChannel.AUTO);
     }
   }
 
@@ -211,19 +260,29 @@ class AudioManager {
    */
   private async detectAvailableDevices(): Promise<void> {
     try {
+      const hadBluetoothDevice = this.isBluetoothConnected();
+
       // Base channels available on all devices
       this.availableChannels = [AudioChannel.SPEAKER, AudioChannel.EARPIECE];
+      this.availableDevices = [];
 
-      // Check for Bluetooth connectivity
-      const isBluetoothAvailable =
-        await InCallManager.getIsWiredHeadsetPluggedIn();
+      const wiredHeadset = await InCallManager.getIsWiredHeadsetPluggedIn();
+      if (wiredHeadset?.isWiredHeadsetPluggedIn) {
+        this.availableDevices.push({
+          name: "WIRED_HEADSET",
+          type: "WiredHeadset",
+        });
+        this.addAvailableChannel(AudioChannel.WIRED_HEADSET);
+      }
 
-      // For now, assume basic device availability
-      // In a real implementation, you would check actual device connectivity
-      this.availableChannels.push(
-        AudioChannel.BLUETOOTH,
-        AudioChannel.WIRED_HEADSET
-      );
+      // iOS Bluetooth availability is reported by our native route-change event.
+      if (Platform.OS === "ios" && hadBluetoothDevice) {
+        this.availableDevices.push({
+          name: "BLUETOOTH",
+          type: "Bluetooth",
+        });
+        this.addAvailableChannel(AudioChannel.BLUETOOTH);
+      }
 
       console.log("Available audio channels:", this.availableChannels);
     } catch (error) {
@@ -233,11 +292,45 @@ class AudioManager {
     }
   }
 
+  private parseAvailableAudioDevices(value: unknown): AudioDeviceInfo[] {
+    if (typeof value !== "string") {
+      return [];
+    }
+
+    try {
+      const devices = JSON.parse(value);
+      if (!Array.isArray(devices)) {
+        return [];
+      }
+
+      return devices
+        .filter((device): device is string => typeof device === "string")
+        .map((device) => {
+          switch (device) {
+            case "BLUETOOTH":
+              return { name: device, type: "Bluetooth" };
+            case "WIRED_HEADSET":
+              return { name: device, type: "WiredHeadset" };
+            case "SPEAKER_PHONE":
+              return { name: device, type: "Speaker" };
+            case "EARPIECE":
+              return { name: device, type: "Earpiece" };
+            default:
+              return { name: device, type: device };
+          }
+        });
+    } catch (error) {
+      console.warn("Failed to parse audio device list:", value, error);
+      return [];
+    }
+  }
+
   /**
    * Update available channels based on detected devices
    */
   private updateAvailableChannels(devices: AudioDeviceInfo[]): void {
     this.availableChannels = [AudioChannel.SPEAKER, AudioChannel.EARPIECE];
+    this.availableDevices = devices;
 
     devices.forEach((device) => {
       if (
@@ -323,7 +416,7 @@ class AudioManager {
       switch (channel) {
         case AudioChannel.SPEAKER:
           InCallManager.setSpeakerphoneOn(true);
-          await this.chooseAudioRouteIfAvailable("SPEAKER");
+          await this.chooseAudioRouteIfAvailable("SPEAKER_PHONE");
           break;
 
         case AudioChannel.EARPIECE:
@@ -332,30 +425,12 @@ class AudioManager {
           break;
 
         case AudioChannel.BLUETOOTH:
-          InCallManager.setSpeakerphoneOn(false);
-          // Find and select Bluetooth device
-          const bluetoothDevice = this.availableDevices.find(
-            (device) =>
-              device.type === "Bluetooth" ||
-              device.type === "BluetoothA2DP" ||
-              device.type === "BluetoothSCO"
-          );
-          if (bluetoothDevice) {
-            await this.chooseAudioRouteIfAvailable(bluetoothDevice.name);
-          }
+          await this.chooseAudioRouteIfAvailable("BLUETOOTH");
           break;
 
         case AudioChannel.WIRED_HEADSET:
           InCallManager.setSpeakerphoneOn(false);
-          // Find and select wired headset device
-          const wiredDevice = this.availableDevices.find(
-            (device) =>
-              device.type === "WiredHeadset" ||
-              device.type === "WiredHeadphones"
-          );
-          if (wiredDevice) {
-            await this.chooseAudioRouteIfAvailable(wiredDevice.name);
-          }
+          await this.chooseAudioRouteIfAvailable("WIRED_HEADSET");
           break;
 
         default:
@@ -648,11 +723,10 @@ class AudioManager {
       }
 
       // Remove event listeners
-      const { DeviceEventEmitter } = require("react-native");
-      DeviceEventEmitter.removeAllListeners("WiredHeadset");
-      DeviceEventEmitter.removeAllListeners("Proximity");
-      DeviceEventEmitter.removeAllListeners("NoisyAudio");
-      DeviceEventEmitter.removeAllListeners("MediaButton");
+      this.eventSubscriptions.forEach((subscription) =>
+        subscription.remove()
+      );
+      this.eventSubscriptions = [];
 
       // Reset to platform-appropriate defaults
       const defaultConfig =

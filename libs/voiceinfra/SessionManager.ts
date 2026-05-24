@@ -25,7 +25,7 @@ import { request } from "../../utils/request/db";
 import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 
 import InCallManager from "react-native-incall-manager";
-import AudioManager from "./AudioManager";
+import AudioManager, { AudioChannel } from "./AudioManager";
 
 class SessionManager {
   private static readonly REALTIME_MODEL = "gpt-realtime-mini";
@@ -916,8 +916,8 @@ class SessionManager {
       this.isSessionActive = true;
       this.events = [];
 
-      // Enable speaker mode by default when starting session
-      this.toggleSpeaker(true);
+      // Prefer connected external routes (Bluetooth/wired) when starting a call.
+      this.audioManager.setAudioChannel(AudioChannel.AUTO);
       // Sequential initialization with delays
       this.initializeSession();
     });
