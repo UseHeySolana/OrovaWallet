@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+
+# Expo and web output
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native build artifacts
+*.orig.*
+/android/.gradle
+/android/app/build
+/android/build
+/ios/build
+
+# Local environment and secrets
+.env
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+credentials.json
+dappstore.keystore
+*-firebase-adminsdk-*.json
+fcm-service-account.json
+
+# Debug and local files
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.tsbuildinfo
+app-example
+build-*
