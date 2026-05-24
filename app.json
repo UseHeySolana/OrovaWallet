@@ -3,7 +3,7 @@
     "name": "Heysolana",
     "slug": "heysolana",
     "owner": "yraylabs",
-    "version": "2.1.5",
+    "version": "2.1.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heysolana",
@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "versionCode": 25,
+      "versionCode": 27,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -131,7 +131,7 @@
         "projectId": "44e617dc-89eb-42b2-bcfc-79a78f074bd3"
       }
     },
-    "runtimeVersion": "2.1.5",
+    "runtimeVersion": "2.1.7",
     "updates": {
       "url": "https://u.expo.dev/44e617dc-89eb-42b2-bcfc-79a78f074bd3",
       "enabled": true,

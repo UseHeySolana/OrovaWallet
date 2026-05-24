@@ -174,5 +174,21 @@
     "react-test-renderer": "19.1.0",
     "typescript": "^5.3.3"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "@gurukumparan/react-native-android-inapp-updates",
+          "react-native-audio-record",
+          "react-native-calendar-events",
+          "react-native-fs",
+          "react-native-incall-manager",
+          "react-native-version-check",
+          "react-native-webrtc"
+        ],
+        "listUnknownPackages": false
+      }
+    }
+  },
   "private": true
 }
