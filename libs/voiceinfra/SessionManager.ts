@@ -336,6 +336,10 @@ class SessionManager {
     return this.useVoiceInputThisSession ? "voice" : "chat";
   }
 
+  isChatInputSession(): boolean {
+    return !this.useVoiceInputThisSession;
+  }
+
   private scheduleFlushHuman(): void {
     if (this.flushHumanTimer != null) return;
     this.flushHumanTimer = setTimeout(() => {
@@ -1435,7 +1439,7 @@ class SessionManager {
             action: functionDef.name,
             arguments: args,
           },
-          source: "voice",
+          source: this.getMessageSource(),
         });
         this.functionMessageId = call_id;
       }

@@ -33,6 +33,7 @@ import {
   resolveTokenByQuery,
 } from "@/utils/functions";
 import { getTokenBalance } from "@/libs/tools/transfer/transfers";
+import { recordAppTransactionAsync } from "@/services/appTransactions";
 
 import {
   defaultUsdcMint,
@@ -215,6 +216,21 @@ export class MagicBlockTool {
         if (messageId !== null) {
           completeConversation(messageId, "complete", explorerUrl(signed.message, c));
         }
+        recordAppTransactionAsync({
+          signature: signed.message,
+          transaction_type: "deposit",
+          status: "confirmed",
+          provider: "magicblock",
+          app_called: APP_NAME,
+          input_token_mint: mint,
+          input_token_symbol: args.token ?? "USDC",
+          input_amount: args.amount,
+          amount: args.amount,
+          token: args.token ?? "USDC",
+          raw_metadata: {
+            balance_location: "ephemeral",
+          },
+        });
         return await convertSpeech(
           `Deposited ${args.amount} ${args.token ?? "USDC"} into your private MagicBlock balance.`
         );
@@ -468,6 +484,29 @@ export class MagicBlockTool {
           completeConversation(messageId, "complete", explorerUrl(signed.message, c));
         }
 
+        recordAppTransactionAsync({
+          signature: signed.message,
+          transaction_type: visibility === "private" ? "private_transfer" : "transfer",
+          status: "confirmed",
+          provider: "magicblock",
+          app_called: APP_NAME,
+          input_token_mint: mint,
+          input_token_symbol: args.token ?? "USDC",
+          input_amount: args.amount,
+          recipient_address: recipient,
+          amount: args.amount,
+          token: args.token ?? "USDC",
+          raw_metadata: {
+            visibility,
+            from_balance: fromBalance,
+            to_balance: toBalance,
+            split,
+            min_delay_ms: minDelayMs,
+            max_delay_ms: maxDelayMs,
+            gasless,
+          },
+        });
+
         return await convertSpeech(
           visibility === "private"
             ? `Scheduled a private transfer of ${args.amount} ${
@@ -541,6 +580,21 @@ export class MagicBlockTool {
         if (messageId !== null) {
           completeConversation(messageId, "complete", explorerUrl(signed.message, c));
         }
+        recordAppTransactionAsync({
+          signature: signed.message,
+          transaction_type: "withdraw",
+          status: "confirmed",
+          provider: "magicblock",
+          app_called: APP_NAME,
+          input_token_mint: mint,
+          input_token_symbol: args.token ?? "USDC",
+          input_amount: args.amount,
+          amount: args.amount,
+          token: args.token ?? "USDC",
+          raw_metadata: {
+            balance_location: "base",
+          },
+        });
         return await convertSpeech(
           `Withdrew ${args.amount} ${args.token ?? "USDC"} from your private balance to your wallet.`
         );

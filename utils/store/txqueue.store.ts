@@ -3,6 +3,7 @@ import { Connection } from '@solana/web3.js';
 import AppSettings from '@/utils/store/settingsstore.store';
 import { api_key } from '@/utils/dashboard';
 import { transferSol, transferToken } from '@/libs/tools/transfer/transfers';
+import { recordTransferTransaction } from '@/services/appTransactions';
 
 export type TransactionStatus = 'queued' | 'signing' | 'submitted' | 'confirming' | 'confirmed' | 'failed';
 
@@ -75,6 +76,27 @@ const processItem = async (id: string, get: () => TxQueueStore['items'], setItem
     await connection.confirmTransaction(txid, 'confirmed');
 
     setItem(id, (prev) => ({ ...prev, status: 'confirmed' }));
+
+    if (item.params.kind === 'sol') {
+      recordTransferTransaction({
+        signature: txid,
+        symbol: 'SOL',
+        amount: item.params.amount,
+        recipient: item.params.recipient,
+        app_called: 'HeySolana',
+        provider: 'native',
+      });
+    } else {
+      recordTransferTransaction({
+        signature: txid,
+        mint: item.params.mint,
+        symbol: item.params.symbol ?? 'SPL',
+        amount: item.params.amount,
+        recipient: item.params.recipient,
+        app_called: 'HeySolana',
+        provider: 'native',
+      });
+    }
   } catch (err: any) {
     const message = typeof err?.message === 'string' ? err.message.includes('Insufficient funds') ? 'Insufficient funds for Fees' : err.message : 'Transaction failed';
     setItem(id, (prev) => ({ ...prev, status: 'failed', error: message }));

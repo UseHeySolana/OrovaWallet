@@ -207,6 +207,10 @@ const apps: App[] = [
               name: "elect_id",
               type: "string",
             },
+            {
+              name: "meter_type",
+              type: "string",
+            },
           ],
         },
       },

@@ -17,6 +17,7 @@ import {
 import type { TokenSearchHit } from "@/libs/jupiter/tokensV2Search";
 import { getSwapV2Order, postSwapV2Execute } from "@/libs/jupiter/swapV2";
 import { getSwapFeeConfig } from "@/services/swapFeeConfig";
+import { recordSwapTransaction } from "@/services/appTransactions";
 
 const SLIPPAGE_BPS = 50;
 
@@ -218,6 +219,18 @@ export class SwapFunction {
                         : 0;
                     const outHuman =
                         outRaw > 0 ? outRaw / Math.pow(10, toDecimals) : 0;
+                    const feeConfig = await getSwapFeeConfig();
+                    recordSwapTransaction({
+                        signature: sig,
+                        inputMint: fromMint.address,
+                        inputSymbol: fromMint.symbol ?? fromToken,
+                        inputAmount: amount,
+                        outputMint: toMint.address,
+                        outputSymbol: toMint.symbol ?? toToken,
+                        outputAmount: outHuman,
+                        platformFeeBps: feeConfig.referralFeeBps,
+                        app_called: "HeySolana",
+                    });
                     const outLabel =
                         outHuman > 0
                             ? String(
@@ -254,6 +267,18 @@ export class SwapFunction {
                         : 0;
                     const outHuman =
                         outRaw > 0 ? outRaw / Math.pow(10, toDecimals) : 0;
+                    const feeConfig = await getSwapFeeConfig();
+                    recordSwapTransaction({
+                        signature: txid.message,
+                        inputMint: fromMint.address,
+                        inputSymbol: fromMint.symbol ?? fromToken,
+                        inputAmount: amount,
+                        outputMint: toMint.address,
+                        outputSymbol: toMint.symbol ?? toToken,
+                        outputAmount: outHuman,
+                        platformFeeBps: feeConfig.referralFeeBps,
+                        app_called: "HeySolana",
+                    });
                     const outLabel =
                         outHuman > 0
                             ? String(
