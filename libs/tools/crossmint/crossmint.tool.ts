@@ -15,6 +15,7 @@ import { BASE_URL, JUMIA_USDC_TREASURY } from "@/utils/constant";
 import { getPublicSettings } from "@/services/settingsApi";
 import { requestPurchaseConfirmation } from "@/services/purchaseConfirmation";
 import { transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
+import { recordCommercePaymentTransaction } from "@/services/appTransactions";
 
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDC_DECIMALS = 6;
@@ -180,6 +181,20 @@ export class Crossmint {
             }
             const network = AppSettings.getState().networkShort;
             const txId = typeof transferResult.message === "string" ? transferResult.message : "";
+            if (txId) {
+              recordCommercePaymentTransaction({
+                signature: txId,
+                provider: "crossmint",
+                app_called: "Crossmint",
+                amount: amountUsd,
+                token: "USDC",
+                mint: USDC_MINT,
+                recipient: treasuryAddress,
+                order_reference: orderNumber,
+                product_reference: args.asin,
+                input_amount_usd: amountUsd,
+              });
+            }
             if (messageId && txId) {
               completeConversation(messageId, "complete", `https://explorer.solana.com/tx/${txId}?cluster=${network}`);
             } else if (messageId) {

@@ -16,6 +16,100 @@ import {
 import { airBills } from "@/libs/tools/airbills/airbills";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { getTokenBalance } from "@/libs/tools/transfer/transfers";
+import { recordAppTransactionAsync } from "@/services/appTransactions";
+
+type ElectricityMeterType = "01" | "02";
+
+type BuyElectricityArgs = {
+  amount: number;
+  meterNo?: string;
+  meterNumber?: string;
+  electId?: string;
+  provider?: string;
+  meterType?: string;
+};
+
+type BuyAirtimeArgs = {
+  username?: string;
+  phoneNumber?: string;
+  mobileNumber?: string;
+  amount: number;
+};
+
+const ELECTRICITY_PROVIDERS: Record<string, string> = {
+  "01": "01",
+  ekedc: "01",
+  eko: "01",
+  "eko electric": "01",
+  "02": "02",
+  ikedc: "02",
+  ikeja: "02",
+  "ikeja electric": "02",
+  "03": "03",
+  aedc: "03",
+  abuja: "03",
+  "abuja electric": "03",
+  "04": "04",
+  kedc: "04",
+  kano: "04",
+  "kano electric": "04",
+  "05": "05",
+  phedc: "05",
+  portharcourt: "05",
+  "portharcourt electric": "05",
+  "port harcourt": "05",
+  "port harcourt electric": "05",
+  "06": "06",
+  jedc: "06",
+  jos: "06",
+  "jos electric": "06",
+  "07": "07",
+  ibedc: "07",
+  ibadan: "07",
+  "ibadan electric": "07",
+  "08": "08",
+  kaedc: "08",
+  kaduna: "08",
+  "kaduna electric": "08",
+  "09": "09",
+  eedc: "09",
+  enugu: "09",
+  "enugu electric": "09",
+  "10": "10",
+  bedc: "10",
+  benin: "10",
+  "benin electric": "10",
+  "11": "11",
+  yedc: "11",
+  yola: "11",
+  "yola electric": "11",
+  "12": "12",
+  aple: "12",
+  aba: "12",
+  "aba electric": "12",
+};
+
+const ELECTRICITY_METER_TYPES: Record<string, ElectricityMeterType> = {
+  "01": "01",
+  prepaid: "01",
+  prepay: "01",
+  "pre-paid": "01",
+  "02": "02",
+  postpaid: "02",
+  postpay: "02",
+  "post-paid": "02",
+};
+
+const normalizeLookupValue = (value?: string) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const resolveElectricityProvider = (value?: string) =>
+  ELECTRICITY_PROVIDERS[normalizeLookupValue(value)] || value?.trim() || "";
+
+const resolveMeterType = (value?: string) =>
+  ELECTRICITY_METER_TYPES[normalizeLookupValue(value)] || "";
 
 export class AirBills {
   public buyAirtime: FunctionParams;
@@ -30,7 +124,7 @@ export class AirBills {
     return {
       name: "buy-electricity-bill",
       description:
-        "This function is used to purchase electricity bill for myself",
+        "This function is used to purchase an electricity bill for the user's own meter or another meter number. Ask for the meter number, provider, prepaid or postpaid meter type, and amount when they are not provided.",
       parameters: {
         type: "object",
         properties: {
@@ -39,33 +133,92 @@ export class AirBills {
             description:
               "This is the amount of electricity bill you want to purchase, it should be a number and in Naira.",
           },
+          meterNo: {
+            type: "string",
+            description:
+              "The electricity meter number to send the bill payment to.",
+          },
+          electId: {
+            type: "string",
+            enum: [
+              "01",
+              "02",
+              "03",
+              "04",
+              "05",
+              "06",
+              "07",
+              "08",
+              "09",
+              "10",
+              "11",
+              "12",
+            ],
+            description:
+              "The electricity provider code: 01 Eko/EKEDC, 02 Ikeja/IKEDC, 03 Abuja/AEDC, 04 Kano/KEDC, 05 Port Harcourt/PHEDC, 06 Jos/JEDC, 07 Ibadan/IBEDC, 08 Kaduna/KAEDC, 09 Enugu/EEDC, 10 Benin/BEDC, 11 Yola/YEDC, 12 Aba/APLE.",
+          },
+          provider: {
+            type: "string",
+            description:
+              "Alternative electricity provider name or acronym if electId is not known, for example EKEDC, Ikeja Electric, AEDC, or Ibadan.",
+          },
+          meterType: {
+            type: "string",
+            enum: ["01", "02", "prepaid", "postpaid"],
+            description:
+              "The meter type. Use 01/prepaid for prepaid meters or 02/postpaid for postpaid meters.",
+          },
         },
         required: ["amount"],
       },
-      handler: async (args: { amount: number }) => {
-        // if(!meter_number) return "You have not set your meter number, please set your meter number first";
-        const meter_number = ToolsItem.getState().getParameterValue(
-          "Airbills",
-          "electricty",
-          "meter_number"
+      handler: async (args: BuyElectricityArgs) => {
+        const savedMeterNumber =
+          ToolsItem.getState().getParameterValue(
+            "Airbills",
+            "electricity",
+            "meter_number"
+          ) ||
+          ToolsItem.getState().getParameterValue(
+            "Airbills",
+            "electricty",
+            "meter_number"
+          );
+        const savedElectId =
+          ToolsItem.getState().getParameterValue(
+            "Airbills",
+            "electricity",
+            "elect_id"
+          ) ||
+          ToolsItem.getState().getParameterValue(
+            "Airbills",
+            "electricty",
+            "elect_id"
+          );
+        const savedMeterType =
+          ToolsItem.getState().getParameterValue(
+            "Airbills",
+            "electricity",
+            "meter_type"
+          ) ||
+          ToolsItem.getState().getParameterValue(
+            "Airbills",
+            "electricty",
+            "meter_type"
+          );
+
+        const meter_number =
+          args.meterNo?.trim() || args.meterNumber?.trim() || savedMeterNumber;
+        const elect_id = resolveElectricityProvider(
+          args.electId || args.provider || savedElectId
         );
-        const elect_id = ToolsItem.getState().getParameterValue(
-          "Airbills",
-          "electricty",
-          "elect_id"
-        );
-        const type = ToolsItem.getState().getParameterValue(
-          "Airbills",
-          "electricty",
-          "meter_type"
-        );
+        const type = resolveMeterType(args.meterType || savedMeterType);
 
         if (meter_number === "" || !meter_number)
-          return "You have not set your meter number, please set your meter number first";
+          return "Please provide the meter number you want to buy electricity for";
         if (elect_id === "" || !elect_id)
-          return "You have not set your Electricy Provider yet, please set your electricity provider first";
+          return "Please choose the electricity provider, for example Eko, Ikeja, Abuja, or Ibadan Electric";
         if (type === "" || !type)
-          return "You have not set your meter type, please set your meter type first";
+          return "Please choose whether the meter is prepaid or postpaid";
 
         const response = await airBills.electricity.purchaseElectricity({
           amount: args.amount,
@@ -74,13 +227,14 @@ export class AirBills {
           user_address: WalletItem.getState().publicKey?.toString() || "",
           meterNo: meter_number,
           electId: elect_id,
-          // Existing app setting stores meter_type as 01/02.
-          // New API uses this value as the electricity batch and expects prodId too.
           prodId: type,
           batch: type,
         });
         if (!response.status)
-          return "Electricity bill purchase failed, please try again";
+          return (
+            response.message ||
+            "Electricity bill purchase failed, please try again"
+          );
         const result = response.data;
         const dataId = result.id;
         const transactionIx = result.ix;
@@ -113,6 +267,22 @@ export class AirBills {
                 `https://explorer.solana.com/tx/${res.message}?cluster=${network}`
               );
             }
+            recordAppTransactionAsync({
+              signature: res.message,
+              transaction_type: "electricity",
+              status: "confirmed",
+              provider: "airbills",
+              app_called: "Airbills",
+              input_token_symbol: "USDC",
+              input_amount: args.amount,
+              amount: args.amount,
+              token: "USDC",
+              raw_metadata: {
+                meter_number,
+                elect_id,
+                meter_type: type,
+              },
+            });
             return await convertSpeech(
               "Your electricity bill purchase is successfull"
             );
@@ -137,14 +307,19 @@ export class AirBills {
     return {
       name: "buy-airtime",
       description:
-        "This function is used to purchase airtime credits for a particular user either myself or on behalf of another user",
+        "This function is used to purchase airtime credits for the user's own phone number, another Hey Solana username, or a direct mobile phone number. Ask for the phone number or username and amount when they are not provided.",
       parameters: {
         type: "object",
         properties: {
           username: {
             type: "string",
             description:
-              "This is the username of the person you are sending the airtime to, it should be a string",
+              "The Hey Solana username of the person you are sending the airtime to.",
+          },
+          phoneNumber: {
+            type: "string",
+            description:
+              "The mobile phone number to send airtime to. Use this when the recipient is not a Hey Solana username.",
           },
           amount: {
             type: "number",
@@ -152,10 +327,10 @@ export class AirBills {
               "This is the amount of airtime you want to purchase, it should be a number",
           },
         },
-        required: ["username", "amount"],
+        required: ["amount"],
       },
 
-      handler: async (args: { username: string; amount: number }) => {
+      handler: async (args: BuyAirtimeArgs) => {
         const pk = WalletItem.getState().publicKey?.toString() || "";
         if (!pk) {
           return "Please connect your wallet to proceed";
@@ -180,8 +355,16 @@ export class AirBills {
         const user = UserItem.getState().user;
         let mobileNumber: string;
 
-        if (args.username.toLowerCase() === user?.username.toLowerCase()) {
-          mobileNumber = user.mobileNumber;
+        const directPhone = args.phoneNumber || args.mobileNumber;
+        if (directPhone?.trim()) {
+          mobileNumber = cleanNumber(directPhone);
+        } else if (
+          !args.username ||
+          args.username.toLowerCase() === user?.username.toLowerCase() ||
+          args.username.toLowerCase() === "myself" ||
+          args.username.toLowerCase() === "me"
+        ) {
+          mobileNumber = user?.mobileNumber || "";
         } else {
           const userCheck = await getUserDetails(args.username);
 
@@ -194,6 +377,10 @@ export class AirBills {
             return response;
           }
           mobileNumber = cleanNumber(userCheck.phoneNumber);
+        }
+
+        if (!mobileNumber) {
+          return "Please provide the mobile number you want to send airtime to";
         }
 
         const userWalletAddress =
@@ -210,7 +397,7 @@ export class AirBills {
         );
 
         if (!response.status)
-          return "Airtime purchase failed, please try again";
+          return response.message || "Airtime purchase failed, please try again";
 
         const result = response.data;
         const dataId = result.id;
@@ -246,6 +433,18 @@ export class AirBills {
                 `https://explorer.solana.com/tx/${res.message}?cluster=${network}`
               );
             }
+            recordAppTransactionAsync({
+              signature: res.message,
+              transaction_type: "airtime",
+              status: "confirmed",
+              provider: "airbills",
+              app_called: "Airbills",
+              input_token_symbol: "USDC",
+              input_amount: args.amount,
+              amount: args.amount,
+              token: "USDC",
+              raw_metadata: { mobile_number: mobileNumber },
+            });
             return await convertSpeech("Your airtime purchase is successfull");
           } else {
             const messageId = this.session.functionMessageId;

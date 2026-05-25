@@ -116,6 +116,7 @@ async function sendTokens(
   }
   return result as TransferResult;
 }
+import { recordOfframpTransaction } from "@/services/appTransactions";
 
 export class PajCash {
   public pajcashInitiate: FunctionParams;
@@ -341,6 +342,20 @@ export class PajCash {
               `https://explorer.solana.com/tx/${transfer.message}?cluster=${network}`
             );
           }
+          recordOfframpTransaction({
+            signature: transfer!.message,
+            provider: "pajcash",
+            amount: args.amount,
+            token: args.token.toUpperCase(),
+            mint:
+              args.token.toLowerCase() === "sol"
+                ? "So11111111111111111111111111111111111111112"
+                : splMint,
+            recipient,
+            raw_metadata: {
+              account_number: accountNumber,
+            },
+          });
           return convertSpeech(
             `Offramp started. Sent ${payAmount} ${meta.symbol}. You should receive about ${order.fiatAmount} NGN. Order id ${order.id}.`
           );

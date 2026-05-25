@@ -12,6 +12,7 @@ import { getPublicSettings } from "@/services/settingsApi";
 import { requestPurchaseConfirmation } from "@/services/purchaseConfirmation";
 import { transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
 import { JUMIA_USDC_TREASURY } from "@/utils/constant";
+import { recordCommercePaymentTransaction } from "@/services/appTransactions";
 
 const JUMIA_APP_NAME = "Jumia Online Shopping";
 const JUMIA_CONFIG_TYPE = "ecommerce";
@@ -240,6 +241,24 @@ export class JumiaTool {
               }
               const network = AppSettings.getState().networkShort;
               const txId = typeof transferResult.message === "string" ? transferResult.message : "";
+              if (txId) {
+                recordCommercePaymentTransaction({
+                  signature: txId,
+                  provider: "jumia",
+                  app_called: JUMIA_APP_NAME,
+                  amount: amountUsd,
+                  token: "USDC",
+                  mint: USDC_MINT,
+                  recipient: treasuryAddress,
+                  order_reference: result.order_number,
+                  product_reference: args.product_id,
+                  input_amount_usd: amountUsd,
+                  raw_metadata: {
+                    product_name: args.product_name,
+                    quantity: Math.max(1, Math.floor(args.quantity)),
+                  },
+                });
+              }
               if (messageId && txId) {
                 completeConversation(messageId, "complete", `https://explorer.solana.com/tx/${txId}?cluster=${network}`);
               } else if (messageId) {

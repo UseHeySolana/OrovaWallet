@@ -37,6 +37,7 @@ import {
   getSwapFeeConfig,
   type SwapFeeConfig,
 } from "@/services/swapFeeConfig";
+import { recordSwapTransaction } from "@/services/appTransactions";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
@@ -468,6 +469,18 @@ export default function SwapScreen() {
         setToast(execRes.message || "Swap failed", "error");
         return;
       }
+      recordSwapTransaction({
+        signature: execRes.data.signature,
+        inputMint: fromToken.mint,
+        inputSymbol: fromToken.symbol,
+        inputAmount: num,
+        outputMint: toToken.mint,
+        outputSymbol: toToken.symbol,
+        outputAmount: humanFromSmallestUnits(orderData.outAmount, toToken.decimals),
+        platformFeeBps: swapFeeConfig.referralFeeBps,
+        app_called: "HeySolana",
+        provider: "jupiter",
+      });
       router.replace({
         pathname: "/dashboard/swap/success",
         params: {
