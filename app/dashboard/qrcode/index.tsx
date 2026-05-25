@@ -91,10 +91,10 @@ export default function QrCode() {
                   buttonType="feedback"
                   className="py-4 rounded-full"
                   onPress={share}
-                  type="secondary"
+                  type="primary"
                   text="Share"
                   icon={
-                    <View className="rotate-[230deg]">
+                    <View className="rotate-[270deg]">
                       <AntDesign name="down" size={16} color="white" />
                     </View>
                   }
@@ -107,11 +107,11 @@ export default function QrCode() {
                   onPress={async () =>
                     await copyItem(publicKey?.toString() || "")
                   }
-                  type="secondary"
+                  type="primary"
                   text="Copy"
                   icon={
                     <View className="">
-                      <IconLibrary.copy />
+                      <IconLibrary.copy color="white" />
                     </View>
                   }
                 />
@@ -120,7 +120,7 @@ export default function QrCode() {
           </View>
         </View>
 
-        <View className="bg-[#9DE0E5]/30 border-[##65F5FF33] border-2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start">
+        <View className="bg-[#9DE0E5]/30 border-[##65F5FF33] border-2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-center">
           <View className="1">
             <IconLibrary.question />
           </View>

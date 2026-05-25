@@ -11,10 +11,12 @@ import UserItem from "@/utils/store/userstore.store";
 
 type FloatingWalletBalanceProps = {
   showWallet: boolean;
+  balancesHidden: boolean;
 };
 
 export default function FloatingWalletBalance({
   showWallet,
+  balancesHidden,
 }: FloatingWalletBalanceProps) {
   const { userWallet } = UserItem();
   const {
@@ -82,12 +84,23 @@ export default function FloatingWalletBalance({
 
   return (
     <Animated.View pointerEvents="none" style={[flightStyle, styles.row]}>
-      <CText className="text-[45px] text-dark dark:text-white">$</CText>
-      <CNumber
-        value={balance}
-        className="text-[45px]"
-        style={{ fontFamily: "bold" }}
-      />
+      {balancesHidden ? (
+        <CText
+          className="text-[45px] text-dark dark:text-white"
+          style={{ fontFamily: "bold" }}
+        >
+          ****
+        </CText>
+      ) : (
+        <>
+          <CText className="text-[45px] text-dark dark:text-white">$</CText>
+          <CNumber
+            value={balance}
+            className="text-[45px]"
+            style={{ fontFamily: "bold" }}
+          />
+        </>
+      )}
     </Animated.View>
   );
 }

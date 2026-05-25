@@ -16,11 +16,13 @@ import { measureInOverlay } from "@/utils/measureInOverlay";
 
 type DashboardWalletHeaderProps = {
   showWallet: boolean;
+  balancesHidden: boolean;
   isDarkMode: boolean;
 };
 
 export default function DashboardWalletHeader({
   showWallet,
+  balancesHidden,
   isDarkMode,
 }: DashboardWalletHeaderProps) {
   const { user, userWallet } = UserItem();
@@ -37,7 +39,7 @@ export default function DashboardWalletHeader({
   useEffect(() => {
     const id = requestAnimationFrame(() => measureDest());
     return () => cancelAnimationFrame(id);
-  }, [measureDest, balance, showWallet]);
+  }, [measureDest, balance, showWallet, balancesHidden]);
 
   const headerBalanceStyle = useAnimatedStyle(() => {
     if (!showWallet) {
@@ -100,17 +102,28 @@ export default function DashboardWalletHeader({
             style={headerBalanceStyle}
             className="flex-row items-baseline"
           >
-            <CText
-              style={{ fontFamily: "bold" }}
-              className="text-[0.95rem] text-dark dark:text-white"
-            >
-              $
-            </CText>
-            <CNumber
-              value={balance}
-              className="text-[0.95rem]"
-              style={{ fontFamily: "bold" }}
-            />
+            {balancesHidden ? (
+              <CText
+                style={{ fontFamily: "bold" }}
+                className="text-[0.95rem] text-dark dark:text-white"
+              >
+                ****
+              </CText>
+            ) : (
+              <>
+                <CText
+                  style={{ fontFamily: "bold" }}
+                  className="text-[0.95rem] text-dark dark:text-white"
+                >
+                  $
+                </CText>
+                <CNumber
+                  value={balance}
+                  className="text-[0.95rem]"
+                  style={{ fontFamily: "bold" }}
+                />
+              </>
+            )}
           </Animated.View>
         </View>
       </View>

@@ -105,11 +105,15 @@ function walletTxRowSummary(tx: any, userPk: string) {
 interface WalletScreenProps {
   onRefresh: () => void;
   refreshing: boolean;
+  balancesHidden: boolean;
+  onToggleBalancesHidden: () => void;
 }
 
 export default function WalletScreen({
   onRefresh,
   refreshing,
+  balancesHidden,
+  onToggleBalancesHidden,
 }: WalletScreenProps) {
   const { scrollY, collapseRange, overlayRootRef, setSourceLayout } =
     useWalletScroll();
@@ -199,7 +203,7 @@ export default function WalletScreen({
         if (res.message) setHistoryError(res.message);
       }
     }
-  }, [onRefresh, activeTab, publicKey, networkShort]);
+  }, [onRefresh, activeTab, publicKey]);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -221,7 +225,7 @@ export default function WalletScreen({
   useEffect(() => {
     const id = requestAnimationFrame(() => measureSource());
     return () => cancelAnimationFrame(id);
-  }, [measureSource, userWallet?.totalUsdBalance]);
+  }, [measureSource, userWallet?.totalUsdBalance, balancesHidden]);
 
   const inlineBalanceStyle = useAnimatedStyle(() => {
     const range = Math.max(collapseRange.value, 1);
@@ -251,29 +255,55 @@ export default function WalletScreen({
             onLayout={onBalanceHeaderLayout}
             className="flex flex-row justify-between items-center px-5 py-3"
           >
-            <View className="">
-              <View>
+            <View className="flex-1 pr-3">
+              <View className="flex-row items-center gap-x-2">
                 <CText className="text-[12px]">Wallet balance</CText>
-              </View>
-              <View
-                ref={sourceMeasureRef}
-                onLayout={measureSource}
-                collapsable={false}
-              >
-                <Animated.View
-                  style={inlineBalanceStyle}
-                  className="flex-row items-baseline"
+                <TouchableOpacity
+                  accessibilityLabel={
+                    balancesHidden ? "Show balances" : "Hide balances"
+                  }
+                  onPress={onToggleBalancesHidden}
+                  className="p-1 rounded-full bg-grey dark:bg-accent2"
                 >
-                  <CText className="text-[45px]">
-                    $
-                    <CText className="text-[45px]">
-                      <CNumber
-                        value={Number(userWallet?.totalUsdBalance.toFixed(2))}
+                  <Ionicons
+                    name={balancesHidden ? "eye-off-outline" : "eye-outline"}
+                    size={14}
+                    color={isDarkMode ? "white" : "black"}
+                  />
+                </TouchableOpacity>
+              </View>
+              <View>
+                <View
+                  ref={sourceMeasureRef}
+                  onLayout={measureSource}
+                  collapsable={false}
+                >
+                  <Animated.View
+                    style={inlineBalanceStyle}
+                    className="flex-row items-baseline"
+                  >
+                    {balancesHidden ? (
+                      <CText
                         className="text-[45px]"
-                      />
-                    </CText>
-                  </CText>
-                </Animated.View>
+                        style={{ fontFamily: "bold" }}
+                      >
+                        ****
+                      </CText>
+                    ) : (
+                      <CText className="text-[45px]">
+                        $
+                        <CText className="text-[45px]">
+                          <CNumber
+                            value={Number(
+                              userWallet?.totalUsdBalance?.toFixed(2) ?? 0
+                            )}
+                            className="text-[45px]"
+                          />
+                        </CText>
+                      </CText>
+                    )}
+                  </Animated.View>
+                </View>
               </View>
             </View>
             <View className="flex flex-row justify-center items-center gap-2">
@@ -330,6 +360,24 @@ export default function WalletScreen({
                 buttonType="feedback"
                 className="py-4 rounded-full"
                 onPress={() => {
+                  router.push("/dashboard/swap");
+                }}
+                type="primary"
+                text="Swap"
+                icon={
+                  <MaterialCommunityIcons
+                    name="swap-horizontal"
+                    size={18}
+                    color="white"
+                  />
+                }
+              />
+            </View>
+            <View className="flex-1">
+              <Buttons
+                buttonType="feedback"
+                className="py-4 rounded-full"
+                onPress={() => {
                   // testFunctions()
                   router.push("/dashboard/qrcode");
                 }}
@@ -376,7 +424,7 @@ export default function WalletScreen({
                 {helperCards.map((item) => (
                   <TouchableOpacity
                     key={item.id}
-                    className="w-[300px]"
+                    className="w-[300px] h-[100px] py-1 px-1"
                     onPress={() => router.push("/dashboard/aicards")}
                   >
                     <View className="flex flex-row shadow-sm justify-start items-center gap-3 p-4 py-5 rounded-2xl bg-white dark:bg-accent w-full ">
@@ -385,7 +433,7 @@ export default function WalletScreen({
                       </View>
                       <View className="flex-1">
                         <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">{item.title}</CText>
-                        <CText className="text-[1rem]">{item.caption}</CText>
+                        <CText className="text-[1rem]">{item.caption.slice(0, 50)}...</CText>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -529,13 +577,15 @@ export default function WalletScreen({
                               style={{ fontFamily: "reg" }}
                               className="text-[1rem]"
                             >
-                              {token?.balance < 1
-                                ? token?.balance?.toFixed(
-                                  Math.min(token?.decimals, 5)
-                                )
-                                : token?.balance.toFixed(
-                                  Math.min(token?.decimals, 3)
-                                )}
+                              {balancesHidden
+                                ? "****"
+                                : token?.balance < 1
+                                  ? token?.balance?.toFixed(
+                                    Math.min(token?.decimals, 5)
+                                  )
+                                  : token?.balance.toFixed(
+                                    Math.min(token?.decimals, 3)
+                                  )}
                             </CText>
                           </View>
                         </View>
@@ -549,16 +599,22 @@ export default function WalletScreen({
                             style={{ fontFamily: "bold" }}
                             className="text-[19px]"
                           >
-                            $
-                            {token?.usdc_price?.toFixed(2) ?
-                              <CNumber
-                                value={
-                                  token?.usdc_price?.toFixed(2)
-                                }
-                                style={{ fontFamily: "bold" }}
-                                className="text-[19px] "
-                              />
-                              : "0.00"}
+                            {balancesHidden ? (
+                              "****"
+                            ) : (
+                              <>
+                                $
+                                {token?.usdc_price?.toFixed(2) ? (
+                                  <CNumber
+                                    value={token?.usdc_price?.toFixed(2)}
+                                    style={{ fontFamily: "bold" }}
+                                    className="text-[19px] "
+                                  />
+                                ) : (
+                                  "0.00"
+                                )}
+                              </>
+                            )}
                           </CText>
                         </View>
                       </View>
@@ -603,7 +659,7 @@ export default function WalletScreen({
                           "#971BB2",
                           false
                         )}
-                        onPress={() => {}}
+                        onPress={() => { }}
                       >
                         <View className="px-4 py-4 w-full flex flex-row items-start justify-between">
                           <View className="gap-y-2 flex-1 pr-2">
@@ -631,7 +687,7 @@ export default function WalletScreen({
                               style={{ fontFamily: "reg" }}
                               className="text-[1rem] max-w-[45%] text-right"
                             >
-                              {row.amount}
+                              {balancesHidden ? "****" : row.amount}
                             </CText>
                           ) : null}
                         </View>

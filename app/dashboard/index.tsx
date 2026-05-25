@@ -73,6 +73,7 @@ export default function Dashboard() {
   const animation = useRef<LottieView>(null);
 
   const [showWallet, setShowWallet] = useState(false);
+  const [balancesHidden, setBalancesHidden] = useState(false);
   const { isDarkMode } = useThemeContext();
 
   const [message, setMessage] = useState<MessageType[]>([]);
@@ -210,15 +211,28 @@ export default function Dashboard() {
   return (
     <WalletScrollProvider active={showWallet}>
       <DashboardOverlayRoot
-        overlay={<FloatingWalletBalance showWallet={showWallet} />}
+        overlay={
+          <FloatingWalletBalance
+            showWallet={showWallet}
+            balancesHidden={balancesHidden}
+          />
+        }
       >
         <View className="flex-1 pt-3 pb-2 w-screen px-4 h-screen gap-y-4">
           <DashboardWalletHeader
             showWallet={showWallet}
+            balancesHidden={balancesHidden}
             isDarkMode={isDarkMode}
           />
           {showWallet ? (
-            <WalletScreen onRefresh={onRefresh} refreshing={refreshing} />
+            <WalletScreen
+              onRefresh={onRefresh}
+              refreshing={refreshing}
+              balancesHidden={balancesHidden}
+              onToggleBalancesHidden={() =>
+                setBalancesHidden((hidden) => !hidden)
+              }
+            />
           ) : (
             <>
               <ChatInterface messages={message} />
