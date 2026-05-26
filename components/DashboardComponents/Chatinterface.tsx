@@ -19,6 +19,8 @@ import { BlurView } from "expo-blur";
 import UserItem from "@/utils/store/userstore.store";
 import CText from "@/components/TextComp";
 import Feather from "@expo/vector-icons/Feather";
+import { router } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 
 const colors = {
   loading: {
@@ -39,11 +41,28 @@ interface ChatInterfaceProps {
   messages: MessageType[];
 }
 
+function formatChatTranscript(messages: MessageType[], aiName: string, username?: string) {
+  return messages
+    .map((message) => {
+      const speaker =
+        message.role === "user" ? `@${username ?? "user"}` : message.role === "tool" ? "Tool" : aiName;
+      const timestamp = Number.isFinite(message.timestamp)
+        ? new Date(message.timestamp).toLocaleString()
+        : "Unknown time";
+      const content = message.content?.trim() || "[empty message]";
+      const toolSummary = message.tool
+        ? `\nTool: ${message.tool.owner ? `${message.tool.owner}.` : ""}${message.tool.action} (${message.tool.status})`
+        : "";
+
+      return `[${timestamp}] ${speaker}: ${content}${toolSummary}`;
+    })
+    .join("\n\n");
+}
+
 export default function ChatInterface({ messages }: ChatInterfaceProps) {
   const { isDarkMode } = useThemeContext();
 
-  const { network, setLoading, aiName, refresher, pin, pinReminder } =
-    AppSettings();
+  const { aiName, setToast } = AppSettings();
   const { user } = UserItem();
   const animation = useRef<LottieView>(null);
 
@@ -55,16 +74,51 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
     startSession,
     stopSession,
     currentMode,
-    conversationId,
     inputMode,
     setInputMode,
     sendChatMessage,
+    isVoiceCommandRecording,
+    voiceEnrolled,
+    voiceGateStatus,
+    startVoiceCommand,
+    stopVoiceCommand,
   } = useAi();
 
   const [chatInput, setChatInput] = useState("");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [speakerMuted, setSpeakerMuted] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
+  const voiceRecordingRef = useRef(isVoiceCommandRecording);
+
+  React.useEffect(() => {
+    voiceRecordingRef.current = isVoiceCommandRecording;
+  }, [isVoiceCommandRecording]);
+
+  React.useEffect(() => {
+    if (inputMode === "audio" && isSessionActive) return;
+    if (voiceRecordingRef.current) {
+      void stopVoiceCommand({ silentFailure: true });
+    }
+  }, [inputMode, isSessionActive, stopVoiceCommand]);
+
+  React.useEffect(() => {
+    if (
+      inputMode !== "audio" ||
+      voiceEnrolled !== true ||
+      !isSessionActive ||
+      isVoiceCommandRecording
+    ) {
+      return;
+    }
+
+    void startVoiceCommand();
+  }, [
+    inputMode,
+    isSessionActive,
+    isVoiceCommandRecording,
+    startVoiceCommand,
+    voiceEnrolled,
+  ]);
 
   // Push content up by keyboard height so input is never covered
   React.useEffect(() => {
@@ -94,8 +148,19 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
     }
   }, [isSessionActive]);
 
-  const handleStartSession = () => {
-    if (sessionManager) startSession();
+  const handleStartSession = async () => {
+    if (!sessionManager) return;
+    await startSession();
+    if (inputMode === "audio" && voiceEnrolled === true) {
+      await startVoiceCommand();
+    }
+  };
+
+  const handleStopSession = () => {
+    if (voiceRecordingRef.current) {
+      void stopVoiceCommand({ silentFailure: true });
+    }
+    stopSession();
   };
 
   const handleSendChat = () => {
@@ -121,10 +186,43 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
     }
   };
 
+  const handleCopyConversation = async () => {
+    if (!messages.length) {
+      setToast("No messages to copy", "info");
+      return;
+    }
+
+    try {
+      await Clipboard.setStringAsync(formatChatTranscript(messages, aiName, user?.username));
+      setToast("Conversation copied", "success");
+    } catch {
+      setToast("Copy failed", "error");
+    }
+  };
+
+  const voiceGateMessage =
+    voiceGateStatus === "hearing"
+      ? "I can hear audio..."
+      : voiceGateStatus === "verifying"
+        ? "Verifying your voice..."
+        : voiceGateStatus === "verified"
+          ? "Voice verified. Sending audio to the AI..."
+          : isVoiceCommandRecording
+            ? "Listening securely. Only verified speech is sent to the AI."
+            : "Starting secure voice stream...";
+
   const chatContent = (
     <View
       className="flex-1"
-      style={{ zIndex: 10, paddingBottom: inputMode === "chat" ? keyboardHeight : 0 }}
+      style={{
+        zIndex: 10,
+        paddingBottom:
+          inputMode === "chat"
+            ? keyboardHeight
+            : voiceEnrolled
+              ? 130
+              : 0,
+      }}
     >
       {/* Audio / Chat mode switch + Speaker & Mic mute when session active */}
       <View className="flex-row items-center justify-center gap-1 mb-3 px-2 z-50">
@@ -168,6 +266,20 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
             Chat
           </CText>
         </TouchableOpacity>
+        {__DEV__ && (
+          <TouchableOpacity
+            onPress={handleCopyConversation}
+            disabled={messages.length === 0}
+            activeOpacity={0.8}
+            className={`p-2.5 rounded-2xl bg-white/80 dark:bg-accent/80 ${messages.length === 0 ? "opacity-50" : ""}`}
+          >
+            <Feather
+              name="copy"
+              size={20}
+              color={isDarkMode ? "#999" : "#555"}
+            />
+          </TouchableOpacity>
+        )}
         {isSessionActive && (
           <>
             <TouchableOpacity
@@ -280,6 +392,58 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
                 Start
               </CText>
             </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {inputMode === "audio" && (
+        <View className="pt-2 pb-4 px-4">
+          {voiceEnrolled === false && (
+            <TouchableOpacity
+              onPress={() => router.push("/voicereg")}
+              activeOpacity={0.85}
+              className="mb-3 rounded-2xl bg-amber-100 dark:bg-amber-900/40 px-4 py-3"
+            >
+              <CText className="text-amber-900 dark:text-amber-100 text-sm" style={{ fontFamily: "bold" }}>
+                Enroll your voice to use verified commands
+              </CText>
+              <CText className="text-amber-800 dark:text-amber-200 text-xs mt-1">
+                Tap here to record 3 samples. Unrecognized speakers are blocked before the AI runs tools.
+              </CText>
+            </TouchableOpacity>
+          )}
+          {voiceEnrolled === true && (
+            isSessionActive ? (
+              <View className="gap-y-3">
+                <CText className="text-center text-xs text-gray-500 mt-2">
+                  {voiceGateMessage}
+                </CText>
+                <TouchableOpacity
+                  onPress={handleStopSession}
+                  activeOpacity={0.8}
+                  className="w-full py-3.5 rounded-2xl bg-red-500/90 dark:bg-red-600/90 items-center justify-center shadow-sm"
+                >
+                  <CText className="text-white text-base" style={{ fontFamily: "bold" }}>
+                    End
+                  </CText>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View className="gap-y-3">
+                <CText className="text-center text-xs text-gray-500 mt-2">
+                  Press Start to verify your voice and send commands to the AI.
+                </CText>
+                <TouchableOpacity
+                  onPress={handleStartSession}
+                  activeOpacity={0.8}
+                  className="w-full py-3.5 rounded-2xl bg-white dark:bg-accent2 border border-[#971BB2] dark:border-white/20 items-center justify-center shadow-sm"
+                >
+                  <CText className="text-black dark:text-white text-base" style={{ fontFamily: "bold" }}>
+                    Start
+                  </CText>
+                </TouchableOpacity>
+              </View>
+            )
           )}
         </View>
       )}

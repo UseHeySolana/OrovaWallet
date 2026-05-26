@@ -18,12 +18,14 @@ type DashboardWalletHeaderProps = {
   showWallet: boolean;
   balancesHidden: boolean;
   isDarkMode: boolean;
+  onBalancePress: () => void;
 };
 
 export default function DashboardWalletHeader({
   showWallet,
   balancesHidden,
   isDarkMode,
+  onBalancePress,
 }: DashboardWalletHeaderProps) {
   const { user, userWallet } = UserItem();
   const { scrollY, collapseRange, overlayRootRef, setDestLayout } =
@@ -91,41 +93,48 @@ export default function DashboardWalletHeader({
           </CText>
         </TouchableOpacity>
 
-        <View
-          ref={destMeasureRef}
-          onLayout={measureDest}
-          collapsable={false}
-          pointerEvents="none"
-          className="shrink"
+        <TouchableOpacity
+          onPress={onBalancePress}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Show wallet"
         >
-          <Animated.View
-            style={headerBalanceStyle}
-            className="flex-row items-baseline"
+          <View
+            ref={destMeasureRef}
+            onLayout={measureDest}
+            collapsable={false}
+            pointerEvents="none"
+            className="shrink"
           >
-            {balancesHidden ? (
-              <CText
-                style={{ fontFamily: "bold" }}
-                className="text-[0.95rem] text-dark dark:text-white"
-              >
-                ****
-              </CText>
-            ) : (
-              <>
+            <Animated.View
+              style={headerBalanceStyle}
+              className="flex-row items-baseline"
+            >
+              {balancesHidden ? (
                 <CText
                   style={{ fontFamily: "bold" }}
                   className="text-[0.95rem] text-dark dark:text-white"
                 >
-                  $
+                  ****
                 </CText>
-                <CNumber
-                  value={balance}
-                  className="text-[0.95rem]"
-                  style={{ fontFamily: "bold" }}
-                />
-              </>
-            )}
-          </Animated.View>
-        </View>
+              ) : (
+                <>
+                  <CText
+                    style={{ fontFamily: "bold" }}
+                    className="text-[0.95rem] text-dark dark:text-white"
+                  >
+                    $
+                  </CText>
+                  <CNumber
+                    value={balance}
+                    className="text-[0.95rem]"
+                    style={{ fontFamily: "bold" }}
+                  />
+                </>
+              )}
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity

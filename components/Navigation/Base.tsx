@@ -25,7 +25,11 @@ export const Base = ({
   showWallet,
 }: BASENAV) => {
   const { showPIP, isPIPActive } = usePIP();
-  const { inputMode } = useAi();
+  const {
+    inputMode,
+    isVoiceCommandRecording,
+    voiceEnrolled,
+  } = useAi();
 
   const handlePIPToggle = () => {
     if (isSessionActive) {
@@ -38,6 +42,24 @@ export const Base = ({
   };
 
   if (inputMode === "chat") return null;
+
+  const handlePrimaryPress = () => {
+    tracker.buttons(showWallet ? "open_ai_chat" : "start_ai_session", 1);
+
+    if (showWallet) {
+      setShowWallet(false);
+      return;
+    }
+
+    if (voiceEnrolled === false) {
+      router.push("/voicereg");
+      return;
+    }
+
+    if (!isSessionActive) {
+      startSession();
+    }
+  };
 
   return (
     <View className="absolute w-screen flex flex-row justify-center items-center bottom-10 px-2">
@@ -58,15 +80,9 @@ export const Base = ({
           {/* <Ionicons name="color-palette-outline" size={24} color="white" /> */}
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => {
-            tracker.buttons(showWallet ? "start_ai" : "initialise_ai", 1);
-            showWallet
-              ? setShowWallet(false)
-              : isSessionActive
-                ? stopSession()
-                : startSession();
-          }}
-          className="h-[100]  w-[100] bg-grey dark:bg-accent  rounded-full"
+          onPress={handlePrimaryPress}
+          activeOpacity={0.85}
+          className={`h-[100] w-[100] bg-grey dark:bg-accent rounded-full ${isVoiceCommandRecording ? "border-4 border-red-500" : ""}`}
         >
           <Image
             source={require("@/assets/images/ai.png")}

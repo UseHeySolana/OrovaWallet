@@ -29,7 +29,9 @@ const ConversationItem = ({ conversation }: { conversation: ConversationType }) 
       })}
      className="flex flex-row justify-between items-center border-b border-grey dark:border-dark rounded-xl py-3">
       <View className="flex-1 flex-col justify-start items-start gap-y-1">
-        <CText>{conversation?.summary}</CText>
+        <CText numberOfLines={1} ellipsizeMode="tail">
+          {conversation?.summary}
+        </CText>
         <CText>{date.toLocaleString()}</CText>
       </View>
 

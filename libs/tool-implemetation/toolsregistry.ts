@@ -45,29 +45,29 @@ const toolRouter = (SessionManager: SessionManager) => {
     new JumiaTool(SessionManager).getJumiaProductDetails,
     new JumiaTool(SessionManager).placeJumiaOrder,
 
-    // Kalshi
-    new KalshiTool(SessionManager).activateKalshi,
-    new KalshiTool(SessionManager).backupApiKey,
-    new KalshiTool(SessionManager).kalshiStatus,
-    new KalshiTool(SessionManager).getSeries,
-    new KalshiTool(SessionManager).searchMarkets,
-    new KalshiTool(SessionManager).marketDetails,
-    new KalshiTool(SessionManager).marketPriceData,
-    new KalshiTool(SessionManager).placeOrder,
-    new KalshiTool(SessionManager).cancelOrder,
-    new KalshiTool(SessionManager).getOrders,
-    new KalshiTool(SessionManager).getPositions,
+    // // Kalshi
+    // new KalshiTool(SessionManager).activateKalshi,
+    // new KalshiTool(SessionManager).backupApiKey,
+    // new KalshiTool(SessionManager).kalshiStatus,
+    // new KalshiTool(SessionManager).getSeries,
+    // new KalshiTool(SessionManager).searchMarkets,
+    // new KalshiTool(SessionManager).marketDetails,
+    // new KalshiTool(SessionManager).marketPriceData,
+    // new KalshiTool(SessionManager).placeOrder,
+    // new KalshiTool(SessionManager).cancelOrder,
+    // new KalshiTool(SessionManager).getOrders,
+    // new KalshiTool(SessionManager).getPositions,
 
-    // Bayse
-    new BayseTool(SessionManager).activateBayse,
-    new BayseTool(SessionManager).bayseStatus,
-    new BayseTool(SessionManager).searchEvents,
-    new BayseTool(SessionManager).getQuote,
-    new BayseTool(SessionManager).placeOrder,
-    new BayseTool(SessionManager).cancelOrder,
-    new BayseTool(SessionManager).getOrders,
-    new BayseTool(SessionManager).getPortfolio,
-    new BayseTool(SessionManager).getActivities,
+    // // Bayse
+    // new BayseTool(SessionManager).activateBayse,
+    // new BayseTool(SessionManager).bayseStatus,
+    // new BayseTool(SessionManager).searchEvents,
+    // new BayseTool(SessionManager).getQuote,
+    // new BayseTool(SessionManager).placeOrder,
+    // new BayseTool(SessionManager).cancelOrder,
+    // new BayseTool(SessionManager).getOrders,
+    // new BayseTool(SessionManager).getPortfolio,
+    // new BayseTool(SessionManager).getActivities,
   ];
 };
 

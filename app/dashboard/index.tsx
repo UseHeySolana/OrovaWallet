@@ -67,6 +67,7 @@ export default function Dashboard() {
     stopSession,
     currentMode,
     conversationId,
+    voiceEnrolled,
   } = useAi();
   const { publicKey } = WalletItem();
   const [refreshing, setRefreshing] = useState(false);
@@ -223,6 +224,7 @@ export default function Dashboard() {
             showWallet={showWallet}
             balancesHidden={balancesHidden}
             isDarkMode={isDarkMode}
+            onBalancePress={() => setShowWallet(true)}
           />
           {showWallet ? (
             <WalletScreen
@@ -239,13 +241,15 @@ export default function Dashboard() {
               <QuickActions showInDashboard={false} />
             </>
           )}
-          <Base
-            showWallet={showWallet}
-            setShowWallet={setShowWallet}
-            stopSession={stopStreamingSession}
-            startSession={startStreamingSession}
-            isSessionActive={isSessionActive}
-          />
+          {(showWallet || voiceEnrolled === true) && (
+            <Base
+              showWallet={showWallet}
+              setShowWallet={setShowWallet}
+              stopSession={stopStreamingSession}
+              startSession={startStreamingSession}
+              isSessionActive={isSessionActive}
+            />
+          )}
 
           <SetPin open={setPinOpen} setOpen={setSetPinOpen} usage="first-time" />
         </View>

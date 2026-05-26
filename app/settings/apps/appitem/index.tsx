@@ -180,7 +180,7 @@ export default function AppItems() {
   };
 
   const deactivateTool = async () => {
-    if (appData.name === "HeySolana" || appData.name === "Jupiter") {
+    if (appData.name === "HeySolana" || appData.name === "Jupiter" || appData.name === "Orova") {
       setToast(
         `You cannot uninstall ${appData.name} it is a core tool`,
         "error"
