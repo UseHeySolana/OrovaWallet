@@ -1,12 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, Pressable, View } from "react-native";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components//CustomItems/DragableSheet";
-import { Image } from "expo-image";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
+import UserItem from "@/utils/store/userstore.store";
+import WalletItem from "@/utils/store/wallet.store";
+import {
+  startVerifiedVoiceRecording,
+  stopVerifiedVoiceRecording,
+} from "@/libs/voiceinfra/VerifiedVoiceRecorder";
+import { enrollVoiceProfile, fetchVoiceStatus } from "@/services/voiceAuthApi";
 import { useAi } from "@/context/AiContext";
+import Buttons from "@/components/ButtonComp";
 
 /**
   * What should be done here
@@ -17,102 +21,101 @@ import { useAi } from "@/context/AiContext";
 
 export default function Voicereg() {
   const [recording, setRecording] = useState(false);
-  const { sessionManager, isSessionActive, startSession, stopSession } = useAi()
-  const { setDefault } = AppSettings()
-  const [startWalletReg, setStartWalletReg] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [samples, setSamples] = useState<string[]>([]);
+  const { user } = UserItem();
+  const { publicKeyBase58, publicKey } = WalletItem();
+  const { refreshVoiceEnrollment } = useAi();
 
-  useEffect(() => {
-    if (!isSessionActive) {
-      startSession()
+  const walletAddress = publicKeyBase58 ?? publicKey?.toBase58() ?? "";
+  const prompt = useMemo(() => {
+    const prompts = [
+      "Hey Solana, this is my wallet.",
+      "Confirm my voice for secure commands.",
+      "Only my voice can approve wallet actions.",
+    ];
+
+    return prompts[Math.min(samples.length, prompts.length - 1)];
+  }, [samples.length]);
+
+  const toggleRecording = async () => {
+    try {
+      if (recording) {
+        const audio = await stopVerifiedVoiceRecording();
+        setSamples((current) => [...current, audio].slice(0, 3));
+        setRecording(false);
+        return;
+      }
+
+      await startVerifiedVoiceRecording();
+      setRecording(true);
+    } catch (error: any) {
+      setRecording(false);
+      Alert.alert("Voice enrollment", error?.message ?? "Could not record voice sample");
     }
-    return () => stopSession()
-  }, [])
+  };
 
+  const submitEnrollment = async () => {
+    if (!walletAddress) {
+      Alert.alert("Voice enrollment", "Create or restore a wallet before enrolling your voice.");
+      return;
+    }
 
-  const sendMessage = () => {
-    console.log('pressed')
-    sessionManager?.sendTextMessage("Repeat this text with enthusiasm becuase you are onboarding a new user, {Let's register your voice! say the big text you see on your screen.}")
-  }
+    if (samples.length < 3) {
+      Alert.alert("Voice enrollment", "Record all 3 voice samples first.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await enrollVoiceProfile({
+        walletAddress,
+        username: user?.username,
+        samples,
+      });
+      const status = await fetchVoiceStatus(walletAddress);
+      if (!status.enrolled) {
+        throw new Error("Enrollment saved but profile is not active yet. Try again.");
+      }
+      await refreshVoiceEnrollment();
+
+      Alert.alert("Voice enrolled", "Your voice is now required for voice commands.", [
+        { text: "Done", onPress: () => router.replace("/dashboard") },
+      ]);
+    } catch (error: any) {
+      Alert.alert("Voice enrollment failed", error?.message ?? "Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View
-      className="relative h-full bg-grey dark:bg-dark w-100 flex items-center"
+      className="flex-1 relative h-full bg-grey dark:bg-dark w-100 flex items-center justify-start"
     >
-      <View className="h-full  w-100 m-auto flex justify-center items-start">
-        <View className="w-11/12 m-auto p-2">
+      <View className="w-100 m-auto flex justify-center items-start">
+        <View className="w-11/12">
           <View className="">
-            <CText className="text-[75px] text-purple font-bold">"</CText>
-            <CText style={{ fontFamily: "bold" }} className="text-[80px] text-wrap">Hey Solana, send 5 SOL to Me</CText>
-            <CText className="text-[75px] text-purple font-bold self-end rotate-180">"</CText>
+            <CText style={{ fontFamily: "bold" }} className="text-[48px] text-wrap">&quot;{prompt}&quot;</CText>
           </View>
           <View>
-            <CText className="text-[32px] text-gray-400">Let’s register your voice! say the big text you see on your screen, LFG</CText>
+            <CText className="text-[24px] text-gray-400">
+              Record 3 short samples. Use your normal command voice so HeySolana can reject other speakers.
+            </CText>
+            <CText className="text-[18px] text-gray-400 mt-4">
+              Sample {Math.min(samples.length + 1, 3)} of 3
+            </CText>
           </View>
+        </View>
+
+        <View className="w-11/12 m-auto mt-5 p-2 gap-y-3 ">
+
+          <Buttons text={recording ? "Stop sample" : "Record sample"} onPress={toggleRecording} type={submitting || (samples.length >= 3 && !recording) ? "secondary" : "primary"} />
+          <Buttons text={submitting ? "Saving voice..." : "Complete enrollment"} onPress={submitEnrollment} type={submitting || samples.length < 3 ? "secondary" : "primary"} />
         </View>
 
       </View>
 
-
-
-      <View className="w-11/12 m-auto p-2 gap-y-3 bottom-10 absolute">
-        {/* <Pressable onPress={() => { recording ? stopRecording() : startRecording() }} > */}
-        <Pressable onPress={() => {
-          // setStartWalletReg(true)
-          sendMessage();
-        }} >
-          <View style={{ padding: 5 }} className={`${!recording ? "bg-[#971BB2]" : "bg-red-600"} py-5 rounded-full `}>
-            <CText className="text-white text-center">Record</CText>
-          </View>
-        </Pressable>
-      </View>
-
-      {
-        startWalletReg && (
-          <DragableSheet
-            close={() => setStartWalletReg(false)}
-            snapPoints={["55%"]}
-            child={
-              <View className="w-full  gap-y-5 flex flex-col justify-between ">
-                <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Wallet</CText>
-                <View className="flex w-100 justify-center items-center py-">
-                  <Image style={{ height: 185, width: 300 }} source={require('@/assets/items/wallet.png')} alt="Wallet" contentFit="contain" />
-                </View>
-
-                <Pressable onPress={() => {
-                  router.push('/auth/secretphrase')
-                }} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
-                    <View className="">
-                      <AntDesign name="pluscircleo" size={24} color="black" />
-                    </View>
-
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Create new Wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Create a new Solana Wallet</CText>
-
-                    </View>
-                  </View>
-
-                </Pressable>
-                <Pressable onPress={() => router.replace('/auth/importphrase')} >
-                  <View className="flex flex-row justify-start items-center px-5  bg-grey dark:bg-accent py-5 rounded-full   gap-x-3">
-                    <View className="bg-white rounded-full p-1">
-                      <AntDesign name="down" size={24} color="black" />
-                    </View>
-
-                    <View className="">
-                      <CText style={{ fontFamily: "bold" }} className="text-primary text-[16px] font-dmBold text-start">Import existing wallet</CText>
-                      <CText className="text-primary text-[14px]  text-start">Import a previously existing wallet</CText>
-
-                    </View>
-                  </View>
-
-                </Pressable>
-              </View>
-            }
-          />
-        )
-      }
 
 
 

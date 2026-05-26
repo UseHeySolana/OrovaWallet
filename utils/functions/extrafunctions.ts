@@ -55,10 +55,10 @@ const summarizeProduct = async (sentence: any) => {
 
 const summarizeConversation = async (sentence: any) => {
   const result = await generate(
-    `"${sentence} "Can you summarize this conversation in a single sentence. just what happend keep it very short and coincise 100 characters max eg. Airtime Purchase, amount and recipient, give similar examples for other actions, if failed, just use e.g Failed Airtime purchase.
+    `"${sentence} "Can you summarize this conversation in one short header line. Do not include line breaks. Just what happened; keep it very short and concise, 100 characters max. eg. Airtime Purchase, amount and recipient, give similar examples for other actions, if failed, just use e.g Failed Airtime purchase.
         `
   );
-  return result;
+  return result.replace(/\s+/g, " ").trim();
 };
 
 export type SolanaHistoryCluster = "devnet" | "mainnet";

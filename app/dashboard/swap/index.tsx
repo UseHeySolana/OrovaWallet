@@ -191,11 +191,11 @@ export default function SwapScreen() {
     () => ({
       slippageBps: SLIPPAGE_BPS,
       ...(swapFeeConfig.referralAccount &&
-      swapFeeConfig.referralFeeBps >= 50
+        swapFeeConfig.referralFeeBps >= 50
         ? {
-            referralAccount: swapFeeConfig.referralAccount,
-            referralFeeBps: swapFeeConfig.referralFeeBps,
-          }
+          referralAccount: swapFeeConfig.referralAccount,
+          referralFeeBps: swapFeeConfig.referralFeeBps,
+        }
         : {}),
     }),
     [swapFeeConfig]
@@ -478,7 +478,7 @@ export default function SwapScreen() {
         outputSymbol: toToken.symbol,
         outputAmount: humanFromSmallestUnits(orderData.outAmount, toToken.decimals),
         platformFeeBps: swapFeeConfig.referralFeeBps,
-        app_called: "HeySolana",
+        app_called: "Orova",
         provider: "jupiter",
       });
       router.replace({
@@ -752,20 +752,18 @@ export default function SwapScreen() {
             if (canSwap && !swapping) void handleSwap();
           }}
           disabled={!canSwap || swapping}
-          className={`w-full py-4 rounded-full items-center justify-center ${
-            canSwap && !swapping
+          className={`w-full py-4 rounded-full items-center justify-center ${canSwap && !swapping
               ? "bg-[#971BB2]"
               : "bg-white dark:bg-accent"
-          }`}
+            }`}
         >
           {swapping ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <CText
               style={{ fontFamily: "bold" }}
-              className={`text-[16px] ${
-                canSwap ? "text-white" : "text-gray-400 dark:text-gray-500"
-              }`}
+              className={`text-[16px] ${canSwap ? "text-white" : "text-gray-400 dark:text-gray-500"
+                }`}
             >
               {primaryLabel}
             </CText>

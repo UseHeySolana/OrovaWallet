@@ -52,6 +52,8 @@ class SessionManager {
   private sessionReadyResolve: (() => void) | null = null;
   private sessionReadyReject: ((err: Error) => void) | null = null;
   private sessionReadyPromise: Promise<void> | null = null;
+  private startSessionPromise: Promise<void> | null = null;
+  private sessionGeneration = 0;
   /** Batched transcript deltas to avoid "Maximum update depth" from rapid store updates */
   private pendingHumanDeltas: string = "";
   private pendingAiDeltas: string = "";
@@ -154,6 +156,28 @@ class SessionManager {
     systemInstructions?: string,
     options?: { useAudio?: boolean }
   ): Promise<void> {
+    if (this.startSessionPromise) {
+      return this.startSessionPromise;
+    }
+
+    if (this.isSessionActive && this.dataChannel?.readyState === "open") {
+      return;
+    }
+
+    this.startSessionPromise = this.startSessionInternal(
+      systemInstructions,
+      options
+    ).finally(() => {
+      this.startSessionPromise = null;
+    });
+
+    return this.startSessionPromise;
+  }
+
+  private async startSessionInternal(
+    systemInstructions?: string,
+    options?: { useAudio?: boolean }
+  ): Promise<void> {
     const useVoiceInput = options?.useAudio !== false;
     this.useVoiceInputThisSession = useVoiceInput;
     this.sessionReadyPromise = new Promise((resolve, reject) => {
@@ -203,8 +227,10 @@ class SessionManager {
     }
 
     try {
-      // API requires offer to include an audio media section, so we always request mic and add track.
-      // In chat mode we still add the track (so the offer is valid) but disable VAD so the server only responds to text.
+      const sessionGeneration = ++this.sessionGeneration;
+      // API requires offer to include an audio media section. In verified-gated mode
+      // do not grab the mic here; the voice gate owns the microphone and forwards
+      // only verified PCM chunks over the data channel.
       if (Platform.OS === "android") {
         const granted = await this.requestAudioPermission();
         if (!granted) {
@@ -217,43 +243,56 @@ class SessionManager {
         }
       }
 
-      this.peerConnection = new RTCPeerConnection({
+      const peerConnection = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // Add STUN server for better connection
       });
+      this.peerConnection = peerConnection;
 
-      const stream = await mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => {
-        this.peerConnection!.addTrack(track, stream);
-      });
+      if (useVoiceInput) {
+        const stream = await mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => {
+          peerConnection.addTrack(track, stream);
+        });
+      } else if (typeof (peerConnection as any).addTransceiver === "function") {
+        (peerConnection as any).addTransceiver("audio", {
+          direction: "recvonly",
+        });
+      }
 
       // Setup connection state tracking
       //@ts-ignore
-      this.peerConnection.addEventListener("connectionstatechange", () => {
+      peerConnection.addEventListener("connectionstatechange", () => {
+        if (
+          this.sessionGeneration !== sessionGeneration ||
+          this.peerConnection !== peerConnection
+        ) {
+          return;
+        }
         console.log(
-          `Connection state changed: ${this.peerConnection?.connectionState}`
+          `Connection state changed: ${peerConnection.connectionState}`
         );
-        if (this.peerConnection?.connectionState === "connected") {
+        if (peerConnection.connectionState === "connected") {
           this.connectionEstablished = true;
         }
       });
 
       // Create data channel with more reliable options
-      this.dataChannel = this.peerConnection.createDataChannel("oai-events", {
+      this.dataChannel = peerConnection.createDataChannel("oai-events", {
         ordered: true,
         maxRetransmits: 3,
       });
 
       // Setup event handlers before creating offer
-      this.setupDataChannelEventHandlers();
+      this.setupDataChannelEventHandlers(sessionGeneration);
 
       // API requires an audio media section in the offer; we always include it
-      const offer = await this.peerConnection.createOffer({
+      const offer = await peerConnection.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: false,
         voiceActivityDetection: useVoiceInput, // only listen for voice in audio mode
       });
 
-      await this.peerConnection.setLocalDescription(offer);
+      await peerConnection.setLocalDescription(offer);
 
       // Send offer to API
       const baseUrl = "https://api.openai.com/v1/realtime/calls";
@@ -278,11 +317,24 @@ class SessionManager {
         type: "answer",
         sdp: answerSdp,
       });
-      await this.peerConnection.setRemoteDescription(answer);
+      if (
+        this.sessionGeneration !== sessionGeneration ||
+        this.peerConnection !== peerConnection ||
+        peerConnection.signalingState !== "have-local-offer"
+      ) {
+        throw new Error("Session start superseded");
+      }
+      await peerConnection.setRemoteDescription(answer);
 
       // Handle audio tracks with our AudioManager
       // @ts-ignore
-      this.peerConnection.addEventListener("track", (event) => {
+      peerConnection.addEventListener("track", (event) => {
+        if (
+          this.sessionGeneration !== sessionGeneration ||
+          this.peerConnection !== peerConnection
+        ) {
+          return;
+        }
         if (event.streams && event.streams[0]) {
           // Only handle audio tracks
           if (event.track && event.track.kind === "audio") {
@@ -312,7 +364,9 @@ class SessionManager {
     } catch (error) {
       console.error("Error starting session:", error);
       this.rejectSessionReady(error instanceof Error ? error : new Error(String(error)));
-      this.cleanupResources();
+      if (this.startSessionPromise) {
+        this.cleanupResources();
+      }
       AppSettings.getState().setLoading(false);
       throw error;
     }
@@ -573,11 +627,18 @@ class SessionManager {
     }
   }
 
-  private setupDataChannelEventHandlers(): void {
+  private setupDataChannelEventHandlers(sessionGeneration: number): void {
     if (!this.dataChannel) return;
+    const dataChannel = this.dataChannel;
 
     // Handle data channel messages
-    this.dataChannel.addEventListener("message", (e: MessageEvent) => {
+    dataChannel.addEventListener("message", (e: MessageEvent) => {
+      if (
+        this.sessionGeneration !== sessionGeneration ||
+        this.dataChannel !== dataChannel
+      ) {
+        return;
+      }
       try {
         const message = JSON.parse(e.data);
         this.events.unshift(message);
@@ -915,7 +976,13 @@ class SessionManager {
     });
 
     // Handle data channel open - this is the critical point for initialization
-    this.dataChannel.addEventListener("open", () => {
+    dataChannel.addEventListener("open", () => {
+      if (
+        this.sessionGeneration !== sessionGeneration ||
+        this.dataChannel !== dataChannel
+      ) {
+        return;
+      }
       console.log("Data channel opened - setting session active");
       this.isSessionActive = true;
       this.events = [];
@@ -923,33 +990,48 @@ class SessionManager {
       // Prefer connected external routes (Bluetooth/wired) when starting a call.
       this.audioManager.setAudioChannel(AudioChannel.AUTO);
       // Sequential initialization with delays
-      this.initializeSession();
+      this.initializeSession(sessionGeneration);
     });
 
     // Add error handling
-    this.dataChannel.addEventListener("error", (error: any) => {
+    dataChannel.addEventListener("error", (error: any) => {
+      if (
+        this.sessionGeneration !== sessionGeneration ||
+        this.dataChannel !== dataChannel
+      ) {
+        return;
+      }
       console.error("Data channel error:", error);
     });
 
     // Handle closing
-    this.dataChannel.addEventListener("close", () => {
+    dataChannel.addEventListener("close", () => {
+      if (
+        this.sessionGeneration !== sessionGeneration ||
+        this.dataChannel !== dataChannel
+      ) {
+        return;
+      }
       console.log("Data channel closed");
       this.isSessionActive = false;
     });
   }
 
-  private async initializeSession(): Promise<void> {
+  private async initializeSession(sessionGeneration: number): Promise<void> {
     try {
+      if (this.sessionGeneration !== sessionGeneration) return;
       console.log(
         "[Session] Applying GA session (instructions + tools + VAD in one update)"
       );
       await this.sendSessionUpdate({}, true);
 
+      if (this.sessionGeneration !== sessionGeneration) return;
+
       if (!this.useVoiceInputThisSession) {
         this.muteMic(true);
       }
 
-      this.triggerInitialWelcome();
+      this.triggerInitialWelcome(sessionGeneration);
 
       console.log("Session fully initialized");
       AppSettings.getState().setLoading(false);
@@ -963,12 +1045,15 @@ class SessionManager {
     }
   }
 
-  private triggerInitialWelcome(): void {
+  private triggerInitialWelcome(sessionGeneration: number): void {
     const aiName = AppSettings.getState().aiName || "Orova";
     const username = UserItem.getState().user?.username?.trim();
     const nameHint = username ? ` The user's name is ${username}.` : "";
 
     setTimeout(() => {
+      if (this.sessionGeneration !== sessionGeneration || !this.isSessionActive) {
+        return;
+      }
       this.sendClientEvent({
         type: "response.create",
         response: {
@@ -1021,6 +1106,7 @@ class SessionManager {
 
   private cleanupResources(): void {
     try {
+      this.sessionGeneration += 1;
       if (this.dataChannel) {
         if (this.dataChannel.readyState === "open") {
           this.dataChannel.close();
@@ -1176,6 +1262,47 @@ class SessionManager {
       }, 200);
     } catch (error) {
       console.error("Error sending text message:", error);
+    }
+  }
+
+  sendVerifiedAudioChunk(audioBase64: string): void {
+    if (!this.isSessionActive) {
+      console.error("Cannot send verified audio - session not active");
+      return;
+    }
+
+    if (
+      !this.dataChannel ||
+      this.dataChannel.readyState !== "open"
+    ) {
+      console.error("Cannot send verified audio - data channel not open");
+      return;
+    }
+
+    try {
+      this.callbacks.setMode("loading");
+      if (this.currentResponseId) {
+        this.audioManager.stopPlayback();
+        this.sendClientEvent({
+          type: "response.cancel",
+          response_id: this.currentResponseId,
+        });
+        this.sendClientEvent({ type: "output_audio_buffer.clear" });
+        this.currentResponseId = null;
+        this.cancelFlushAi();
+        this.pendingAiDeltas = "";
+      }
+
+      this.sendClientEvent({
+        type: "input_audio_buffer.append",
+        audio: audioBase64,
+      });
+      this.sendClientEvent({ type: "input_audio_buffer.commit" });
+      setTimeout(() => {
+        this.sendClientEvent({ type: "response.create" });
+      }, 100);
+    } catch (error) {
+      console.error("Error sending verified audio chunk:", error);
     }
   }
 

@@ -7,7 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { Image } from "expo-image";
-  import { useThemeContext } from "@/context/ThemeContext";
+import { useThemeContext } from "@/context/ThemeContext";
 import { useAi } from "@/context/AiContext";
 import { usePIP } from "@/services/PIPService/PIPManager";
 import IconLibrary from "@/utils/icons";
@@ -42,7 +42,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     if (Platform.OS === "android" && !hasOverlayPermission) {
       Alert.alert(
         "Permission Required",
-        "HeySolana needs overlay permission to display the floating AI assistant over other apps.",
+        "Orova needs overlay permission to display the floating AI assistant over other apps.",
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -79,7 +79,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   };
 
   const shareWidgetInstructions = async () => {
-    const instructions = `🤖 HeySolana AI Widget Setup
+    const instructions = `🤖 Orova AI Widget Setup
 
 For iOS Shortcuts:
 1. Open Shortcuts app
@@ -90,7 +90,7 @@ For iOS Shortcuts:
 
 For Android Widgets:
 1. Long press home screen
-2. Add widget → HeySolana
+2. Add widget → Orova
 3. Select AI Quick Actions
 
 Floating AI Assistant (Android):
