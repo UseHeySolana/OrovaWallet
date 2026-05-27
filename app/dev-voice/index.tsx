@@ -27,6 +27,9 @@ function formatStatus(status: VoiceStatusResponse | null) {
     `Enrolled: ${status.enrolled ? "yes" : "no"}`,
     `Samples: ${status.sample_count ?? "unknown"}`,
     `Algorithm: ${status.algorithm_version ?? "unknown"}`,
+    `Threshold: ${status.threshold ?? "unknown"}`,
+    `Adapt min: ${status.adapt_min_confidence ?? "unknown"}`,
+    `Voice AI: ${status.voice_ai_enabled ? status.voice_ai_url ?? "enabled" : "disabled"}`,
     `Last verified: ${status.last_verified_at ?? "never"}`,
   ].join("\n");
 }
@@ -39,6 +42,11 @@ function formatVerifyResult(result: VoiceVerifyResponse | null) {
     `Enrolled: ${result.enrolled ? "yes" : "no"}`,
     `Confidence: ${result.confidence}`,
     `Threshold: ${result.threshold ?? "not returned"}`,
+    `Stored threshold: ${result.stored_threshold ?? "not returned"}`,
+    `Scores: ${result.scores?.join(", ") || "not returned"}`,
+    `Duration: ${result.duration_seconds ?? "not returned"}s`,
+    `Algorithm: ${result.algorithm_version ?? "unknown"}`,
+    `Adapted: ${result.adapted ? "yes" : "no"}`,
     `Transcript: ${result.transcript || "none"}`,
     result.message ? `Message: ${result.message}` : "",
   ]
@@ -171,10 +179,13 @@ export default function DevVoiceScreen() {
       const stream = new VerifiedVoiceStream({
         walletAddress,
         onStateChange: (state) => setStreamState(state),
-        onVerifiedAudio: (audio) => {
+        onVerifiedCommand: (transcript, audio) => {
           setLastAudio(audio);
           setStreamHits((current) =>
-            [`${new Date().toLocaleTimeString()} verified audio (${audio.length} chars)`, ...current].slice(0, 5)
+            [
+              `${new Date().toLocaleTimeString()} verified: "${transcript || "[no transcript]"}"`,
+              ...current,
+            ].slice(0, 5)
           );
         },
         onError: (err) => setError(err.message),

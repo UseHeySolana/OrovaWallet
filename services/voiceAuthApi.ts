@@ -3,8 +3,12 @@ import { request } from "@/utils/request/db";
 export type VoiceStatusResponse = {
   enrolled: boolean;
   sample_count?: number;
+  threshold?: number;
+  adapt_min_confidence?: number;
   last_verified_at?: string | null;
   algorithm_version?: string;
+  voice_ai_enabled?: boolean;
+  voice_ai_url?: string | null;
 };
 
 export type VoiceEnrollResponse = {
@@ -19,6 +23,11 @@ export type VoiceVerifyResponse = {
   enrolled: boolean;
   confidence: number;
   threshold?: number;
+  stored_threshold?: number;
+  adapted?: boolean;
+  scores?: number[];
+  duration_seconds?: number | null;
+  algorithm_version?: string;
   transcript: string;
   message?: string;
 };

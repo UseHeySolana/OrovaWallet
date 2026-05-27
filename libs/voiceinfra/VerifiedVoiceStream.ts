@@ -5,7 +5,8 @@ import { verifyVoiceCommand } from "@/services/voiceAuthApi";
 
 type VerifiedVoiceStreamOptions = {
   walletAddress: string;
-  onVerifiedAudio: (audioBase64: string) => void;
+  /** Called after speaker verification with the Laravel/OpenAI transcript (not raw audio). */
+  onVerifiedCommand: (transcript: string, audioBase64: string) => void;
   onStateChange?: (state: "listening" | "hearing" | "verifying" | "verified") => void;
   onError?: (error: Error) => void;
 };
@@ -13,9 +14,13 @@ type VerifiedVoiceStreamOptions = {
 const SAMPLE_RATE = 16000;
 const BYTES_PER_SAMPLE = 2;
 const CHANNELS = 1;
-const WINDOW_MS = 2200;
-const MIN_WINDOW_BYTES = 16000;
-const MIN_RMS = 0.012;
+const BYTES_PER_SECOND = SAMPLE_RATE * BYTES_PER_SAMPLE * CHANNELS;
+/** ECAPA requires >=1.0s speech after trim; capture extra for silence padding. */
+const MIN_UTTERANCE_SECONDS = 1.2;
+const MIN_UTTERANCE_BYTES = Math.ceil(BYTES_PER_SECOND * MIN_UTTERANCE_SECONDS);
+const SPEECH_RMS = 0.009;
+const SILENCE_AFTER_SPEECH_MS = 1800;
+const MAX_UTTERANCE_MS = 20_000;
 const DUPLICATE_TRANSCRIPT_WINDOW_MS = 5000;
 const HEARING_STATE_RESET_MS = 1200;
 const VERIFIED_STATE_RESET_MS = 1200;
@@ -50,13 +55,26 @@ function calculateRms(buffer: Buffer): number {
   return Math.sqrt(sumSquares / Math.max(1, sampleCount));
 }
 
+/** Reject empty or accidental base64 audio payloads used as transcript fallbacks. */
+function isUsableTranscript(transcript: string): boolean {
+  const trimmed = transcript.trim();
+  if (!trimmed || trimmed.length < 2) return false;
+  if (trimmed.length > 800 && /^[A-Za-z0-9+/=\s]+$/.test(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
 export class VerifiedVoiceStream {
   private chunks: Buffer[] = [];
   private byteLength = 0;
-  private flushTimer: ReturnType<typeof setInterval> | null = null;
+  private silenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private maxUtteranceTimer: ReturnType<typeof setTimeout> | null = null;
   private stateResetTimer: ReturnType<typeof setTimeout> | null = null;
   private verifying = false;
   private stopped = true;
+  private hasSpeech = false;
+  private lastSpeechAt = 0;
   private lastTranscript = "";
   private lastTranscriptAt = 0;
   private lastHearingStateAt = 0;
@@ -89,22 +107,16 @@ export class VerifiedVoiceStream {
     this.suppressed = false;
     this.chunks = [];
     this.byteLength = 0;
+    this.resetUtteranceState();
     AudioRecord.start();
     this.emitState("listening");
-
-    this.flushTimer = setInterval(() => {
-      void this.flush();
-    }, WINDOW_MS);
   }
 
   async stop(): Promise<void> {
     if (this.stopped) return;
 
     this.stopped = true;
-    if (this.flushTimer) {
-      clearInterval(this.flushTimer);
-      this.flushTimer = null;
-    }
+    this.clearTimers();
     if (this.stateResetTimer) {
       clearTimeout(this.stateResetTimer);
       this.stateResetTimer = null;
@@ -116,6 +128,7 @@ export class VerifiedVoiceStream {
 
     await AudioRecord.stop().catch(() => undefined);
     this.clearBuffer();
+    this.resetUtteranceState();
   }
 
   setSuppressed(suppressed: boolean): void {
@@ -123,6 +136,8 @@ export class VerifiedVoiceStream {
 
     this.suppressed = suppressed;
     this.clearBuffer();
+    this.clearTimers();
+    this.resetUtteranceState();
 
     if (!suppressed) {
       this.emitState("listening");
@@ -134,25 +149,97 @@ export class VerifiedVoiceStream {
     this.byteLength = 0;
   }
 
+  private clearTimers(): void {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+    if (this.maxUtteranceTimer) {
+      clearTimeout(this.maxUtteranceTimer);
+      this.maxUtteranceTimer = null;
+    }
+  }
+
+  private resetUtteranceState(): void {
+    this.hasSpeech = false;
+    this.lastSpeechAt = 0;
+  }
+
   private handleData(data: string): void {
-    if (this.stopped || this.suppressed || !data) return;
+    if (this.stopped || this.suppressed || this.verifying || !data) return;
 
     try {
       const chunk = Buffer.from(data, "base64");
       if (!chunk.length) return;
 
+      const now = Date.now();
+      const rms = calculateRms(chunk);
+      const isSpeech = rms >= SPEECH_RMS;
+
+      if (!this.hasSpeech) {
+        if (!isSpeech) return;
+
+        this.hasSpeech = true;
+        this.lastSpeechAt = now;
+        this.clearBuffer();
+        this.maxUtteranceTimer = setTimeout(() => {
+          void this.flush();
+        }, MAX_UTTERANCE_MS);
+      }
+
       this.chunks.push(chunk);
       this.byteLength += chunk.length;
-      if (
-        calculateRms(chunk) >= MIN_RMS &&
-        Date.now() - this.lastHearingStateAt > 500
-      ) {
-        this.lastHearingStateAt = Date.now();
+
+      if (isSpeech) {
+        this.lastSpeechAt = now;
+      }
+
+      if (isSpeech && now - this.lastHearingStateAt > 500) {
+        this.lastHearingStateAt = now;
         this.emitState("hearing", HEARING_STATE_RESET_MS);
+      }
+
+      if (isSpeech || !this.silenceTimer) {
+        this.scheduleSilenceFlush();
       }
     } catch {
       // Drop malformed audio chunks; the next valid chunk will continue the stream.
     }
+  }
+
+  private scheduleSilenceFlush(): void {
+    if (!this.hasSpeech || this.stopped || this.suppressed) return;
+
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+    }
+
+    this.silenceTimer = setTimeout(() => {
+      this.silenceTimer = null;
+      void this.tryEndUtterance();
+    }, SILENCE_AFTER_SPEECH_MS);
+  }
+
+  private tryEndUtterance(): void {
+    if (!this.hasSpeech || this.stopped || this.suppressed || this.verifying) {
+      return;
+    }
+
+    const silenceMs = Date.now() - this.lastSpeechAt;
+    if (silenceMs < SILENCE_AFTER_SPEECH_MS) {
+      this.scheduleSilenceFlush();
+      return;
+    }
+
+    if (this.byteLength < MIN_UTTERANCE_BYTES) {
+      this.clearBuffer();
+      this.clearTimers();
+      this.resetUtteranceState();
+      this.emitState("listening");
+      return;
+    }
+
+    void this.flush();
   }
 
   private async flush(): Promise<void> {
@@ -160,15 +247,17 @@ export class VerifiedVoiceStream {
       this.stopped ||
       this.suppressed ||
       this.verifying ||
-      this.byteLength < MIN_WINDOW_BYTES
+      !this.hasSpeech
     ) {
       return;
     }
 
     const audio = Buffer.concat(this.chunks, this.byteLength);
     this.clearBuffer();
+    this.clearTimers();
+    this.resetUtteranceState();
 
-    if (calculateRms(audio) < MIN_RMS) {
+    if (audio.length < MIN_UTTERANCE_BYTES) {
       this.emitState("listening");
       return;
     }
@@ -181,7 +270,7 @@ export class VerifiedVoiceStream {
         verifyVoiceCommand({
           walletAddress: this.options.walletAddress,
           audio: audioBase64,
-          adapt: false,
+          adapt: true,
         }),
         VERIFY_TIMEOUT_MS
       );
@@ -191,20 +280,26 @@ export class VerifiedVoiceStream {
         return;
       }
 
-      const transcript = result.transcript?.trim() || audioBase64;
-      if (this.isDuplicateTranscript(transcript)) {
+      const transcript = result.transcript?.trim() ?? "";
+      if (isUsableTranscript(transcript) && this.isDuplicateTranscript(transcript)) {
         this.emitState("listening");
         return;
       }
 
-      this.lastTranscript = transcript;
-      this.lastTranscriptAt = Date.now();
+      if (isUsableTranscript(transcript)) {
+        this.lastTranscript = transcript;
+        this.lastTranscriptAt = Date.now();
+      }
       this.emitState("verified", VERIFIED_STATE_RESET_MS);
-      this.options.onVerifiedAudio(audioBase64);
+      this.options.onVerifiedCommand(transcript, audioBase64);
     } catch (error: any) {
-      this.options.onError?.(
-        error instanceof Error ? error : new Error(error?.message ?? String(error))
-      );
+      const message =
+        error instanceof Error ? error.message : String(error?.message ?? error);
+      if (!isRecoverableVerifyError(message)) {
+        this.options.onError?.(
+          error instanceof Error ? error : new Error(message)
+        );
+      }
       this.emitState("listening");
     } finally {
       this.verifying = false;
@@ -259,4 +354,13 @@ export class VerifiedVoiceStream {
       Date.now() - this.lastTranscriptAt < DUPLICATE_TRANSCRIPT_WINDOW_MS
     );
   }
+}
+
+function isRecoverableVerifyError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("too short") ||
+    normalized.includes("second(s) of speech") ||
+    normalized.includes("could not decode audio")
+  );
 }

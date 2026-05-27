@@ -206,9 +206,9 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
       : voiceGateStatus === "verifying"
         ? "Verifying your voice..."
         : voiceGateStatus === "verified"
-          ? "Voice verified. Sending audio to the AI..."
+          ? "Voice verified. Sending your command..."
           : isVoiceCommandRecording
-            ? "Listening securely. Only verified speech is sent to the AI."
+            ? "Listening securely. Only verified commands are sent to the AI."
             : "Starting secure voice stream...";
 
   const chatContent = (
