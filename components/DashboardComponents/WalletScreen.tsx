@@ -18,7 +18,6 @@ import { CText, CNumber } from "@/components/TextComp";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
-import Buttons from "@/components/ButtonComp";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
@@ -334,65 +333,66 @@ export default function WalletScreen({
 
           <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
-          <View className="flex flex-row gap-2 py-3 items-center justify-between px-4">
-            <View className="flex-1">
-              <Buttons
-                buttonType="feedback"
-                className="py-4 rounded-full"
+          <View className="flex flex-row py-4 items-start justify-between px-4">
+            <View className="items-center gap-y-2">
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Send"
                 onPress={() => {
                   router.push("/dashboard/send");
                 }}
-                type="primary"
-                text="Send"
-                icon={
-                  <View className="rotate-[230deg]">
-                    <AntDesign
-                      name="arrow-down"
-                      size={16}
-                      color="white"
-                    />
-                  </View>
-                }
-              />
+                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+              >
+                <View className="rotate-[230deg]">
+                  <AntDesign name="arrow-down" size={18} color="white" />
+                </View>
+              </TouchableOpacity>
+              <CText className="text-[0.85rem]">Send</CText>
             </View>
-            <View className="flex-1">
-              <Buttons
-                buttonType="feedback"
-                className="py-4 rounded-full"
+            <View className="items-center gap-y-2">
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Swap"
                 onPress={() => {
                   router.push("/dashboard/swap");
                 }}
-                type="primary"
-                text="Swap"
-                icon={
-                  <MaterialCommunityIcons
-                    name="swap-horizontal"
-                    size={18}
-                    color="white"
-                  />
-                }
-              />
+                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+              >
+                <MaterialCommunityIcons
+                  name="swap-horizontal"
+                  size={24}
+                  color="white"
+                />
+              </TouchableOpacity>
+              <CText className="text-[0.85rem]">Swap</CText>
             </View>
-            <View className="flex-1">
-              <Buttons
-                buttonType="feedback"
-                className="py-4 rounded-full"
+            <View className="items-center gap-y-2">
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Receive"
                 onPress={() => {
-                  // testFunctions()
                   router.push("/dashboard/qrcode");
                 }}
-                type="primary"
-                text="Receive"
-                icon={
-                  <View className="rotate-[40deg]">
-                    <AntDesign
-                      name="arrow-down"
-                      size={16}
-                      color="white"
-                    />
-                  </View>
-                }
-              />
+                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+              >
+                <View className="rotate-[40deg]">
+                  <AntDesign name="arrow-down" size={18} color="white" />
+                </View>
+              </TouchableOpacity>
+              <CText className="text-[0.85rem]">Receive</CText>
+            </View>
+            <View className="items-center gap-y-2">
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Onramp"
+                onPress={() => {
+                  router.push("/dashboard/onramp" as any);
+                }}
+                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+              >
+                <Ionicons name="card-outline" size={23} color="white" />
+              </TouchableOpacity>
+              <CText className="text-[0.85rem]">Onramp</CText>
             </View>
           </View>
         </View>

@@ -545,6 +545,11 @@ class SessionManager {
       ...audioFromOverride,
       input: {
         ...inputFromOverride,
+        transcription: inputFromOverride.transcription ?? {
+          model: "gpt-4o-mini-transcribe",
+          prompt:
+            "Transcribe speech for Orova, a Solana crypto wallet assistant. Expect token symbols (SOL, USDC), amounts, mint addresses, swap, transfer, send, and usernames.",
+        },
         turn_detection: turnDetection,
       },
     };

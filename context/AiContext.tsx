@@ -258,6 +258,22 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         sessionManager.sendTextMessage(trimmed);
     }, [sessionManager, conversationId]);
 
+    const sendVerifiedVoiceMessage = useCallback((text: string) => {
+        const trimmed = text?.trim();
+        const activeConversationId = conversationIdRef.current || conversationId;
+        if (!trimmed || !sessionManager || !activeConversationId) return;
+        const messageId = uuidv4();
+        Convo.getState().setMessages({
+            id: messageId,
+            role: "user",
+            content: trimmed,
+            timestamp: new Date().getTime(),
+            conversation_id: activeConversationId,
+            source: "voice",
+        });
+        sessionManager.sendTextMessage(trimmed);
+    }, [sessionManager, conversationId]);
+
     const addLocalAssistantMessage = useCallback((content: string) => {
         const activeConversationId = conversationIdRef.current || conversationId;
         if (!activeConversationId) return;
@@ -298,8 +314,16 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
 
         const stream = new VerifiedVoiceStream({
             walletAddress,
-            onVerifiedAudio: (audioBase64) => {
+            onVerifiedCommand: (transcript, audioBase64) => {
                 if (!sessionManager.isActive()) return;
+                if (transcript.trim()) {
+                    sendVerifiedVoiceMessage(transcript);
+                    return;
+                }
+
+                // Speaker was verified, but Laravel transcription returned empty.
+                // Fall back to the realtime session's manual audio buffer path.
+                addLocalAssistantMessage("Voice verified. Transcribing your command...");
                 sessionManager.sendVerifiedAudioChunk(audioBase64);
             },
             onStateChange: (state) => {
@@ -332,7 +356,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             setCurrentMode("loading");
             throw error;
         }
-    }, [currentMode, sessionManager]);
+    }, [addLocalAssistantMessage, currentMode, sendVerifiedVoiceMessage, sessionManager]);
 
     const stopVoiceCommand = useCallback(async (
         options: { silentFailure?: boolean } = {}
