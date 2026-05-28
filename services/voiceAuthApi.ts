@@ -9,6 +9,15 @@ export type VoiceStatusResponse = {
   algorithm_version?: string;
   voice_ai_enabled?: boolean;
   voice_ai_url?: string | null;
+  voice_stream_verify_enabled?: boolean;
+};
+
+export type VoiceStreamSessionResponse = {
+  session_id: string;
+  ws_url: string;
+  expires_in: number;
+  threshold: number;
+  algorithm_version: string;
 };
 
 export type VoiceEnrollResponse = {
@@ -27,6 +36,10 @@ export type VoiceVerifyResponse = {
   adapted?: boolean;
   scores?: number[];
   duration_seconds?: number | null;
+  speaker_count?: number;
+  target_segment_count?: number;
+  target_speech_seconds?: number | null;
+  rejection_reason?: string | null;
   algorithm_version?: string;
   transcript: string;
   message?: string;
@@ -61,6 +74,38 @@ export async function enrollVoiceProfile(payload: {
     "/v2/voice/enroll"
   );
   return parseJsonResponse<VoiceEnrollResponse>(response);
+}
+
+export async function createVoiceStreamSession(walletAddress: string): Promise<VoiceStreamSessionResponse> {
+  const response = await request.postJson(
+    { wallet_address: walletAddress },
+    "/v2/voice/verify-stream/session"
+  );
+  return parseJsonResponse<VoiceStreamSessionResponse>(response);
+}
+
+export async function completeVoiceStreamVerification(payload: {
+  walletAddress: string;
+  sessionId: string;
+  adapt?: boolean;
+}): Promise<VoiceVerifyResponse> {
+  const response = await request.postJson(
+    {
+      wallet_address: payload.walletAddress,
+      session_id: payload.sessionId,
+      adapt: payload.adapt ?? true,
+    },
+    "/v2/voice/verify-stream/complete"
+  );
+  const data = (await response.json().catch(() => ({}))) as VoiceVerifyResponse & {
+    message?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Voice stream verification failed");
+  }
+
+  return data;
 }
 
 export async function verifyVoiceCommand(payload: {
