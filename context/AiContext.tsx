@@ -9,7 +9,10 @@ import { getAssistantPromptBase } from "../libs/tool-implemetation/prompt";
 import Convo from "@/utils/store/conversation.store";
 import { v4 as uuidv4 } from "uuid";
 import WalletItem from "@/utils/store/wallet.store";
-import { VerifiedVoiceStream } from "@/libs/voiceinfra/VerifiedVoiceStream";
+import {
+    VerifiedVoiceStream,
+    type VoiceVerificationDebugInfo,
+} from "@/libs/voiceinfra/VerifiedVoiceStream";
 import { fetchVoiceStatus } from "@/services/voiceAuthApi";
 
 export type AiInputMode = 'audio' | 'chat';
@@ -28,6 +31,7 @@ interface AIService {
     isVoiceCommandRecording: boolean,
     voiceEnrolled: boolean | null,
     voiceGateStatus: "idle" | "listening" | "hearing" | "verifying" | "verified",
+    voiceVerificationDebug: VoiceVerificationDebugInfo | null,
     refreshVoiceEnrollment: () => Promise<void>,
     startVoiceCommand: () => Promise<void>,
     stopVoiceCommand: (options?: { silentFailure?: boolean }) => Promise<{ ok: boolean; message?: string }>,
@@ -49,6 +53,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const [isVoiceCommandRecording, setIsVoiceCommandRecording] = useState(false);
     const [voiceEnrolled, setVoiceEnrolled] = useState<boolean | null>(null);
     const [voiceGateStatus, setVoiceGateStatus] = useState<"idle" | "listening" | "hearing" | "verifying" | "verified">("idle");
+    const [voiceVerificationDebug, setVoiceVerificationDebug] = useState<VoiceVerificationDebugInfo | null>(null);
     const startSessionPromiseRef = useRef<Promise<void> | null>(null);
     const voiceCommandRecordingRef = useRef(false);
     const voiceStreamRef = useRef<VerifiedVoiceStream | null>(null);
@@ -233,6 +238,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 setIsSessionActive(false);
                 setIsVoiceCommandRecording(false);
                 setVoiceGateStatus("idle");
+                setVoiceVerificationDebug(null);
                 setSessionManager(null);
             }
             setRefresh(Math.random());
@@ -332,7 +338,16 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                     setCurrentMode("human");
                 }
             },
+            onVerificationDebug: (info) => {
+                setVoiceVerificationDebug(info);
+            },
             onError: (error) => {
+                setVoiceVerificationDebug({
+                    utteranceId: 0,
+                    phase: "error",
+                    error: error.message,
+                    message: error.message,
+                });
                 console.warn("[VoiceAuth] stream error", error.message);
             },
         });
@@ -348,11 +363,13 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             }
             setIsVoiceCommandRecording(true);
             setVoiceGateStatus("listening");
+            setVoiceVerificationDebug(null);
         } catch (error) {
             voiceStreamRef.current = null;
             voiceCommandRecordingRef.current = false;
             setIsVoiceCommandRecording(false);
             setVoiceGateStatus("idle");
+            setVoiceVerificationDebug(null);
             setCurrentMode("loading");
             throw error;
         }
@@ -375,6 +392,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             voiceCommandRecordingRef.current = false;
             setIsVoiceCommandRecording(false);
             setVoiceGateStatus("idle");
+            setVoiceVerificationDebug(null);
             setCurrentMode("loading");
             return { ok: true };
         } catch (error: any) {
@@ -386,6 +404,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             voiceCommandRecordingRef.current = false;
             setIsVoiceCommandRecording(false);
             setVoiceGateStatus("idle");
+            setVoiceVerificationDebug(null);
             setCurrentMode("loading");
             const message = error?.message ?? "Voice stream failed to stop.";
             if (!options.silentFailure) {
@@ -396,7 +415,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, [addLocalAssistantMessage]);
 
     return (
-        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId, connection, inputMode, setInputMode, sendChatMessage, isVoiceCommandRecording, voiceEnrolled, voiceGateStatus, refreshVoiceEnrollment, startVoiceCommand, stopVoiceCommand }}>
+        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId, connection, inputMode, setInputMode, sendChatMessage, isVoiceCommandRecording, voiceEnrolled, voiceGateStatus, voiceVerificationDebug, refreshVoiceEnrollment, startVoiceCommand, stopVoiceCommand }}>
             {children}
         </AiService.Provider>
     );

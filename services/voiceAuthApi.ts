@@ -27,11 +27,38 @@ export type VoiceEnrollResponse = {
   algorithm_version: string;
 };
 
+export class VoiceEnrollmentSimilarityError extends Error {
+  sampleScores: number[];
+  requiredSimilarity?: number;
+  lowestSimilarity?: number;
+  requiredPairSimilarity?: number;
+  bestPairSimilarity?: number;
+
+  constructor(payload: {
+    message?: string;
+    sample_scores?: number[];
+    required_similarity?: number;
+    lowest_similarity?: number;
+    required_pair_similarity?: number;
+    best_pair_similarity?: number;
+  }) {
+    super(payload.message ?? "Your voice samples do not sound similar enough.");
+    this.name = "VoiceEnrollmentSimilarityError";
+    this.sampleScores = Array.isArray(payload.sample_scores) ? payload.sample_scores : [];
+    this.requiredSimilarity = payload.required_similarity;
+    this.lowestSimilarity = payload.lowest_similarity;
+    this.requiredPairSimilarity = payload.required_pair_similarity;
+    this.bestPairSimilarity = payload.best_pair_similarity;
+  }
+}
+
 export type VoiceVerifyResponse = {
   verified: boolean;
   enrolled: boolean;
   confidence: number;
+  secondary_confidence?: number;
   threshold?: number;
+  secondary_threshold?: number;
   stored_threshold?: number;
   adapted?: boolean;
   scores?: number[];
@@ -73,7 +100,21 @@ export async function enrollVoiceProfile(payload: {
     },
     "/v2/voice/enroll"
   );
-  return parseJsonResponse<VoiceEnrollResponse>(response);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    if (
+      Array.isArray(data?.sample_scores) ||
+      typeof data?.required_similarity === "number" ||
+      typeof data?.required_pair_similarity === "number"
+    ) {
+      throw new VoiceEnrollmentSimilarityError(data);
+    }
+
+    throw new Error(data?.message ?? "Voice enrollment request failed");
+  }
+
+  return data as VoiceEnrollResponse;
 }
 
 export async function createVoiceStreamSession(walletAddress: string): Promise<VoiceStreamSessionResponse> {

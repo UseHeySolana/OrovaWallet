@@ -14,6 +14,7 @@ import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { useAi } from "@/context/AiContext";
+import type { VoiceVerificationDebugInfo } from "@/libs/voiceinfra/VerifiedVoiceStream";
 import { MessageType } from "@/utils/store/conversation.store";
 import { BlurView } from "expo-blur";
 import UserItem from "@/utils/store/userstore.store";
@@ -39,6 +40,67 @@ const colors = {
 
 interface ChatInterfaceProps {
   messages: MessageType[];
+}
+
+function formatPercent(value?: number): string {
+  if (typeof value !== "number" || Number.isNaN(value)) return "—";
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatVoiceVerificationDebug(info: VoiceVerificationDebugInfo): string {
+  const lines: string[] = [`Sample #${info.utteranceId} · ${info.phase}`];
+
+  if (info.phase === "hearing" && typeof info.rms === "number") {
+    lines.push(`Audio level (RMS): ${info.rms}`);
+  }
+
+  if (info.phase === "verifying") {
+    if (typeof info.durationSeconds === "number") {
+      lines.push(`Captured: ${info.durationSeconds}s`);
+    }
+    if (typeof info.bytes === "number") {
+      lines.push(`Bytes: ${info.bytes}`);
+    }
+  }
+
+  if (info.source) {
+    lines.push(`Path: ${info.source}`);
+  }
+
+  if (info.phase === "result" || info.phase === "error") {
+    if (typeof info.verified === "boolean") {
+      lines.push(`Verified: ${info.verified ? "yes" : "no"}`);
+    }
+    if (typeof info.confidence === "number") {
+      const thresholdHint =
+        typeof info.threshold === "number"
+          ? ` (need ${formatPercent(info.threshold)})`
+          : "";
+      lines.push(`Confidence: ${formatPercent(info.confidence)}${thresholdHint}`);
+    }
+    if (
+      typeof info.secondary_confidence === "number" &&
+      typeof info.secondary_threshold === "number"
+    ) {
+      lines.push(
+        `Secondary: ${formatPercent(info.secondary_confidence)} (need ${formatPercent(info.secondary_threshold)})`
+      );
+    }
+    if (Array.isArray(info.scores) && info.scores.length > 0) {
+      lines.push(`Scores: ${info.scores.map((score) => formatPercent(score)).join(", ")}`);
+    }
+    if (info.rejection_reason) {
+      lines.push(`Reason: ${info.rejection_reason}`);
+    }
+    if (info.message) {
+      lines.push(info.message);
+    }
+    if (info.error) {
+      lines.push(`Error: ${info.error}`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 function formatChatTranscript(messages: MessageType[], aiName: string, username?: string) {
@@ -80,6 +142,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
     isVoiceCommandRecording,
     voiceEnrolled,
     voiceGateStatus,
+    voiceVerificationDebug,
     startVoiceCommand,
     stopVoiceCommand,
   } = useAi();
@@ -210,6 +273,10 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
           : isVoiceCommandRecording
             ? "Listening securely. Only verified commands are sent to the AI."
             : "Starting secure voice stream...";
+
+  const voiceDebugText = voiceVerificationDebug
+    ? formatVoiceVerificationDebug(voiceVerificationDebug)
+    : null;
 
   const chatContent = (
     <View
@@ -418,6 +485,16 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
                 <CText className="text-center text-xs text-gray-500 mt-2">
                   {voiceGateMessage}
                 </CText>
+                {__DEV__ && voiceDebugText ? (
+                  <View className="rounded-xl bg-black/70 dark:bg-black/80 px-3 py-2">
+                    <CText
+                      className="text-[10px] text-emerald-200"
+                      style={{ fontFamily: "md" }}
+                    >
+                      {voiceDebugText}
+                    </CText>
+                  </View>
+                ) : null}
                 <TouchableOpacity
                   onPress={handleStopSession}
                   activeOpacity={0.8}
@@ -433,6 +510,16 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
                 <CText className="text-center text-xs text-gray-500 mt-2">
                   Press Start to verify your voice and send commands to the AI.
                 </CText>
+                {__DEV__ && voiceDebugText ? (
+                  <View className="rounded-xl bg-black/70 dark:bg-black/80 px-3 py-2">
+                    <CText
+                      className="text-[10px] text-emerald-200"
+                      style={{ fontFamily: "md" }}
+                    >
+                      {voiceDebugText}
+                    </CText>
+                  </View>
+                ) : null}
                 <TouchableOpacity
                   onPress={handleStartSession}
                   activeOpacity={0.8}

@@ -5,7 +5,9 @@ export type VoiceStreamServerMessage =
       type: "verified";
       verified: boolean;
       confidence: number;
+      secondary_confidence?: number;
       threshold?: number;
+      secondary_threshold?: number;
       isolated_audio?: string | null;
       speaker_count?: number;
       target_segment_count?: number;
@@ -17,9 +19,15 @@ export type VoiceStreamServerMessage =
       type: "rejected";
       verified: boolean;
       confidence: number;
+      secondary_confidence?: number;
+      threshold?: number;
+      secondary_threshold?: number;
       rejection_reason?: string | null;
       message?: string;
       scores?: number[];
+      speaker_count?: number;
+      target_segment_count?: number;
+      target_speech_seconds?: number | null;
     }
   | { type: "error"; message: string };
 
