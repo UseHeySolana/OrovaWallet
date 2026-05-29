@@ -8,30 +8,52 @@ import {
   startVerifiedVoiceRecording,
   stopVerifiedVoiceRecording,
 } from "@/libs/voiceinfra/VerifiedVoiceRecorder";
-import { enrollVoiceProfile, fetchVoiceStatus } from "@/services/voiceAuthApi";
+import {
+  enrollVoiceProfile,
+  fetchVoiceStatus,
+  VoiceEnrollmentSimilarityError,
+} from "@/services/voiceAuthApi";
 import { useAi } from "@/context/AiContext";
 import Buttons from "@/components/ButtonComp";
 import AppSettings from "@/utils/store/settingsstore.store";
 
-const enrollmentPrompts = [
-  "My voice is my secure key, and I am enrolling it today to protect my wallet and confirm future actions.",
-  "I am speaking clearly and naturally so Hey Solana can learn my voice pattern for secure verification.",
-  "This voice profile belongs to me, and I will use it to safely approve wallet access and transactions.",
-  "Hey Solana, please register my voice so I can verify my identity with confidence and security.",
-  "I am creating a trusted voice profile that helps protect my account from unauthorized access.",
-  "My spoken words confirm who I am, and this enrolment will help secure my Solana wallet.",
-  "I am reading this phrase at a steady pace so my voice can be matched accurately later.",
-  "This is my personal voice enrolment for Hey Solana, recorded clearly in a quiet environment.",
-  "I authorize this voice sample to be used for secure identity verification inside my wallet.",
-  "My voice should sound natural, calm, and consistent whenever I use Hey Solana for verification.",
-];
+/** Same phrase for all 3 samples — improves ECAPA enrollment consistency. */
+const ENROLLMENT_PHRASE =
+  "Hey Solana, this is my voice for secure wallet verification.";
 
-const getRandomEnrollmentPrompt = (currentPrompt?: string) => {
-  const availablePrompts = enrollmentPrompts.filter((prompt) => prompt !== currentPrompt);
-  const prompts = availablePrompts.length > 0 ? availablePrompts : enrollmentPrompts;
+function formatSimilarityPercent(value?: number): string {
+  if (typeof value !== "number" || Number.isNaN(value)) return "N/A";
 
-  return prompts[Math.floor(Math.random() * prompts.length)];
-};
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatEnrollmentSimilarityMessage(error: VoiceEnrollmentSimilarityError): string {
+  const sampleScores = error.sampleScores
+    .map((score, index) => `Sample ${index + 1}: ${formatSimilarityPercent(score)}`)
+    .join("\n");
+
+  const scoreSummary = sampleScores
+    ? `\n\nSimilarity scores:\n${sampleScores}`
+    : "";
+
+  const pairSummary =
+    typeof error.requiredPairSimilarity === "number"
+      ? `\nBest pair match: ${formatSimilarityPercent(error.bestPairSimilarity)} (need ${formatSimilarityPercent(error.requiredPairSimilarity)})`
+      : "";
+
+  return [
+    error.message,
+    pairSummary,
+    typeof error.requiredSimilarity === "number"
+      ? `\nRequired match: ${formatSimilarityPercent(error.requiredSimilarity)}`
+      : "",
+    typeof error.lowestSimilarity === "number"
+      ? `\nLowest match: ${formatSimilarityPercent(error.lowestSimilarity)}`
+      : "",
+    scoreSummary,
+    "\n\nPlease re-record all 3 samples using the same phrase above, same voice, distance from the mic, and speaking volume.",
+  ].join("");
+}
 
 export default function Voicereg() {
   const [recording, setRecording] = useState(false);
@@ -40,7 +62,6 @@ export default function Voicereg() {
   const [secondsLeft, setSecondsLeft] = useState(sampleDurationSeconds);
   const [submitting, setSubmitting] = useState(false);
   const [samples, setSamples] = useState<string[]>([]);
-  const [prompt, setPrompt] = useState(() => getRandomEnrollmentPrompt());
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingRef = useRef(false);
@@ -74,7 +95,6 @@ export default function Voicereg() {
       setSavingSample(true);
       const audio = await stopVerifiedVoiceRecording();
       setSamples((current) => [...current, audio].slice(0, 3));
-      setPrompt((currentPrompt) => getRandomEnrollmentPrompt(currentPrompt));
     } catch (error: any) {
       Alert.alert("Voice enrollment", error?.message ?? "Could not record voice sample");
     } finally {
@@ -155,11 +175,19 @@ export default function Voicereg() {
         { text: "Done", onPress: () => router.replace("/dashboard") },
       ]);
     } catch (error: any) {
+      if (error instanceof VoiceEnrollmentSimilarityError) {
+        Alert.alert(
+          "Voice samples do not match",
+          formatEnrollmentSimilarityMessage(error)
+        );
+        setSamples([]);
+        return;
+      }
+
       const message = error?.message ?? "Please try again.";
       setToast(message, "error");
       if (message.toLowerCase().includes("similar")) {
         setSamples([]);
-        setPrompt((currentPrompt) => getRandomEnrollmentPrompt(currentPrompt));
       }
     } finally {
       setSubmitting(false);
@@ -173,11 +201,13 @@ export default function Voicereg() {
       <View className="w-100 m-auto flex justify-center items-start">
         <View className="w-11/12">
           <View className="">
-            <CText style={{ fontFamily: "bold" }} className="text-[38px] text-wrap">&quot;{prompt}&quot;</CText>
+            <CText style={{ fontFamily: "bold" }} className="text-[38px] text-wrap">
+              &quot;{ENROLLMENT_PHRASE}&quot;
+            </CText>
           </View>
           <View>
             <CText className="text-[14px] text-gray-400">
-              Record 3 voice samples, 10 seconds each. Speak naturally and vary your words so HeySolana gets a stronger voice dataset.
+              Record 3 voice samples, 10 seconds each. Read this same phrase each time, at a steady pace, in a quiet place.
             </CText>
             <CText className="text-[18px] text-gray-400 mt-4">
               Sample {Math.min(samples.length + 1, 3)} of 3 · {samples.length} saved

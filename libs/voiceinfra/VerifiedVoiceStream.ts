@@ -12,11 +12,34 @@ import {
   VoiceStreamSocket,
 } from "@/libs/voiceinfra/voiceStreamSocket";
 
+export type VoiceVerificationDebugInfo = {
+  utteranceId: number;
+  phase: "hearing" | "verifying" | "result" | "error";
+  source?: "stream" | "http";
+  verified?: boolean;
+  rms?: number;
+  durationSeconds?: number;
+  bytes?: number;
+  confidence?: number;
+  secondary_confidence?: number;
+  threshold?: number;
+  secondary_threshold?: number;
+  stored_threshold?: number;
+  scores?: number[];
+  speaker_count?: number;
+  target_segment_count?: number;
+  target_speech_seconds?: number | null;
+  rejection_reason?: string | null;
+  message?: string;
+  error?: string;
+};
+
 type VerifiedVoiceStreamOptions = {
   walletAddress: string;
   /** Called after speaker verification with the Laravel/OpenAI transcript (not raw audio). */
   onVerifiedCommand: (transcript: string, audioBase64: string) => void;
   onStateChange?: (state: "listening" | "hearing" | "verifying" | "verified") => void;
+  onVerificationDebug?: (info: VoiceVerificationDebugInfo) => void;
   onError?: (error: Error) => void;
 };
 
@@ -28,8 +51,8 @@ const BYTES_PER_SECOND = SAMPLE_RATE * BYTES_PER_SAMPLE * CHANNELS;
 const MIN_UTTERANCE_SECONDS = 1.2;
 const MIN_UTTERANCE_BYTES = Math.ceil(BYTES_PER_SECOND * MIN_UTTERANCE_SECONDS);
 const SPEECH_RMS = 0.009;
-const SILENCE_AFTER_SPEECH_MS = 1800;
-const MAX_UTTERANCE_MS = 20_000;
+const SILENCE_AFTER_SPEECH_MS = 2600;
+const MAX_UTTERANCE_MS = 30_000;
 const DUPLICATE_TRANSCRIPT_WINDOW_MS = 5000;
 const HEARING_STATE_RESET_MS = 1200;
 const VERIFIED_STATE_RESET_MS = 1200;
@@ -99,6 +122,8 @@ export class VerifiedVoiceStream {
   private pendingStreamChunks: Buffer[] = [];
   private streamOutcomeResolver: ((message: VoiceStreamServerMessage) => void) | null = null;
   private lastStreamOutcome: VoiceStreamServerMessage | null = null;
+  private utteranceSequence = 0;
+  private activeUtteranceId = 0;
 
   constructor(private options: VerifiedVoiceStreamOptions) {}
 
@@ -131,6 +156,9 @@ export class VerifiedVoiceStream {
     this.teardownStream();
     AudioRecord.start();
     this.emitState("listening");
+    if (this.streamVerifyEnabled) {
+      void this.ensureStreamConnection();
+    }
   }
 
   async stop(): Promise<void> {
@@ -320,12 +348,25 @@ export class VerifiedVoiceStream {
         if (!isSpeech) return;
 
         this.hasSpeech = true;
+        this.activeUtteranceId = this.nextUtteranceId();
         this.lastSpeechAt = now;
         this.clearBuffer();
         void this.ensureStreamConnection();
         this.maxUtteranceTimer = setTimeout(() => {
           void this.flush();
         }, MAX_UTTERANCE_MS);
+        const rmsRounded = Number(rms.toFixed(4));
+        this.logDebug("heard_audio", {
+          utterance_id: this.activeUtteranceId,
+          rms: rmsRounded,
+          stream_enabled: this.streamVerifyEnabled,
+          stream_ready: this.streamReady,
+        });
+        this.emitVerificationDebug({
+          utteranceId: this.activeUtteranceId,
+          phase: "hearing",
+          rms: rmsRounded,
+        });
       }
 
       this.chunks.push(chunk);
@@ -395,6 +436,7 @@ export class VerifiedVoiceStream {
     }
 
     const audio = Buffer.concat(this.chunks, this.byteLength);
+    const utteranceId = this.activeUtteranceId || this.nextUtteranceId();
     this.clearBuffer();
     this.clearTimers();
     this.resetSpeechFlags();
@@ -406,6 +448,18 @@ export class VerifiedVoiceStream {
 
     this.verifying = true;
     this.emitState("verifying");
+    const durationSeconds = Number((audio.length / BYTES_PER_SECOND).toFixed(3));
+    this.logDebug("verifying_audio", {
+      utterance_id: utteranceId,
+      bytes: audio.length,
+      duration_seconds: durationSeconds,
+    });
+    this.emitVerificationDebug({
+      utteranceId,
+      phase: "verifying",
+      bytes: audio.length,
+      durationSeconds,
+    });
 
     const useStream =
       this.streamVerifyEnabled !== false &&
@@ -415,6 +469,7 @@ export class VerifiedVoiceStream {
       const result = useStream
         ? await this.verifyWithStream(audio)
         : await this.verifyWithHttp(audio);
+      this.logVerificationResult(utteranceId, useStream ? "stream" : "http", result);
 
       if (!result.verified) {
         this.emitState("listening");
@@ -439,6 +494,18 @@ export class VerifiedVoiceStream {
     } catch (error: any) {
       const message =
         error instanceof Error ? error.message : String(error?.message ?? error);
+      this.logDebug("verification_error", {
+        utterance_id: utteranceId,
+        source: useStream ? "stream" : "http",
+        message,
+      }, "warn");
+      this.emitVerificationDebug({
+        utteranceId,
+        phase: "error",
+        source: useStream ? "stream" : "http",
+        error: message,
+        message,
+      });
       if (!isRecoverableVerifyError(message)) {
         this.options.onError?.(
           error instanceof Error ? error : new Error(message)
@@ -448,6 +515,7 @@ export class VerifiedVoiceStream {
     } finally {
       this.verifying = false;
       this.teardownStream();
+      this.activeUtteranceId = 0;
     }
   }
 
@@ -497,7 +565,7 @@ export class VerifiedVoiceStream {
     }
 
     if (streamMessage.type === "rejected" || !("verified" in streamMessage) || !streamMessage.verified) {
-      const rejection =
+      const rejection: Partial<Extract<VoiceStreamServerMessage, { type: "rejected" }>> =
         streamMessage.type === "rejected"
           ? streamMessage
           : { rejection_reason: "speaker_not_recognized" as const, message: undefined, confidence: 0 };
@@ -505,6 +573,13 @@ export class VerifiedVoiceStream {
         verified: false,
         enrolled: true,
         confidence: Number(rejection.confidence ?? 0),
+        secondary_confidence: Number(rejection.secondary_confidence ?? 0),
+        threshold: rejection.threshold,
+        secondary_threshold: rejection.secondary_threshold,
+        scores: rejection.scores ?? [],
+        speaker_count: rejection.speaker_count,
+        target_segment_count: rejection.target_segment_count,
+        target_speech_seconds: rejection.target_speech_seconds,
         transcript: "",
         rejection_reason: rejection.rejection_reason ?? "speaker_not_recognized",
         message: rejection.message,
@@ -569,6 +644,77 @@ export class VerifiedVoiceStream {
       Date.now() - this.lastTranscriptAt < DUPLICATE_TRANSCRIPT_WINDOW_MS
     );
   }
+
+  private nextUtteranceId(): number {
+    this.utteranceSequence += 1;
+    return this.utteranceSequence;
+  }
+
+  private logVerificationResult(
+    utteranceId: number,
+    source: "stream" | "http",
+    result: {
+      verified?: boolean;
+      confidence?: number;
+      secondary_confidence?: number;
+      threshold?: number;
+      secondary_threshold?: number;
+      stored_threshold?: number;
+      scores?: number[];
+      speaker_count?: number;
+      target_segment_count?: number;
+      target_speech_seconds?: number | null;
+      rejection_reason?: string | null;
+      message?: string;
+    }
+  ): void {
+    this.logDebug(result.verified ? "verification_scores" : "verification_rejected", {
+      utterance_id: utteranceId,
+      source,
+      verified: Boolean(result.verified),
+      confidence: result.confidence,
+      secondary_confidence: result.secondary_confidence,
+      threshold: result.threshold,
+      secondary_threshold: result.secondary_threshold,
+      stored_threshold: result.stored_threshold,
+      scores: result.scores,
+      speaker_count: result.speaker_count,
+      target_segment_count: result.target_segment_count,
+      target_speech_seconds: result.target_speech_seconds,
+      rejection_reason: result.rejection_reason,
+      message: result.message,
+    }, result.verified ? "log" : "warn");
+    this.emitVerificationDebug({
+      utteranceId,
+      phase: "result",
+      source,
+      verified: Boolean(result.verified),
+      confidence: result.confidence,
+      secondary_confidence: result.secondary_confidence,
+      threshold: result.threshold,
+      secondary_threshold: result.secondary_threshold,
+      stored_threshold: result.stored_threshold,
+      scores: result.scores,
+      speaker_count: result.speaker_count,
+      target_segment_count: result.target_segment_count,
+      target_speech_seconds: result.target_speech_seconds,
+      rejection_reason: result.rejection_reason,
+      message: result.message,
+    });
+  }
+
+  private emitVerificationDebug(info: VoiceVerificationDebugInfo): void {
+    this.options.onVerificationDebug?.(info);
+  }
+
+  private logDebug(
+    event: string,
+    payload: Record<string, unknown>,
+    level: "log" | "warn" = "log"
+  ): void {
+    if (!__DEV__) return;
+    console[level](`[VoiceAuth] ${event}`, payload);
+  }
 }
 
 function isRecoverableVerifyError(message: string): boolean {
@@ -581,6 +727,8 @@ function isRecoverableVerifyError(message: string): boolean {
     normalized.includes("not enough of your voice") ||
     normalized.includes("multiple voices detected") ||
     normalized.includes("voice not recognized") ||
-    normalized.includes("utterance too short")
+    normalized.includes("utterance too short") ||
+    normalized.includes("not consistent enough") ||
+    normalized.includes("inconsistent_match")
   );
 }
