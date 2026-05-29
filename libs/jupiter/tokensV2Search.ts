@@ -2,6 +2,7 @@ import type { VerifiedTokenDef } from "@/utils/tokenList/types";
 import type { TokenSearchPickRow } from "@/utils/store/conversation.store";
 import { getVerifiedTokens } from "@/utils/store/verifiedTokens.store";
 import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
+import { BASE_URL } from "@/utils/constant";
 
 const TOKENS_V2_BASE = "https://api.jup.ag/tokens/v2";
 const SEARCH_URL = `${TOKENS_V2_BASE}/search`;
@@ -15,10 +16,12 @@ const isMint = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
 
 type JupiterTokenRow = {
     id?: string;
+    address?: string;
     name?: string;
     symbol?: string;
     decimals?: number;
     icon?: string;
+    logo?: string;
     isVerified?: boolean;
     organicScore?: number;
 };
@@ -30,7 +33,9 @@ export type TokenSearchHit = {
 };
 
 function rowToHit(row: JupiterTokenRow): TokenSearchHit | null {
-    const id = typeof row.id === "string" ? row.id.trim() : "";
+    const id =
+        (typeof row.id === "string" ? row.id.trim() : "") ||
+        (typeof row.address === "string" ? row.address.trim() : "");
     if (!isMint(id)) return null;
     const symbol = typeof row.symbol === "string" ? row.symbol.trim() : "";
     const name =
@@ -40,7 +45,9 @@ function rowToHit(row: JupiterTokenRow): TokenSearchHit | null {
     const d =
         typeof row.decimals === "number" ? row.decimals : Number(row.decimals);
     if (!symbol || !Number.isFinite(d)) return null;
-    const icon = typeof row.icon === "string" ? row.icon.trim() : "";
+    const icon =
+        (typeof row.icon === "string" ? row.icon.trim() : "") ||
+        (typeof row.logo === "string" ? row.logo.trim() : "");
     return {
         meta: {
             name,
@@ -57,15 +64,45 @@ function rowToHit(row: JupiterTokenRow): TokenSearchHit | null {
     };
 }
 
-async function fetchJupiterTokenRows(
+function backendTokenCacheBase(): string {
+    return (process.env.EXPO_PUBLIC_TOKEN_CACHE_URL || BASE_URL || "").trim();
+}
+
+function parseTokenRowsPayload(text: string): JupiterTokenRow[] {
+    let json: unknown;
+    try {
+        json = text ? JSON.parse(text) : null;
+    } catch {
+        return [];
+    }
+
+    if (Array.isArray(json)) return json as JupiterTokenRow[];
+    if (!json || typeof json !== "object") return [];
+
+    const obj = json as {
+        tokens?: unknown;
+        data?: { tokens?: unknown } | unknown[];
+    };
+    if (Array.isArray(obj.tokens)) return obj.tokens as JupiterTokenRow[];
+    if (Array.isArray(obj.data)) return obj.data as JupiterTokenRow[];
+    if (
+        obj.data &&
+        typeof obj.data === "object" &&
+        Array.isArray((obj.data as { tokens?: unknown }).tokens)
+    ) {
+        return (obj.data as { tokens: JupiterTokenRow[] }).tokens;
+    }
+    return [];
+}
+
+async function fetchTokenRows(
     url: string,
-    logLabel: string
+    logLabel: string,
+    headers?: HeadersInit
 ): Promise<TokenSearchHit[]> {
-    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
-    if (!key) return [];
 
     const startedAt = Date.now();
-    const res = await fetch(url, { headers: jupHeaders() });
+    const res = await fetch(url, { headers: headers ?? { Accept: "application/json" } });
     const text = await res.text();
     if (__DEV__) {
         pushDevNetworkLog({
@@ -79,24 +116,43 @@ async function fetchJupiterTokenRows(
     }
     if (!res.ok) return [];
 
-    let json: unknown;
-    try {
-        json = text ? JSON.parse(text) : null;
-    } catch {
-        return [];
-    }
-    if (!Array.isArray(json)) return [];
-
     const hits: TokenSearchHit[] = [];
-    for (const row of json as JupiterTokenRow[]) {
+    for (const row of parseTokenRowsPayload(text)) {
         const h = rowToHit(row);
         if (h) hits.push(h);
     }
     return hits;
 }
 
+async function fetchBackendTokenRows(
+    path: string,
+    logLabel: string
+): Promise<TokenSearchHit[]> {
+    const base = backendTokenCacheBase();
+    if (!base) return [];
+
+    const url = `${base.replace(/\/$/, "")}${path}`;
+    return fetchTokenRows(url, `${logLabel} cache`, { Accept: "application/json" });
+}
+
+async function fetchJupiterTokenRows(
+    url: string,
+    logLabel: string
+): Promise<TokenSearchHit[]> {
+    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
+    if (!key) return [];
+
+    return fetchTokenRows(url, logLabel, jupHeaders());
+}
+
 /** Jupiter Tokens v2 verified tag list. */
 export async function fetchVerifiedTokenHitsV2(): Promise<TokenSearchHit[]> {
+    const cached = await fetchBackendTokenRows(
+        "/tokens/jupiter/verified",
+        "Jupiter tokens v2 /tag verified"
+    );
+    if (cached.length > 0) return cached;
+
     return fetchJupiterTokenRows(
         `${TOKENS_V2_BASE}/tag?query=verified`,
         "Jupiter tokens v2 /tag verified"
@@ -107,6 +163,12 @@ export async function fetchVerifiedTokenHitsV2(): Promise<TokenSearchHit[]> {
 export async function fetchTopOrganicTokenHitsV2(
     limit = 50
 ): Promise<TokenSearchHit[]> {
+    const cached = await fetchBackendTokenRows(
+        `/tokens/jupiter/top-organic?limit=${encodeURIComponent(String(limit))}`,
+        "Jupiter tokens v2 /toporganicscore"
+    );
+    if (cached.length > 0) return cached;
+
     return fetchJupiterTokenRows(
         `${TOKENS_V2_BASE}/toporganicscore/24h?limit=${limit}`,
         "Jupiter tokens v2 /toporganicscore"
@@ -136,11 +198,17 @@ export async function browseTokenHitsForSwap(
 
 /** Raw Jupiter search; returns empty if no API key or bad response. */
 export async function searchTokenHitsV2(query: string): Promise<TokenSearchHit[]> {
-    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
-    if (!key) return [];
-
     const q = query.trim();
     if (!q) return [];
+
+    const cached = await fetchBackendTokenRows(
+        `/tokens/jupiter/search?query=${encodeURIComponent(q)}`,
+        "Jupiter tokens v2 /search"
+    );
+    if (cached.length > 0) return cached;
+
+    const key = (process.env.EXPO_PUBLIC_JUP_API_KEY || "").trim();
+    if (!key) return [];
 
     const url = `${SEARCH_URL}?query=${encodeURIComponent(q)}`;
     const startedAt = Date.now();

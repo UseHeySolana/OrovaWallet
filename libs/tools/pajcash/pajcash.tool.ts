@@ -2,6 +2,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
+import { ParsedAccountData, PublicKey } from "@solana/web3.js";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import {
   completeConversation,
@@ -31,7 +32,33 @@ function defaultUsdcMint(): string {
     : DEFAULT_USDC_MAINNET;
 }
 
-async function resolveMint(token: string): Promise<{
+function parseMintAddress(token: string): string | null {
+  try {
+    return new PublicKey(token.trim()).toBase58();
+  } catch {
+    return null;
+  }
+}
+
+async function getMintDecimals(
+  mint: string,
+  connection?: SessionManager["connection"]
+): Promise<number> {
+  if (!connection) return 6;
+  try {
+    const info = await connection.getParsedAccountInfo(new PublicKey(mint));
+    const decimals = (info.value?.data as ParsedAccountData | undefined)?.parsed
+      ?.info?.decimals;
+    return typeof decimals === "number" ? decimals : 6;
+  } catch {
+    return 6;
+  }
+}
+
+async function resolveMint(
+  token: string,
+  connection?: SessionManager["connection"]
+): Promise<{
   mint: string;
   decimals: number;
   symbol: string;
@@ -40,12 +67,22 @@ async function resolveMint(token: string): Promise<{
   if (!meta && token.toLowerCase() === "usdc") {
     return { mint: defaultUsdcMint(), decimals: 6, symbol: "USDC" };
   }
-  if (!meta || meta.symbol === "SOL") return null;
-  return {
-    mint: meta.address,
-    decimals: meta.decimals,
-    symbol: meta.symbol || token,
-  };
+  if (meta && meta.symbol !== "SOL") {
+    return {
+      mint: meta.address,
+      decimals: meta.decimals,
+      symbol: meta.symbol || token,
+    };
+  }
+  const mint = parseMintAddress(token);
+  if (mint) {
+    return {
+      mint,
+      decimals: await getMintDecimals(mint, connection),
+      symbol: `${mint.slice(0, 4)}...${mint.slice(-4)}`,
+    };
+  }
+  return null;
 }
 
 type TransferResult = { status: boolean; message: string };
@@ -63,7 +100,7 @@ async function sendTokens(
     }
     return result as TransferResult;
   }
-  const meta = await resolveMint(token);
+  const meta = await resolveMint(token, connection);
   if (!meta) {
     return { status: false, message: `Could not resolve token: ${token}` };
   }
@@ -240,12 +277,12 @@ export class PajCash {
           return "PajCash offramp supports SPL tokens, not native SOL. Swap SOL to an SPL token first.";
         }
 
-        const meta = await resolveMint(args.token);
+        const conn = this.session.connection;
+        const meta = await resolveMint(args.token, conn);
         if (!meta) {
           return `Could not resolve token for offramp: ${args.token}`;
         }
 
-        const conn = this.session.connection;
         const tokenBalance = await getTokenBalance(
           pk.toBase58(),
           meta.mint,
@@ -343,7 +380,7 @@ export class PajCash {
           return "PajCash is not connected. Use pajcash-initiate-session and pajcash-verify-session first.";
         }
 
-        const meta = await resolveMint(args.token);
+        const meta = await resolveMint(args.token, this.session.connection);
         if (!meta) {
           return `Could not resolve token for onramp: ${args.token}`;
         }
@@ -395,7 +432,7 @@ export class PajCash {
         if (!pk) return "Please connect your wallet";
 
         if (args.token.toLowerCase() !== "sol") {
-          const meta = await resolveMint(args.token);
+          const meta = await resolveMint(args.token, this.session.connection);
           if (!meta) {
             return `Could not resolve token: ${args.token}`;
           }
