@@ -215,15 +215,15 @@ const apps: App[] = [
   {
     name: "Pajcash",
     category: "Finance",
-    short_des: "Offramp your solana tokens to naira.",
+    short_des: "Onramp and offramp Solana tokens with Naira.",
     banner: require("@/assets/apps/pajbg.jpeg"),
     icon: require("@/assets/apps/pajcas.jpg"),
     description:
-      "Pajcash is a platform that allows you to offramp your solana tokens to naira.",
+      "Pajcash lets you buy crypto with Naira (onramp) or sell tokens for Naira (offramp) without leaving HeySolana.",
     tutorial:
-      "To use this tool, you need to connect your solana wallet on paj.cash, and then fill the details here!.",
+      "Add your email or phone, verify with PajCash OTP, then add bank details for offramp. You can onramp or offramp any supported SPL token.",
     url: "https://paj.cash",
-    tags: ["Finance", "Offramping", "Solana", "USDC"],
+    tags: ["Finance", "Onramping", "Offramping", "Solana", "SPL"],
     descriptionImages: [
       // "https://paj.cash/images/1.png",
       // "https://paj.cash/images/2.png",
@@ -236,19 +236,41 @@ const apps: App[] = [
     ratings: 4.5,
     tools: [
       {
+        name: "credentials",
+        params: [
+          {
+            name: "email_or_phone",
+            type: "string",
+            label: "Email or phone",
+            helper: "Use the email or phone number that should receive the PajCash OTP.",
+          },
+        ],
+      },
+      {
         name: "offramp",
         params: [
           {
             name: "account_number",
             type: "string",
+            label: "Bank account number",
           },
           {
             name: "bank",
             type: "string",
+            label: "Bank name or code",
+          },
+          {
+            name: "bank_id",
+            type: "string",
+            label: "Bank ID",
+            helper: "Optional. Use this only if PajCash gives you a bank ID.",
+            optional: true,
           },
           {
             name: "account_name",
             type: "string",
+            label: "Account name",
+            optional: true,
           },
         ],
       },

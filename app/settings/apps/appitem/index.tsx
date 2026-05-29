@@ -103,6 +103,7 @@ export default function AppItems() {
 
       // Check that every param in the tool has a matching param with a value in the config
       return tool.params?.every((param: any) => {
+        if (param?.optional) return true;
         const matchingParam = config?.parameters?.find(
           (p: any) => p?.type === param.name
         );

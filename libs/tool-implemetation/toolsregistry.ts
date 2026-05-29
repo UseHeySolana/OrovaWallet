@@ -23,7 +23,10 @@ const toolRouter = (SessionManager: SessionManager) => {
     new SwapFunction(SessionManager).swapFunction,
     new SwapFunction(SessionManager).checkPrice,
     new AirBills(SessionManager).buyElectricityBill,
+    new PajCash(SessionManager).pajcashInitiate,
+    new PajCash(SessionManager).pajcashVerify,
     new PajCash(SessionManager).pajitOfframp,
+    new PajCash(SessionManager).pajcashOnramp,
     new PajCash(SessionManager).getNairaRate,
 
     // MagicBlock Private Payments

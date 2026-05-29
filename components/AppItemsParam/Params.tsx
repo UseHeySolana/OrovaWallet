@@ -1,5 +1,5 @@
-import { View, ScrollView } from "react-native";
-import { Pressable } from "react-native";
+import { useState } from "react";
+import { View, ScrollView, Pressable, TextInput } from "react-native";
 import CText from "../TextComp";
 import IconLibrary from "@/utils/icons";
 import ParamsInput from "./ParamsInput";
@@ -9,6 +9,8 @@ import { TouchableNativeFeedback } from "react-native";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { delayPromise } from "@/utils/functions";
 import { openURL } from "@/utils/functions/extrafunctions";
+import { pajcash } from "@/libs/tools/pajcash/pajcash";
+import PajCashSession from "@/utils/store/pajcashSession.store";
 
 interface ParamsComponentProps {
   appData: any;
@@ -33,6 +35,54 @@ const ParamsComponent = ({
 }: ParamsComponentProps) => {
   const { updateToolParameter } = ToolsItem();
   const { setToast, setLoading } = AppSettings();
+  const pajSession = PajCashSession();
+  const [pajOtp, setPajOtp] = useState("");
+
+  const getPajRecipient = (itemName = "credentials") =>
+    ToolsItem.getState()
+      .getParameterValue(appData?.name, itemName, "email_or_phone")
+      ?.trim() || "";
+
+  const sendPajOtp = async (itemName = "credentials") => {
+    const recipient = getPajRecipient(itemName);
+    if (!recipient) {
+      setToast("Add your PajCash email or phone first", "error");
+      return;
+    }
+    setLoading(true);
+    const res = await pajcash.initiateSession(recipient);
+    setLoading(false);
+    if (!res.status) {
+      setToast(res.message, "error");
+      return;
+    }
+    updateToolParameter(appData?.name, itemName, {
+      type: "email_or_phone",
+      value: recipient,
+    });
+    setToast("PajCash OTP sent", "success");
+  };
+
+  const verifyPajOtp = async (itemName = "credentials") => {
+    const recipient = getPajRecipient(itemName);
+    if (!recipient) {
+      setToast("Add your PajCash email or phone first", "error");
+      return;
+    }
+    if (!pajOtp.trim()) {
+      setToast("Enter the PajCash OTP", "error");
+      return;
+    }
+    setLoading(true);
+    const res = await pajcash.verifySession(recipient, pajOtp);
+    setLoading(false);
+    if (!res.status) {
+      setToast(res.message, "error");
+      return;
+    }
+    setPajOtp("");
+    setToast("PajCash verified", "success");
+  };
 
   return (
     <View className="absolute top-0 py-5 left-0 right-0 z-50 px-4 bg-black/90 h-[100%] flex-1 flex flex-col justify-center items-center gap-y-2">
@@ -87,6 +137,52 @@ const ParamsComponent = ({
                   >
                     {item.name.toUpperCase()}
                   </CText>
+
+                {appData?.name === "Pajcash" && item?.name === "credentials" && (
+                  <View className="w-full mb-4 p-3 rounded-2xl bg-grey/30 dark:bg-black/30">
+                    <CText style={{ fontFamily: "bold" }} className="text-[1.1rem] mb-2">
+                      Verify PajCash session
+                    </CText>
+                    <CText style={{ fontFamily: "reg" }} className="text-[0.95rem]">
+                      Save your email or phone, send an OTP, then verify it here to enable onramp and offramp orders.
+                    </CText>
+                    {pajSession.isSessionValid() ? (
+                      <CText style={{ fontFamily: "reg" }} className="text-[0.9rem] mt-2 text-green-600">
+                        PajCash is verified{pajSession.expiresAt ? ` until ${new Date(pajSession.expiresAt).toLocaleString()}` : ""}.
+                      </CText>
+                    ) : (
+                      <CText style={{ fontFamily: "reg" }} className="text-[0.9rem] mt-2 text-black/70 dark:text-grey/70">
+                        PajCash is not verified yet.
+                      </CText>
+                    )}
+                    <View className="w-full mt-3">
+                      <TextInput
+                        className="w-full h-[44px] text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 p-2"
+                        value={pajOtp}
+                        placeholder="Enter PajCash OTP"
+                        placeholderTextColor="grey"
+                        onChangeText={setPajOtp}
+                        keyboardType="number-pad"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+                    <View className="w-full flex flex-row gap-x-2 mt-3">
+                      <Buttons
+                        type="secondary"
+                        className="flex-1 py-3 px-4 rounded-3xl"
+                        text="Send OTP"
+                        onPress={() => sendPajOtp(item.name)}
+                      />
+                      <Buttons
+                        type="primary"
+                        className="flex-1 py-3 px-4 rounded-3xl"
+                        text="Verify OTP"
+                        onPress={() => verifyPajOtp(item.name)}
+                      />
+                    </View>
+                  </View>
+                )}
 
                 {(appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && item?.name === "credentials" && (
                   <View className="w-full mb-4 p-3 rounded-2xl bg-grey/30 dark:bg-black/30">
