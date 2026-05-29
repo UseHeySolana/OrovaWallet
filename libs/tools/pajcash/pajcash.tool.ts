@@ -7,121 +7,293 @@ import {
   completeConversation,
   resolveTokenByQuery,
 } from "@/utils/functions";
-import { transferSol, transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
+import {
+  transferSol,
+  transferToken,
+  getTokenBalance,
+} from "@/libs/tools/transfer/transfers";
 import ToolsItem from "@/utils/store/toolsitems.store";
-import { getBalance } from "@/utils/wallet";
-import { pajcash } from "@/libs/tools/pajcash/pajcash";
+import { pajcash, Chain, Currency } from "@/libs/tools/pajcash/pajcash";
+import PajCashSession from "@/utils/store/pajcashSession.store";
+
+const PAJ_APP = "Pajcash";
+const PAJ_OFFRAMP = "offramp";
+const PAJ_CREDENTIALS = "credentials";
+
+const DEFAULT_USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const DEFAULT_USDC_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+
+function defaultUsdcMint(): string {
+  const fromEnv = (process.env.EXPO_PUBLIC_PAJCASH_USDC_MINT || "").trim();
+  if (fromEnv) return fromEnv;
+  return AppSettings.getState().networkShort === "devnet"
+    ? DEFAULT_USDC_DEVNET
+    : DEFAULT_USDC_MAINNET;
+}
+
+async function resolveMint(token: string): Promise<{
+  mint: string;
+  decimals: number;
+  symbol: string;
+} | null> {
+  const meta = await resolveTokenByQuery(token);
+  if (!meta && token.toLowerCase() === "usdc") {
+    return { mint: defaultUsdcMint(), decimals: 6, symbol: "USDC" };
+  }
+  if (!meta || meta.symbol === "SOL") return null;
+  return {
+    mint: meta.address,
+    decimals: meta.decimals,
+    symbol: meta.symbol || token,
+  };
+}
+
+type TransferResult = { status: boolean; message: string };
+
+async function sendTokens(
+  token: string,
+  amount: number,
+  recipient: string,
+  connection: SessionManager["connection"]
+): Promise<TransferResult> {
+  if (token.toLowerCase() === "sol") {
+    const result = await transferSol(recipient, amount, connection);
+    if (typeof result === "string") {
+      return { status: true, message: result };
+    }
+    return result as TransferResult;
+  }
+  const meta = await resolveMint(token);
+  if (!meta) {
+    return { status: false, message: `Could not resolve token: ${token}` };
+  }
+  const result = await transferToken(
+    recipient,
+    meta.mint,
+    amount,
+    meta.decimals,
+    connection
+  );
+  if (typeof result === "string") {
+    return { status: true, message: result };
+  }
+  return result as TransferResult;
+}
 
 export class PajCash {
+  public pajcashInitiate: FunctionParams;
+  public pajcashVerify: FunctionParams;
   public pajitOfframp: FunctionParams;
+  public pajcashOnramp: FunctionParams;
   public getNairaRate: FunctionParams;
-  private baseUrl = "https://api-staging.paj.cash";
 
   constructor(public session: SessionManager) {
+    this.pajcashInitiate = this.pajcash_initiate();
+    this.pajcashVerify = this.pajcash_verify();
     this.pajitOfframp = this.pajit_offramp();
+    this.pajcashOnramp = this.pajcash_onramp();
     this.getNairaRate = this.get_naira_rate();
+  }
+
+  private getStoredRecipient(fallback?: string): string | null {
+    const fromTools =
+      ToolsItem.getState()
+        .getParameterValue(PAJ_APP, PAJ_CREDENTIALS, "email_or_phone")
+        ?.trim() || "";
+    const fromSession = PajCashSession.getState().recipient?.trim() || "";
+    return (fallback?.trim() || fromTools || fromSession) || null;
+  }
+
+  pajcash_initiate() {
+    return {
+      name: "pajcash-initiate-session",
+      description:
+        "Send a PajCash OTP to the user's email or phone to start a PajCash onramp or offramp session.",
+      parameters: {
+        type: "object",
+        properties: {
+          email_or_phone: {
+            type: "string",
+            description:
+              "User email or phone with country code, e.g. user@gmail.com or +2348012345678",
+          },
+        },
+        required: ["email_or_phone"],
+      },
+      handler: async (args: { email_or_phone: string }) => {
+        const messageId = this.session.functionMessageId;
+        const res = await pajcash.initiateSession(args.email_or_phone);
+        if (!res.status) {
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return res.message;
+        }
+        ToolsItem.getState().updateToolParameter(PAJ_APP, PAJ_CREDENTIALS, {
+          type: "email_or_phone",
+          value: args.email_or_phone.trim(),
+        });
+        if (messageId !== null) completeConversation(messageId, "complete");
+        const dest = res.data.email || res.data.phone || args.email_or_phone;
+        return convertSpeech(
+          `A verification code was sent to ${dest}. Ask the user for the OTP, then call pajcash-verify-session.`
+        );
+      },
+    };
+  }
+
+  pajcash_verify() {
+    return {
+      name: "pajcash-verify-session",
+      description:
+        "Verify the PajCash OTP and activate the user's PajCash session for onramp and offramp.",
+      parameters: {
+        type: "object",
+        properties: {
+          otp: {
+            type: "string",
+            description: "The OTP code the user received from PajCash",
+          },
+          email_or_phone: {
+            type: "string",
+            description:
+              "Optional if already stored; email or phone used in initiate",
+          },
+        },
+        required: ["otp"],
+      },
+      handler: async (args: { otp: string; email_or_phone?: string }) => {
+        const messageId = this.session.functionMessageId;
+        const recipient = this.getStoredRecipient(args.email_or_phone);
+        if (!recipient) {
+          return "No email or phone on file. Call pajcash-initiate-session first.";
+        }
+        const res = await pajcash.verifySession(recipient, args.otp);
+        if (!res.status) {
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return res.message;
+        }
+        if (messageId !== null) completeConversation(messageId, "complete");
+        return convertSpeech(
+          "PajCash session is active. You can now onramp or offramp."
+        );
+      },
+    };
   }
 
   pajit_offramp() {
     return {
       name: "pajit-offramp",
       description:
-        "This function is used to offramp your solana tokens to naira",
+        "Offramp Solana tokens to Nigerian Naira via PajCash. Creates a Paj order and sends tokens to the deposit address.",
       parameters: {
         type: "object",
         properties: {
           amount: {
             type: "number",
-            description:
-              "This is the amount of solana tokens you want to offramp, it should be a number",
+            description: "SPL token amount to offramp",
           },
           token: {
             type: "string",
+            description: "SPL token symbol, name, or mint address",
+          },
+          fiat_amount: {
+            type: "number",
             description:
-              "This is the token you want to offramp, it should be a string",
+              "Optional NGN amount to receive instead of specifying token amount",
           },
         },
         required: ["amount", "token"],
       },
-
-      handler: async (args: { amount: number; token: string }) => {
+      handler: async (args: {
+        amount: number;
+        token: string;
+        fiat_amount?: number;
+      }) => {
         const messageId = this.session.functionMessageId;
         const pk = WalletItem.getState().publicKey;
         if (!pk) return "Please connect your wallet";
 
-        const conn = this.session.connection;
-        let tokenBalance: number;
-        let splMint: string | undefined;
-        let splDecimals: number | undefined;
-
-        if (args.token.toLowerCase() === "sol") {
-          tokenBalance = await getBalance(pk, conn);
-        } else {
-          const meta = await resolveTokenByQuery(args.token);
-          if (!meta || meta.symbol === "SOL") {
-            return `Could not resolve token for offramp: ${args.token}`;
-          }
-          splMint = meta.address;
-          splDecimals = meta.decimals;
-          tokenBalance = await getTokenBalance(
-            pk.toBase58(),
-            meta.address,
-            meta.decimals,
-            conn
-          );
+        if (!pajcash.getSessionToken()) {
+          return "PajCash is not connected. Use pajcash-initiate-session and pajcash-verify-session first.";
         }
-
-        if (tokenBalance < args.amount)
-          return `Insufficient ${args.token} balance to offramp`;
 
         const accountNumber = ToolsItem.getState().getParameterValue(
-          "Pajcash",
-          "offramp",
+          PAJ_APP,
+          PAJ_OFFRAMP,
           "account_number"
         );
+        const bankQuery =
+          ToolsItem.getState().getParameterValue(PAJ_APP, PAJ_OFFRAMP, "bank_id") ||
+          ToolsItem.getState().getParameterValue(PAJ_APP, PAJ_OFFRAMP, "bank");
 
-        if (!accountNumber)
-          return "You have not set your account number, please set your account number first";
-
-        const recipient = "PAJiUaKgxTBJVADc1wdiUygLd51biQPVB8KkJqYu53L";
-
-        let confirmation = null;
-        let transfer: { status: boolean; message: string } | null = null;
-
-        if (args.token.toLowerCase() === "sol") {
-          transfer = await transferSol(
-            recipient,
-            args.amount,
-            this.session.connection
-          );
-          if (!transfer.status) {
-            if (messageId !== null) completeConversation(messageId, "failed");
-            return transfer.message;
-          }
-          confirmation = await this.session.connection.confirmTransaction(
-            transfer.message,
-            "confirmed"
-          );
-        } else {
-          if (!splMint || splDecimals == null) {
-            return `Could not resolve token for offramp: ${args.token}`;
-          }
-          transfer = await transferToken(
-            recipient,
-            splMint,
-            args.amount,
-            splDecimals,
-            this.session.connection
-          );
-          if (!transfer.status) {
-            if (messageId !== null) completeConversation(messageId, "failed");
-            return transfer.message;
-          }
-          confirmation = await this.session.connection.confirmTransaction(
-            transfer.message,
-            "confirmed"
-          );
+        if (!accountNumber) {
+          return "Set your bank account number in Pajcash app settings first.";
         }
+        if (!bankQuery) {
+          return "Set your bank name or bank_id in Pajcash app settings first.";
+        }
+
+        const bankIdRes = await pajcash.findBankId(bankQuery);
+        if (!bankIdRes.status) return bankIdRes.message;
+
+        const tokenLower = args.token.toLowerCase();
+        if (tokenLower === "sol") {
+          return "PajCash offramp supports SPL tokens, not native SOL. Swap SOL to an SPL token first.";
+        }
+
+        const meta = await resolveMint(args.token);
+        if (!meta) {
+          return `Could not resolve token for offramp: ${args.token}`;
+        }
+
+        const conn = this.session.connection;
+        const tokenBalance = await getTokenBalance(
+          pk.toBase58(),
+          meta.mint,
+          meta.decimals,
+          conn
+        );
+        if (!args.fiat_amount && tokenBalance < args.amount) {
+          return `Insufficient ${meta.symbol} balance to offramp`;
+        }
+
+        const orderRes = await pajcash.createOfframp({
+          bank: bankIdRes.data,
+          accountNumber,
+          currency: Currency.NGN,
+          mint: meta.mint,
+          chain: Chain.SOLANA,
+          ...(args.fiat_amount
+            ? { fiatAmount: args.fiat_amount }
+            : { amount: args.amount }),
+        });
+
+        if (!orderRes.status) {
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return orderRes.message;
+        }
+
+        const order = orderRes.data;
+        const payAmount = order.amount;
+        if (tokenBalance < payAmount) {
+          return `Insufficient ${meta.symbol}. PajCash requires ${payAmount} ${meta.symbol} for this offramp.`;
+        }
+
+        const transfer = await sendTokens(
+          args.token,
+          payAmount,
+          order.address,
+          conn
+        );
+
+        if (!transfer.status) {
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return transfer.message;
+        }
+
+        const confirmation = await conn.confirmTransaction(
+          transfer.message,
+          "confirmed"
+        );
 
         if (confirmation) {
           const network = AppSettings.getState().networkShort;
@@ -129,87 +301,139 @@ export class PajCash {
             completeConversation(
               messageId,
               "complete",
-              `https://explorer.solana.com/tx/${transfer!.message}?cluster=${network}`
+              `https://explorer.solana.com/tx/${transfer.message}?cluster=${network}`
             );
           }
-          return `You have successfully Paj ${args.amount} ${args.token} to Naira`;
-        } else {
-          if (messageId !== null) {
-            completeConversation(messageId, "failed");
-          }
-          return `Failed to Paj ${args.amount} ${args.token} to Naira`;
+          return convertSpeech(
+            `Offramp started. Sent ${payAmount} ${meta.symbol}. You should receive about ${order.fiatAmount} NGN. Order id ${order.id}.`
+          );
         }
+
+        if (messageId !== null) completeConversation(messageId, "failed");
+        return `Transfer submitted but confirmation failed. Signature: ${transfer.message}`;
       },
     };
   }
+
+  pajcash_onramp() {
+    return {
+      name: "pajcash-onramp",
+      description:
+        "Buy crypto with Naira via PajCash. Creates an onramp order and returns Nigerian bank details for the user to pay.",
+      parameters: {
+        type: "object",
+        properties: {
+          fiat_amount: {
+            type: "number",
+            description: "Amount in NGN to pay",
+          },
+          token: {
+            type: "string",
+            description: "SPL token to receive by symbol, name, or mint address",
+          },
+        },
+        required: ["fiat_amount", "token"],
+      },
+      handler: async (args: { fiat_amount: number; token: string }) => {
+        const messageId = this.session.functionMessageId;
+        const pk = WalletItem.getState().publicKey;
+        if (!pk) return "Please connect your wallet";
+
+        if (!pajcash.getSessionToken()) {
+          return "PajCash is not connected. Use pajcash-initiate-session and pajcash-verify-session first.";
+        }
+
+        const meta = await resolveMint(args.token);
+        if (!meta) {
+          return `Could not resolve token for onramp: ${args.token}`;
+        }
+
+        const orderRes = await pajcash.createOnramp({
+          fiatAmount: args.fiat_amount,
+          currency: Currency.NGN,
+          recipient: pk.toBase58(),
+          mint: meta.mint,
+          chain: Chain.SOLANA,
+        });
+
+        if (!orderRes.status) {
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return orderRes.message;
+        }
+
+        const order = orderRes.data;
+        if (messageId !== null) completeConversation(messageId, "complete");
+        return convertSpeech(
+          `Onramp order ${order.id} created. Pay ${order.fiatAmount} NGN to account ${order.accountNumber}, account name ${order.accountName}, bank ${order.bank}. You will receive about ${order.amount} ${meta.symbol} at ${pk.toBase58()}.`
+        );
+      },
+    };
+  }
+
   get_naira_rate() {
     return {
       name: "get-naira-rate",
       description:
-        "This function is used to get the naira rate of dollar value of a token",
+        "Get the Naira value for a token amount using PajCash rates.",
       parameters: {
         type: "object",
         properties: {
           amount: {
             type: "number",
-            description:
-              "This is the amount of usdc tokens you want to offramp, it should be a number",
+            description: "Token amount to quote",
           },
           token: {
             type: "string",
-            description:
-              "This is the token you want to offramp, it should be a string",
+            description: "SPL token symbol, name, or mint address",
           },
         },
         required: ["amount", "token"],
       },
-
       handler: async (args: { amount: number; token: string }) => {
         const messageId = this.session.functionMessageId;
-
         const pk = WalletItem.getState().publicKey;
         if (!pk) return "Please connect your wallet";
-        const conn = this.session.connection;
 
-        let tokenBalance: number;
-        if (args.token.toLowerCase() === "sol") {
-          tokenBalance = await getBalance(pk, conn);
-        } else {
-          const meta = await resolveTokenByQuery(args.token);
-          if (!meta || meta.symbol === "SOL") {
+        if (args.token.toLowerCase() !== "sol") {
+          const meta = await resolveMint(args.token);
+          if (!meta) {
             return `Could not resolve token: ${args.token}`;
           }
-          tokenBalance = await getTokenBalance(
+          const balance = await getTokenBalance(
             pk.toBase58(),
-            meta.address,
+            meta.mint,
             meta.decimals,
-            conn
+            this.session.connection
           );
+          if (balance < args.amount) {
+            return `Insufficient ${meta.symbol} balance`;
+          }
+
+          if (pajcash.getSessionToken()) {
+            const fiatRes = await pajcash.getFiatQuote(
+              args.amount,
+              meta.mint,
+              Currency.NGN
+            );
+            if (fiatRes.status) {
+              if (messageId !== null) completeConversation(messageId, "complete");
+              return convertSpeech(
+                `${args.amount} ${meta.symbol} is about ${fiatRes.data.fiatAmount} NGN.`
+              );
+            }
+          }
         }
 
-        if (tokenBalance < args.amount)
-          return `Insufficient balance  of ${args.token} to offramp`;
-
-        const rateResponse = await pajcash.getNairaRate(
-          this.baseUrl,
-          args.amount
-        );
+        const rateResponse = await pajcash.getNairaRate(args.amount);
         if (!rateResponse.status) {
           if (messageId !== null) completeConversation(messageId, "failed");
-          return "Failed to get naira rate";
+          return rateResponse.message;
         }
 
-        const rateData = rateResponse.data;
-
-        /**
-         * {"rate":{"baseCurrency":"USD","targetCurrency":"NGN","rate":1600},"amounts":{"userTax":0.5,"merchantTax":0,"amountUSD":100,"userAmountFiat":159200}}
-         */
-
-        const userAmountFiat = rateData.amounts.userAmountFiat;
-
+        const userAmountFiat = rateResponse.data.amounts.userAmountFiat;
         if (messageId !== null) completeConversation(messageId, "complete");
         return convertSpeech(
-          `The amount of ${args.amount} ${args.token} is equivalent to ${userAmountFiat} NGN`
+          `The amount of ${args.amount} ${args.token} is equivalent to about ${userAmountFiat} NGN.`
         );
       },
     };
