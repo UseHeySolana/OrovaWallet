@@ -118,6 +118,7 @@
     "lottie-react-native": "~7.3.1",
     "nativewind": "^4.1.23",
     "openai": "^5.9.0",
+    "paj_ramp": "^1.5.4",
     "path-browserify": "^1.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
