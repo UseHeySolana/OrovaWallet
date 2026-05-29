@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import type { VerifiedTokenDef } from "@/utils/tokenList/types";
 import { DEFAULT_VERIFIED_TOKENS } from "@/utils/tokenList/defaultVerifiedTokens";
+import { BASE_URL } from "@/utils/constant";
 
 const isMint = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
 
@@ -100,7 +101,11 @@ export const getSupportedTokenSymbolsForPrompt = (): { name: string }[] =>
  * or a bare array. Rows merge by mint; invalid rows skipped.
  */
 export async function refreshVerifiedTokensFromRemote(): Promise<void> {
-    const url = (process.env.EXPO_PUBLIC_VERIFIED_TOKENS_URL || "").trim();
+    const configured = (process.env.EXPO_PUBLIC_VERIFIED_TOKENS_URL || "").trim();
+    const backend = (process.env.EXPO_PUBLIC_TOKEN_CACHE_URL || BASE_URL || "").trim();
+    const url =
+        configured ||
+        (backend ? `${backend.replace(/\/$/, "")}/tokens/jupiter/verified` : "");
     if (!url) return;
 
     const res = await fetch(url, { headers: { Accept: "application/json" } });
