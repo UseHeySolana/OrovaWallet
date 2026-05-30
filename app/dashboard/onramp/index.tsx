@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,7 +24,12 @@ import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import PajCashSession from "@/utils/store/pajcashSession.store";
 import { pajcash, Chain, Currency } from "@/libs/tools/pajcash/pajcash";
-import { resolveTokenByQuery } from "@/utils/functions";
+import { copyItem, resolveTokenByQuery } from "@/utils/functions";
+import setUserItems from "@/utils/dashboard";
+import {
+  collectWalletIncomingChanges,
+  snapshotUserWallet,
+} from "@/utils/wallet/walletChangeNotify";
 import {
   browseTokenHitsForSwap,
   type TokenSearchHit,
@@ -83,11 +88,91 @@ function formatQuoteAmount(value: unknown): string {
   return String(value);
 }
 
+function formatAmountWithCommas(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const normalized = raw.replace(/,/g, "");
+  const [integerPart, decimalPart] = normalized.split(".");
+  if (!integerPart || Number.isNaN(Number(normalized))) return raw;
+  const sign = integerPart.startsWith("-") ? "-" : "";
+  const unsignedInteger = sign ? integerPart.slice(1) : integerPart;
+  const formattedInteger = unsignedInteger.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${sign}${formattedInteger}${decimalPart != null ? `.${decimalPart}` : ""}`;
+}
+
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+
+const NATIVE_SOL_HIT: TokenSearchHit = {
+  meta: {
+    name: "Solana",
+    address: SOL_MINT,
+    symbol: "SOL",
+    decimals: 9,
+    logo: "https://assets.coingecko.com/coins/images/4128/large/solana.png?1640133422",
+  },
+  isVerified: true,
+};
+
+function isNativeSolQuery(query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return false;
+  return (
+    q === "sol" ||
+    q === "solana" ||
+    q === SOL_MINT.toLowerCase() ||
+    SOL_MINT.toLowerCase().startsWith(q)
+  );
+}
+
+/** Jupiter search can return other "SOL" tokens; pin wrapped native SOL first. */
+function withNativeSolFirst(hits: TokenSearchHit[], query: string): TokenSearchHit[] {
+  if (!isNativeSolQuery(query)) return hits;
+  const rest = hits.filter((hit) => hit.meta.address !== SOL_MINT);
+  return [NATIVE_SOL_HIT, ...rest];
+}
+
+function orderStatusValues(data: unknown): string[] {
+  if (!data || typeof data !== "object") return [];
+  const record = data as Record<string, unknown>;
+  const keys = [
+    "status",
+    "state",
+    "paymentStatus",
+    "transactionStatus",
+    "orderStatus",
+    "fiatStatus",
+    "cryptoStatus",
+  ];
+  return keys
+    .map((key) => record[key])
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.toLowerCase());
+}
+
+function isOrderConfirmed(data: unknown): boolean {
+  if (!data || typeof data !== "object") return false;
+  const record = data as Record<string, unknown>;
+  if (record.isPaid === true || record.isCompleted === true || record.confirmed === true) {
+    return true;
+  }
+  return orderStatusValues(data).some((status) =>
+    ["paid", "confirmed", "complete", "completed", "successful", "success", "settled"].includes(status)
+  );
+}
+
+function isOrderFailed(data: unknown): boolean {
+  return orderStatusValues(data).some((status) =>
+    ["failed", "cancelled", "canceled", "expired", "rejected"].includes(status)
+  );
+}
+
 export default function Onramp() {
   const { user } = UserItem();
+  const updateUserWallet = UserItem((state) => state.updateUserWallet);
   const publicKey = WalletItem((state) => state.publicKey);
-  const { setToast } = AppSettings();
+  const { setToast, network } = AppSettings();
   const pajSession = PajCashSession();
+  const paymentPollRunRef = useRef(0);
 
   const defaultRecipient = useMemo(
     () =>
@@ -119,8 +204,13 @@ export default function Onramp() {
     "otp" | "verify" | "quote" | "order" | null
   >(null);
   const [order, setOrder] = useState<any>(null);
+  const [orderSheetOpen, setOrderSheetOpen] = useState(false);
   const [quote, setQuote] = useState<any>(null);
   const [quoteError, setQuoteError] = useState("");
+  const [paymentCheckState, setPaymentCheckState] = useState<
+    "idle" | "checking" | "confirmed" | "failed"
+  >("idle");
+  const [paymentCheckMessage, setPaymentCheckMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [lastError, setLastError] = useState("");
 
@@ -133,6 +223,12 @@ export default function Onramp() {
       value,
     });
   };
+
+  useEffect(() => {
+    return () => {
+      paymentPollRunRef.current += 1;
+    };
+  }, []);
 
   const resolveMint = async (query: string) => {
     const normalizedQuery = query.trim();
@@ -147,9 +243,13 @@ export default function Onramp() {
       });
       return selectedToken.address;
     }
+    if (isNativeSolQuery(normalizedQuery)) {
+      logOnramp("Resolved native SOL", { mint: SOL_MINT });
+      return SOL_MINT;
+    }
     logOnramp("Resolving token", { query });
     const meta = await resolveTokenByQuery(query);
-    if (meta && meta.symbol !== "SOL") {
+    if (meta) {
       logOnramp("Resolved token from metadata", {
         symbol: meta.symbol,
         mint: meta.address,
@@ -177,6 +277,8 @@ export default function Onramp() {
     quoteMode === "token"
       ? formatQuoteAmount(quote?.fiatAmount) || fiatAmount
       : fiatAmount;
+  const formattedExpectedTokenAmount = formatAmountWithCommas(expectedTokenAmount);
+  const formattedExpectedFiatAmount = formatAmountWithCommas(expectedFiatAmount);
 
   useEffect(() => {
     if (!tokenPickerOpen) return;
@@ -186,7 +288,7 @@ export default function Onramp() {
     const timer = setTimeout(async () => {
       const hits = await browseTokenHitsForSwap(tokenSearch);
       if (cancelled) return;
-      setTokenHits(hits.filter((hit) => hit.meta.symbol !== "SOL"));
+      setTokenHits(withNativeSolFirst(hits, tokenSearch));
       setTokenSearchLoading(false);
     }, delay);
     return () => {
@@ -490,6 +592,9 @@ export default function Onramp() {
     }
 
     setOrder(res.data);
+    setOrderSheetOpen(true);
+    setPaymentCheckState("idle");
+    setPaymentCheckMessage("");
     setLastError("");
     setStatusMessage("Onramp order created. Pay the bank details below.");
     logOnramp("Order creation succeeded", {
@@ -503,6 +608,96 @@ export default function Onramp() {
       fee: res.data.fee,
     });
     setToast("Onramp order created", "success");
+  };
+
+  const handlePaid = async () => {
+    if (!order?.id || paymentCheckState === "checking") return;
+    const runId = paymentPollRunRef.current + 1;
+    paymentPollRunRef.current = runId;
+    setPaymentCheckState("checking");
+    setPaymentCheckMessage("Checking PajCash payment status...");
+    setToast("Checking payment", "info");
+
+    let walletSnapshot = snapshotUserWallet(UserItem.getState().userWallet);
+    const maxAttempts = 36;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      if (paymentPollRunRef.current !== runId) return;
+
+      const statusRes = await pajcash.getOrderStatus(String(order.id));
+      if (paymentPollRunRef.current !== runId) return;
+
+      if (statusRes.status) {
+        logOnramp("Order status polled", {
+          orderId: order.id,
+          attempt,
+          data: statusRes.data as Record<string, unknown>,
+        });
+        if (isOrderConfirmed(statusRes.data)) {
+          setPaymentCheckState("confirmed");
+          setPaymentCheckMessage("Payment confirmed. Your tokens should arrive shortly.");
+          setStatusMessage("Payment confirmed. Your tokens should arrive shortly.");
+          setToast("Payment confirmed", "success");
+          return;
+        }
+        if (isOrderFailed(statusRes.data)) {
+          setPaymentCheckState("failed");
+          setPaymentCheckMessage("PajCash could not confirm this payment. Please check the order details.");
+          setToast("Payment not confirmed", "error");
+          return;
+        }
+      } else {
+        logOnrampError("Order status poll failed", {
+          orderId: order.id,
+          attempt,
+          message: statusRes.message,
+        });
+      }
+
+      if (user && publicKey) {
+        const refreshed = await setUserItems(user, updateUserWallet, publicKey, network);
+        if (paymentPollRunRef.current !== runId) return;
+        if (refreshed) {
+          const nextWallet = snapshotUserWallet(UserItem.getState().userWallet);
+          const incoming = collectWalletIncomingChanges(walletSnapshot, nextWallet);
+          if (incoming.length > 0) {
+            setPaymentCheckState("confirmed");
+            setPaymentCheckMessage("Wallet activity detected. Your onramp is good to go.");
+            setStatusMessage("Wallet activity detected. Your onramp is good to go.");
+            setToast("Wallet activity detected", "success");
+            return;
+          }
+          walletSnapshot = nextWallet;
+        }
+      }
+
+      setPaymentCheckMessage(
+        `Still checking payment... attempt ${attempt}/${maxAttempts}`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    if (paymentPollRunRef.current !== runId) return;
+    setPaymentCheckState("failed");
+    setPaymentCheckMessage("Still waiting for confirmation. You can keep this order and check again.");
+  };
+
+  const closeOrderSheet = () => {
+    paymentPollRunRef.current += 1;
+    setOrderSheetOpen(false);
+  };
+
+  const handlePaymentSheetAction = () => {
+    if (paymentCheckState === "confirmed") {
+      closeOrderSheet();
+      return;
+    }
+    void handlePaid();
+  };
+
+  const copyPaymentDetail = async (label: string, value: string) => {
+    const copied = await copyItem(value);
+    setToast(copied ? `${label} copied` : "Copy failed", copied ? "success" : "error");
   };
 
   const renderTokenRow = ({ item }: { item: TokenSearchHit }) => {
@@ -583,7 +778,7 @@ export default function Onramp() {
             <TextInput
               className="text-[36px] text-black dark:text-white p-0"
               style={{ fontFamily: "bold", lineHeight: 42 }}
-              value={fiatAmount}
+              value={formatAmountWithCommas(fiatAmount)}
               onChangeText={handleFiatAmountChange}
               placeholder="0"
               placeholderTextColor="#D1D5DB"
@@ -616,7 +811,7 @@ export default function Onramp() {
             <TextInput
               className="text-[36px] text-black dark:text-white p-0"
               style={{ fontFamily: "bold", lineHeight: 42 }}
-              value={tokenAmount}
+              value={formatAmountWithCommas(tokenAmount)}
               onChangeText={handleTokenAmountChange}
               placeholder="0"
               placeholderTextColor="#D1D5DB"
@@ -624,11 +819,11 @@ export default function Onramp() {
             />
           )}
           <CText className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
-            Expected: {expectedTokenAmount || "0"} {tokenLabel || "token"}
+            Expected: {formattedExpectedTokenAmount || "0"} {tokenLabel || "token"}
           </CText>
           {expectedFiatAmount ? (
             <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
-              Pay about {expectedFiatAmount} NGN
+              Pay about {formattedExpectedFiatAmount} NGN
             </CText>
           ) : null}
           {quoteError ? (
@@ -669,7 +864,7 @@ export default function Onramp() {
           <IconLibrary.back />
         </Pressable>
         <CText style={{ fontFamily: "bold" }} className="text-[1.35rem]">
-          PajCash Onramp
+          Onramp
         </CText>
       </View>
 
@@ -783,29 +978,19 @@ export default function Onramp() {
                 <Buttons
                   type="primary"
                   className="w-full py-4 px-4 rounded-3xl"
-                  text="Create Onramp Order"
+                  text="Onramp"
                   loading={loading === "order"}
                   onPress={createOrder}
                 />
               </View>
 
-              {order && (
-                <View className="w-full p-4 rounded-2xl bg-grey/50 dark:bg-black/30 gap-y-2">
-                  <CText style={{ fontFamily: "bold" }} className="text-[1.15rem]">
-                    Pay bank transfer
-                  </CText>
-                  <CText>Bank: {order.bank}</CText>
-                  <CText>Account name: {order.accountName}</CText>
-                  <CText>Account number: {order.accountNumber}</CText>
-                  <CText>Amount: {order.fiatAmount} NGN</CText>
-                  <CText>Token amount: {order.amount}</CText>
-                  <CText className="text-[0.9rem] text-black/70 dark:text-grey/70">
-                    Order ID: {order.id}
-                  </CText>
-                </View>
-              )}
             </>
           )}
+          <View className="w-full items-center pt-2 pb-4">
+            <CText className="text-[0.85rem] text-black/50 dark:text-grey/60">
+              Powered by PajCash
+            </CText>
+          </View>
         </View>
       </ScrollView>
       {tokenPickerOpen ? (
@@ -839,6 +1024,143 @@ export default function Onramp() {
                   renderItem={renderTokenRow}
                 />
               )}
+            </View>
+          }
+        />
+      ) : null}
+      {order && orderSheetOpen ? (
+        <DragableSheet
+          close={closeOrderSheet}
+          panClose
+          snapPoints={["52%", "72%"]}
+          child={
+            <View className="w-full flex-1 gap-y-4 pb-6">
+              <View className="gap-y-1">
+                <CText style={{ fontFamily: "bold" }} className="text-[1.35rem] text-center">
+                  Pay bank transfer
+                </CText>
+                <CText className="text-[0.9rem] text-center text-black/60 dark:text-grey/70">
+                  Transfer exactly this amount to complete your onramp order.
+                </CText>
+              </View>
+
+              <View className="w-full p-4 rounded-2xl bg-grey/50 dark:bg-black/30 gap-y-3">
+                <View className="flex-row justify-between gap-x-3">
+                  <CText className="text-black/60 dark:text-grey/70">Bank</CText>
+                  <CText style={{ fontFamily: "bold" }} className="flex-1 text-right">
+                    {order.bank}
+                  </CText>
+                </View>
+                <View className="flex-row justify-between gap-x-3">
+                  <CText className="text-black/60 dark:text-grey/70">Account name</CText>
+                  <CText style={{ fontFamily: "bold" }} className="flex-1 text-right">
+                    {order.accountName}
+                  </CText>
+                </View>
+                <View className="flex-row justify-between items-center gap-x-3">
+                  <CText className="text-black/60 dark:text-grey/70">Account number</CText>
+                  <View className="flex-row items-center justify-end gap-x-2 flex-1">
+                    <CText style={{ fontFamily: "bold" }} className="text-right">
+                      {order.accountNumber}
+                    </CText>
+                    <Pressable
+                      onPress={() =>
+                        void copyPaymentDetail("Account number", String(order.accountNumber))
+                      }
+                      className="px-2 py-1 rounded-full bg-white dark:bg-accent2"
+                    >
+                      <MaterialCommunityIcons
+                        name="content-copy"
+                        size={16}
+                        color="#971BB2"
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+                <View className="flex-row justify-between items-center gap-x-3">
+                  <CText className="text-black/60 dark:text-grey/70">Amount</CText>
+                  <View className="flex-row items-center justify-end gap-x-2 flex-1">
+                    <CText style={{ fontFamily: "bold" }} className="text-right">
+                      {formatAmountWithCommas(order.fiatAmount)} NGN
+                    </CText>
+                    <Pressable
+                      onPress={() =>
+                        void copyPaymentDetail("Amount", String(order.fiatAmount))
+                      }
+                      className="px-2 py-1 rounded-full bg-white dark:bg-accent2"
+                    >
+                      <MaterialCommunityIcons
+                        name="content-copy"
+                        size={16}
+                        color="#971BB2"
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+                <View className="flex-row justify-between gap-x-3">
+                  <CText className="text-black/60 dark:text-grey/70">Token amount</CText>
+                  <CText style={{ fontFamily: "bold" }} className="flex-1 text-right">
+                    {formatAmountWithCommas(order.amount)}
+                  </CText>
+                </View>
+                <View className="gap-y-1">
+                  <CText className="text-black/60 dark:text-grey/70">Order ID</CText>
+                  <CText
+                    selectable
+                    style={{ fontFamily: "bold" }}
+                    className="text-[0.9rem]"
+                  >
+                    {order.id}
+                  </CText>
+                </View>
+              </View>
+
+              {paymentCheckMessage ? (
+                <View
+                  className={`w-full p-3 rounded-2xl ${
+                    paymentCheckState === "confirmed"
+                      ? "bg-green-100 dark:bg-green-950/30"
+                      : paymentCheckState === "failed"
+                        ? "bg-orange-100 dark:bg-orange-950/30"
+                        : "bg-grey/50 dark:bg-black/30"
+                  }`}
+                >
+                  <View className="flex-row items-center gap-x-2">
+                    {paymentCheckState === "checking" ? (
+                      <ActivityIndicator color="#971BB2" />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name={
+                          paymentCheckState === "confirmed"
+                            ? "check-circle-outline"
+                            : "information-outline"
+                        }
+                        size={18}
+                        color={paymentCheckState === "confirmed" ? "#16A34A" : "#971BB2"}
+                      />
+                    )}
+                    <CText className="flex-1 text-[0.9rem] text-black/70 dark:text-grey/80">
+                      {paymentCheckMessage}
+                    </CText>
+                  </View>
+                </View>
+              ) : null}
+
+              <Buttons
+                type="primary"
+                className="w-full py-4 px-4 rounded-3xl"
+                text={
+                  paymentCheckState === "checking"
+                    ? "Checking payment..."
+                    : paymentCheckState === "confirmed"
+                      ? "Done"
+                      : paymentCheckState === "failed"
+                        ? "Check again"
+                        : "I have paid"
+                }
+                loading={paymentCheckState === "checking"}
+                onPress={handlePaymentSheetAction}
+              />
             </View>
           }
         />

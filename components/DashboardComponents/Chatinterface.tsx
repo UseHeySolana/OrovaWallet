@@ -463,7 +463,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
         </View>
       )}
 
-      {inputMode === "audio" && (
+      {__DEV__ && inputMode === "audio" && (
         <View className="pt-2 pb-4 px-4">
           {voiceEnrolled === false && (
             <TouchableOpacity
