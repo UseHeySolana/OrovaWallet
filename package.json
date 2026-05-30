@@ -27,7 +27,10 @@
     "update:android": "eas update --branch production --platform android",
     "update:ios": "eas update --branch production --platform ios",
     "update:list": "eas update:list",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "logs": "./scripts/check-logs.sh",
+    "logs:errors": "./scripts/check-logs.sh errors",
+    "logs:react": "./scripts/check-logs.sh react"
   },
   "jest": {
     "preset": "jest-expo"
