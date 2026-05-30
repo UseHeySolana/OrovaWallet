@@ -5,6 +5,7 @@ import {
   verify,
   getRateByAmount,
   getFiatValue,
+  getTokenValue,
   getBanks,
   resolveBankAccount,
   createOfframpOrder,
@@ -49,7 +50,7 @@ function ensureSdkInitialized(): void {
       : envName === "local"
         ? Environment.Local
         : Environment.Staging;
-  initializeSDK(env);
+  initializeSDK(Environment.Production);
   sdkInitialized = true;
 }
 
@@ -57,8 +58,18 @@ function formatPajError(err: unknown): string {
   if (typeof err === "string") return err;
   if (err && typeof err === "object") {
     const o = err as Record<string, unknown>;
-    if (typeof o.message === "string") return o.message;
-    if (typeof o.error === "string") return o.error;
+    const rawMessage = o.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.map(String).join(", ")
+      : typeof rawMessage === "string"
+        ? rawMessage.trim()
+        : "";
+    const error = typeof o.error === "string" ? o.error.trim() : "";
+    if (message && error && /:\s*$/.test(message)) {
+      return `${message} ${error}`;
+    }
+    if (message) return message;
+    if (error) return error;
     if (Array.isArray(o.errors) && o.errors[0]) {
       return String(o.errors[0]);
     }
@@ -85,6 +96,24 @@ function getDeviceSignature(): DeviceSignature {
   };
 }
 
+function normalizePajRecipient(recipient: string): string {
+  const trimmed = recipient.trim();
+  if (!trimmed || trimmed.includes("@")) return trimmed;
+
+  const compact = trimmed.replace(/[\s()-]/g, "");
+  if (compact.startsWith("+")) {
+    return compact;
+  }
+  if (compact.startsWith("234")) {
+    return `+${compact}`;
+  }
+  if (/^0[789][01]\d{8}$/.test(compact)) {
+    return `+234${compact.slice(1)}`;
+  }
+
+  return compact;
+}
+
 type ApiResult<T> = { status: true; data: T } | { status: false; message: string };
 
 async function wrap<T>(fn: () => Promise<T>): Promise<ApiResult<T>> {
@@ -103,18 +132,23 @@ const pajcash = {
   ensureSdkInitialized,
 
   initiateSession: (emailOrPhone: string) =>
-    wrap(() => initiate(emailOrPhone.trim(), getApiKey())),
+    wrap(() => initiate(normalizePajRecipient(emailOrPhone), getApiKey())),
 
   verifySession: (emailOrPhone: string, otp: string) =>
     wrap(async () => {
+      const recipient = normalizePajRecipient(emailOrPhone);
+      console.log("[PajCash SDK] Verifying session", {
+        recipient: recipient.includes("@") ? "email" : recipient,
+      });
       const verified = await verify(
-        emailOrPhone.trim(),
+        recipient,
         otp.trim(),
         getDeviceSignature(),
         getApiKey()
       );
+
       PajCashSession.getState().setSession({
-        recipient: emailOrPhone.trim(),
+        recipient,
         token: verified.token,
         expiresAt: verified.expiresAt,
       });
@@ -149,6 +183,18 @@ const pajcash = {
     if (!session.status) return Promise.resolve(session);
     return wrap(() =>
       getFiatValue({ amount: tokenAmount, mint, currency }, session.data)
+    );
+  },
+
+  getTokenQuote: (
+    fiatAmount: number,
+    mint: string,
+    currency: Currency = Currency.NGN
+  ) => {
+    const session = pajcash.requireSessionToken();
+    if (!session.status) return Promise.resolve(session);
+    return wrap(() =>
+      getTokenValue({ fiatAmount, mint, currency }, session.data)
     );
   },
 

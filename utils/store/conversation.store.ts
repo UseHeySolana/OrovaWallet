@@ -31,6 +31,17 @@ export interface PrivateTransferMeta {
   txid?: string;
 }
 
+export interface PajcashOnrampPaymentMeta {
+  orderId: string;
+  fiatAmount: string;
+  tokenAmount: string;
+  tokenSymbol: string;
+  accountNumber: string;
+  accountName: string;
+  bank: string;
+  recipient: string;
+}
+
 export interface MessageType {
   role: "system" | "user" | "tool";
   content: string;
@@ -57,6 +68,7 @@ export interface MessageType {
   markets?: any[];
   product_details?: any;
   privateTransfer?: PrivateTransferMeta;
+  pajcashOnrampPayment?: PajcashOnrampPaymentMeta;
   /** Jupiter token disambiguation (search_spl_tokens / swap / price, multiple hits). */
   tokenSearchPicker?: {
     query: string;

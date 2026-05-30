@@ -52,11 +52,15 @@ const MIN_UTTERANCE_SECONDS = 1.2;
 const MIN_UTTERANCE_BYTES = Math.ceil(BYTES_PER_SECOND * MIN_UTTERANCE_SECONDS);
 const SPEECH_RMS = 0.009;
 const SILENCE_AFTER_SPEECH_MS = 2600;
-const MAX_UTTERANCE_MS = 30_000;
+/** Cap a single command; silence detection still ends most utterances sooner. */
+const MAX_UTTERANCE_MS = 12_000;
 const DUPLICATE_TRANSCRIPT_WINDOW_MS = 5000;
 const HEARING_STATE_RESET_MS = 1200;
 const VERIFIED_STATE_RESET_MS = 1200;
-const VERIFY_TIMEOUT_MS = 18_000;
+const VERIFY_TIMEOUT_MS = 25_000;
+/** Stream verify runs ECAPA isolation server-side; scale with clip length. */
+const VERIFY_TIMEOUT_PER_SECOND_MS = 4_000;
+const VERIFY_TIMEOUT_EXTRA_MS = 20_000;
 const STREAM_SETUP_TIMEOUT_MS = 8_000;
 
 let initialized = false;
@@ -112,6 +116,8 @@ export class VerifiedVoiceStream {
   private lastTranscriptAt = 0;
   private lastHearingStateAt = 0;
   private suppressed = false;
+  /** Blocks mic while assistant is responding (set before onVerifiedCommand). */
+  private assistantTurnBlocked = false;
   private currentState: "listening" | "hearing" | "verifying" | "verified" = "listening";
 
   private streamVerifyEnabled: boolean | null = null;
@@ -187,12 +193,17 @@ export class VerifiedVoiceStream {
     this.suppressed = suppressed;
     this.clearBuffer();
     this.clearTimers();
-    this.resetUtteranceState();
-    this.teardownStream();
+    this.resetSpeechFlags();
 
-    if (!suppressed) {
-      this.emitState("listening");
+    if (suppressed) {
+      return;
     }
+
+    this.assistantTurnBlocked = false;
+    if (this.streamVerifyEnabled) {
+      void this.ensureStreamConnection();
+    }
+    this.emitState("listening");
   }
 
   private async loadStreamCapability(): Promise<void> {
@@ -225,7 +236,6 @@ export class VerifiedVoiceStream {
 
   private resetUtteranceState(): void {
     this.resetSpeechFlags();
-    this.teardownStream();
   }
 
   private resetSpeechFlags(): void {
@@ -334,7 +344,15 @@ export class VerifiedVoiceStream {
   }
 
   private handleData(data: string): void {
-    if (this.stopped || this.suppressed || this.verifying || !data) return;
+    if (
+      this.stopped ||
+      this.suppressed ||
+      this.assistantTurnBlocked ||
+      this.verifying ||
+      !data
+    ) {
+      return;
+    }
 
     try {
       const chunk = Buffer.from(data, "base64");
@@ -396,7 +414,9 @@ export class VerifiedVoiceStream {
   }
 
   private scheduleSilenceFlush(): void {
-    if (!this.hasSpeech || this.stopped || this.suppressed) return;
+    if (!this.hasSpeech || this.stopped || this.suppressed || this.assistantTurnBlocked) {
+      return;
+    }
 
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
@@ -409,7 +429,13 @@ export class VerifiedVoiceStream {
   }
 
   private tryEndUtterance(): void {
-    if (!this.hasSpeech || this.stopped || this.suppressed || this.verifying) {
+    if (
+      !this.hasSpeech ||
+      this.stopped ||
+      this.suppressed ||
+      this.assistantTurnBlocked ||
+      this.verifying
+    ) {
       return;
     }
 
@@ -431,7 +457,13 @@ export class VerifiedVoiceStream {
   }
 
   private async flush(): Promise<void> {
-    if (this.stopped || this.suppressed || this.verifying || !this.hasSpeech) {
+    if (
+      this.stopped ||
+      this.suppressed ||
+      this.assistantTurnBlocked ||
+      this.verifying ||
+      !this.hasSpeech
+    ) {
       return;
     }
 
@@ -464,12 +496,34 @@ export class VerifiedVoiceStream {
     const useStream =
       this.streamVerifyEnabled !== false &&
       (this.streamReady || (await this.ensureStreamConnection()));
+    const verifyTimeoutMs = this.verifyTimeoutForDuration(durationSeconds);
+
+    let verifySource: "stream" | "http" = useStream ? "stream" : "http";
 
     try {
-      const result = useStream
-        ? await this.verifyWithStream(audio)
-        : await this.verifyWithHttp(audio);
-      this.logVerificationResult(utteranceId, useStream ? "stream" : "http", result);
+      let result;
+      try {
+        result = useStream
+          ? await this.verifyWithStream(audio, verifyTimeoutMs)
+          : await this.verifyWithHttp(audio, verifyTimeoutMs);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        const streamTimedOut =
+          useStream &&
+          message.toLowerCase().includes("voice stream verification timeout");
+        if (!streamTimedOut) {
+          throw error;
+        }
+        this.logDebug(
+          "stream_verify_timeout_fallback_http",
+          { utterance_id: utteranceId, duration_seconds: durationSeconds },
+          "warn"
+        );
+        verifySource = "http";
+        result = await this.verifyWithHttp(audio, verifyTimeoutMs);
+      }
+      this.logVerificationResult(utteranceId, verifySource, result);
 
       if (!result.verified) {
         this.emitState("listening");
@@ -486,23 +540,30 @@ export class VerifiedVoiceStream {
         this.lastTranscript = transcript;
         this.lastTranscriptAt = Date.now();
       }
-      this.emitState("verified", VERIFIED_STATE_RESET_MS);
+
+      // Block further capture before UI/assistant callbacks (avoids mic bleed during TTS).
+      this.assistantTurnBlocked = true;
+      this.clearBuffer();
+      this.clearTimers();
+      this.resetSpeechFlags();
+
       this.options.onVerifiedCommand(
         transcript,
         audio.toString("base64")
       );
+      this.emitState("verified", VERIFIED_STATE_RESET_MS);
     } catch (error: any) {
       const message =
         error instanceof Error ? error.message : String(error?.message ?? error);
       this.logDebug("verification_error", {
         utterance_id: utteranceId,
-        source: useStream ? "stream" : "http",
+        source: verifySource,
         message,
       }, "warn");
       this.emitVerificationDebug({
         utteranceId,
         phase: "error",
-        source: useStream ? "stream" : "http",
+        source: verifySource,
         error: message,
         message,
       });
@@ -515,11 +576,27 @@ export class VerifiedVoiceStream {
     } finally {
       this.verifying = false;
       this.teardownStream();
+      if (
+        !this.stopped &&
+        !this.suppressed &&
+        !this.assistantTurnBlocked &&
+        this.streamVerifyEnabled
+      ) {
+        void this.ensureStreamConnection();
+      }
       this.activeUtteranceId = 0;
     }
   }
 
-  private async verifyWithHttp(audio: Buffer) {
+  private verifyTimeoutForDuration(durationSeconds: number): number {
+    return Math.max(
+      VERIFY_TIMEOUT_MS,
+      Math.ceil(durationSeconds * VERIFY_TIMEOUT_PER_SECOND_MS) +
+        VERIFY_TIMEOUT_EXTRA_MS
+    );
+  }
+
+  private async verifyWithHttp(audio: Buffer, timeoutMs: number) {
     const audioBase64 = audio.toString("base64");
     return this.withTimeout(
       verifyVoiceCommand({
@@ -527,11 +604,11 @@ export class VerifiedVoiceStream {
         audio: audioBase64,
         adapt: true,
       }),
-      VERIFY_TIMEOUT_MS
+      timeoutMs
     );
   }
 
-  private async verifyWithStream(audio: Buffer) {
+  private async verifyWithStream(audio: Buffer, timeoutMs: number) {
     if (!this.streamSocket || !this.streamSessionId) {
       throw new Error("Voice stream is not connected");
     }
@@ -554,9 +631,9 @@ export class VerifiedVoiceStream {
               this.streamOutcomeResolver = null;
               reject(new Error("Voice stream verification timeout"));
             }
-          }, VERIFY_TIMEOUT_MS);
+          }, timeoutMs);
         }),
-        VERIFY_TIMEOUT_MS
+        timeoutMs
       );
     }
 
@@ -592,7 +669,7 @@ export class VerifiedVoiceStream {
         sessionId: this.streamSessionId,
         adapt: true,
       }),
-      VERIFY_TIMEOUT_MS
+      timeoutMs
     );
   }
 
@@ -720,6 +797,7 @@ export class VerifiedVoiceStream {
 function isRecoverableVerifyError(message: string): boolean {
   const normalized = message.toLowerCase();
   return (
+    normalized.includes("verification timeout") ||
     normalized.includes("too short") ||
     normalized.includes("second(s) of speech") ||
     normalized.includes("could not decode audio") ||

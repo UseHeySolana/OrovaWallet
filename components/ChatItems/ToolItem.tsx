@@ -7,9 +7,11 @@ import {
   View,
 } from "react-native";
 import { CText } from "../TextComp";
+import { copyItem } from "@/utils/functions";
 import { openURL } from "@/utils/functions/extrafunctions";
 import IconLibrary from "@/utils/icons";
 import { useAi } from "@/context/AiContext";
+import AppSettings from "@/utils/store/settingsstore.store";
 import Products from "./Products";
 import ProductDetails from "./ProductDetails";
 import KalshiMarkets from "./KalshiMarkets";
@@ -24,6 +26,7 @@ interface ItemProps {
 const ToolItem = (props: ItemProps) => {
   const { item, isSystem, aiName } = props;
   const { sessionManager } = useAi();
+  const { setToast } = AppSettings();
   const params =
     (item?.tool?.arguments?.parameter &&
       Object.keys(item.tool?.arguments?.parameter)) ||
@@ -37,6 +40,12 @@ const ToolItem = (props: ItemProps) => {
         ? require("@/assets/toolstatus/complete.png")
         : require("@/assets/toolstatus/failed.png");
 
+  const isPajcashTool =
+    item?.tool?.action?.includes("pajcash") ||
+    item?.tool?.action?.includes("pajit") ||
+    item?.tool?.action?.includes("naira-rate");
+  const pajcashPayment = item?.pajcashOnrampPayment;
+
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const AnimatedImage = Animated.createAnimatedComponent(Image);
   useEffect(() => {
@@ -48,12 +57,18 @@ const ToolItem = (props: ItemProps) => {
         useNativeDriver: true,
       })
     ).start();
-  }, []);
+  }, [rotateAnim]);
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
+
+  const handleCopyPajcashAccount = async () => {
+    if (!pajcashPayment?.accountNumber) return;
+    const copied = await copyItem(pajcashPayment.accountNumber);
+    setToast(copied ? "Account number copied" : "Copy failed", copied ? "success" : "error");
+  };
 
 
   return (
@@ -98,8 +113,7 @@ const ToolItem = (props: ItemProps) => {
                 className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
               />
             </View>
-          ) : item?.tool?.action?.includes("pajit") ||
-            item?.tool?.action?.includes("naira-rate") ? (
+          ) : isPajcashTool ? (
             <View className="w-10 h-10 rounded-full overflow-hidden">
               <Image
                 source={require("@/assets/apps/pajcas.jpg")}
@@ -149,8 +163,7 @@ const ToolItem = (props: ItemProps) => {
                           ? "MagicBlock"
                           : item.tool?.arguments?.owner
                             ? item?.tool?.arguments?.owner
-                            : item?.tool?.action?.includes("pajit") ||
-                              item?.tool?.action?.includes("naira-rate")
+                            : isPajcashTool
                               ? "Pajcash"
                               : aiName}
               </CText>
@@ -230,6 +243,51 @@ const ToolItem = (props: ItemProps) => {
           )}
         </View>
       </View>
+
+      {item?.messageType === "pajcash_onramp" && pajcashPayment && (
+        <View className="w-full bg-[#F6ECFA] dark:bg-accent2 border border-[#971BB2]/20 rounded-2xl p-4 gap-y-3">
+          <View className="flex-row items-center justify-between">
+            <View>
+              <CText className="text-[0.85rem] uppercase text-[#971BB2]" style={{ fontFamily: "bold" }}>
+                Pajcash payment
+              </CText>
+              <CText className="text-[1rem]" style={{ fontFamily: "bold" }}>
+                Pay {pajcashPayment.fiatAmount} NGN
+              </CText>
+            </View>
+            <View className="bg-white dark:bg-accent rounded-full px-3 py-1">
+              <CText className="text-[0.85rem]" style={{ fontFamily: "bold" }}>
+                {pajcashPayment.tokenAmount} {pajcashPayment.tokenSymbol}
+              </CText>
+            </View>
+          </View>
+
+          <View className="bg-white dark:bg-accent rounded-xl p-3 gap-y-2">
+            <CText className="text-[0.8rem] uppercase text-gray-500">Account number</CText>
+            <View className="flex-row items-center justify-between gap-x-3">
+              <CText className="text-[1.35rem]" style={{ fontFamily: "bold" }}>
+                {pajcashPayment.accountNumber}
+              </CText>
+              <TouchableOpacity
+                onPress={handleCopyPajcashAccount}
+                activeOpacity={0.8}
+                className="flex-row items-center gap-x-2 bg-[#971BB2] rounded-full px-3 py-2"
+              >
+                <IconLibrary.copy size={15} color="white" />
+                <CText className="text-white text-[0.85rem]" style={{ fontFamily: "bold" }}>
+                  Copy
+                </CText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View className="gap-y-1">
+            <CText className="text-[0.95rem]">Bank: {pajcashPayment.bank}</CText>
+            <CText className="text-[0.95rem]">Account name: {pajcashPayment.accountName}</CText>
+            <CText className="text-[0.8rem] text-gray-500">Order: {pajcashPayment.orderId}</CText>
+          </View>
+        </View>
+      )}
 
       {item?.product && (
         <Products products={item?.product} sessionManager={sessionManager} source={item?.source} />

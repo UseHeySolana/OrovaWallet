@@ -15,6 +15,9 @@ import {
 } from "@/libs/voiceinfra/VerifiedVoiceStream";
 import { fetchVoiceStatus } from "@/services/voiceAuthApi";
 
+/** Extra tail after WebRTC reports assistant playback stopped (echo guard). */
+const VOICE_RESUME_AFTER_PLAYBACK_MS = 450;
+
 export type AiInputMode = 'audio' | 'chat';
 
 interface AIService {
@@ -58,6 +61,9 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const voiceCommandRecordingRef = useRef(false);
     const voiceStreamRef = useRef<VerifiedVoiceStream | null>(null);
     const voiceResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const assistantPlaybackActiveRef = useRef(false);
+    const awaitingAssistantResponseRef = useRef(false);
+    const currentModeRef = useRef(currentMode);
 
     const [conversationId, setConversationId] = useState('');
     const conversationIdRef = useRef("");
@@ -68,7 +74,12 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, [isVoiceCommandRecording]);
 
     useEffect(() => {
-        if (!voiceCommandRecordingRef.current || !voiceStreamRef.current) {
+        currentModeRef.current = currentMode;
+    }, [currentMode]);
+
+    const syncVoiceStreamSuppression = useCallback(() => {
+        const stream = voiceStreamRef.current;
+        if (!voiceCommandRecordingRef.current || !stream) {
             return;
         }
 
@@ -77,15 +88,31 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             voiceResumeTimerRef.current = null;
         }
 
-        if (currentMode === "aispeaking") {
-            voiceStreamRef.current.setSuppressed(true);
+        const shouldSuppress =
+            currentModeRef.current === "aispeaking" ||
+            assistantPlaybackActiveRef.current ||
+            awaitingAssistantResponseRef.current;
+
+        if (shouldSuppress) {
+            stream.setSuppressed(true);
             return;
         }
 
         voiceResumeTimerRef.current = setTimeout(() => {
+            if (
+                currentModeRef.current === "aispeaking" ||
+                assistantPlaybackActiveRef.current ||
+                awaitingAssistantResponseRef.current
+            ) {
+                return;
+            }
             voiceStreamRef.current?.setSuppressed(false);
             voiceResumeTimerRef.current = null;
-        }, 650);
+        }, VOICE_RESUME_AFTER_PLAYBACK_MS);
+    }, []);
+
+    useEffect(() => {
+        syncVoiceStreamSuppression();
 
         return () => {
             if (voiceResumeTimerRef.current) {
@@ -93,7 +120,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 voiceResumeTimerRef.current = null;
             }
         };
-    }, [currentMode]);
+    }, [currentMode, syncVoiceStreamSuppression]);
 
     const setActiveConversationId = useCallback((id: string) => {
         conversationIdRef.current = id;
@@ -128,6 +155,14 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 {
                     setMode: (mode) => setCurrentMode(mode),
                     setConversationId: setActiveConversationId,
+                    onAssistantPlaybackActive: (active) => {
+                        assistantPlaybackActiveRef.current = active;
+                        syncVoiceStreamSuppression();
+                    },
+                    onAssistantResponseEnded: () => {
+                        awaitingAssistantResponseRef.current = false;
+                        syncVoiceStreamSuppression();
+                    },
                 }
             );
             setSessionManager(manager);
@@ -278,7 +313,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             source: "voice",
         });
         sessionManager.sendTextMessage(trimmed);
-    }, [sessionManager, conversationId]);
+    }, [sessionManager, conversationId, syncVoiceStreamSuppression]);
 
     const addLocalAssistantMessage = useCallback((content: string) => {
         const activeConversationId = conversationIdRef.current || conversationId;
@@ -322,6 +357,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             walletAddress,
             onVerifiedCommand: (transcript, audioBase64) => {
                 if (!sessionManager.isActive()) return;
+
+                awaitingAssistantResponseRef.current = true;
+                syncVoiceStreamSuppression();
+
                 if (transcript.trim()) {
                     sendVerifiedVoiceMessage(transcript);
                     return;
@@ -334,7 +373,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             },
             onStateChange: (state) => {
                 setVoiceGateStatus(state);
-                if (state === "hearing" || state === "verified") {
+                if (state === "hearing") {
                     setCurrentMode("human");
                 }
             },
@@ -373,7 +412,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             setCurrentMode("loading");
             throw error;
         }
-    }, [addLocalAssistantMessage, currentMode, sendVerifiedVoiceMessage, sessionManager]);
+    }, [addLocalAssistantMessage, currentMode, sendVerifiedVoiceMessage, sessionManager, syncVoiceStreamSuppression]);
 
     const stopVoiceCommand = useCallback(async (
         options: { silentFailure?: boolean } = {}
@@ -389,6 +428,8 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 clearTimeout(voiceResumeTimerRef.current);
                 voiceResumeTimerRef.current = null;
             }
+            awaitingAssistantResponseRef.current = false;
+            assistantPlaybackActiveRef.current = false;
             voiceCommandRecordingRef.current = false;
             setIsVoiceCommandRecording(false);
             setVoiceGateStatus("idle");

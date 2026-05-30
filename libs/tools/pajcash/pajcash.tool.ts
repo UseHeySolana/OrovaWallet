@@ -16,6 +16,7 @@ import {
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { pajcash, Chain, Currency } from "@/libs/tools/pajcash/pajcash";
 import PajCashSession from "@/utils/store/pajcashSession.store";
+import Convo from "@/utils/store/conversation.store";
 
 const PAJ_APP = "Pajcash";
 const PAJ_OFFRAMP = "offramp";
@@ -350,8 +351,8 @@ export class PajCash {
             mint:
               args.token.toLowerCase() === "sol"
                 ? "So11111111111111111111111111111111111111112"
-                : splMint,
-            recipient,
+                : meta.mint,
+            recipient: order.address,
             raw_metadata: {
               account_number: accountNumber,
             },
@@ -414,7 +415,27 @@ export class PajCash {
         }
 
         const order = orderRes.data;
-        if (messageId !== null) completeConversation(messageId, "complete");
+        if (messageId !== null) {
+          completeConversation(messageId, "complete");
+          const toolMsg = Convo.getState().messages.find((m) => m.id === messageId);
+          Convo.getState().updateMessage({
+            messageId,
+            source: toolMsg?.source ?? "voice",
+            content: {
+              messageType: "pajcash_onramp",
+              pajcashOnrampPayment: {
+                orderId: String(order.id),
+                fiatAmount: String(order.fiatAmount),
+                tokenAmount: String(order.amount),
+                tokenSymbol: meta.symbol,
+                accountNumber: String(order.accountNumber),
+                accountName: String(order.accountName),
+                bank: String(order.bank),
+                recipient: pk.toBase58(),
+              },
+            },
+          });
+        }
         return convertSpeech(
           `Onramp order ${order.id} created. Pay ${order.fiatAmount} NGN to account ${order.accountNumber}, account name ${order.accountName}, bank ${order.bank}. You will receive about ${order.amount} ${meta.symbol} at ${pk.toBase58()}.`
         );
