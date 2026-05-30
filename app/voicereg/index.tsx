@@ -16,6 +16,7 @@ import {
 import { useAi } from "@/context/AiContext";
 import Buttons from "@/components/ButtonComp";
 import AppSettings from "@/utils/store/settingsstore.store";
+import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
 
 /** Same phrase for all 3 samples — improves ECAPA enrollment consistency. */
 const ENROLLMENT_PHRASE =
@@ -200,6 +201,16 @@ export default function Voicereg() {
     >
       <View className="w-100 m-auto flex justify-center items-start">
         <View className="w-11/12">
+          {!VOICE_VERIFICATION_ENABLED ? (
+            <View className="mb-4 rounded-2xl bg-amber-100 dark:bg-amber-900/40 px-4 py-3">
+              <CText className="text-amber-900 dark:text-amber-100 text-sm" style={{ fontFamily: "bold" }}>
+                Voice verification is paused in the app
+              </CText>
+              <CText className="text-amber-800 dark:text-amber-200 text-xs mt-1">
+                You can still record samples here for later. The dashboard uses direct realtime audio until verification is re-enabled.
+              </CText>
+            </View>
+          ) : null}
           <View className="">
             <CText style={{ fontFamily: "bold" }} className="text-[38px] text-wrap">
               &quot;{ENROLLMENT_PHRASE}&quot;

@@ -86,10 +86,10 @@ function getDeviceSignature(): DeviceSignature {
       Constants.sessionId ||
       Constants.installationId ||
       `heysolana-${Date.now()}`;
-    store.setDeviceUuid(uuid);
+    store.setDeviceUuid(uuid as string);
   }
   return {
-    uuid,
+    uuid: uuid as string,
     device: Device.modelName || "Mobile",
     os: Device.osName || undefined,
     browser: "HeySolana",
