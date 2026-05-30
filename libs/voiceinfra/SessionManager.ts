@@ -89,10 +89,15 @@ class SessionManager {
   }[] = [];
   /** Ignore session.updated until we have sent a session.update (avoids early server ack). */
   private awaitingSessionUpdateAck = false;
+  /** WebRTC: assistant audio may still be playing after response.done. */
+  private assistantOutputAudioActive = false;
+  private pendingIdleModeAfterAssistant = false;
   // public mode: 'loading' | 'human' | 'aispeaking' = 'loading'
   public callbacks: {
     setMode: (mode: "loading" | "human" | "aispeaking") => void;
     setConversationId: (id: string) => void;
+    onAssistantPlaybackActive?: (active: boolean) => void;
+    onAssistantResponseEnded?: () => void;
   };
 
   constructor(
@@ -101,6 +106,8 @@ class SessionManager {
     callbacks: {
       setMode: (mode: "loading" | "human" | "aispeaking") => void;
       setConversationId: (id: string) => void;
+      onAssistantPlaybackActive?: (active: boolean) => void;
+      onAssistantResponseEnded?: () => void;
     }
   ) {
     this.isSessionActive = false;
@@ -394,6 +401,16 @@ class SessionManager {
     return !this.useVoiceInputThisSession;
   }
 
+  private setModeAfterAssistantPlayback(): void {
+    this.callbacks.setMode(this.useVoiceInputThisSession ? "human" : "loading");
+  }
+
+  private clearAssistantPlaybackState(): void {
+    this.assistantOutputAudioActive = false;
+    this.pendingIdleModeAfterAssistant = false;
+    this.callbacks.onAssistantPlaybackActive?.(false);
+  }
+
   private scheduleFlushHuman(): void {
     if (this.flushHumanTimer != null) return;
     this.flushHumanTimer = setTimeout(() => {
@@ -665,6 +682,23 @@ class SessionManager {
           throw new Error("Conversation has not been set");
         }
 
+        if (message.type === "output_audio_buffer.started") {
+          this.assistantOutputAudioActive = true;
+          this.pendingIdleModeAfterAssistant = false;
+          this.callbacks.onAssistantPlaybackActive?.(true);
+          this.callbacks.setMode("aispeaking");
+        }
+
+        if (message.type === "output_audio_buffer.stopped") {
+          this.assistantOutputAudioActive = false;
+          this.callbacks.onAssistantPlaybackActive?.(false);
+          if (this.pendingIdleModeAfterAssistant) {
+            this.pendingIdleModeAfterAssistant = false;
+            this.setModeAfterAssistantPlayback();
+          }
+          this.callbacks.onAssistantResponseEnded?.();
+        }
+
         if (message.type === "input_audio_buffer.speech_started") {
           // Handle user interruption properly
           // 1. Cancel any in-flight response
@@ -675,6 +709,10 @@ class SessionManager {
             });
             this.currentResponseId = null;
           }
+
+          this.assistantOutputAudioActive = false;
+          this.pendingIdleModeAfterAssistant = false;
+          this.callbacks.onAssistantPlaybackActive?.(false);
 
           // 2. Stop audio playback immediately
           this.audioManager.stopPlayback();
@@ -722,6 +760,8 @@ class SessionManager {
           this.functionCallState = { itemId: null, name: null, arguments: "" };
           this.cancelFlushAi();
           this.pendingAiDeltas = "";
+          this.clearAssistantPlaybackState();
+          this.callbacks.onAssistantResponseEnded?.();
         }
 
         if (message.type === "response.output_item.added") {
@@ -967,9 +1007,13 @@ class SessionManager {
           }
 
           if (!hasPendingFunctionCall) {
-            this.callbacks.setMode(
-              this.useVoiceInputThisSession ? "human" : "loading"
-            );
+            if (this.assistantOutputAudioActive) {
+              // response.done arrives before WebRTC playback finishes; wait for output_audio_buffer.stopped.
+              this.pendingIdleModeAfterAssistant = true;
+            } else {
+              this.setModeAfterAssistantPlayback();
+              this.callbacks.onAssistantResponseEnded?.();
+            }
           }
 
           // Reset function call state after processing response
@@ -1064,7 +1108,7 @@ class SessionManager {
         response: {
           instructions:
             `You are ${aiName}, the Orova wallet assistant.${nameHint} ` +
-            "The user just started a new session. Greet them warmly in one or two short sentences and ask how you can help. " +
+            "The user just started a new session. Greet them warmly in one short sentence and ask how you can help. " +
             "Do not call any tools for this greeting.",
         },
       });
@@ -1141,6 +1185,7 @@ class SessionManager {
 
       this.rejectSessionUpdateWaiters("Session stopped");
       this.rejectSessionReady(new Error("Session stopped"));
+      this.clearAssistantPlaybackState();
 
       this.isSessionActive = false;
       this.connectionEstablished = false;
@@ -1211,6 +1256,17 @@ class SessionManager {
     }
   }
 
+  private createShortVoiceResponse(overrides: Record<string, unknown> = {}): void {
+    this.sendClientEvent({
+      type: "response.create",
+      response: {
+        instructions:
+          "Reply for voice. Be brief, direct, and brisk. Use one short sentence unless a second sentence is necessary.",
+        ...overrides,
+      },
+    });
+  }
+
   sendTextMessage(message: string): void {
     if (!this.isSessionActive) {
       console.error("Cannot send message - session not active");
@@ -1263,7 +1319,7 @@ class SessionManager {
 
       // Wait briefly before requesting a response
       setTimeout(() => {
-        this.sendClientEvent({ type: "response.create" });
+        this.createShortVoiceResponse();
       }, 200);
     } catch (error) {
       console.error("Error sending text message:", error);
@@ -1304,7 +1360,7 @@ class SessionManager {
       });
       this.sendClientEvent({ type: "input_audio_buffer.commit" });
       setTimeout(() => {
-        this.sendClientEvent({ type: "response.create" });
+        this.createShortVoiceResponse();
       }, 100);
     } catch (error) {
       console.error("Error sending verified audio chunk:", error);
@@ -1404,7 +1460,7 @@ class SessionManager {
 
     // Trigger response after brief delay
     setTimeout(() => {
-      this.sendClientEvent({ type: "response.create" });
+      this.createShortVoiceResponse();
     }, 100);
 
     console.log("Push-to-talk recording stopped, triggering response");
@@ -1615,7 +1671,10 @@ class SessionManager {
       // As per OpenAI docs: "ask the model to respond"
       setTimeout(() => {
         console.log(`[Function Call] Requesting model response with function result`);
-        this.sendClientEvent({ type: "response.create" });
+        this.createShortVoiceResponse({
+          instructions:
+            "Summarize the tool result for voice in one short sentence. Mention only the key result or next step.",
+        });
       }, 300);
     } catch (error: any) {
       console.error(`[Function Call] Error executing ${name}:`, error);
@@ -1684,7 +1743,10 @@ class SessionManager {
 
       // Still trigger a response so the model can handle the error gracefully
       setTimeout(() => {
-        this.sendClientEvent({ type: "response.create" });
+        this.createShortVoiceResponse({
+          instructions:
+            "Explain the tool error briefly for voice in one short sentence and say what the user can try next.",
+        });
       }, 300);
     }
 

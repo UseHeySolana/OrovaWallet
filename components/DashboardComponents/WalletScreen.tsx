@@ -40,6 +40,15 @@ import { measureInOverlay } from "@/utils/measureInOverlay";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
+function isNigerianPhoneNumber(phone?: string | null): boolean {
+  const compact = String(phone || "").replace(/[\s()-]/g, "");
+  return (
+    compact.startsWith("+234") ||
+    compact.startsWith("234") ||
+    /^0[789][01]\d{8}$/.test(compact)
+  );
+}
+
 function lamportsToSolDisplay(lamports: number): string {
   const sol = lamports / 1e9;
   if (!Number.isFinite(sol)) return "SOL";
@@ -117,7 +126,7 @@ export default function WalletScreen({
   const { scrollY, collapseRange, overlayRootRef, setSourceLayout } =
     useWalletScroll();
   const sourceMeasureRef = useRef<View>(null);
-  const { userWallet, visibleTokenMints } = UserItem();
+  const { user, userWallet, visibleTokenMints } = UserItem();
   const { publicKey } = WalletItem();
   const { networkShort } = AppSettings();
   const { suggestions } = BrainStore();
@@ -381,19 +390,21 @@ export default function WalletScreen({
               </TouchableOpacity>
               <CText className="text-[0.85rem]">Receive</CText>
             </View>
-            <View className="items-center gap-y-2">
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Onramp"
-                onPress={() => {
-                  router.push("/dashboard/onramp" as any);
-                }}
-                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
-              >
-                <Ionicons name="card-outline" size={23} color="white" />
-              </TouchableOpacity>
-              <CText className="text-[0.85rem]">Onramp</CText>
-            </View>
+            {isNigerianPhoneNumber(user?.phoneE164 || user?.mobileNumber) && (
+              <View className="items-center gap-y-2">
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Onramp"
+                  onPress={() => {
+                    router.push("/dashboard/onramp" as any);
+                  }}
+                  className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+                >
+                  <Ionicons name="card-outline" size={23} color="white" />
+                </TouchableOpacity>
+                <CText className="text-[0.85rem]">Onramp</CText>
+              </View>
+            )}
           </View>
         </View>
 
