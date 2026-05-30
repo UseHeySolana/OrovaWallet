@@ -275,6 +275,7 @@ export class AirBills {
               app_called: "Airbills",
               input_token_symbol: "USDC",
               input_amount: args.amount,
+              input_amount_usd: args.amount,
               amount: args.amount,
               token: "USDC",
               raw_metadata: {
@@ -441,6 +442,7 @@ export class AirBills {
               app_called: "Airbills",
               input_token_symbol: "USDC",
               input_amount: args.amount,
+              input_amount_usd: args.amount,
               amount: args.amount,
               token: "USDC",
               raw_metadata: { mobile_number: mobileNumber },

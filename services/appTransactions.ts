@@ -50,6 +50,28 @@ function currentCluster(): AppTransactionCluster {
   return AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet";
 }
 
+/** Best-effort USD notional for TVP when callers omit input_amount_usd. */
+export function resolveInputAmountUsd(params: {
+  amount: number;
+  token?: string;
+  mint?: string;
+  input_amount_usd?: number;
+}): number | undefined {
+  if (params.input_amount_usd != null && Number.isFinite(params.input_amount_usd)) {
+    return params.input_amount_usd;
+  }
+  if (!Number.isFinite(params.amount) || params.amount <= 0) {
+    return undefined;
+  }
+
+  const token = params.token?.trim().toUpperCase();
+  if (token === "USDC" || token === "USDT") {
+    return params.amount;
+  }
+
+  return estimateUsdFromWalletToken(params.mint, params.amount);
+}
+
 function enrichPayload(
   payload: RecordAppTransactionPayload
 ): RecordAppTransactionPayload {
@@ -57,7 +79,7 @@ function enrichPayload(
     payload.wallet_address ?? WalletItem.getState().publicKey?.toString() ?? "";
   const user = UserItem.getState().user;
 
-  return {
+  const enriched: RecordAppTransactionPayload = {
     cluster: currentCluster(),
     wallet_address: wallet,
     username: payload.username ?? user?.username,
@@ -65,6 +87,16 @@ function enrichPayload(
     status: payload.status ?? "confirmed",
     ...payload,
   };
+
+  if (enriched.input_amount_usd == null && enriched.input_amount != null) {
+    enriched.input_amount_usd = resolveInputAmountUsd({
+      amount: enriched.input_amount,
+      token: enriched.input_token_symbol ?? enriched.token,
+      mint: enriched.input_token_mint,
+    });
+  }
+
+  return enriched;
 }
 
 /**
@@ -276,6 +308,7 @@ export function recordCommercePaymentTransaction(params: {
 export function recordOfframpTransaction(params: {
   signature: string;
   provider: string;
+  app_called?: string;
   amount: number;
   token: string;
   mint?: string;
@@ -288,7 +321,7 @@ export function recordOfframpTransaction(params: {
     transaction_type: "offramp",
     status: "confirmed",
     provider: params.provider,
-    app_called: params.provider,
+    app_called: params.app_called ?? params.provider,
     input_token_mint: params.mint,
     input_token_symbol: params.token,
     input_amount: params.amount,

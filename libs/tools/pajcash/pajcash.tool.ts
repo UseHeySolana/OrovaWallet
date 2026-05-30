@@ -346,6 +346,7 @@ export class PajCash {
           recordOfframpTransaction({
             signature: transfer!.message,
             provider: "pajcash",
+            app_called: "Pajcash",
             amount: args.amount,
             token: args.token.toUpperCase(),
             mint:
@@ -372,22 +373,31 @@ export class PajCash {
     return {
       name: "pajcash-onramp",
       description:
-        "Buy crypto with Naira via PajCash. Creates an onramp order and returns Nigerian bank details for the user to pay.",
+        "Buy any supported Solana SPL token with Naira via PajCash. Creates an onramp order and returns Nigerian bank details for the user to pay. Use fiat_amount when the user gives a Naira amount; use token_amount when the user gives the amount of token they want to receive.",
       parameters: {
         type: "object",
         properties: {
           fiat_amount: {
             type: "number",
-            description: "Amount in NGN to pay",
+            description: "Amount in NGN to pay, e.g. 10000 for 10,000 NGN",
+          },
+          token_amount: {
+            type: "number",
+            description:
+              "Optional token amount the user wants to receive. If provided without fiat_amount, quote the required NGN first.",
           },
           token: {
             type: "string",
             description: "SPL token to receive by symbol, name, or mint address",
           },
         },
-        required: ["fiat_amount", "token"],
+        required: ["token"],
       },
-      handler: async (args: { fiat_amount: number; token: string }) => {
+      handler: async (args: {
+        fiat_amount?: number;
+        token_amount?: number;
+        token: string;
+      }) => {
         const messageId = this.session.functionMessageId;
         const pk = WalletItem.getState().publicKey;
         if (!pk) return "Please connect your wallet";
@@ -401,8 +411,31 @@ export class PajCash {
           return `Could not resolve token for onramp: ${args.token}`;
         }
 
+        let fiatAmount = args.fiat_amount;
+        if (
+          (!Number.isFinite(fiatAmount) || !fiatAmount || fiatAmount <= 0) &&
+          Number.isFinite(args.token_amount) &&
+          args.token_amount &&
+          args.token_amount > 0
+        ) {
+          const fiatQuote = await pajcash.getFiatQuote(
+            args.token_amount,
+            meta.mint,
+            Currency.NGN
+          );
+          if (!fiatQuote.status) {
+            if (messageId !== null) completeConversation(messageId, "failed");
+            return fiatQuote.message;
+          }
+          fiatAmount = Number(fiatQuote.data.fiatAmount);
+        }
+
+        if (!Number.isFinite(fiatAmount) || !fiatAmount || fiatAmount <= 0) {
+          return `How much NGN do you want to spend, or how much ${meta.symbol} do you want to buy?`;
+        }
+
         const orderRes = await pajcash.createOnramp({
-          fiatAmount: args.fiat_amount,
+          fiatAmount,
           currency: Currency.NGN,
           recipient: pk.toBase58(),
           mint: meta.mint,
