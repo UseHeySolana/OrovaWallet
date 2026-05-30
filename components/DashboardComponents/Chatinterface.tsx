@@ -14,6 +14,7 @@ import ToolItem from "@/components/ChatItems/ToolItem";
 import ChatBox from "@/components/ChatItems/ChatBox";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { useAi } from "@/context/AiContext";
+import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
 import type { VoiceVerificationDebugInfo } from "@/libs/voiceinfra/VerifiedVoiceStream";
 import { MessageType } from "@/utils/store/conversation.store";
 import { BlurView } from "expo-blur";
@@ -158,6 +159,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
   }, [isVoiceCommandRecording]);
 
   React.useEffect(() => {
+    if (!VOICE_VERIFICATION_ENABLED) return;
     if (inputMode === "audio" && isSessionActive) return;
     if (voiceRecordingRef.current) {
       void stopVoiceCommand({ silentFailure: true });
@@ -165,6 +167,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
   }, [inputMode, isSessionActive, stopVoiceCommand]);
 
   React.useEffect(() => {
+    if (!VOICE_VERIFICATION_ENABLED) return;
     if (
       inputMode !== "audio" ||
       voiceEnrolled !== true ||
@@ -214,13 +217,13 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
   const handleStartSession = async () => {
     if (!sessionManager) return;
     await startSession();
-    if (inputMode === "audio" && voiceEnrolled === true) {
+    if (VOICE_VERIFICATION_ENABLED && inputMode === "audio" && voiceEnrolled === true) {
       await startVoiceCommand();
     }
   };
 
   const handleStopSession = () => {
-    if (voiceRecordingRef.current) {
+    if (VOICE_VERIFICATION_ENABLED && voiceRecordingRef.current) {
       void stopVoiceCommand({ silentFailure: true });
     }
     stopSession();
@@ -286,7 +289,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
         paddingBottom:
           inputMode === "chat"
             ? keyboardHeight
-            : voiceEnrolled
+            : VOICE_VERIFICATION_ENABLED && voiceEnrolled
               ? 130
               : 0,
       }}
@@ -463,7 +466,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
         </View>
       )}
 
-      {__DEV__ && inputMode === "audio" && (
+      {__DEV__ && VOICE_VERIFICATION_ENABLED && inputMode === "audio" && (
         <View className="pt-2 pb-4 px-4">
           {voiceEnrolled === false && (
             <TouchableOpacity

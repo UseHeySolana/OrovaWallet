@@ -21,6 +21,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { useAi } from "@/context/AiContext";
+import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
 
 import { Base } from "@/components//Navigation/Base";
 import { useThemeContext } from "@/context/ThemeContext";
@@ -241,7 +242,7 @@ export default function Dashboard() {
               <QuickActions showInDashboard={false} />
             </>
           )}
-          {(showWallet || voiceEnrolled === true) && (
+          {(showWallet || !VOICE_VERIFICATION_ENABLED || voiceEnrolled === true) && (
             <Base
               showWallet={showWallet}
               setShowWallet={setShowWallet}

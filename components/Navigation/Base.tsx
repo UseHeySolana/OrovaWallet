@@ -6,6 +6,7 @@ import React from 'react'
 import { Pressable, TouchableOpacity, View } from 'react-native'
 import { usePIP } from "@/services/PIPService/PIPManager";
 import { useAi } from "@/context/AiContext";
+import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
 
 interface BASENAV {
   isSessionActive: boolean;
@@ -51,7 +52,7 @@ export const Base = ({
       return;
     }
 
-    if (voiceEnrolled === false) {
+    if (VOICE_VERIFICATION_ENABLED && voiceEnrolled === false) {
       router.push("/voicereg");
       return;
     }

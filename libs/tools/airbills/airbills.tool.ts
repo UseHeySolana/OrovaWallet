@@ -4,7 +4,6 @@ import { FunctionParams } from "@/utils/types/types";
 import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import {
-  cleanNumber,
   convertSpeech,
   signTransactions,
 } from "@/utils/functions/extrafunctions";
@@ -33,6 +32,8 @@ type BuyAirtimeArgs = {
   username?: string;
   phoneNumber?: string;
   mobileNumber?: string;
+  network?: string;
+  networkId?: string;
   amount: number;
 };
 
@@ -110,6 +111,32 @@ const resolveElectricityProvider = (value?: string) =>
 
 const resolveMeterType = (value?: string) =>
   ELECTRICITY_METER_TYPES[normalizeLookupValue(value)] || "";
+
+const AIRTIME_NETWORK_IDS: Record<string, string> = {
+  "01": "01",
+  mtn: "01",
+  "02": "02",
+  glo: "02",
+  "03": "03",
+  "9mobile": "03",
+  etisalat: "03",
+  "04": "04",
+  airtel: "04",
+};
+
+const normalizeAirbillsPhoneNumber = (value?: string) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("234") && digits.length === 13) {
+    return `0${digits.slice(3)}`;
+  }
+  if (!digits.startsWith("0") && digits.length === 10) {
+    return `0${digits}`;
+  }
+  return digits;
+};
+
+const resolveAirtimeNetworkId = (value?: string) =>
+  AIRTIME_NETWORK_IDS[normalizeLookupValue(value)] || "";
 
 export class AirBills {
   public buyAirtime: FunctionParams;
@@ -322,6 +349,18 @@ export class AirBills {
             description:
               "The mobile phone number to send airtime to. Use this when the recipient is not a Hey Solana username.",
           },
+          networkId: {
+            type: "string",
+            enum: ["01", "02", "03", "04"],
+            description:
+              "Optional network code: 01 MTN, 02 Glo, 03 9mobile, 04 Airtel. If omitted, Airbills network-checker will detect it from the phone number.",
+          },
+          network: {
+            type: "string",
+            enum: ["MTN", "Glo", "9mobile", "Airtel"],
+            description:
+              "Optional network name. Use only if the user provides the mobile network.",
+          },
           amount: {
             type: "number",
             description:
@@ -358,7 +397,7 @@ export class AirBills {
 
         const directPhone = args.phoneNumber || args.mobileNumber;
         if (directPhone?.trim()) {
-          mobileNumber = cleanNumber(directPhone);
+          mobileNumber = normalizeAirbillsPhoneNumber(directPhone);
         } else if (
           !args.username ||
           args.username.toLowerCase() === user?.username.toLowerCase() ||
@@ -377,12 +416,18 @@ export class AirBills {
             );
             return response;
           }
-          mobileNumber = cleanNumber(userCheck.phoneNumber);
+          mobileNumber = normalizeAirbillsPhoneNumber(userCheck.phoneNumber);
         }
+
+        mobileNumber = normalizeAirbillsPhoneNumber(mobileNumber);
 
         if (!mobileNumber) {
           return "Please provide the mobile number you want to send airtime to";
         }
+
+        const networkId = resolveAirtimeNetworkId(
+          args.networkId || args.network
+        );
 
         const userWalletAddress =
           WalletItem.getState().publicKey?.toString() || "";
@@ -394,7 +439,8 @@ export class AirBills {
         const response = await airBills.airtime.purchaseAirtime(
           mobileNumber,
           args.amount,
-          userWalletAddress
+          userWalletAddress,
+          networkId
         );
 
         if (!response.status)

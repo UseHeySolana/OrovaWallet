@@ -14,6 +14,7 @@ import {
     type VoiceVerificationDebugInfo,
 } from "@/libs/voiceinfra/VerifiedVoiceStream";
 import { fetchVoiceStatus } from "@/services/voiceAuthApi";
+import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
 
 /** Extra tail after WebRTC reports assistant playback stopped (echo guard). */
 const VOICE_RESUME_AFTER_PLAYBACK_MS = 450;
@@ -211,6 +212,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, [permissionGranted, refresh, user, userWallet, setActiveConversationId]);
 
     const refreshVoiceEnrollment = useCallback(async () => {
+        if (!VOICE_VERIFICATION_ENABLED) {
+            return;
+        }
+
         const walletAddress =
             WalletItem.getState().publicKeyBase58 ??
             WalletItem.getState().publicKey?.toBase58() ??
@@ -230,6 +235,9 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     useEffect(() => {
+        if (!VOICE_VERIFICATION_ENABLED) {
+            return;
+        }
         void refreshVoiceEnrollment();
     }, [refreshVoiceEnrollment, user?.username, refresh]);
 
@@ -243,11 +251,9 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
         if (prompt === "") return;
-        // Commands are captured locally and verified before being sent as text.
-        // This keeps server VAD/noise from triggering tools or flickering the UI.
         console.log('starting session');
         const startPromise = sessionManager.startSession(prompt, {
-            useAudio: false,
+            useAudio: VOICE_VERIFICATION_ENABLED ? false : inputMode === "audio",
         }).then(() => {
             setIsSessionActive(true);
         }).finally(() => {
@@ -255,7 +261,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         });
         startSessionPromiseRef.current = startPromise;
         return startPromise;
-    }, [sessionManager, prompt]);
+    }, [inputMode, sessionManager, prompt]);
 
     const stopSession = useCallback(() => {
         setLoading(true);
@@ -329,6 +335,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     }, [conversationId]);
 
     const startVoiceCommand = useCallback(async () => {
+        if (!VOICE_VERIFICATION_ENABLED) {
+            return;
+        }
+
         if (voiceCommandRecordingRef.current) {
             return;
         }
@@ -417,6 +427,10 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const stopVoiceCommand = useCallback(async (
         options: { silentFailure?: boolean } = {}
     ): Promise<{ ok: boolean; message?: string }> => {
+        if (!VOICE_VERIFICATION_ENABLED) {
+            return { ok: true };
+        }
+
         try {
             if (!voiceCommandRecordingRef.current && !voiceStreamRef.current) {
                 return { ok: false, message: "No active voice stream." };

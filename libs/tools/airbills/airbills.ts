@@ -2,6 +2,9 @@ import { request } from "@/utils/request/db";
 import { AIRBILLS } from "@/utils/constant";
 
 const toErrorMessage = (result: any, fallback = "Request failed") => {
+  if (typeof result === "string" && result.trim()) {
+    return result;
+  }
   if (typeof result?.message === "string" && result.message.trim()) {
     return result.message;
   }
@@ -20,8 +23,27 @@ const mapNetworkToId = (network: string): string | null => {
   return null;
 };
 
+const normalizeNetworkId = (networkId?: string): string | null => {
+  const normalized = String(networkId || "").trim();
+  return ["01", "02", "03", "04"].includes(normalized) ? normalized : null;
+};
+
+const parseGatewayResponse = async (response: Response) => {
+  const text = await response.text();
+  if (!text.trim()) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      status: "01",
+      message: `Airbills returned a non-JSON response (${response.status})`,
+    };
+  }
+};
+
 const airBills = {
-  baseUrl: "https://vendor.airbillspay.com/api/vendor/gateway",
+  baseUrl: "https://api.airbills.org/api/vendor/gateway",
   /**
    *
    * @param phone_number
@@ -35,8 +57,11 @@ const airBills = {
     detectNetwork: async (phone_number: string) => {
       const url = `${airBills.baseUrl}/network-checker?phone=${encodeURIComponent(phone_number)}`;
       try {
-        const response = await request.getRan(url, { secretkey: AIRBILLS });
-        const result = await response.json();
+        const response = await request.getRan(url, {
+          Accept: "*/*",
+          secretkey: AIRBILLS,
+        });
+        const result = await parseGatewayResponse(response);
         if (!response.ok || !isGatewaySuccess(result)) {
           return { status: false, message: toErrorMessage(result) };
         }
@@ -50,25 +75,37 @@ const airBills = {
         return { status: true, data: { networkId } };
       } catch (error) {
         console.log(error);
-        return { status: false, message: error };
+        return {
+          status: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Could not detect network for airtime",
+        };
       }
     },
 
     purchaseAirtime: async (
       phone_number: string,
       amount: number,
-      userWalletAddress: string
+      userWalletAddress: string,
+      preferredNetworkId?: string
     ) => {
       try {
-        const networkResponse = await airBills.airtime.detectNetwork(phone_number);
-        if (!networkResponse.status) {
-          return {
-            status: false,
-            message:
-              networkResponse.message || "Could not detect network for airtime",
-          };
+        let networkId = normalizeNetworkId(preferredNetworkId);
+        if (!networkId) {
+          const networkResponse =
+            await airBills.airtime.detectNetwork(phone_number);
+          if (!networkResponse.status) {
+            return {
+              status: false,
+              message:
+                networkResponse.message || "Could not detect network for airtime",
+            };
+          }
+          networkId = networkResponse.data?.networkId || null;
         }
-        const networkId = networkResponse.data?.networkId;
+
         if (!networkId) {
           return {
             status: false,
@@ -91,7 +128,7 @@ const airBills = {
         const response = await request.postJsonRan(data, url, {
           secretkey: AIRBILLS,
         });
-        const result = await response.json();
+        const result = await parseGatewayResponse(response);
 
         if (!response.ok || !isGatewaySuccess(result)) {
           return {
@@ -111,7 +148,11 @@ const airBills = {
         };
       } catch (error) {
         console.log(error);
-        return { status: false, message: error };
+        return {
+          status: false,
+          message:
+            error instanceof Error ? error.message : "Airtime purchase failed",
+        };
       }
     },
 
@@ -135,7 +176,7 @@ const airBills = {
           secretkey: AIRBILLS,
         });
 
-        const result = await response.json();
+        const result = await parseGatewayResponse(response);
         const status = String(result?.status ?? "");
         if (!response.ok || (!isGatewaySuccess(result) && status !== "06")) {
           return {
@@ -146,7 +187,11 @@ const airBills = {
         return { status: true, data: result };
       } catch (error) {
         console.log(error);
-        return { status: false, message: error };
+        return {
+          status: false,
+          message:
+            error instanceof Error ? error.message : "Airtime completion failed",
+        };
       }
     },
   },
