@@ -1,12 +1,8 @@
-import { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View, TouchableOpacity } from "react-native";
+import { Linking, Pressable, View, TouchableOpacity } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
-import { Image } from "expo-image";
-import { useThemeContext } from "@/context/ThemeContext";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { Linking } from "react-native";
 
 /**
  * What should be done here
@@ -14,9 +10,8 @@ import { Linking } from "react-native";
  * Show transaction details
  */
 export default function SuccessSent() {
-  const { mint, txid, amount, recipient, tokenName, displayName } =
+  const { txid, amount, recipient, tokenName, displayName } =
     useLocalSearchParams();
-  const { isDarkMode } = useThemeContext();
 
   const openExplorer = () => {
     if (txid) {
@@ -67,19 +62,23 @@ export default function SuccessSent() {
           </CText>
 
           <View className="space-y-4">
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center gap-x-3">
               <CText className="text-gray-600 dark:text-gray-300">Amount</CText>
-              <CText style={{ fontFamily: "bold" }}>
+              <CText
+                className="text-right flex-1"
+                style={{ fontFamily: "bold" }}
+                numberOfLines={1}
+              >
                 {amount} {tokenName || "tokens"}
               </CText>
             </View>
 
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center gap-x-3">
               <CText className="text-gray-600 dark:text-gray-300">
                 Recipient
               </CText>
               <CText
-                className="text-right font-mono"
+                className="text-right font-mono flex-1"
                 numberOfLines={1}
                 ellipsizeMode="middle"
               >
@@ -87,12 +86,12 @@ export default function SuccessSent() {
               </CText>
             </View>
             {displayName && displayName !== recipient && (
-              <View className="flex-row justify-between items-center">
+              <View className="flex-row justify-between items-center gap-x-3">
                 <CText className="text-gray-600 dark:text-gray-300">
                   Wallet Address
                 </CText>
                 <CText
-                  className="text-right font-mono text-[12px]"
+                  className="text-right font-mono text-[12px] flex-1"
                   numberOfLines={1}
                   ellipsizeMode="middle"
                 >
@@ -101,12 +100,12 @@ export default function SuccessSent() {
               </View>
             )}
 
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center gap-x-3">
               <CText className="text-gray-600 dark:text-gray-300">
                 Transaction ID
               </CText>
               <CText
-                className="text-right font-mono text-[12px]"
+                className="text-right font-mono text-[12px] flex-1"
                 numberOfLines={1}
                 ellipsizeMode="middle"
               >
