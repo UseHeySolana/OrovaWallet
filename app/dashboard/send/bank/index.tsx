@@ -16,13 +16,22 @@ import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
 import DragableSheet from "@/components/CustomItems/DragableSheet";
 import SearchInput from "@/components/SearchInput/SearchInput";
-import CText from "@/components/TextComp";
+import { CText } from "@/components/TextComp";
+import {
+  deletePajCashBeneficiary,
+  getPajCashBeneficiaries,
+  savePajCashBeneficiary,
+} from "@/services/pajcashBeneficiariesApi";
 import IconLibrary from "@/utils/icons";
 import AppSettings from "@/utils/store/settingsstore.store";
+import PajCashBeneficiaries, {
+  type PajCashBeneficiary,
+} from "@/utils/store/pajcashBeneficiaries.store";
 import PajCashSession from "@/utils/store/pajcashSession.store";
 import TxQueue from "@/utils/store/txqueue.store";
 import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
+import WalletItem from "@/utils/store/wallet.store";
 import { Chain, Currency, pajcash } from "@/libs/tools/pajcash/pajcash";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -89,9 +98,13 @@ export default function SendToBank() {
     };
   }, [params.balance, params.decimals, params.image, params.name, params.symbol, selectedMint]);
   const { user, userWallet } = UserItem();
+  const publicKey = WalletItem((state) => state.publicKey);
   const { setToast } = AppSettings();
   const pajSession = PajCashSession();
+  const { beneficiaries, setBeneficiaries, upsertBeneficiary, removeBeneficiary } =
+    PajCashBeneficiaries();
   const lastResolvedAccountRef = useRef<string | null>(null);
+  const beneficiariesLoadedWalletRef = useRef<string | null>(null);
 
   const defaultRecipient = useMemo(
     () =>
@@ -118,6 +131,7 @@ export default function SendToBank() {
   const [tokenSearch, setTokenSearch] = useState("");
   const [banks, setBanks] = useState<Bank[]>([]);
   const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
+  const [beneficiaryPickerOpen, setBeneficiaryPickerOpen] = useState(false);
   const [bankPickerOpen, setBankPickerOpen] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -130,9 +144,11 @@ export default function SendToBank() {
   const [loading, setLoading] = useState<
     "otp" | "verify" | "banks" | "resolve" | "quote" | "order" | null
   >(null);
+  const [beneficiariesLoading, setBeneficiariesLoading] = useState(false);
   const [quote, setQuote] = useState<any>(null);
 
   const isPajCashVerified = pajSession.isSessionValid();
+  const walletAddress = publicKey?.toBase58() || user?.wallet_address || "";
   const tokenAmount = parseAmount(amount);
   const orderAmount = Number(order?.amount ?? tokenAmount);
 
@@ -178,6 +194,27 @@ export default function SendToBank() {
     void loadBanks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPajCashVerified, banks.length, loading]);
+
+  useEffect(() => {
+    if (!walletAddress || beneficiariesLoading) return;
+    if (beneficiariesLoadedWalletRef.current === walletAddress) return;
+    let cancelled = false;
+    beneficiariesLoadedWalletRef.current = walletAddress;
+    setBeneficiariesLoading(true);
+    getPajCashBeneficiaries(walletAddress)
+      .then((items) => {
+        if (!cancelled) setBeneficiaries(items);
+      })
+      .catch((err) => {
+        console.warn("[PajCash Beneficiaries] load failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setBeneficiariesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress, beneficiariesLoading, setBeneficiaries]);
 
   useEffect(() => {
     if (!isPajCashVerified || !selectedToken || !tokenAmount || tokenAmount <= 0) {
@@ -295,7 +332,23 @@ export default function SendToBank() {
     const data = res.data as unknown as Record<string, unknown>;
     const resolvedName =
       String(data.accountName ?? data.account_name ?? data.name ?? "").trim();
-    setAccountName(resolvedName || "Account resolved");
+    const nextAccountName = resolvedName || "Account resolved";
+    setAccountName(nextAccountName);
+    const beneficiary = {
+      bankId: selectedBank.id,
+      bankName: selectedBank.name,
+      bankCode: selectedBank.code,
+      accountNumber: normalizedAccount,
+      accountName: nextAccountName,
+    };
+    upsertBeneficiary(beneficiary);
+    if (walletAddress) {
+      savePajCashBeneficiary(walletAddress, beneficiary)
+        .then(upsertBeneficiary)
+        .catch((err) => {
+          console.warn("[PajCash Beneficiaries] save failed", err);
+        });
+    }
     setLastError("");
     if (!options.quiet) {
       setStatusMessage("Bank account resolved.");
@@ -468,6 +521,29 @@ export default function SendToBank() {
     setBankPickerOpen(false);
     setBankSearch("");
     setAccountName("");
+    lastResolvedAccountRef.current = null;
+  };
+
+  const selectBeneficiary = (beneficiary: PajCashBeneficiary) => {
+    setSelectedBank({
+      id: beneficiary.bankId,
+      name: beneficiary.bankName,
+      code: beneficiary.bankCode,
+    });
+    setAccountNumber(beneficiary.accountNumber);
+    setAccountName(beneficiary.accountName);
+    setBeneficiaryPickerOpen(false);
+    lastResolvedAccountRef.current = `${beneficiary.bankId}:${beneficiary.accountNumber}`;
+  };
+
+  const deleteBeneficiary = (beneficiary: PajCashBeneficiary) => {
+    removeBeneficiary(beneficiary.id);
+    if (!walletAddress) return;
+    deletePajCashBeneficiary(walletAddress, beneficiary).catch((err) => {
+      console.warn("[PajCash Beneficiaries] delete failed", err);
+      upsertBeneficiary(beneficiary);
+      setToast("Could not delete beneficiary. Please try again.", "error");
+    });
   };
 
   return (
@@ -609,6 +685,54 @@ export default function SendToBank() {
               <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400">
                 BANK ACCOUNT
               </CText>
+              {beneficiaries.length > 0 ? (
+                <View className="gap-y-2">
+                  <View className="flex-row items-center justify-between">
+                    <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
+                      Beneficiaries
+                    </CText>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="View all beneficiaries"
+                      onPress={() => setBeneficiaryPickerOpen(true)}
+                    >
+                      <CText className="text-[0.85rem]" textColor="text-purple">
+                        View all
+                      </CText>
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={{ gap: 8 }}
+                  >
+                    {beneficiaries.slice(0, 4).map((beneficiary) => (
+                      <TouchableOpacity
+                        key={beneficiary.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Send to ${beneficiary.accountName}`}
+                        onPress={() => selectBeneficiary(beneficiary)}
+                        className="min-w-[170px] rounded-2xl bg-grey dark:bg-accent2 p-3"
+                      >
+                        <CText
+                          style={{ fontFamily: "bold" }}
+                          className="text-[0.95rem]"
+                          numberOfLines={1}
+                        >
+                          {beneficiary.accountName}
+                        </CText>
+                        <CText className="text-[0.8rem] text-gray-500 dark:text-gray-400" numberOfLines={1}>
+                          {beneficiary.bankName}
+                        </CText>
+                        <CText className="text-[0.8rem] text-gray-500 dark:text-gray-400">
+                          {beneficiary.accountNumber}
+                        </CText>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
               <Pressable
                 onPress={() => setBankPickerOpen(true)}
                 className="w-full h-[48px] rounded-xl border border-grey dark:border-accent2 px-3 flex-row items-center justify-between"
@@ -630,6 +754,7 @@ export default function SendToBank() {
                 onChangeText={(value) => {
                   setAccountNumber(value.replace(/[^0-9]/g, "").slice(0, 10));
                   setAccountName("");
+                  lastResolvedAccountRef.current = null;
                 }}
                 keyboardType="number-pad"
               />
@@ -739,6 +864,71 @@ export default function SendToBank() {
                         <AntDesign name="check" size={20} color="#971BB2" />
                       ) : null}
                     </Pressable>
+                  )}
+                />
+              )}
+            </View>
+          }
+        />
+      ) : null}
+
+      {beneficiaryPickerOpen ? (
+        <DragableSheet
+          close={() => setBeneficiaryPickerOpen(false)}
+          panClose
+          snapPoints={["58%", "82%"]}
+          child={
+            <View className="w-full flex-1 gap-y-3 pb-6">
+              <CText style={{ fontFamily: "bold" }} className="text-[18px] text-center">
+                Select beneficiary
+              </CText>
+              {beneficiaries.length === 0 ? (
+                <CText className="text-center text-gray-500 py-6 px-4">
+                  Resolved bank accounts will appear here after your first send.
+                </CText>
+              ) : (
+                <FlatList
+                  data={beneficiaries}
+                  keyExtractor={(item) => item.id}
+                  keyboardShouldPersistTaps="handled"
+                  renderItem={({ item }) => (
+                    <View className="flex-row items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700 gap-x-3">
+                      <Pressable
+                        onPress={() => selectBeneficiary(item)}
+                        className="flex-row items-center gap-x-3 flex-1"
+                      >
+                        <View className="h-11 w-11 rounded-full bg-purple/10 items-center justify-center">
+                          <MaterialCommunityIcons
+                            name="bank"
+                            size={22}
+                            color="#971BB2"
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <CText style={{ fontFamily: "bold" }} className="text-[1rem]" numberOfLines={1}>
+                            {item.accountName}
+                          </CText>
+                          <CText className="text-[0.85rem] text-black/60 dark:text-grey/70" numberOfLines={1}>
+                            {item.bankName}
+                          </CText>
+                          <CText className="text-[0.8rem] text-black/50 dark:text-grey/60">
+                            {item.accountNumber}
+                          </CText>
+                        </View>
+                      </Pressable>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${item.accountName}`}
+                        onPress={() => deleteBeneficiary(item)}
+                        className="p-2 rounded-full bg-grey dark:bg-accent2"
+                      >
+                        <MaterialCommunityIcons
+                          name="trash-can-outline"
+                          size={18}
+                          color="#EF4444"
+                        />
+                      </TouchableOpacity>
+                    </View>
                   )}
                 />
               )}
