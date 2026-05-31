@@ -1,78 +1,65 @@
-import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, TextInput, TouchableNativeFeedback, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import CText from "@/components/TextComp";
-import DragableSheet from "@/components//CustomItems/DragableSheet";
-import { Image } from "expo-image";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
-import { Keypair } from "@solana/web3.js";
-import UserItem from "@/utils/store/userstore.store";
 import IconLibrary from "@/utils/icons";
-import { useThemeContext } from "@/context/ThemeContext";
+import { Image } from "expo-image";
+import { useState } from "react";
+import {
+  Pressable,
+  TouchableNativeFeedback,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import DragableSheet from "@/components/CustomItems/DragableSheet";
 import SearchInput from "@/components/SearchInput/SearchInput";
+import UserItem from "@/utils/store/userstore.store";
 
-const Items = [
-  {
-    id: 1,
-    title: "Voice Assistant",
-    description: "",
-    subItems: [],
-    type: "toogle",
-  },
-  {
-    id: 2,
-    title: "Language",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "English",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 3,
-    title: "Assistant Voice",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "Kira",
-      description: "",
-    }],
-    type: "dropdown",
-  },
-  {
-    id: 4,
-    title: "Assistant Name",
-    description: "",
-    subItems: [{
-      id: 1,
-      title: "User Input",
-      description: "",
-    }],
-    type: "dropdown",
-  }
-]
-/**
-  * What should be done here
-  * 1: Send tokens
-  */
+type SendOption = "wallet" | "bank";
+
 export default function Send() {
-  const { user, userWallet } = UserItem()
-  const { isDarkMode } = useThemeContext()
-  const [searchQuery, setSearchQuery] = useState("")
+  const { userWallet } = UserItem();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedToken, setSelectedToken] = useState<any>(null);
+  const [sendOptionsOpen, setSendOptionsOpen] = useState(false);
 
-  const tokens = userWallet?.tokenAccounts ?? []
-  const q = searchQuery.trim().toLowerCase()
+  const tokens = userWallet?.tokenAccounts ?? [];
+  const q = searchQuery.trim().toLowerCase();
   const filteredTokens = q
     ? tokens.filter((token: any) => {
-        const name = (token?.name ?? "").toLowerCase()
-        const symbol = (token?.symbol ?? "").toLowerCase()
-        const mint = (token?.mint ?? "").toLowerCase()
-        return name.includes(q) || symbol.includes(q) || mint.includes(q)
-      })
-    : tokens
+      const name = (token?.name ?? "").toLowerCase();
+      const symbol = (token?.symbol ?? "").toLowerCase();
+      const mint = (token?.mint ?? "").toLowerCase();
+      return name.includes(q) || symbol.includes(q) || mint.includes(q);
+    })
+    : tokens;
+
+  const openSendOptions = (token: any) => {
+    setSelectedToken(token);
+    setSendOptionsOpen(true);
+  };
+
+  const continueWithOption = (option: SendOption) => {
+    if (!selectedToken?.mint) return;
+    setSendOptionsOpen(false);
+    router.push({
+      pathname:
+        option === "wallet"
+          ? "/dashboard/send/token"
+          : "/dashboard/send/bank",
+      params: {
+        mint: selectedToken.mint,
+        symbol: selectedToken.symbol,
+        name: selectedToken.name,
+        balance: String(selectedToken.balance ?? ""),
+        decimals: String(selectedToken.decimals ?? ""),
+        image:
+          typeof selectedToken.image === "string"
+            ? selectedToken.image
+            : undefined,
+      },
+    } as any);
+  };
 
   return (
     <View className="relative pt-3 bg-grey dark:bg-dark h-full w-100 flex items-start justify-start flex-col gap-y-4">
@@ -84,6 +71,7 @@ export default function Send() {
           <IconLibrary.back />
         </Pressable>
       </View>
+
       <View className=" flex-1 gap-y-2 flex-col justify-start items-center rounded-2xl w-11/12 py-2 m-auto">
         <SearchInput onSearch={setSearchQuery} value={searchQuery} />
         <View className="bg-white dark:bg-accent rounded-xl overflow-hidden">
@@ -98,12 +86,7 @@ export default function Send() {
             <View key={token?.mint ?? String(index)}>
               <TouchableNativeFeedback
                 background={TouchableNativeFeedback.Ripple("#971BB2", false)}
-                onPress={() => {
-                  router.push({
-                    pathname: "/dashboard/send/token",
-                    params: { mint: token.mint },
-                  });
-                }}
+                onPress={() => openSendOptions(token)}
               >
                 <View className=" px-4 py-4  w-full  flex flex-row items-start justify-between text-[20px]">
                   <View className="flex flex-row items-start gap-x-2 w-full">
@@ -147,6 +130,72 @@ export default function Send() {
           ))}
         </View>
       </View>
+
+      {sendOptionsOpen ? (
+        <DragableSheet
+          close={() => setSendOptionsOpen(false)}
+          panClose
+          snapPoints={["38%", "52%"]}
+          child={
+            <View className="w-full flex-1 gap-y-4 pb-6">
+              <View className="items-center gap-y-1">
+                <CText style={{ fontFamily: "bold" }} className="text-[1.25rem]">
+                  Send {selectedToken?.symbol ?? "token"}
+                </CText>
+                <CText className="text-[0.9rem] text-center text-black/60 dark:text-grey/70">
+                  Choose where you want to send this token.
+                </CText>
+              </View>
+
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Send to crypto wallet"
+                onPress={() => continueWithOption("wallet")}
+                className="w-full flex-row items-center py-3"
+              >
+                <View className="flex-row items-center gap-x-4 flex-1">
+                  <View className="w-11 items-center">
+                    <Ionicons name="wallet-outline" size={27} color="#6B6B78" />
+                  </View>
+                  <View className="flex-1">
+                    <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">
+                      Crypto wallet
+                    </CText>
+                    <CText className="mt-1 text-[0.95rem] text-gray-500 dark:text-gray-400">
+                      Send to a Solana address or username
+                    </CText>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Send to fiat account"
+                onPress={() => continueWithOption("bank")}
+                className="w-full flex-row items-center py-3"
+              >
+                <View className="flex-row items-center gap-x-4 flex-1">
+                  <View className="w-11 items-center">
+                    <MaterialCommunityIcons
+                      name="bank-transfer-out"
+                      size={30}
+                      color="#6B6B78"
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">
+                      Fiat account
+                    </CText>
+                    <CText className="mt-1 text-[0.95rem] text-gray-500 dark:text-gray-400">
+                      Offramp to a Nigerian bank account
+                    </CText>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      ) : null}
     </View>
   );
 }

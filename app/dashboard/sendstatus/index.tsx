@@ -9,17 +9,31 @@ import {
 import IconLibrary from "@/utils/icons";
 import TxQueue from "@/utils/store/txqueue.store";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Buttons from "@/components/ButtonComp";
 import { TransactionStatusRingSkeleton } from "@/components/skeletons";
+import { recordOfframpTransaction } from "@/services/appTransactions";
 import { formatAppTxAmount } from "@/utils/appTransactionDisplay";
 
 export default function SendStatus() {
-  const { id, amount, recipient, tokenName, displayName, mint } =
+  const {
+    id,
+    amount,
+    recipient,
+    tokenName,
+    displayName,
+    mint,
+    mode,
+    orderId,
+    fiatAmount,
+    bank,
+    accountNumber,
+  } =
     useLocalSearchParams();
   const item = TxQueue((s) =>
     typeof id === "string" ? s.items[id] : undefined
   );
+  const recordedRef = useRef(false);
 
   const openExplorer = () => {
     if (item?.txid) {
@@ -31,6 +45,24 @@ export default function SendStatus() {
 
   useEffect(() => {
     if (item?.status === "confirmed" && item.txid) {
+      if (mode === "offramp" && !recordedRef.current) {
+        recordedRef.current = true;
+        recordOfframpTransaction({
+          signature: item.txid,
+          provider: "pajcash",
+          app_called: "Pajcash",
+          amount: Number(amount ?? 0),
+          token: String(tokenName ?? "SPL"),
+          mint: mint as string,
+          recipient: recipient as string,
+          raw_metadata: {
+            order_id: orderId,
+            fiat_amount: fiatAmount,
+            bank,
+            account_number: accountNumber,
+          },
+        });
+      }
       router.replace({
         pathname: "/dashboard/transaction",
         params: {
