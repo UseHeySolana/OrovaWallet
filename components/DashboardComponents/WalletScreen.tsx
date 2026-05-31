@@ -39,15 +39,12 @@ import { useWalletScroll } from "@/context/WalletScrollContext";
 import { measureInOverlay } from "@/utils/measureInOverlay";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
-
-function isNigerianPhoneNumber(phone?: string | null): boolean {
-  const compact = String(phone || "").replace(/[\s()-]/g, "");
-  return (
-    compact.startsWith("+234") ||
-    compact.startsWith("234") ||
-    /^0[789][01]\d{8}$/.test(compact)
-  );
-}
+const ACTION_BUTTON_SIZE = scale(45);
+const actionButtonStyle = {
+  width: ACTION_BUTTON_SIZE,
+  height: ACTION_BUTTON_SIZE,
+  borderRadius: ACTION_BUTTON_SIZE / 2,
+};
 
 function lamportsToSolDisplay(lamports: number): string {
   const sol = lamports / 1e9;
@@ -126,7 +123,7 @@ export default function WalletScreen({
   const { scrollY, collapseRange, overlayRootRef, setSourceLayout } =
     useWalletScroll();
   const sourceMeasureRef = useRef<View>(null);
-  const { user, userWallet, visibleTokenMints } = UserItem();
+  const { userWallet, visibleTokenMints } = UserItem();
   const { publicKey } = WalletItem();
   const { networkShort } = AppSettings();
   const { suggestions } = BrainStore();
@@ -342,15 +339,16 @@ export default function WalletScreen({
 
           <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
-          <View className="flex flex-row py-4 items-start justify-between px-4">
-            <View className="items-center gap-y-2">
+          <View className="flex flex-row py-4 justify-between items-start">
+            <View className="flex-1 items-center gap-y-2">
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="Send"
                 onPress={() => {
                   router.push("/dashboard/send");
                 }}
-                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+                className="bg-purple justify-center items-center"
+                style={actionButtonStyle}
               >
                 <View className="rotate-[230deg]">
                   <AntDesign name="arrow-down" size={18} color="white" />
@@ -358,14 +356,15 @@ export default function WalletScreen({
               </TouchableOpacity>
               <CText className="text-[0.85rem]">Send</CText>
             </View>
-            <View className="items-center gap-y-2">
+            <View className="flex-1 items-center gap-y-2">
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="Swap"
                 onPress={() => {
                   router.push("/dashboard/swap");
                 }}
-                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+                className="bg-purple  justify-center items-center"
+                style={actionButtonStyle}
               >
                 <MaterialCommunityIcons
                   name="swap-horizontal"
@@ -375,36 +374,22 @@ export default function WalletScreen({
               </TouchableOpacity>
               <CText className="text-[0.85rem]">Swap</CText>
             </View>
-            <View className="items-center gap-y-2">
+            <View className="flex-1 items-center gap-y-2">
               <TouchableOpacity
                 accessibilityRole="button"
-                accessibilityLabel="Receive"
+                accessibilityLabel="Deposit"
                 onPress={() => {
-                  router.push("/dashboard/qrcode");
+                  router.push("/dashboard/deposit" as any);
                 }}
-                className="h-14 w-14 rounded-full bg-purple justify-center items-center"
+                className="bg-purple justify-center items-center"
+                style={actionButtonStyle}
               >
                 <View className="rotate-[40deg]">
                   <AntDesign name="arrow-down" size={18} color="white" />
                 </View>
               </TouchableOpacity>
-              <CText className="text-[0.85rem]">Receive</CText>
+              <CText className="text-[0.85rem]">Deposit</CText>
             </View>
-            {isNigerianPhoneNumber(user?.phoneE164 || user?.mobileNumber) && (
-              <View className="items-center gap-y-2">
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="Onramp"
-                  onPress={() => {
-                    router.push("/dashboard/onramp" as any);
-                  }}
-                  className="h-14 w-14 rounded-full bg-purple justify-center items-center"
-                >
-                  <Ionicons name="card-outline" size={23} color="white" />
-                </TouchableOpacity>
-                <CText className="text-[0.85rem]">Onramp</CText>
-              </View>
-            )}
           </View>
         </View>
 
