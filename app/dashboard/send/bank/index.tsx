@@ -16,6 +16,7 @@ import { Image } from "expo-image";
 import Buttons from "@/components/ButtonComp";
 import DragableSheet from "@/components/CustomItems/DragableSheet";
 import SearchInput from "@/components/SearchInput/SearchInput";
+import { ButtonInlineLoader } from "@/components/skeletons";
 import { CText } from "@/components/TextComp";
 import {
   deletePajCashBeneficiary,
@@ -137,6 +138,8 @@ export default function SendToBank() {
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
   const [amount, setAmount] = useState("");
+  const [fiatAmount, setFiatAmount] = useState("");
+  const [quoteMode, setQuoteMode] = useState<"token" | "fiat">("token");
   const [order, setOrder] = useState<any>(null);
   const [orderSheetOpen, setOrderSheetOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -149,8 +152,13 @@ export default function SendToBank() {
 
   const isPajCashVerified = pajSession.isSessionValid();
   const walletAddress = publicKey?.toBase58() || user?.wallet_address || "";
+  const isFiatMode = quoteMode === "fiat";
   const tokenAmount = parseAmount(amount);
+  const ngnAmount = parseAmount(fiatAmount);
+  const activeQuoteAmount = isFiatMode ? ngnAmount : tokenAmount;
   const orderAmount = Number(order?.amount ?? tokenAmount);
+  const quotedTokenAmount = formatAmount(quote?.amount) || amount;
+  const quotedNairaAmount = formatAmount(quote?.fiatAmount) || fiatAmount;
 
   const filteredTokens = useMemo(() => {
     const q = tokenSearch.trim().toLowerCase();
@@ -217,24 +225,28 @@ export default function SendToBank() {
   }, [walletAddress, beneficiariesLoading, setBeneficiaries]);
 
   useEffect(() => {
-    if (!isPajCashVerified || !selectedToken || !tokenAmount || tokenAmount <= 0) {
+    if (!isPajCashVerified || !selectedToken || !activeQuoteAmount || activeQuoteAmount <= 0) {
       setQuote(null);
       return;
     }
     const timer = setTimeout(async () => {
       setLoading((current) => current ?? "quote");
-      const res = await pajcash.getFiatQuote(
-        tokenAmount,
-        selectedToken.mint,
-        Currency.NGN
-      );
+      const res =
+        quoteMode === "fiat"
+          ? await pajcash.getTokenQuote(activeQuoteAmount, selectedToken.mint, Currency.NGN)
+          : await pajcash.getFiatQuote(activeQuoteAmount, selectedToken.mint, Currency.NGN);
       setLoading((current) => (current === "quote" ? null : current));
       if (res.status) {
         setQuote(res.data);
+        if (quoteMode === "fiat") {
+          setAmount(formatAmount(res.data.amount));
+        } else {
+          setFiatAmount(formatAmount(res.data.fiatAmount));
+        }
       }
     }, 700);
     return () => clearTimeout(timer);
-  }, [isPajCashVerified, selectedToken, tokenAmount]);
+  }, [activeQuoteAmount, isPajCashVerified, selectedToken, quoteMode]);
 
   const saveRecipient = (value: string) => {
     ToolsItem.getState().updateToolParameter("Pajcash", "credentials", {
@@ -381,7 +393,22 @@ export default function SendToBank() {
     if (parts.length === 2 && selectedToken?.decimals != null && parts[1].length > selectedToken.decimals) {
       return;
     }
+    setQuoteMode("token");
     setAmount(numeric);
+    setQuote(null);
+  };
+
+  const handleFiatAmountChange = (value: string) => {
+    const numeric = value.replace(/[^0-9.]/g, "");
+    const parts = numeric.split(".");
+    if (parts.length > 2) return;
+    setQuoteMode("fiat");
+    setFiatAmount(numeric);
+    setQuote(null);
+  };
+
+  const toggleAmountMode = (useNaira: boolean) => {
+    setQuoteMode(useNaira ? "fiat" : "token");
     setQuote(null);
   };
 
@@ -396,12 +423,37 @@ export default function SendToBank() {
       setToast("Select a token to offramp", "error");
       return;
     }
-    if (!Number.isFinite(tokenAmount) || tokenAmount <= 0) {
+    if (
+      quoteMode === "fiat" &&
+      (!Number.isFinite(ngnAmount) || ngnAmount <= 0)
+    ) {
+      setLastError("Enter a valid NGN amount");
+      setToast("Enter a valid NGN amount", "error");
+      return;
+    }
+    if (
+      quoteMode === "token" &&
+      (!Number.isFinite(tokenAmount) || tokenAmount <= 0)
+    ) {
       setLastError("Enter a valid token amount");
       setToast("Enter a valid token amount", "error");
       return;
     }
-    if (tokenAmount > Number(selectedToken.balance ?? 0)) {
+    const estimatedTokenAmount =
+      quoteMode === "fiat" ? Number(quote?.amount ?? tokenAmount) : tokenAmount;
+    if (
+      quoteMode === "fiat" &&
+      (!Number.isFinite(estimatedTokenAmount) || estimatedTokenAmount <= 0)
+    ) {
+      setLastError("Please wait for the token amount to calculate");
+      setToast("Please wait for the token amount to calculate", "error");
+      return;
+    }
+    if (
+      Number.isFinite(estimatedTokenAmount) &&
+      estimatedTokenAmount > 0 &&
+      estimatedTokenAmount > Number(selectedToken.balance ?? 0)
+    ) {
       setLastError(`Insufficient ${selectedToken.symbol} balance`);
       setToast("Insufficient balance", "error");
       return;
@@ -417,26 +469,20 @@ export default function SendToBank() {
     }
 
     setLastError("");
-    setStatusMessage("Creating PajCash offramp order...");
+    setStatusMessage("");
     setLoading("order");
-    const res = await pajcash.createOfframp({
+    const orderPayload = {
       bank: selectedBank.id,
       accountNumber: accountNumber.trim(),
       currency: Currency.NGN,
-      amount: tokenAmount,
       mint: selectedToken.mint,
       chain: Chain.SOLANA,
-    });
+      ...(quoteMode === "fiat" ? { fiatAmount: ngnAmount } : { amount: tokenAmount }),
+    };
+    const res = await pajcash.createOfframp(orderPayload);
     setLoading(null);
     console.log("[PajCash Offramp] createOfframp response", {
-      request: {
-        bank: selectedBank.id,
-        accountNumber: accountNumber.trim(),
-        currency: Currency.NGN,
-        amount: tokenAmount,
-        mint: selectedToken.mint,
-        chain: Chain.SOLANA,
-      },
+      request: orderPayload,
       response: res,
     });
 
@@ -567,6 +613,15 @@ export default function SendToBank() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View className="w-full gap-y-5">
+          {loading === "order" ? (
+            <View className="w-full p-3 rounded-2xl bg-purple/10 dark:bg-purple/15 flex-row items-center gap-x-3">
+              <ButtonInlineLoader variant="secondary" />
+              <CText className="text-[0.95rem]" textColor="text-purple">
+                Creating order
+              </CText>
+            </View>
+          ) : null}
+
           {!!statusMessage && (
             <View className="w-full p-3 rounded-2xl bg-green-100 dark:bg-green-950/30">
               <CText className="text-[0.95rem]" textColor="text-green-700 dark:text-green-300">
@@ -631,54 +686,115 @@ export default function SendToBank() {
           ) : null}
 
           <View className="w-full gap-y-3">
-            <View className="bg-white dark:bg-accent rounded-2xl px-4 pt-3 pb-4">
-              <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-3">
-                YOU SEND
-              </CText>
+            <View className="bg-white dark:bg-accent rounded-2xl px-4 pt-3 pb-4 gap-y-2">
+              <View className="flex-row items-center justify-between mb-1">
+                <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400">
+                  AMOUNT
+                </CText>
+                <View className="flex-row rounded-full bg-grey dark:bg-accent2 p-0.5">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: !isFiatMode }}
+                    onPress={() => toggleAmountMode(false)}
+                    className={`px-3 py-1 rounded-full ${!isFiatMode ? "bg-white dark:bg-accent" : ""}`}
+                  >
+                    <CText
+                      style={{ fontFamily: !isFiatMode ? "bold" : "reg" }}
+                      className={`text-[12px] ${!isFiatMode ? "text-purple" : "text-gray-500 dark:text-gray-400"}`}
+                    >
+                      Token
+                    </CText>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isFiatMode }}
+                    onPress={() => toggleAmountMode(true)}
+                    className={`px-3 py-1 rounded-full ${isFiatMode ? "bg-white dark:bg-accent" : ""}`}
+                  >
+                    <CText
+                      style={{ fontFamily: isFiatMode ? "bold" : "reg" }}
+                      className={`text-[12px] ${isFiatMode ? "text-purple" : "text-gray-500 dark:text-gray-400"}`}
+                    >
+                      Naira
+                    </CText>
+                  </Pressable>
+                </View>
+              </View>
               <View className="flex-row items-start justify-between gap-x-3">
                 <View className="flex-1 min-w-0">
                   <TextInput
                     className="text-[36px] text-black dark:text-white p-0"
                     style={{ fontFamily: "bold", lineHeight: 42 }}
-                    value={amount}
-                    onChangeText={handleAmountChange}
+                    value={isFiatMode ? fiatAmount : amount}
+                    onChangeText={isFiatMode ? handleFiatAmountChange : handleAmountChange}
                     placeholder="0"
                     placeholderTextColor="#D1D5DB"
                     keyboardType="decimal-pad"
                   />
-                  <CText className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
-                    Balance: {selectedToken?.balance ?? 0} {selectedToken?.symbol ?? ""}
-                  </CText>
+                  {!isFiatMode ? (
+                    <CText className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
+                      Balance: {selectedToken?.balance ?? 0} {selectedToken?.symbol ?? ""}
+                    </CText>
+                  ) : null}
+                  {loading === "quote" ? (
+                    <ActivityIndicator color="#971BB2" size="small" style={{ marginTop: 6 }} />
+                  ) : null}
+                  {quote ? (
+                    <CText
+                      style={{ fontFamily: isFiatMode ? "bold" : "reg" }}
+                      className={`text-[12px] mt-1 ${isFiatMode ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
+                    >
+                      {isFiatMode
+                        ? `${quotedTokenAmount || "0"} ${selectedToken?.symbol ?? ""}`
+                        : `${quotedNairaAmount || "0"} NGN`}
+                    </CText>
+                  ) : null}
                 </View>
                 <View className="items-end gap-y-2">
-                  <Pressable
-                    onPress={() => setTokenPickerOpen(true)}
-                    className="flex-row items-center gap-x-2 bg-grey dark:bg-accent2 rounded-full pl-2 pr-3 py-2"
-                  >
-                    {selectedToken?.image ? (
-                      <View className="h-7 w-7 rounded-full overflow-hidden">
-                        <Image
-                          source={selectedToken.image}
-                          style={{ width: "100%", height: "100%" }}
-                          contentFit="cover"
-                        />
-                      </View>
-                    ) : null}
-                    <CText style={{ fontFamily: "bold" }} className="text-[15px]">
-                      {selectedToken?.symbol ?? "Token"}
-                    </CText>
-                    <AntDesign name="down" size={12} color="#6B7280" />
-                  </Pressable>
-                  <TouchableOpacity
-                    onPress={setMaxAmount}
-                    className="bg-[#971BB2] px-3 py-1.5 rounded-lg"
-                  >
-                    <CText className="text-white text-[12px]" style={{ fontFamily: "bold" }}>
-                      MAX
-                    </CText>
-                  </TouchableOpacity>
+                  {isFiatMode ? (
+                    <View className="bg-grey dark:bg-accent2 rounded-full px-3 py-2">
+                      <CText style={{ fontFamily: "bold" }} className="text-[15px]">
+                        NGN
+                      </CText>
+                    </View>
+                  ) : (
+                    <>
+                      <Pressable
+                        onPress={() => setTokenPickerOpen(true)}
+                        className="flex-row items-center gap-x-2 bg-grey dark:bg-accent2 rounded-full pl-2 pr-3 py-2"
+                      >
+                        {selectedToken?.image ? (
+                          <View className="h-7 w-7 rounded-full overflow-hidden">
+                            <Image
+                              source={selectedToken.image}
+                              style={{ width: "100%", height: "100%" }}
+                              contentFit="cover"
+                            />
+                          </View>
+                        ) : null}
+                        <CText style={{ fontFamily: "bold" }} className="text-[15px]">
+                          {selectedToken?.symbol ?? "Token"}
+                        </CText>
+                        <AntDesign name="down" size={12} color="#6B7280" />
+                      </Pressable>
+                      <TouchableOpacity
+                        onPress={setMaxAmount}
+                        className="bg-[#971BB2] px-3 py-1.5 rounded-lg"
+                      >
+                        <CText className="text-white text-[12px]" style={{ fontFamily: "bold" }}>
+                          MAX
+                        </CText>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </View>
+              {quote?.fee ? (
+                <View className="flex-row justify-between">
+                  <CText className="text-black/60 dark:text-grey/70">Fee</CText>
+                  <CText>{quote.fee}</CText>
+                </View>
+              ) : null}
             </View>
 
             <View className="bg-white dark:bg-accent rounded-2xl px-4 py-4 gap-y-3">
@@ -726,31 +842,6 @@ export default function SendToBank() {
                 </View>
               ) :
                 null}
-            </View>
-
-            <View className="bg-white dark:bg-accent rounded-2xl px-4 py-4 gap-y-2">
-              <View className="flex-row justify-between">
-                <CText className="text-black/60 dark:text-grey/70">You receive</CText>
-                {loading === "quote" ? (
-                  <ActivityIndicator color="#971BB2" />
-                ) : (
-                  <CText style={{ fontFamily: "bold" }}>
-                    {formatAmount(quote?.fiatAmount) || "0"} NGN
-                  </CText>
-                )}
-              </View>
-              {quote?.rate ? (
-                <View className="flex-row justify-between">
-                  <CText className="text-black/60 dark:text-grey/70">Rate</CText>
-                  <CText>{quote.rate}</CText>
-                </View>
-              ) : null}
-              {quote?.fee ? (
-                <View className="flex-row justify-between">
-                  <CText className="text-black/60 dark:text-grey/70">Fee</CText>
-                  <CText>{quote.fee}</CText>
-                </View>
-              ) : null}
             </View>
 
             <Buttons
