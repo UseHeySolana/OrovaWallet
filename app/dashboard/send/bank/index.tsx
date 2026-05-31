@@ -685,54 +685,6 @@ export default function SendToBank() {
               <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400">
                 BANK ACCOUNT
               </CText>
-              {beneficiaries.length > 0 ? (
-                <View className="gap-y-2">
-                  <View className="flex-row items-center justify-between">
-                    <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
-                      Beneficiaries
-                    </CText>
-                    <TouchableOpacity
-                      accessibilityRole="button"
-                      accessibilityLabel="View all beneficiaries"
-                      onPress={() => setBeneficiaryPickerOpen(true)}
-                    >
-                      <CText className="text-[0.85rem]" textColor="text-purple">
-                        View all
-                      </CText>
-                    </TouchableOpacity>
-                  </View>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={{ gap: 8 }}
-                  >
-                    {beneficiaries.slice(0, 4).map((beneficiary) => (
-                      <TouchableOpacity
-                        key={beneficiary.id}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Send to ${beneficiary.accountName}`}
-                        onPress={() => selectBeneficiary(beneficiary)}
-                        className="min-w-[170px] rounded-2xl bg-grey dark:bg-accent2 p-3"
-                      >
-                        <CText
-                          style={{ fontFamily: "bold" }}
-                          className="text-[0.95rem]"
-                          numberOfLines={1}
-                        >
-                          {beneficiary.accountName}
-                        </CText>
-                        <CText className="text-[0.8rem] text-gray-500 dark:text-gray-400" numberOfLines={1}>
-                          {beneficiary.bankName}
-                        </CText>
-                        <CText className="text-[0.8rem] text-gray-500 dark:text-gray-400">
-                          {beneficiary.accountNumber}
-                        </CText>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              ) : null}
               <Pressable
                 onPress={() => setBankPickerOpen(true)}
                 className="w-full h-[48px] rounded-xl border border-grey dark:border-accent2 px-3 flex-row items-center justify-between"
@@ -808,6 +760,79 @@ export default function SendToBank() {
               loading={loading === "order"}
               onPress={createOrder}
             />
+
+            {beneficiaries.length > 0 ? (
+              <View className="bg-white dark:bg-accent rounded-2xl overflow-hidden">
+                <View className="flex-row items-center justify-between px-4 py-4 border-b border-grey dark:border-accent2">
+                  <View className="flex-row items-center gap-x-6">
+                    <CText style={{ fontFamily: "bold" }} textColor="text-purple">
+                      Recents
+                    </CText>
+                    <CText className="text-gray-500 dark:text-gray-400">
+                      Favourites
+                    </CText>
+                  </View>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="View all beneficiaries"
+                    onPress={() => setBeneficiaryPickerOpen(true)}
+                    className="p-1"
+                  >
+                    <AntDesign name="search" size={18} color="#971BB2" />
+                  </TouchableOpacity>
+                </View>
+
+                {beneficiaries.slice(0, 3).map((beneficiary, index) => (
+                  <TouchableOpacity
+                    key={beneficiary.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Send to ${beneficiary.accountName}`}
+                    onPress={() => selectBeneficiary(beneficiary)}
+                    className="px-4 py-4 flex-row items-center justify-between gap-x-3"
+                  >
+                    <View className="flex-1 min-w-0">
+                      <CText
+                        style={{ fontFamily: "bold" }}
+                        className="text-[0.95rem]"
+                        numberOfLines={1}
+                      >
+                        {beneficiary.accountName}
+                      </CText>
+                      <CText
+                        className="text-[0.85rem] text-gray-500 dark:text-gray-400 mt-1"
+                        numberOfLines={1}
+                      >
+                        {beneficiary.accountNumber} {beneficiary.bankName}
+                      </CText>
+                    </View>
+                    <View className="h-10 w-10 rounded-full bg-purple/10 items-center justify-center">
+                      <MaterialCommunityIcons
+                        name="bank-transfer-out"
+                        size={22}
+                        color="#971BB2"
+                      />
+                    </View>
+                    {index < Math.min(beneficiaries.length, 3) - 1 ? (
+                      <View className="absolute bottom-0 left-4 right-4 h-[1px] bg-grey dark:bg-accent2" />
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+
+                {beneficiaries.length > 3 ? (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="View all beneficiaries"
+                    onPress={() => setBeneficiaryPickerOpen(true)}
+                    className="items-center py-3"
+                  >
+                    <View className="flex-row items-center gap-x-1 px-3 py-1 rounded-full bg-grey dark:bg-accent2">
+                      <CText className="text-[0.8rem]">View All</CText>
+                      <AntDesign name="right" size={10} color="#6B7280" />
+                    </View>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : null}
           </View>
 
           <View className="w-full items-center pt-2 pb-4">
