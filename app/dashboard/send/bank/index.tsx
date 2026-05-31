@@ -25,6 +25,8 @@ import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { Chain, Currency, pajcash } from "@/libs/tools/pajcash/pajcash";
 
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+
 type Bank = {
   id: string;
   code?: string;
@@ -373,6 +375,17 @@ export default function SendToBank() {
       chain: Chain.SOLANA,
     });
     setLoading(null);
+    console.log("[PajCash Offramp] createOfframp response", {
+      request: {
+        bank: selectedBank.id,
+        accountNumber: accountNumber.trim(),
+        currency: Currency.NGN,
+        amount: tokenAmount,
+        mint: selectedToken.mint,
+        chain: Chain.SOLANA,
+      },
+      response: res,
+    });
 
     if (!res.status) {
       setLastError(res.message);
@@ -400,14 +413,23 @@ export default function SendToBank() {
 
   const sendOrderTokens = () => {
     if (!order || !selectedToken) return;
-    const id = TxQueue.getState().enqueue({
-      kind: "spl",
-      recipient: String(order.address),
-      mint: selectedToken.mint,
-      amount: orderAmount,
-      decimals: selectedToken.decimals,
-      symbol: selectedToken.symbol,
-    });
+    const isSol = selectedToken.mint === SOL_MINT;
+    const id = TxQueue.getState().enqueue(
+      isSol
+        ? {
+          kind: "sol",
+          recipient: String(order.address),
+          amount: orderAmount,
+        }
+        : {
+          kind: "spl",
+          recipient: String(order.address),
+          mint: selectedToken.mint,
+          amount: orderAmount,
+          decimals: selectedToken.decimals,
+          symbol: selectedToken.symbol,
+        }
+    );
 
     setOrderSheetOpen(false);
     router.push({
