@@ -1673,7 +1673,7 @@ class SessionManager {
         console.log(`[Function Call] Requesting model response with function result`);
         this.createShortVoiceResponse({
           instructions:
-            "Summarize the tool result for voice in one short sentence. Mention only the key result or next step.",
+            "Summarize the tool result for voice in one short sentence. If the tool result includes an assistant_instruction or message field, follow it closely. Do not enumerate arrays, product names, prices, or links unless the tool explicitly asks you to.",
         });
       }, 300);
     } catch (error: any) {

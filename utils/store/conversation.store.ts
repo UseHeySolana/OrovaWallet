@@ -103,7 +103,7 @@ interface Conversation {
     messageId: string;
     toolUpdates?: Partial<ToolType>;
     content?: Partial<MessageType>;
-    productUpdates?: Partial<MessageType["product"]>;
+    productUpdates?: MessageType["product"];
     source: string;
   }) => void;
   getConversationMessages: (conversation: string) => MessageType[] | null;
@@ -167,7 +167,7 @@ const Convo = create(
         messageId: string;
         toolUpdates?: Partial<ToolType>;
         content?: Partial<MessageType>;
-        productUpdates?: Partial<MessageType["product"]>;
+        productUpdates?: MessageType["product"];
         source: string;
       }) => {
         set((state) => ({
@@ -180,10 +180,7 @@ const Convo = create(
                 ...(msg.tool ?? {}), // fallback to empty object if tool is undefined
                 ...toolUpdates,
               },
-              product: {
-                ...(msg.product ?? {}), // fallback to empty object if product is undefined
-                ...productUpdates,
-              },
+              product: productUpdates ?? msg.product,
               source: source,
               ...content,
             } as MessageType;

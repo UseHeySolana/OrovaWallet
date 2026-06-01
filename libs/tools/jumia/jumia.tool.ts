@@ -83,10 +83,17 @@ export class JumiaTool {
           return "Jumia is not activated. Ask the user to activate Jumia in Settings → Apps and set their delivery address and email.";
         }
         const messageId = this.session.functionMessageId;
+        const query = args.query?.trim() || "your search";
         try {
-          const products = await searchJumiaProducts(args.query, { limit: 15 });
+          const products = await searchJumiaProducts(query, { limit: 15 });
           if (products.length === 0) {
-            return convertSpeech("No products found for that search. Try a different query.");
+            if (messageId) completeConversation(messageId, "complete");
+            return {
+              status: "no_results",
+              query,
+              message: `No Jumia products found for "${query}". Ask the user to try a different search term.`,
+              products: [],
+            };
           }
           let deliveryFeeNgn = 0;
           try {
@@ -113,18 +120,31 @@ export class JumiaTool {
           if (messageId) {
             Convo.getState().updateMessage({
               messageId,
+              content: {
+                content: `Found ${productList.length} Jumia products for "${query}".`,
+              },
               productUpdates: productList,
               source: "jumia",
             });
             completeConversation(messageId, "complete");
           }
-          return convertSpeech(
-            `Kindly choose which of the products you want to purchase from. products: ${JSON.stringify(productList)}`
-          );
+          return {
+            status: "success",
+            query,
+            count: productList.length,
+            message: `Here are the ${query} options I found on Jumia. Select one from the product card, then tap Purchase when you're ready.`,
+            assistant_instruction:
+              "Reply with the message only. Do not list product names, prices, links, numbered options, or tell the user to go to a Jumia product page. The app already displays the product card and handles purchase in-app.",
+            displayed_in_product_card: true,
+          };
         } catch (e) {
           const err = e instanceof Error ? e.message : "Search failed";
           if (messageId) completeConversation(messageId, "failed");
-          return `Search failed: ${err}`;
+          return {
+            status: "error",
+            query,
+            message: `Jumia search failed: ${err}`,
+          };
         }
       },
     };
@@ -347,9 +367,12 @@ export class JumiaTool {
           });
           Convo.getState().updateMessage({ messageId, source: "jumia" });
           completeConversation(messageId, "complete");
-          return convertSpeech(
-            "Here are the product details. You can purchase this item when ready."
-          );
+          return {
+            status: "success",
+            message: "Here are the product details. Tap Purchase on the product card when you're ready.",
+            assistant_instruction:
+              "Reply with the message only. Do not tell the user to visit the Jumia product page or open the link; purchase happens through the in-app Purchase button.",
+          };
         } catch (e) {
           const err = e instanceof Error ? e.message : "Failed to load product details";
           if (messageId) completeConversation(messageId, "failed");
