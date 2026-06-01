@@ -49,6 +49,26 @@ export interface JumiaCartItem {
   brand?: string;
 }
 
+function normalizeProductList(data: unknown): JumiaProduct[] {
+  if (Array.isArray(data)) {
+    return data as JumiaProduct[];
+  }
+
+  if (data && typeof data === "object") {
+    const payload = data as {
+      data?: unknown;
+      products?: unknown;
+      results?: unknown;
+      items?: unknown;
+    };
+
+    const nested = payload.data ?? payload.products ?? payload.results ?? payload.items;
+    return Array.isArray(nested) ? nested as JumiaProduct[] : [];
+  }
+
+  return [];
+}
+
 async function postJson(body: object, path: string) {
   const res = await fetch(BASE_URL + path, {
     method: "POST",
@@ -76,7 +96,7 @@ export async function searchJumiaProducts(query: string, options?: { page?: numb
     throw new Error((err as { error?: string })?.error || `Search failed: ${res.status}`);
   }
   const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  return normalizeProductList(data);
 }
 
 export async function getJumiaDeliveryAddresses(walletAddress: string): Promise<JumiaDeliveryAddress[]> {
