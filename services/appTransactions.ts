@@ -46,6 +46,42 @@ export interface RecordAppTransactionPayload {
   raw_metadata?: Record<string, unknown>;
 }
 
+export interface AppTransaction {
+  id: number;
+  client_reference?: string | null;
+  signature?: string | null;
+  cluster: AppTransactionCluster;
+  wallet_address: string;
+  username?: string | null;
+  mobile_number?: string | null;
+  transaction_type: AppTransactionType | string;
+  status: AppTransactionStatus;
+  provider?: string | null;
+  amount?: string | number | null;
+  token?: string | null;
+  input_token_mint?: string | null;
+  input_token_symbol?: string | null;
+  input_amount?: string | number | null;
+  input_amount_usd?: string | number | null;
+  output_token_mint?: string | null;
+  output_token_symbol?: string | null;
+  output_amount?: string | number | null;
+  output_amount_usd?: string | number | null;
+  platform_fee_amount?: string | number | null;
+  platform_fee_token?: string | null;
+  platform_fee_usd?: string | number | null;
+  network_fee_lamports?: number | null;
+  recipient_address?: string | null;
+  app_called?: string | null;
+  raw_metadata?: Record<string, unknown> | null;
+  confirmed_at?: string | null;
+  created_at?: string | null;
+}
+
+type AppTransactionResponse<T> =
+  | { status: true; data: T }
+  | { status: false; message?: string };
+
 function currentCluster(): AppTransactionCluster {
   return AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet";
 }
@@ -149,6 +185,85 @@ export function recordAppTransactionAsync(
   payload: RecordAppTransactionPayload
 ): void {
   void recordAppTransaction(payload);
+}
+
+function appTransactionQuery(params?: { limit?: number }) {
+  const wallet = WalletItem.getState().publicKey?.toString() ?? "";
+  const query = new URLSearchParams({
+    wallet_address: wallet,
+    cluster: currentCluster(),
+  });
+  if (params?.limit) {
+    query.set("limit", String(params.limit));
+  }
+  return { wallet, query };
+}
+
+export async function getAppTransactions(options?: {
+  limit?: number;
+}): Promise<AppTransactionResponse<AppTransaction[]>> {
+  if (!BASE_URL) {
+    return { status: false, message: "API URL is not configured" };
+  }
+
+  const { wallet, query } = appTransactionQuery({ limit: options?.limit ?? 50 });
+  if (!wallet) {
+    return { status: false, message: "Wallet not connected" };
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/v2/app-transactions?${query.toString()}`);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.success) {
+      return {
+        status: false,
+        message: body?.message ?? "Unable to load transactions",
+      };
+    }
+
+    return {
+      status: true,
+      data: Array.isArray(body.data) ? body.data : [],
+    };
+  } catch (e) {
+    return {
+      status: false,
+      message: e instanceof Error ? e.message : "Unable to load transactions",
+    };
+  }
+}
+
+export async function getAppTransaction(
+  id: string | number
+): Promise<AppTransactionResponse<AppTransaction>> {
+  if (!BASE_URL) {
+    return { status: false, message: "API URL is not configured" };
+  }
+
+  const { wallet, query } = appTransactionQuery();
+  if (!wallet) {
+    return { status: false, message: "Wallet not connected" };
+  }
+
+  try {
+    const res = await fetch(
+      `${BASE_URL}/v2/app-transactions/${id}?${query.toString()}`
+    );
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.success || !body?.data) {
+      return {
+        status: false,
+        message: body?.message ?? "Unable to load transaction",
+      };
+    }
+
+    return { status: true, data: body.data };
+  } catch (e) {
+    return {
+      status: false,
+      message: e instanceof Error ? e.message : "Unable to load transaction",
+    };
+  }
 }
 
 export function estimateUsdFromWalletToken(

@@ -482,13 +482,9 @@ export default function SwapScreen() {
         provider: "jupiter",
       });
       router.replace({
-        pathname: "/dashboard/swap/success",
+        pathname: "/dashboard/transaction",
         params: {
-          txid: execRes.data.signature,
-          fromSymbol: fromToken.symbol,
-          toSymbol: toToken.symbol,
-          fromAmount: amount,
-          toAmount: outLabel,
+          id: execRes.data.signature,
         },
       });
       return;

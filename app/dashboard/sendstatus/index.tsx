@@ -31,14 +31,9 @@ export default function SendStatus() {
   useEffect(() => {
     if (item?.status === "confirmed" && item.txid) {
       router.replace({
-        pathname: "/dashboard/send/token/success",
+        pathname: "/dashboard/transaction",
         params: {
-          mint: mint as string,
-          txid: item.txid,
-          amount: amount as string,
-          recipient: recipient as string,
-          tokenName: tokenName as string,
-          displayName: displayName as string,
+          id: item.txid,
         },
       });
     }

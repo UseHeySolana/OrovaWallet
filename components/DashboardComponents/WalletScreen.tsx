@@ -27,85 +27,26 @@ import { copyItem } from "@/utils/functions";
 import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import BrainStore from "@/utils/store/brain.store";
-import {
-  formatDate,
-  getWalletTransactions,
-  shortenPub,
-} from "@/utils/functions/extrafunctions";
+import { formatDate } from "@/utils/functions/extrafunctions";
 import { TxHistoryRowsSkeleton } from "@/components/skeletons";
 import { buildHelperCards } from "@/utils/walletHelperCards";
 import WalletToolsSection from "@/components/DashboardComponents/WalletToolsSection";
 import { useWalletScroll } from "@/context/WalletScrollContext";
 import { measureInOverlay } from "@/utils/measureInOverlay";
+import {
+  getAppTransactions,
+  type AppTransaction,
+} from "@/services/appTransactions";
+import { appTxRowSummary } from "@/utils/appTransactionDisplay";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+const APP_TRANSACTION_PREVIEW_LIMIT = 10;
 const ACTION_BUTTON_SIZE = scale(45);
 const actionButtonStyle = {
   width: ACTION_BUTTON_SIZE,
   height: ACTION_BUTTON_SIZE,
   borderRadius: ACTION_BUTTON_SIZE / 2,
 };
-
-function lamportsToSolDisplay(lamports: number): string {
-  const sol = lamports / 1e9;
-  if (!Number.isFinite(sol)) return "SOL";
-  if (Math.abs(sol) < 1e-8) return "0 SOL";
-  const abs = Math.abs(sol);
-  const decimals = abs < 1 ? 6 : 4;
-  return `${sol.toFixed(decimals)} SOL`;
-}
-
-/** One-line summary for Helius enhanced tx on the wallet activity list */
-function walletTxRowSummary(tx: any, userPk: string) {
-  const tokens = tx.tokenTransfers ?? [];
-  const tokenHit = tokens.find(
-    (t: any) =>
-      t?.fromUserAccount === userPk || t?.toUserAccount === userPk
-  );
-  if (tokenHit) {
-    const sent = tokenHit.fromUserAccount === userPk;
-    const sym =
-      tokenHit.tokenSymbol ||
-      tokenHit.symbol ||
-      shortenPub(String(tokenHit.mint ?? ""));
-    return {
-      title: sent ? "SENT" : "RECEIVED",
-      subtitle: sent
-        ? `to ${shortenPub(String(tokenHit.toUserAccount ?? ""))}`
-        : `from ${shortenPub(String(tokenHit.fromUserAccount ?? ""))}`,
-      amount: `${sent ? "-" : "+"} ${tokenHit.tokenAmount} ${sym}`,
-      sent,
-    };
-  }
-
-  const natives = tx.nativeTransfers ?? [];
-  const solHit = natives.find(
-    (n: any) =>
-      n?.fromUserAccount === userPk || n?.toUserAccount === userPk
-  );
-  if (solHit) {
-    const sent = solHit.fromUserAccount === userPk;
-    const lamports = Number(solHit.amount ?? 0);
-    return {
-      title: sent ? "SENT SOL" : "RECEIVED SOL",
-      subtitle: sent
-        ? `to ${shortenPub(String(solHit.toUserAccount ?? ""))}`
-        : `from ${shortenPub(String(solHit.fromUserAccount ?? ""))}`,
-      amount: `${sent ? "-" : "+"} ${lamportsToSolDisplay(lamports)}`,
-      sent,
-    };
-  }
-
-  const rawType = String(tx.type ?? "ACTIVITY");
-  const title = rawType.replace(/_/g, " ");
-  const desc = typeof tx.description === "string" ? tx.description.trim() : "";
-  return {
-    title,
-    subtitle: desc || shortenPub(String(tx.signature ?? "")),
-    amount: "",
-    sent: false,
-  };
-}
 
 interface WalletScreenProps {
   onRefresh: () => void;
@@ -136,7 +77,7 @@ export default function WalletScreen({
       );
 
   const [activeTab, setActiveTab] = useState("tokens");
-  const [walletHistory, setWalletHistory] = useState<any[] | null>(null);
+  const [walletHistory, setWalletHistory] = useState<AppTransaction[] | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const { isDarkMode } = useThemeContext();
@@ -179,14 +120,14 @@ export default function WalletScreen({
     setHistoryLoading(true);
     setHistoryError(null);
     (async () => {
-      const res = await getWalletTransactions({});
+      const res = await getAppTransactions({ limit: APP_TRANSACTION_PREVIEW_LIMIT });
       if (cancelled) return;
       setHistoryLoading(false);
-      if (res.status && res.data) {
-        setWalletHistory(res.data);
-      } else {
+      if (!res.status) {
         setWalletHistory([]);
         if (res.message) setHistoryError(res.message);
+      } else {
+        setWalletHistory(res.data);
       }
     })();
     return () => {
@@ -199,13 +140,13 @@ export default function WalletScreen({
     if (activeTab === "history" && publicKey) {
       setHistoryLoading(true);
       setHistoryError(null);
-      const res = await getWalletTransactions({ invalidateCache: true });
+      const res = await getAppTransactions({ limit: APP_TRANSACTION_PREVIEW_LIMIT });
       setHistoryLoading(false);
-      if (res.status && res.data) {
-        setWalletHistory(res.data);
-      } else {
+      if (!res.status) {
         setWalletHistory([]);
         if (res.message) setHistoryError(res.message);
+      } else {
+        setWalletHistory(res.data);
       }
     }
   }, [onRefresh, activeTab, publicKey]);
@@ -636,18 +577,17 @@ export default function WalletScreen({
                 walletHistory.length === 0 && (
                   <View className="py-8 items-center px-4">
                     <CText className="text-center text-grey/60">
-                      No transactions found for this wallet yet.
+                      No app transactions found for this wallet yet.
                     </CText>
                   </View>
                 )}
               {!historyLoading &&
                 walletHistory &&
                 walletHistory.length > 0 &&
-                publicKey &&
-                walletHistory.map((tx: any, index: number) => {
-                  const pk = publicKey.toString();
-                  const row = walletTxRowSummary(tx, pk);
-                  const key = tx.signature ?? `tx-${index}`;
+                walletHistory.map((tx: AppTransaction, index: number) => {
+                  const row = appTxRowSummary(tx);
+                  const key = tx.id ?? tx.signature ?? `tx-${index}`;
+                  const date = tx.confirmed_at ?? tx.created_at ?? "";
                   return (
                     <View key={key}>
                       <TouchableNativeFeedback
@@ -655,12 +595,17 @@ export default function WalletScreen({
                           "#971BB2",
                           false
                         )}
-                        onPress={() => { }}
+                        onPress={() => {
+                          router.push({
+                            pathname: "/dashboard/transaction",
+                            params: { id: String(tx.id) },
+                          });
+                        }}
                       >
                         <View className="px-4 py-4 w-full flex flex-row items-start justify-between">
                           <View className="gap-y-2 flex-1 pr-2">
                             <CText className="text-[0.95rem]">
-                              {formatDate(tx.timestamp)}
+                              {date ? formatDate(date) : "Pending"}
                             </CText>
                             <CText
                               style={{ fontFamily: "bold" }}
@@ -692,6 +637,16 @@ export default function WalletScreen({
                     </View>
                   );
                 })}
+              {!historyLoading && walletHistory && walletHistory.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => router.push("/dashboard/transactions")}
+                  className="mx-4 my-5 rounded-full bg-grey dark:bg-accent2 py-4"
+                >
+                  <CText className="text-center" style={{ fontFamily: "bold" }}>
+                    View all transactions
+                  </CText>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>

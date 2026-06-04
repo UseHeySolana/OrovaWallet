@@ -1,14 +1,14 @@
 import React from "react";
 import ConfirmActionSheetGlobal from "@/components/Sheets/ConfirmationSheetGlobal";
 import PurchaseConfirmationSheet from "@/components/Sheets/PurchaseConfirmationSheet";
-import CText from "@/components/TextComp";
+import { CText } from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { Stack } from "expo-router";
 import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppLoadingOverlay } from "@/components/skeletons";
 
 export default function StackView() {
@@ -22,50 +22,67 @@ export default function StackView() {
     type: "success" | "error" | "info";
     message: string;
   }) => {
-    const bgClass =
-      type === "success"
-        ? "bg-green-100 dark:bg-green-900 border border-green-500"
-        : type === "error"
-          ? "bg-red-100 dark:bg-red-900 border border-red-500"
-          : "bg-yellow-100 dark:bg-yellow-900 border border-yellow-500";
+    const toastStyles = {
+      success: {
+        title: "Success",
+        icon: IconLibrary.check,
+        iconColor: "#16A34A",
+        iconBg: "bg-green-50 dark:bg-green-950/60",
+        accent: "bg-green-500",
+      },
+      error: {
+        title: "Something went wrong",
+        icon: IconLibrary.error,
+        iconColor: "#EF4444",
+        iconBg: "bg-red-50 dark:bg-red-950/60",
+        accent: "bg-red-500",
+      },
+      info: {
+        title: "Heads up",
+        icon: IconLibrary.info,
+        iconColor: "#971BB2",
+        iconBg: "bg-purple/10 dark:bg-purple/20",
+        accent: "bg-purple",
+      },
+    }[type];
 
-    const textColor =
-      type === "success"
-        ? "text-green-700 dark:text-green-300"
-        : type === "error"
-          ? "text-red-700 dark:text-red-300"
-          : "text-yellow-700 dark:text-yellow-300";
-
-    const iconColor =
-      type === "success" ? "green" : type === "error" ? "red" : "orange";
+    const ToastIcon = toastStyles.icon;
 
     return (
       <View
-        className={`top-12 absolute w-full p-4  z-50`}
+        className="top-20 absolute w-full px-4 z-50"
         style={{
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 5,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: isDarkMode ? 0.35 : 0.12,
+          shadowRadius: 18,
+          elevation: 8,
         }}
       >
-        <View className="flex-row items-center rounded-2xl px-4 py-5 shadow-sm bg-white">
-          {type === "success" && (
-            <IconLibrary.check color={iconColor} size={20} />
-          )}
-          {type === "error" && (
-            <IconLibrary.error color={iconColor} size={20} />
-          )}
-          {type === "info" && <IconLibrary.info color={iconColor} size={20} />}
+        <View className="overflow-hidden rounded-3xl border border-grey/80 bg-white dark:border-line dark:bg-accent">
+          <View className={`absolute left-0 top-0 h-full w-1 ${toastStyles.accent}`} />
+          <View className="flex-row items-center px-4 py-4">
+            <View
+              className={`h-11 w-11 items-center justify-center rounded-2xl ${toastStyles.iconBg}`}
+            >
+              <ToastIcon color={toastStyles.iconColor} size={21} />
+            </View>
 
-          <CText
-            className={`ml-3`}
-            textColor={textColor}
-            style={{ fontFamily: "bold", flex: 1 }}
-          >
-            {message}
-          </CText>
+            <View className="ml-3 flex-1">
+              <CText
+                className="text-[0.95rem]"
+                style={{ fontFamily: "bold" }}
+              >
+                {toastStyles.title}
+              </CText>
+              <CText
+                className="mt-0.5 text-[0.85rem] text-black/60 dark:text-grey/70"
+                numberOfLines={2}
+              >
+                {message}
+              </CText>
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -82,6 +99,7 @@ export default function StackView() {
             headerShown: false,
           }}
         />
+        {toast.show && <ToastModal type={toast.type} message={toast.message} />}
         {isLoading && <AppLoadingOverlay />}
         <ConfirmActionSheetGlobal />
         <PurchaseConfirmationSheet />
