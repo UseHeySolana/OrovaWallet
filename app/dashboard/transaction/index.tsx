@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -163,7 +163,7 @@ export default function TransactionDetail() {
         return;
       }
 
-      const imageUri = await captureRef(receiptRef.current, {
+      const imageUri = await captureRef(receiptRef.current as View, {
         result: "tmpfile",
         quality: 1,
         format: "png",
@@ -224,7 +224,8 @@ export default function TransactionDetail() {
         </View>
       ) : tx ? (
         <ScrollView
-          className="flex-1 px-4"
+          ref={receiptRef as Ref<ScrollView>}
+          className="flex-1 px-4 py-2"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32 }}
         >
@@ -248,7 +249,6 @@ export default function TransactionDetail() {
           </View>
 
           <View
-            ref={receiptRef}
             collapsable={false}
             className="rounded-3xl bg-white dark:bg-accent p-5 mb-4"
           >
