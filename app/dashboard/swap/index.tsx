@@ -27,7 +27,6 @@ import {
   type TokenSearchHit,
 } from "@/libs/jupiter/tokensV2Search";
 import {
-  formatSwapAmount,
   getSwapV2Order,
   humanFromSmallestUnits,
   postSwapV2Execute,
@@ -98,12 +97,30 @@ function formatUsd(n: number): string {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatSwapPageAmount(value: number | string | null | undefined): string {
+  if (value == null || value === "") return "0";
+  const num = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));
+  if (!Number.isFinite(num)) return String(value);
+  return num.toLocaleString(undefined, {
+    maximumFractionDigits: 3,
+  });
+}
+
+function formatEditableSwapAmount(value: string): string {
+  if (!value) return "";
+  const [integerPart, decimalPart] = value.split(".");
+  const integer = integerPart
+    ? Number(integerPart).toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : "0";
+
+  if (value.endsWith(".")) return `${integer}.`;
+  if (decimalPart != null) return `${integer}.${decimalPart.slice(0, 3)}`;
+  return integer;
+}
+
 function formatBalance(token: SwapToken | null): string {
   if (!token?.balance) return "0";
-  if (token.balance < 1) {
-    return token.balance.toFixed(Math.min(token.decimals, 6));
-  }
-  return token.balance.toFixed(4);
+  return formatSwapPageAmount(token.balance);
 }
 
 function hitToSwapToken(
@@ -221,10 +238,10 @@ export default function SwapScreen() {
   };
 
   const handleAmountChange = (text: string) => {
-    const numeric = text.replace(/[^0-9.]/g, "");
+    const numeric = text.replace(/,/g, "").replace(/[^0-9.]/g, "");
     const parts = numeric.split(".");
     if (parts.length > 2) return;
-    if (parts.length === 2 && fromToken && parts[1].length > fromToken.decimals) {
+    if (parts.length === 2 && parts[1].length > 3) {
       return;
     }
     setAmount(numeric);
@@ -239,8 +256,8 @@ export default function SwapScreen() {
     }
     const str =
       val < 1
-        ? val.toFixed(Math.min(fromToken.decimals, 8)).replace(/\.?0+$/, "")
-        : String(val);
+        ? val.toFixed(3).replace(/\.?0+$/, "")
+        : val.toFixed(3).replace(/\.?0+$/, "");
     setAmount(str);
   };
 
@@ -427,7 +444,7 @@ export default function SwapScreen() {
         ? orderData.requestId
         : null;
 
-    const outLabel = formatSwapAmount(
+    const outLabel = formatSwapPageAmount(
       humanFromSmallestUnits(orderData.outAmount, toToken.decimals)
     );
 
@@ -436,10 +453,10 @@ export default function SwapScreen() {
       : "";
     const minNote =
       quoteMinOut != null && quoteMinOut > 0
-        ? ` Min receive ~${formatSwapAmount(quoteMinOut)} ${toToken.symbol}.`
+        ? ` Min receive ~${formatSwapPageAmount(quoteMinOut)} ${toToken.symbol}.`
         : "";
     const approved = await confirm({
-      message: `Swap ${amount} ${fromToken.symbol} → ~${outLabel} ${toToken.symbol}?${feeNote}${minNote}`,
+      message: `Swap ${formatSwapPageAmount(amount)} ${fromToken.symbol} → ~${outLabel} ${toToken.symbol}?${feeNote}${minNote}`,
       type: AppSettings.getState().openWithAuth ? "fingerprint" : undefined,
     });
 
@@ -570,9 +587,7 @@ export default function SwapScreen() {
           {t.balance != null && t.balance > 0 ? (
             <CText className="text-[12px] text-purple mt-0.5">
               In wallet:{" "}
-              {t.balance < 1
-                ? t.balance.toFixed(Math.min(t.decimals, 6))
-                : t.balance.toFixed(4)}
+              {formatSwapPageAmount(t.balance)}
             </CText>
           ) : null}
         </View>
@@ -612,7 +627,7 @@ export default function SwapScreen() {
               <TextInput
                 className="text-[36px] text-black dark:text-white p-0"
                 style={{ fontFamily: "bold", lineHeight: 42 }}
-                value={amount}
+                value={formatEditableSwapAmount(amount)}
                 onChangeText={handleAmountChange}
                 placeholder="0"
                 placeholderTextColor={isDarkMode ? "#4B5563" : "#D1D5DB"}
@@ -685,7 +700,7 @@ export default function SwapScreen() {
                   style={{ fontFamily: "bold", lineHeight: 42 }}
                   className="text-[36px] text-black dark:text-white"
                 >
-                  {quoteOut != null ? formatSwapAmount(quoteOut) : "0"}
+                  {quoteOut != null ? formatSwapPageAmount(quoteOut) : "0"}
                 </CText>
               )}
               <CText className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
@@ -696,7 +711,7 @@ export default function SwapScreen() {
               ) : null}
               {!quoteError && quoteMinOut != null && quoteMinOut > 0 && !quoteLoading ? (
                 <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
-                  Min receive: {formatSwapAmount(quoteMinOut)} {toToken?.symbol ?? ""}
+                  Min receive: {formatSwapPageAmount(quoteMinOut)} {toToken?.symbol ?? ""}
                 </CText>
               ) : null}
               {feePercentLabel && !quoteLoading ? (

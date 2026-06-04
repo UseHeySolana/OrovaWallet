@@ -12,11 +12,28 @@ export function formatAppTxAmount(
   token?: string | null
 ) {
   if (value == null || value === "") return "";
-  const amount = Number(value);
+  const rawValue = String(value).replace(/,/g, "").trim();
+  const amount = Number(rawValue);
   const display = Number.isFinite(amount)
-    ? amount.toLocaleString(undefined, { maximumFractionDigits: 6 })
+    ? amount.toLocaleString(undefined, { maximumFractionDigits: 9 })
     : String(value);
   return token ? `${display} ${token}` : display;
+}
+
+export function formatAmountLikeMetadata(key: string, value: unknown) {
+  if (value == null || typeof value === "object") return null;
+  const label = key.toLowerCase();
+  const isAmountLike =
+    label.includes("amount") ||
+    label.includes("price") ||
+    label.includes("fee") ||
+    label.includes("total") ||
+    label.includes("usd") ||
+    label.includes("fiat");
+
+  if (!isAmountLike) return String(value);
+
+  return formatAppTxAmount(String(value));
 }
 
 /** One-line summary for app-wide wallet activity. */

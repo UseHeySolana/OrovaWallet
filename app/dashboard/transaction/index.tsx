@@ -13,20 +13,15 @@ import {
   getAppTransaction,
   type AppTransaction,
 } from "@/services/appTransactions";
+import {
+  formatAmountLikeMetadata,
+  formatAppTxAmount,
+} from "@/utils/appTransactionDisplay";
 
 function formatType(type?: string | null) {
   return String(type ?? "transaction")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatAmount(value: unknown, token?: string | null) {
-  if (value == null || value === "") return null;
-  const numeric = Number(value);
-  const amount = Number.isFinite(numeric)
-    ? numeric.toLocaleString(undefined, { maximumFractionDigits: 6 })
-    : String(value);
-  return token ? `${amount} ${token}` : amount;
 }
 
 function safeDate(value?: string | null) {
@@ -148,11 +143,15 @@ export default function TransactionDetail() {
   const metadataRows = useMemo(() => {
     if (!tx?.raw_metadata) return [];
     return Object.entries(tx.raw_metadata)
-      .filter(([, value]) => value != null && typeof value !== "object")
-      .map(([key, value]) => ({
-        label: key.replace(/_/g, " "),
-        value: String(value),
-      }));
+      .map(([key, value]) => {
+        const formatted = formatAmountLikeMetadata(key, value);
+        if (!formatted) return null;
+        return {
+          label: key.replace(/_/g, " "),
+          value: formatted,
+        };
+      })
+      .filter((row): row is { label: string; value: string } => row !== null);
   }, [tx?.raw_metadata]);
 
   const shareReceipt = async () => {
@@ -260,19 +259,19 @@ export default function TransactionDetail() {
             <DetailRow label="Provider" value={tx.provider} />
             <DetailRow
               label="Amount"
-              value={formatAmount(tx.input_amount ?? tx.amount, tx.input_token_symbol ?? tx.token)}
+              value={formatAppTxAmount(tx.input_amount ?? tx.amount, tx.input_token_symbol ?? tx.token)}
             />
             <DetailRow
               label="Received"
-              value={formatAmount(tx.output_amount, tx.output_token_symbol)}
+              value={formatAppTxAmount(tx.output_amount, tx.output_token_symbol)}
             />
             <DetailRow
               label="USD value"
-              value={formatAmount(tx.input_amount_usd, "USD")}
+              value={formatAppTxAmount(tx.input_amount_usd, "USD")}
             />
             <DetailRow
               label="Platform fee"
-              value={formatAmount(tx.platform_fee_amount, tx.platform_fee_token)}
+              value={formatAppTxAmount(tx.platform_fee_amount, tx.platform_fee_token)}
             />
             <DetailRow
               label="Recipient"

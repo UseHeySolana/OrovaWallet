@@ -12,6 +12,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { useEffect } from "react";
 import Buttons from "@/components/ButtonComp";
 import { TransactionStatusRingSkeleton } from "@/components/skeletons";
+import { formatAppTxAmount } from "@/utils/appTransactionDisplay";
 
 export default function SendStatus() {
   const { id, amount, recipient, tokenName, displayName, mint } =
@@ -83,7 +84,7 @@ export default function SendStatus() {
           {displayName || (recipient as string)}
         </CText>
         <CText className="text-center text-[14px] text-gray-600 dark:text-gray-300">
-          {amount} {tokenName}
+          {formatAppTxAmount(amount as string, tokenName as string)}
         </CText>
 
         {item?.status === "failed" && (
