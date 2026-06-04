@@ -1,6 +1,6 @@
 import AppSettings from "@/utils/store/settingsstore.store";
 import Buttons from "@/components/ButtonComp";
-import { Image, ImageBackground } from "expo-image";
+import { ImageBackground } from "expo-image";
 import {
   useEffect,
   useRef,
@@ -25,6 +25,7 @@ import {
 import * as Updates from "expo-updates";
 import tracker from "@/utils/tracker";
 import { initWallet } from "@/utils/wallet/initWallet";
+import { AppLoadingOverlay } from "@/components/skeletons";
 
 const screens = [
   {
@@ -67,10 +68,36 @@ function getPostWalletInitDestination(): string | null {
   return null;
 }
 
+async function runComboUpdateFlow() {
+  try {
+    if (process.env.EXPO_PUBLIC_ENV !== "production") {
+      return;
+    }
+
+    // 1. Try OTA update
+    const otaUpdate = await Updates.checkForUpdateAsync();
+    if (otaUpdate.isAvailable) {
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+      return;
+    }
+
+    // 2. If no OTA, check Play Store update
+    try {
+      await startUpdateFlow(UpdateFlow.FLEXIBLE);
+    } catch (e) {
+      console.log("error:", e);
+    }
+  } catch (err) {
+    console.warn("Update flow error", err);
+  }
+}
+
 export default function Index() {
-  const { markOpened, setLoading } = AppSettings();
+  const { markOpened } = AppSettings();
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -80,7 +107,6 @@ export default function Index() {
 
   useEffect(() => {
     let cancelled = false;
-    let timeout: ReturnType<typeof setTimeout> | null = null;
 
     (async () => {
       try {
@@ -89,56 +115,34 @@ export default function Index() {
         // ignore
       }
 
-      setLoading(true);
-
       try {
-        await initWallet();
+        await Promise.all([initWallet(), runComboUpdateFlow()]);
       } catch {
         // ignore
       }
 
-      timeout = setTimeout(() => {
-        if (cancelled) return;
+      if (!cancelled) {
         const destination = getPostWalletInitDestination();
         if (destination) {
           router.replace(destination as any);
+        } else {
+          setIsBootstrapping(false);
         }
-        setLoading(false);
-      }, 75);
+      }
     })();
 
     return () => {
       cancelled = true;
-      if (timeout) clearTimeout(timeout);
     };
-  }, [setLoading]);
-
-  useEffect(() => {
-    const runComboUpdateFlow = async () => {
-      try {
-        if (process.env.EXPO_PUBLIC_ENV === "production") {
-          // 1. Try OTA update
-          const otaUpdate = await Updates.checkForUpdateAsync();
-          if (otaUpdate.isAvailable) {
-            await Updates.fetchUpdateAsync();
-            await Updates.reloadAsync();
-            return;
-          }
-
-          // 2. If no OTA, check Play Store update
-          try {
-            const result = await startUpdateFlow(UpdateFlow.FLEXIBLE);
-          } catch (e) {
-            console.log("error:", e);
-          }
-        }
-      } catch (err) {
-        console.warn("Update flow error", err);
-      }
-    };
-
-    runComboUpdateFlow();
   }, []);
+
+  if (isBootstrapping) {
+    return (
+      <View className="relative flex-1 bg-white dark:bg-dark">
+        <AppLoadingOverlay />
+      </View>
+    );
+  }
 
   return (
     <View

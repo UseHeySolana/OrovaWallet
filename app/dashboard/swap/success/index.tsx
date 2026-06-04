@@ -4,6 +4,7 @@ import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import AppSettings from "@/utils/store/settingsstore.store";
 import ButtonComp from "@/components/ButtonComp";
+import { formatAppTxAmount } from "@/utils/appTransactionDisplay";
 
 export default function SwapSuccess() {
   const { txid, fromSymbol, toSymbol, fromAmount, toAmount } =
@@ -48,7 +49,8 @@ export default function SwapSuccess() {
             Swap successful
           </CText>
           <CText className="text-[16px] text-center text-gray-600 dark:text-gray-300 mt-2 px-4">
-            Swapped {fromAmount} {fromSymbol} for about {toAmount} {toSymbol}
+            Swapped {formatAppTxAmount(fromAmount, fromSymbol)} for about{" "}
+            {formatAppTxAmount(toAmount, toSymbol)}
           </CText>
         </View>
 

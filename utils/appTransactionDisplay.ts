@@ -15,7 +15,7 @@ export function formatAppTxAmount(
   const rawValue = String(value).replace(/,/g, "").trim();
   const amount = Number(rawValue);
   const display = Number.isFinite(amount)
-    ? amount.toLocaleString(undefined, { maximumFractionDigits: 9 })
+    ? amount.toLocaleString(undefined, { maximumFractionDigits: 3 })
     : String(value);
   return token ? `${display} ${token}` : display;
 }

@@ -55,15 +55,39 @@ function parseAmount(value: string): number {
   return Number(value.replace(/,/g, ""));
 }
 
-function formatAmount(value: unknown): string {
+function formatDisplayAmount(value: unknown): string {
   const numeric =
     typeof value === "number"
       ? value
       : typeof value === "string"
-        ? Number(value)
+        ? Number(value.replace(/,/g, ""))
         : NaN;
   if (!Number.isFinite(numeric) || numeric <= 0) return "";
-  return String(value);
+  return numeric.toLocaleString(undefined, { maximumFractionDigits: 3 });
+}
+
+function formatRawAmount(value: unknown): string {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.replace(/,/g, ""))
+        : NaN;
+  if (!Number.isFinite(numeric) || numeric <= 0) return "";
+  return numeric.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function formatEditableAmount(value: string): string {
+  if (!value) return "";
+  const normalized = value.replace(/,/g, "");
+  const [integerPart, decimalPart] = normalized.split(".");
+  const integer = integerPart
+    ? Number(integerPart).toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : "0";
+
+  if (normalized.endsWith(".")) return `${integer}.`;
+  if (decimalPart != null) return `${integer}.${decimalPart.slice(0, 3)}`;
+  return integer;
 }
 
 function normalizeMintParam(
@@ -157,8 +181,8 @@ export default function SendToBank() {
   const ngnAmount = parseAmount(fiatAmount);
   const activeQuoteAmount = isFiatMode ? ngnAmount : tokenAmount;
   const orderAmount = Number(order?.amount ?? tokenAmount);
-  const quotedTokenAmount = formatAmount(quote?.amount) || amount;
-  const quotedNairaAmount = formatAmount(quote?.fiatAmount) || fiatAmount;
+  const quotedTokenAmount = formatDisplayAmount(quote?.amount) || formatDisplayAmount(amount);
+  const quotedNairaAmount = formatDisplayAmount(quote?.fiatAmount) || formatDisplayAmount(fiatAmount);
 
   const filteredTokens = useMemo(() => {
     const q = tokenSearch.trim().toLowerCase();
@@ -239,9 +263,9 @@ export default function SendToBank() {
       if (res.status) {
         setQuote(res.data);
         if (quoteMode === "fiat") {
-          setAmount(formatAmount(res.data.amount));
+          setAmount(formatRawAmount(res.data.amount));
         } else {
-          setFiatAmount(formatAmount(res.data.fiatAmount));
+          setFiatAmount(formatRawAmount(res.data.fiatAmount));
         }
       }
     }, 700);
@@ -387,10 +411,12 @@ export default function SendToBank() {
   }, [accountName, accountNumber, selectedBank?.id, loading]);
 
   const handleAmountChange = (value: string) => {
-    const numeric = value.replace(/[^0-9.]/g, "");
+    const numeric = value.replace(/,/g, "").replace(/[^0-9.]/g, "");
     const parts = numeric.split(".");
     if (parts.length > 2) return;
-    if (parts.length === 2 && selectedToken?.decimals != null && parts[1].length > selectedToken.decimals) {
+    const maxDecimals =
+      selectedToken?.decimals != null ? Math.min(selectedToken.decimals, 3) : 3;
+    if (parts.length === 2 && parts[1].length > maxDecimals) {
       return;
     }
     setQuoteMode("token");
@@ -399,9 +425,10 @@ export default function SendToBank() {
   };
 
   const handleFiatAmountChange = (value: string) => {
-    const numeric = value.replace(/[^0-9.]/g, "");
+    const numeric = value.replace(/,/g, "").replace(/[^0-9.]/g, "");
     const parts = numeric.split(".");
     if (parts.length > 2) return;
+    if (parts.length === 2 && parts[1].length > 3) return;
     setQuoteMode("fiat");
     setFiatAmount(numeric);
     setQuote(null);
@@ -497,7 +524,7 @@ export default function SendToBank() {
     const requiredAmount = Number(nextOrder.amount ?? tokenAmount);
     if (requiredAmount > Number(selectedToken.balance ?? 0)) {
       setLastError(
-        `PajCash requires ${requiredAmount} ${selectedToken.symbol}, but your balance is lower.`
+        `PajCash requires ${formatDisplayAmount(requiredAmount)} ${selectedToken.symbol}, but your balance is lower.`
       );
       setStatusMessage("");
       setToast("Insufficient balance", "error");
@@ -551,7 +578,7 @@ export default function SendToBank() {
 
   const setMaxAmount = () => {
     if (selectedToken?.balance != null) {
-      setAmount(String(selectedToken.balance));
+      setAmount(formatRawAmount(selectedToken.balance));
     }
   };
 
@@ -725,7 +752,7 @@ export default function SendToBank() {
                   <TextInput
                     className="text-[36px] text-black dark:text-white p-0"
                     style={{ fontFamily: "bold", lineHeight: 42 }}
-                    value={isFiatMode ? fiatAmount : amount}
+                    value={formatEditableAmount(isFiatMode ? fiatAmount : amount)}
                     onChangeText={isFiatMode ? handleFiatAmountChange : handleAmountChange}
                     placeholder="0"
                     placeholderTextColor="#D1D5DB"
@@ -733,7 +760,7 @@ export default function SendToBank() {
                   />
                   {!isFiatMode ? (
                     <CText className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
-                      Balance: {selectedToken?.balance ?? 0} {selectedToken?.symbol ?? ""}
+                      Balance: {formatDisplayAmount(selectedToken?.balance) || "0"} {selectedToken?.symbol ?? ""}
                     </CText>
                   ) : null}
                   {loading === "quote" ? (
@@ -792,7 +819,7 @@ export default function SendToBank() {
               {quote?.fee ? (
                 <View className="flex-row justify-between">
                   <CText className="text-black/60 dark:text-grey/70">Fee</CText>
-                  <CText>{quote.fee}</CText>
+                  <CText>{formatDisplayAmount(quote.fee) || String(quote.fee)}</CText>
                 </View>
               ) : null}
             </View>
@@ -1134,13 +1161,13 @@ export default function SendToBank() {
                 <View className="flex-row justify-between gap-x-3">
                   <CText className="text-black/60 dark:text-grey/70">You send</CText>
                   <CText style={{ fontFamily: "bold" }} className="flex-1 text-right">
-                    {orderAmount} {selectedToken?.symbol}
+                    {formatDisplayAmount(orderAmount) || "0"} {selectedToken?.symbol}
                   </CText>
                 </View>
                 <View className="flex-row justify-between gap-x-3">
                   <CText className="text-black/60 dark:text-grey/70">You receive</CText>
                   <CText style={{ fontFamily: "bold" }} className="flex-1 text-right">
-                    {order.fiatAmount ?? quote?.fiatAmount ?? "0"} NGN
+                    {formatDisplayAmount(order.fiatAmount ?? quote?.fiatAmount) || "0"} NGN
                   </CText>
                 </View>
                 <View className="flex-row justify-between gap-x-3">
@@ -1154,7 +1181,7 @@ export default function SendToBank() {
               <Buttons
                 type="primary"
                 className="w-full py-4 px-4 rounded-3xl"
-                text={`Send ${orderAmount} ${selectedToken?.symbol}`}
+                text={`Send ${formatDisplayAmount(orderAmount) || "0"} ${selectedToken?.symbol}`}
                 onPress={sendOrderTokens}
               />
               <Buttons
