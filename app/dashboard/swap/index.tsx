@@ -118,6 +118,11 @@ function formatEditableSwapAmount(value: string): string {
   return integer;
 }
 
+function formatAmountInput(value: number | null): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return "";
+  return value.toFixed(3).replace(/\.?0+$/, "");
+}
+
 function formatBalance(token: SwapToken | null): string {
   if (!token?.balance) return "0";
   return formatSwapPageAmount(token.balance);
@@ -228,10 +233,11 @@ export default function SwapScreen() {
     if (!fromToken || !toToken) return;
     const prevFrom = fromToken;
     const prevTo = toToken;
+    const prevQuoteOut = quoteOut;
     const walletMatch = walletTokens.find((t) => t.mint === prevTo.mint);
     setFromToken(walletMatch ?? prevTo);
     setToToken(prevFrom);
-    setAmount("");
+    setAmount(formatAmountInput(prevQuoteOut));
     setQuoteOut(null);
     setQuoteMinOut(null);
     setQuoteError(null);
