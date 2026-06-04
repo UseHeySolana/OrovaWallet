@@ -17,6 +17,7 @@ import {
   formatAmountLikeMetadata,
   formatAppTxAmount,
 } from "@/utils/appTransactionDisplay";
+import { Image } from "expo-image";
 
 function formatType(type?: string | null) {
   return String(type ?? "transaction")
@@ -224,75 +225,94 @@ export default function TransactionDetail() {
         </View>
       ) : tx ? (
         <ScrollView
-          ref={receiptRef as Ref<ScrollView>}
           className="flex-1 px-4 py-2"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <View className="rounded-3xl bg-white dark:bg-accent p-5 mb-4">
-            <View className="items-center py-2">
-              <View className={`px-4 py-2 rounded-full ${tx.status === "confirmed" ? "bg-green-100 dark:bg-green-950/50" : tx.status === "failed" ? "bg-red-100 dark:bg-red-950/50" : "bg-purple/10"}`}>
-                <CText
-                  className={`${tx.status === "confirmed" ? "text-green-600" : tx.status === "failed" ? "text-red-500" : "text-purple"} capitalize`}
-                  style={{ fontFamily: "bold" }}
-                >
-                  {tx.status}
-                </CText>
-              </View>
-              <CText className="mt-4 text-[1.5rem]" style={{ fontFamily: "bold" }}>
-                {formatType(tx.transaction_type)}
-              </CText>
-              <CText className="mt-1 text-black/55 dark:text-grey/70">
-                {safeDate(tx.confirmed_at ?? tx.created_at)}
-              </CText>
-            </View>
-          </View>
-
           <View
+            ref={receiptRef as Ref<View>}
             collapsable={false}
-            className="rounded-3xl bg-white dark:bg-accent p-5 mb-4"
+            className="rounded-3xl py-5"
           >
-            <CText className="text-[1.1rem] mb-2" style={{ fontFamily: "bold" }}>
-              Receipt
-            </CText>
-            <DetailRow label="App" value={tx.app_called ?? "HeySolana"} />
-            <DetailRow label="Provider" value={tx.provider} />
-            <DetailRow
-              label="Amount"
-              value={formatAppTxAmount(tx.input_amount ?? tx.amount, tx.input_token_symbol ?? tx.token)}
-            />
-            <DetailRow
-              label="Received"
-              value={formatAppTxAmount(tx.output_amount, tx.output_token_symbol)}
-            />
-            <DetailRow
-              label="USD value"
-              value={formatAppTxAmount(tx.input_amount_usd, "USD")}
-            />
-            <DetailRow
-              label="Platform fee"
-              value={formatAppTxAmount(tx.platform_fee_amount, tx.platform_fee_token)}
-            />
-            <DetailRow
-              label="Recipient"
-              value={tx.recipient_address ? shortenPub(tx.recipient_address) : null}
-              mono
-            />
-            <DetailRow label="Reference" value={tx.client_reference} mono />
-            <TransactionIdRow value={tx.signature} onCopy={copySignature} />
-            <DetailRow label="Network" value={tx.cluster} />
-          </View>
 
-          {metadataRows.length > 0 && (
             <View className="rounded-3xl bg-white dark:bg-accent p-5 mb-4">
-              <CText className="text-[1.1rem] mb-2" style={{ fontFamily: "bold" }}>
-                Extra Details
-              </CText>
-              {metadataRows.map((row) => (
-                <DetailRow key={row.label} label={formatType(row.label)} value={row.value} />
-              ))}
+              <View className="top-[-30px] items-center justify-center">
+                <View className="h-12 w-12">
+                  <Image
+                    source={require("@/assets/images/ballicon.png")}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="contain"
+                  />
+                </View>
+                {/* <CText className="text-[1.5rem]" style={{ fontFamily: "bold" }}>
+                  HeySolana
+                </CText> */}
+              </View>
+              <View className="items-center py-2">
+                <CText className="text-[1.5rem]" style={{ fontFamily: "bold" }}>
+                  {formatType(tx.transaction_type)}
+                </CText>
+                <CText className="my-1 text-black/55 dark:text-grey/70">
+                  {safeDate(tx.confirmed_at ?? tx.created_at)}
+                </CText>
+                <View className={`px-4 py-2 rounded-full ${tx.status === "confirmed" ? "bg-green-100 dark:bg-green-950/50" : tx.status === "failed" ? "bg-red-100 dark:bg-red-950/50" : "bg-purple/10"}`}>
+                  <CText
+                    className={`${tx.status === "confirmed" ? "text-green-600" : tx.status === "failed" ? "text-red-500" : "text-purple"} capitalize`}
+                    style={{ fontFamily: "bold" }}
+                  >
+                    {tx.status}
+                  </CText>
+                </View>
+              </View>
             </View>
-          )}
+
+            <View
+              collapsable={false}
+              className="rounded-3xl bg-white dark:bg-accent p-5 mb-4"
+            >
+              <CText className="text-[1.1rem] mb-2" style={{ fontFamily: "bold" }}>
+                Receipt
+              </CText>
+              <DetailRow label="App" value={tx.app_called ?? "HeySolana"} />
+              <DetailRow label="Provider" value={tx.provider} />
+              <DetailRow
+                label="Amount"
+                value={formatAppTxAmount(tx.input_amount ?? tx.amount, tx.input_token_symbol ?? tx.token)}
+              />
+              <DetailRow
+                label="Received"
+                value={formatAppTxAmount(tx.output_amount, tx.output_token_symbol)}
+              />
+              <DetailRow
+                label="USD value"
+                value={formatAppTxAmount(tx.input_amount_usd, "USD")}
+              />
+              <DetailRow
+                label="Platform fee"
+                value={formatAppTxAmount(tx.platform_fee_amount, tx.platform_fee_token)}
+              />
+              <DetailRow
+                label="Recipient"
+                value={tx.recipient_address ? shortenPub(tx.recipient_address) : null}
+                mono
+              />
+              <DetailRow label="Reference" value={tx.client_reference} mono />
+              <TransactionIdRow value={tx.signature} onCopy={copySignature} />
+              <DetailRow label="Network" value={tx.cluster} />
+            </View>
+
+            {metadataRows.length > 0 && (
+              <View className="rounded-3xl bg-white dark:bg-accent p-5 mb-4">
+                <CText className="text-[1.1rem] mb-2" style={{ fontFamily: "bold" }}>
+                  Extra Details
+                </CText>
+                {metadataRows.map((row) => (
+                  <DetailRow key={row.label} label={formatType(row.label)} value={row.value} />
+                ))}
+              </View>
+            )}
+
+          </View>
 
           <View className="flex-row gap-x-3">
             <TouchableOpacity
