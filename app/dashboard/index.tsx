@@ -11,13 +11,18 @@ import DashboardWalletHeader from "@/components/DashboardComponents/DashboardWal
 import FloatingWalletBalance from "@/components/DashboardComponents/FloatingWalletBalance";
 import { WalletScrollProvider } from "@/context/WalletScrollContext";
 import UserItem from "@/utils/store/userstore.store";
-import setUserItems from "@/utils/dashboard";
+import {
+  hasCachedWalletBalances,
+  isWalletBalanceCacheFresh,
+  refreshUserWalletBalances,
+  WALLET_POLL_INTERVAL_MS,
+} from "@/utils/wallet/walletBalanceCache";
 import {
   notifyWalletSnapshotChanges,
   resetWalletChangeNotifyCooldowns,
   snapshotUserWallet,
 } from "@/utils/wallet/walletChangeNotify";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { useAi } from "@/context/AiContext";
@@ -33,9 +38,6 @@ import ToolsItem from "@/utils/store/toolsitems.store";
 import QuickActions from "@/services/WidgetService/QuickActions";
 import ChatInterface from "@/components/DashboardComponents/Chatinterface";
 import WalletScreen from "@/components/DashboardComponents/WalletScreen";
-
-/** How often to sync balances / token list while the dashboard is open */
-const WALLET_POLL_INTERVAL_MS = 10_000;
 
 const colors = {
   loading: {
@@ -59,8 +61,8 @@ const colors = {
 export default function Dashboard() {
   const { convoId } = useLocalSearchParams();
   const { messages, getConversationMessages } = Convo();
-  const { user, updateUserWallet } = UserItem();
-  const { network, setLoading, pin } = AppSettings();
+  const { user } = UserItem();
+  const { setLoading, pin } = AppSettings();
   const {
     sessionManager,
     isSessionActive,
@@ -82,10 +84,13 @@ export default function Dashboard() {
   const [setPinOpen, setSetPinOpen] = useState(false);
   /** After first successful full wallet sync, silent refreshes may toast / notify on incoming deltas */
   const walletNotifyPrimedRef = useRef(false);
+  const skipFocusRefreshRef = useRef(true);
 
   useEffect(() => {
     walletNotifyPrimedRef.current = false;
+    skipFocusRefreshRef.current = true;
     resetWalletChangeNotifyCooldowns();
+    UserItem.getState().setWalletLastSyncedAt(null);
   }, [user?.username, publicKey?.toBase58()]);
 
   useEffect(() => {
@@ -131,15 +136,15 @@ export default function Dashboard() {
   }, [sessionManager]);
 
   const refreshWallet = useCallback(
-    async (options: { showLoading?: boolean } = {}) => {
-      const { showLoading = false } = options;
+    async (options: { showLoading?: boolean; force?: boolean } = {}) => {
+      const { showLoading = false, force = false } = options;
       if (!user || !publicKey) return;
       if (showLoading) {
         await setLoading(true);
       }
       const prevWallet = snapshotUserWallet(UserItem.getState().userWallet);
       try {
-        const ok = await setUserItems(user, updateUserWallet, publicKey, network);
+        const ok = await refreshUserWalletBalances({ force });
         if (showLoading && ok) {
           walletNotifyPrimedRef.current = true;
         }
@@ -155,12 +160,33 @@ export default function Dashboard() {
         }
       }
     },
-    [user, publicKey, network, updateUserWallet, setLoading]
+    [user, publicKey, setLoading]
   );
 
   useEffect(() => {
-    void refreshWallet({ showLoading: true });
+    const { userWallet, walletLastSyncedAt } = UserItem.getState();
+    const hasCache = hasCachedWalletBalances(userWallet);
+    const fresh = isWalletBalanceCacheFresh(walletLastSyncedAt);
+
+    if (fresh && hasCache) {
+      walletNotifyPrimedRef.current = true;
+      return;
+    }
+
+    void refreshWallet({ showLoading: !hasCache });
   }, [refreshWallet]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (skipFocusRefreshRef.current) {
+        skipFocusRefreshRef.current = false;
+        return;
+      }
+      if (!isWalletBalanceCacheFresh(UserItem.getState().walletLastSyncedAt)) {
+        void refreshWallet({ showLoading: false });
+      }
+    }, [refreshWallet])
+  );
 
   useEffect(() => {
     if (!user || !publicKey) return undefined;
@@ -188,7 +214,7 @@ export default function Dashboard() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshWallet({ showLoading: false });
+      await refreshWallet({ showLoading: false, force: true });
     } finally {
       setRefreshing(false);
       setShowWallet(false);

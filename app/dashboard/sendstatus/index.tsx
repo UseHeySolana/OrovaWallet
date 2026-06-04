@@ -14,6 +14,12 @@ import Buttons from "@/components/ButtonComp";
 import { TransactionStatusRingSkeleton } from "@/components/skeletons";
 import { recordOfframpTransaction } from "@/services/appTransactions";
 import { formatAppTxAmount } from "@/utils/appTransactionDisplay";
+import { invalidateWalletBalanceCache } from "@/utils/wallet/walletBalanceCache";
+
+function goToDashboard() {
+  invalidateWalletBalanceCache();
+  router.replace("/dashboard");
+}
 
 export default function SendStatus() {
   const {
@@ -138,7 +144,7 @@ export default function SendStatus() {
           <Buttons
             text="Back to Dashboard"
             type="primary"
-            onPress={() => router.replace("/dashboard")}
+            onPress={goToDashboard}
           />
         </View>
       </View>

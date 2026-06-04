@@ -3,6 +3,7 @@ import { Linking, Pressable, View, TouchableOpacity } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import AppSettings from "@/utils/store/settingsstore.store";
+import { invalidateWalletBalanceCache } from "@/utils/wallet/walletBalanceCache";
 
 /**
  * What should be done here
@@ -22,6 +23,7 @@ export default function SuccessSent() {
   };
 
   const goToDashboard = () => {
+    invalidateWalletBalanceCache();
     router.replace("/dashboard");
   };
 

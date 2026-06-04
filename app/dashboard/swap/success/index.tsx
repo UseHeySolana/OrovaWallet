@@ -5,6 +5,12 @@ import CText from "@/components/TextComp";
 import AppSettings from "@/utils/store/settingsstore.store";
 import ButtonComp from "@/components/ButtonComp";
 import { formatAppTxAmount } from "@/utils/appTransactionDisplay";
+import { invalidateWalletBalanceCache } from "@/utils/wallet/walletBalanceCache";
+
+function goToDashboard() {
+  invalidateWalletBalanceCache();
+  router.replace("/dashboard");
+}
 
 export default function SwapSuccess() {
   const { txid, fromSymbol, toSymbol, fromAmount, toAmount } =
@@ -29,7 +35,7 @@ export default function SwapSuccess() {
     <View className="relative w-full bg-grey dark:bg-dark flex-1 py-4">
       <View className="w-full px-4 flex flex-row justify-start items-center gap-x-5 mb-6">
         <Pressable
-          onPress={() => router.replace("/dashboard")}
+          onPress={goToDashboard}
           className="p-3 rounded-full bg-white dark:bg-accent"
         >
           <IconLibrary.back />
@@ -76,7 +82,7 @@ export default function SwapSuccess() {
         ) : null}
 
         <View className="mt-auto pb-6 gap-y-3">
-          <ButtonComp text="Back to wallet" onPress={() => router.replace("/dashboard")} />
+          <ButtonComp text="Back to wallet" onPress={goToDashboard} />
         </View>
       </View>
     </View>

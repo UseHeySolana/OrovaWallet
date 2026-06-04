@@ -25,7 +25,7 @@ import ToolsItem from "@/utils/store/toolsitems.store";
 import PajCashSession from "@/utils/store/pajcashSession.store";
 import { pajcash, Chain, Currency } from "@/libs/tools/pajcash/pajcash";
 import { copyItem, resolveTokenByQuery } from "@/utils/functions";
-import setUserItems from "@/utils/dashboard";
+import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
 import {
   collectWalletIncomingChanges,
   snapshotUserWallet,
@@ -168,7 +168,6 @@ function isOrderFailed(data: unknown): boolean {
 
 export default function Onramp() {
   const { user } = UserItem();
-  const updateUserWallet = UserItem((state) => state.updateUserWallet);
   const publicKey = WalletItem((state) => state.publicKey);
   const { setToast, network } = AppSettings();
   const pajSession = PajCashSession();
@@ -655,7 +654,7 @@ export default function Onramp() {
       }
 
       if (user && publicKey) {
-        const refreshed = await setUserItems(user, updateUserWallet, publicKey, network);
+        const refreshed = await refreshUserWalletBalances({ force: true });
         if (paymentPollRunRef.current !== runId) return;
         if (refreshed) {
           const nextWallet = snapshotUserWallet(UserItem.getState().userWallet);

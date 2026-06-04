@@ -8,6 +8,7 @@ import UserItem from "@/utils/store/userstore.store";
 import { completeConversation, resolveMetasForMints } from "@/utils/functions";
 import { getBalance } from "@/utils/wallet";
 import { getTokenBalance } from "@/libs/tools/transfer/transfers";
+import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
 
 /**
  * Voice/chat tool: balances read directly from Solana RPC (no Zustand / DAS cache).
@@ -39,6 +40,8 @@ export class WalletBalanceTool {
         }
 
         const conn = this.session.connection;
+        await refreshUserWalletBalances({ force: true });
+
         const sol = await getBalance(owner, conn);
         const parts: string[] = [`${sol.toFixed(4)} SOL`];
 

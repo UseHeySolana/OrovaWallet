@@ -29,6 +29,9 @@ export interface Userstore {
   logout: () => void;
   userWallet: userWalletType;
   updateUserWallet: (userWallet: userWalletType) => void;
+  /** Unix ms when balances were last fetched from chain; null = must refresh */
+  walletLastSyncedAt: number | null;
+  setWalletLastSyncedAt: (at: number | null) => void;
   /** null = show all tokens; string[] = only show these mints on wallet screen */
   visibleTokenMints: string[] | null;
   setVisibleTokenMints: (mints: string[] | null) => void;
@@ -47,6 +50,8 @@ const UserItem = create(
       },
       setUser: (user: UserType | null) => set({ user }),
       updateUserWallet: (userWallet: userWalletType) => set({ userWallet }),
+      walletLastSyncedAt: null,
+      setWalletLastSyncedAt: (at: number | null) => set({ walletLastSyncedAt: at }),
       visibleTokenMints: null,
       setVisibleTokenMints: (mints: string[] | null) => set({ visibleTokenMints: mints }),
       createSession: () => {
@@ -66,6 +71,7 @@ const UserItem = create(
             tokenAccounts: [],
             totalUsdBalance: 0,
           },
+          walletLastSyncedAt: null,
           visibleTokenMints: null,
         })
       },

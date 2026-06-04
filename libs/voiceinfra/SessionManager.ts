@@ -18,7 +18,7 @@ import { FunctionParams } from "../../utils/types/types";
 
 import { summarizeConversation } from "../../utils/functions/extrafunctions";
 import { AgentContacts } from "../../utils/functions";
-import setUserItems from "@/utils/dashboard";
+import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
 import WalletItem from "@/utils/store/wallet.store";
 import tracker from "../../utils/tracker";
 import { request } from "../../utils/request/db";
@@ -1750,16 +1750,11 @@ class SessionManager {
       }, 300);
     }
 
-    // Update user wallet state after function execution
+    // Update user wallet state after function execution (e.g. transfer / swap)
     const userItem = UserItem.getState();
     const publicKey = WalletItem.getState().publicKey;
     if (userItem.user && publicKey) {
-      await setUserItems(
-        userItem.user,
-        userItem.updateUserWallet,
-        publicKey,
-        AppSettings.getState().network
-      );
+      await refreshUserWalletBalances({ force: true });
     }
   }
 
