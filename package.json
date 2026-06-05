@@ -194,5 +194,8 @@
       }
     }
   },
+  "resolutions": {
+    "node-fetch": "^2.7.0"
+  },
   "private": true
 }
