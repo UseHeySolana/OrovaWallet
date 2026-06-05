@@ -227,6 +227,20 @@ export default function BrainHome() {
               >
                 <CText className="text-center">Open network request log</CText>
               </Pressable>
+
+              <Pressable
+                onPress={() => router.push("/dev-qvac")}
+                className="py-3 px-4 rounded-xl bg-white dark:bg-accent border border-grey/15"
+              >
+                <CText className="text-center">Open QVAC on-device AI lab</CText>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push("/dev-qvac-chat")}
+                className="py-3 px-4 rounded-xl bg-white dark:bg-accent border border-grey/15"
+              >
+                <CText className="text-center">Open QVAC streaming chat</CText>
+              </Pressable>
             </View>
           </View>
         ) : null}
