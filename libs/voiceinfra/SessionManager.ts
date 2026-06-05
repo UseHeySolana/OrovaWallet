@@ -23,6 +23,7 @@ import WalletItem from "@/utils/store/wallet.store";
 import tracker from "../../utils/tracker";
 import { request } from "../../utils/request/db";
 import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
+import { reportBug } from "@/services/bugReport/reportBug";
 
 import InCallManager from "react-native-incall-manager";
 import AudioManager from "./AudioManager";
@@ -30,6 +31,7 @@ import AudioManager from "./AudioManager";
 class SessionManager {
   private static readonly REALTIME_MODEL = "gpt-realtime-mini";
   private static readonly SESSION_UPDATE_TIMEOUT_MS = 10_000;
+  private static lastVoiceUnavailableToastAt = 0;
 
   private isSessionActive: boolean;
   private events: any[];
@@ -370,6 +372,7 @@ class SessionManager {
       }
     } catch (error) {
       console.error("Error starting session:", error);
+      this.notifyVoiceAssistantUnavailable(error, useVoiceInput);
       this.rejectSessionReady(error instanceof Error ? error : new Error(String(error)));
       if (this.startSessionPromise) {
         this.cleanupResources();
@@ -377,6 +380,31 @@ class SessionManager {
       AppSettings.getState().setLoading(false);
       throw error;
     }
+  }
+
+  private notifyVoiceAssistantUnavailable(error: unknown, useVoiceInput: boolean): void {
+    const now = Date.now();
+    if (now - SessionManager.lastVoiceUnavailableToastAt > 10_000) {
+      SessionManager.lastVoiceUnavailableToastAt = now;
+      AppSettings.getState().setToast(
+        "Voice assistant is not currently available. Please use chat for now.",
+        "error"
+      );
+    }
+
+    reportBug({
+      title: "Voice assistant session failed",
+      summary: error instanceof Error ? error.message : "Failed to establish voice assistant session",
+      error,
+      severity: "critical",
+      type: "bug",
+      metadata: {
+        feature: "voice_assistant",
+        handler: "SessionManager.startSession",
+        model: SessionManager.REALTIME_MODEL,
+        useVoiceInput,
+      },
+    }).catch(() => {});
   }
 
   private rejectSessionReady(err: Error): void {
