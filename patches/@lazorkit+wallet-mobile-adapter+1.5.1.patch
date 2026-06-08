@@ -1,0 +1,74 @@
+diff --git a/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.esm.js b/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.esm.js
+index 60be1ba..7df6c06 100644
+--- a/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.esm.js
++++ b/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.esm.js
+@@ -56,6 +56,9 @@ const DEFAULT_COMMITMENT = 'confirmed';
+ const STORAGE_KEYS = {
+     WALLET: 'lazor-wallet-store',
+ };
++const DEFAULT_PAYMASTER_CONFIG = Object.freeze({
++    paymasterUrl: DEFAULTS.PAYMASTER_URL,
++});
+ 
+ /**
+  * LazorKit Wallet Mobile Adapter - Logger
+@@ -3616,10 +3619,9 @@ Buffer$1.prototype.subarray = function subarray(begin, end) {
+         throw error;
+     }
+ };
+-const LazorKitProvider = ({ rpcUrl = DEFAULTS.RPC_ENDPOINT, portalUrl = DEFAULTS.PORTAL_URL, configPaymaster = {
+-    paymasterUrl: DEFAULTS.PAYMASTER_URL,
+-}, isDebug = false, children, }) => {
+-    const { setConnection, setConfig } = useWalletStore();
++const LazorKitProvider = ({ rpcUrl = DEFAULTS.RPC_ENDPOINT, portalUrl = DEFAULTS.PORTAL_URL, configPaymaster = DEFAULT_PAYMASTER_CONFIG, isDebug = false, children, }) => {
++    const setConnection = useWalletStore((state) => state.setConnection);
++    const setConfig = useWalletStore((state) => state.setConfig);
+     useEffect(() => {
+         logger.setDebugMode(isDebug);
+         // Debug log removed
+@@ -3657,7 +3659,7 @@ const LazorKitProvider = ({ rpcUrl = DEFAULTS.RPC_ENDPOINT, portalUrl = DEFAULTS
+                 isDebug,
+             });
+         }
+-    }, [connection, portalUrl, configPaymaster, rpcUrl, isDebug, setConnection, setConfig]);
++    }, [connection, portalUrl, configPaymaster.paymasterUrl, configPaymaster.apiKey, rpcUrl, isDebug, setConnection, setConfig]);
+     try {
+         return React.createElement(React.Fragment, null, typeof children === 'string' ? React.createElement("span", null, children) : children);
+     }
+diff --git a/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.js b/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.js
+index a255a17..c0a649c 100644
+--- a/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.js
++++ b/node_modules/@lazorkit/wallet-mobile-adapter/dist/index.js
+@@ -79,6 +79,9 @@ const DEFAULT_COMMITMENT = 'confirmed';
+ const STORAGE_KEYS = {
+     WALLET: 'lazor-wallet-store',
+ };
++const DEFAULT_PAYMASTER_CONFIG = Object.freeze({
++    paymasterUrl: DEFAULTS.PAYMASTER_URL,
++});
+ 
+ /**
+  * LazorKit Wallet Mobile Adapter - Logger
+@@ -3639,10 +3642,9 @@ buffer.Buffer.prototype.subarray = function subarray(begin, end) {
+         throw error;
+     }
+ };
+-const LazorKitProvider = ({ rpcUrl = DEFAULTS.RPC_ENDPOINT, portalUrl = DEFAULTS.PORTAL_URL, configPaymaster = {
+-    paymasterUrl: DEFAULTS.PAYMASTER_URL,
+-}, isDebug = false, children, }) => {
+-    const { setConnection, setConfig } = useWalletStore();
++const LazorKitProvider = ({ rpcUrl = DEFAULTS.RPC_ENDPOINT, portalUrl = DEFAULTS.PORTAL_URL, configPaymaster = DEFAULT_PAYMASTER_CONFIG, isDebug = false, children, }) => {
++    const setConnection = useWalletStore((state) => state.setConnection);
++    const setConfig = useWalletStore((state) => state.setConfig);
+     React.useEffect(() => {
+         logger.setDebugMode(isDebug);
+         // Debug log removed
+@@ -3680,7 +3682,7 @@ const LazorKitProvider = ({ rpcUrl = DEFAULTS.RPC_ENDPOINT, portalUrl = DEFAULTS
+                 isDebug,
+             });
+         }
+-    }, [connection, portalUrl, configPaymaster, rpcUrl, isDebug, setConnection, setConfig]);
++    }, [connection, portalUrl, configPaymaster.paymasterUrl, configPaymaster.apiKey, rpcUrl, isDebug, setConnection, setConfig]);
+     try {
+         return React.createElement(React.Fragment, null, typeof children === 'string' ? React.createElement("span", null, children) : children);
+     }

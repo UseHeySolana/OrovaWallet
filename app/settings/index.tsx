@@ -351,8 +351,14 @@ export default function Settings() {
             >
               <CText className="text-center">Voice verification test</CText>
             </Pressable>
+            <Pressable
+              onPress={() => router.push("/dev-lazorkit")}
+              className="mt-2 py-3 px-4 rounded-xl bg-white dark:bg-accent border border-grey/15"
+            >
+              <CText className="text-center">LazorKit passkey wallet</CText>
+            </Pressable>
             <CText className="text-[0.8rem] opacity-60 mt-2 text-center">
-              Jupiter logs, push tools, and voice verification checks (dev only)
+              Jupiter logs, push tools, voice verification, and LazorKit (dev only)
             </CText>
             <PushNotificationDevTools />
           </View>
