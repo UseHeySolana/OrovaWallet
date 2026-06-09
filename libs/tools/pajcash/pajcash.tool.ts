@@ -117,7 +117,10 @@ async function sendTokens(
   }
   return result as TransferResult;
 }
-import { recordOfframpTransaction } from "@/services/appTransactions";
+import {
+  recordDepositTransaction,
+  recordOfframpTransaction,
+} from "@/services/appTransactions";
 
 export class PajCash {
   public pajcashInitiate: FunctionParams;
@@ -448,6 +451,28 @@ export class PajCash {
         }
 
         const order = orderRes.data;
+        const orderId = String(order.id ?? "");
+        const tokenAmount = Number(String(order.amount ?? "").replace(/,/g, ""));
+        if (orderId && Number.isFinite(tokenAmount) && tokenAmount > 0) {
+          recordDepositTransaction({
+            client_reference: `pajcash:onramp:${orderId}`,
+            provider: "pajcash",
+            app_called: "Pajcash",
+            amount: tokenAmount,
+            token: meta.symbol,
+            mint: meta.mint,
+            recipient: pk.toBase58(),
+            status: "pending",
+            raw_metadata: {
+              order_id: orderId,
+              fiat_amount: String(order.fiatAmount),
+              bank: String(order.bank),
+              account_number: String(order.accountNumber),
+              account_name: String(order.accountName),
+              confirmation_source: "order_created",
+            },
+          });
+        }
         if (messageId !== null) {
           completeConversation(messageId, "complete");
           const toolMsg = Convo.getState().messages.find((m) => m.id === messageId);

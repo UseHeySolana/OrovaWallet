@@ -420,6 +420,43 @@ export function recordCommercePaymentTransaction(params: {
   });
 }
 
+export function recordDepositTransaction(params: {
+  client_reference?: string;
+  signature?: string;
+  provider: string;
+  app_called?: string;
+  amount: number;
+  token: string;
+  mint?: string;
+  recipient?: string;
+  input_amount_usd?: number;
+  status?: AppTransactionStatus;
+  raw_metadata?: Record<string, unknown>;
+}): void {
+  recordAppTransactionAsync({
+    client_reference: params.client_reference,
+    signature: params.signature,
+    transaction_type: "deposit",
+    status: params.status ?? "confirmed",
+    provider: params.provider,
+    app_called: params.app_called ?? params.provider,
+    input_token_mint: params.mint,
+    input_token_symbol: params.token,
+    input_amount: params.amount,
+    input_amount_usd:
+      params.input_amount_usd ??
+      resolveInputAmountUsd({
+        amount: params.amount,
+        token: params.token,
+        mint: params.mint,
+      }),
+    recipient_address: params.recipient,
+    amount: params.amount,
+    token: params.token,
+    raw_metadata: params.raw_metadata,
+  });
+}
+
 export function recordOfframpTransaction(params: {
   signature: string;
   provider: string;

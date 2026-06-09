@@ -34,6 +34,10 @@ import {
   browseTokenHitsForSwap,
   type TokenSearchHit,
 } from "@/libs/jupiter/tokensV2Search";
+import {
+  recordDepositTransaction,
+  type AppTransactionStatus,
+} from "@/services/appTransactions";
 
 function isNigerianPhoneNumber(phone?: string | null): boolean {
   const compact = String(phone || "").replace(/[\s()-]/g, "");
@@ -166,12 +170,41 @@ function isOrderFailed(data: unknown): boolean {
   );
 }
 
+function asOptionalString(value: unknown): string | undefined {
+  if (value == null || value === "") return undefined;
+  return String(value);
+}
+
+function asFiniteNumber(value: unknown): number | undefined {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.replace(/,/g, ""))
+        : NaN;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
+}
+
+function pajCashOrderSignature(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const record = data as Record<string, unknown>;
+  return asOptionalString(
+    record.signature ??
+      record.transactionHash ??
+      record.transaction_hash ??
+      record.txHash ??
+      record.tx_hash ??
+      record.hash
+  );
+}
+
 export default function Onramp() {
   const { user } = UserItem();
   const publicKey = WalletItem((state) => state.publicKey);
   const { setToast, network } = AppSettings();
   const pajSession = PajCashSession();
   const paymentPollRunRef = useRef(0);
+  const recordedOnrampStatesRef = useRef<Set<string>>(new Set());
 
   const defaultRecipient = useMemo(
     () =>
@@ -220,6 +253,66 @@ export default function Onramp() {
     ToolsItem.getState().updateToolParameter("Pajcash", "credentials", {
       type: "email_or_phone",
       value,
+    });
+  };
+
+  const recordPajCashOnrampOrder = (
+    orderData: unknown,
+    status: AppTransactionStatus,
+    statusData?: unknown
+  ) => {
+    if (!publicKey || !orderData || typeof orderData !== "object") return;
+
+    const orderRecord = orderData as Record<string, unknown>;
+    const orderId = asOptionalString(
+      orderRecord.id ?? orderRecord.orderId ?? orderRecord.order_id
+    );
+    const amount = asFiniteNumber(
+      orderRecord.amount ??
+        orderRecord.tokenAmount ??
+        orderRecord.token_amount ??
+        tokenAmount
+    );
+
+    if (!orderId || amount == null) return;
+
+    const recordKey = `${orderId}:${status}`;
+    if (recordedOnrampStatesRef.current.has(recordKey)) return;
+    recordedOnrampStatesRef.current.add(recordKey);
+
+    recordDepositTransaction({
+      client_reference: `pajcash:onramp:${orderId}`,
+      signature: pajCashOrderSignature(statusData) ?? pajCashOrderSignature(orderData),
+      provider: "pajcash",
+      app_called: "Pajcash",
+      amount,
+      token: asOptionalString(
+        orderRecord.tokenSymbol ?? orderRecord.token_symbol ?? orderRecord.symbol
+      ) ?? tokenLabel,
+      mint: asOptionalString(orderRecord.mint) ?? selectedToken?.address,
+      recipient: publicKey.toBase58(),
+      status,
+      raw_metadata: {
+        order_id: orderId,
+        fiat_amount: asOptionalString(
+          orderRecord.fiatAmount ?? orderRecord.fiat_amount ?? fiatAmount
+        ),
+        bank: asOptionalString(orderRecord.bank),
+        account_number: asOptionalString(
+          orderRecord.accountNumber ?? orderRecord.account_number
+        ),
+        account_name: asOptionalString(
+          orderRecord.accountName ?? orderRecord.account_name
+        ),
+        rate: asOptionalString(orderRecord.rate),
+        fee: asOptionalString(orderRecord.fee),
+        confirmation_source:
+          status === "confirmed"
+            ? statusData
+              ? "pajcash_status"
+              : "wallet_activity"
+            : "order_created",
+      },
     });
   };
 
@@ -590,6 +683,7 @@ export default function Onramp() {
       return;
     }
 
+    recordPajCashOnrampOrder(res.data, "pending");
     setOrder(res.data);
     setOrderSheetOpen(true);
     setPaymentCheckState("idle");
@@ -633,6 +727,7 @@ export default function Onramp() {
           data: statusRes.data as Record<string, unknown>,
         });
         if (isOrderConfirmed(statusRes.data)) {
+          recordPajCashOnrampOrder(order, "confirmed", statusRes.data);
           setPaymentCheckState("confirmed");
           setPaymentCheckMessage("Payment confirmed. Your tokens should arrive shortly.");
           setStatusMessage("Payment confirmed. Your tokens should arrive shortly.");
@@ -660,6 +755,7 @@ export default function Onramp() {
           const nextWallet = snapshotUserWallet(UserItem.getState().userWallet);
           const incoming = collectWalletIncomingChanges(walletSnapshot, nextWallet);
           if (incoming.length > 0) {
+            recordPajCashOnrampOrder(order, "confirmed");
             setPaymentCheckState("confirmed");
             setPaymentCheckMessage("Wallet activity detected. Your onramp is good to go.");
             setStatusMessage("Wallet activity detected. Your onramp is good to go.");
