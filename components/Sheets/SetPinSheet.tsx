@@ -20,25 +20,23 @@ interface SetPinSheet {
 }
 const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
   const { isDarkMode } = useThemeContext();
-  if (!open) return null;
-
   const { pin: previousPin, setToast, setPinReminder } = AppSettings();
 
   const [attempts, setAttempts] = useState(0);
-
   const [stage, setStage] = useState("new-pin");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const otpRef = useRef<any>(null);
-
   const [enterPreviousPin, setEnterPreviousPin] = useState<string | null>(null);
 
-  useEffect;
   useEffect(() => {
+    if (!open) return;
     if (previousPin.length == 4) {
       setStage("enter-previous-pin");
     }
-  }, [previousPin]);
+  }, [open, previousPin]);
+
+  if (!open) return null;
 
   const handlePinChange = () => {
     if (confirmPin == pin) {

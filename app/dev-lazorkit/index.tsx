@@ -9,6 +9,11 @@ import IconLibrary from "@/utils/icons";
 import AppSettings from "@/utils/store/settingsstore.store";
 
 const REDIRECT_URL = "heysolana://dev-lazorkit";
+const LAZORKIT_PAYMASTER_URL =
+  process.env.EXPO_PUBLIC_LAZORKIT_PAYMASTER_URL ||
+  "https://kora.devnet.lazorkit.com";
+const LAZORKIT_PAYMASTER_API_KEY =
+  process.env.EXPO_PUBLIC_LAZORKIT_PAYMASTER_KEY || undefined;
 
 async function copyToClipboard(label: string, value: string) {
   if (!value) return;
@@ -115,8 +120,8 @@ function DevLazorKitContent() {
             Passkey smart wallet
           </CText>
           <CText className="opacity-70 mb-3">
-            This uses LazorKit devnet defaults only. No app-level paymaster URL,
-            API key, or production relay config is set.
+            This uses the configured LazorKit devnet paymaster. No production
+            relay config is set.
           </CText>
           <CText>Status: {isConnected ? "Connected" : "Disconnected"}</CText>
           <CText className="mt-1">Vault: {shortAddress}</CText>
@@ -199,7 +204,13 @@ function DevLazorKitContent() {
 
 export default function DevLazorKitScreen() {
   return (
-    <LazorKitProvider isDebug={__DEV__}>
+    <LazorKitProvider
+      isDebug={__DEV__}
+      configPaymaster={{
+        paymasterUrl: LAZORKIT_PAYMASTER_URL,
+        apiKey: LAZORKIT_PAYMASTER_API_KEY,
+      }}
+    >
       <DevLazorKitContent />
     </LazorKitProvider>
   );
