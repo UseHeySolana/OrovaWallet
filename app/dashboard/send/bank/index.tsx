@@ -41,7 +41,26 @@ type Bank = {
   id: string;
   code?: string;
   name: string;
+  image?: string;
+  logo?: string;
+  icon?: string;
+  logoUrl?: string;
+  logo_url?: string;
+  bankLogo?: string;
+  bank_logo?: string;
 };
+
+function getBankLogo(bank: Bank): string | undefined {
+  return (
+    bank.logo ||
+    bank.image ||
+    bank.icon ||
+    bank.logoUrl ||
+    bank.logo_url ||
+    bank.bankLogo ||
+    bank.bank_logo
+  );
+}
 
 function normalizePhoneForPaj(phone?: string | null): string {
   const compact = String(phone || "").replace(/[\s()-]/g, "");
@@ -1105,17 +1124,31 @@ export default function SendToBank() {
                   renderItem={({ item }) => (
                     <Pressable
                       onPress={() => selectBank(item)}
-                      className="flex-row items-center justify-between py-4 border-b border-gray-200 dark:border-gray-700"
+                      className="flex-row items-center justify-between gap-x-3 py-4 border-b border-gray-200 dark:border-gray-700"
                     >
-                      <View className="flex-1">
-                        <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
+                      <View className="flex-row items-center gap-x-3 flex-1">
+                        <View className="h-11 w-11 rounded-full overflow-hidden bg-grey/50 dark:bg-accent2 items-center justify-center">
+                          {getBankLogo(item) ? (
+                            <Image
+                              source={{ uri: getBankLogo(item) }}
+                              style={{ height: "100%", width: "100%" }}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <MaterialCommunityIcons
+                              name="bank"
+                              size={22}
+                              color="#971BB2"
+                            />
+                          )}
+                        </View>
+                        <CText
+                          style={{ fontFamily: "bold" }}
+                          className="text-[1rem] flex-1"
+                          numberOfLines={1}
+                        >
                           {item.name}
                         </CText>
-                        {item.code ? (
-                          <CText className="text-[0.85rem] text-black/60 dark:text-grey/70">
-                            {item.code}
-                          </CText>
-                        ) : null}
                       </View>
                       {selectedBank?.id === item.id ? (
                         <AntDesign name="check" size={20} color="#971BB2" />
