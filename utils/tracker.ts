@@ -39,6 +39,15 @@ export const getTrackingUserKey = async () => {
   return getDeviceUserKey();
 };
 
+const readJson = async (response: Response): Promise<any> => {
+  const raw = await response.text();
+  try {
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
 const tracker = {
   buttons: async (button_name: string, clicks: number) => {
     const response = await request.postJson(
@@ -46,13 +55,13 @@ const tracker = {
       `/track/button-clicks`
     );
     if (!response.ok) {
-      const result = await response.json();
+      const result = await readJson(response);
       return {
         status: false,
         message: result.message,
       };
     }
-    return { status: true, data: await response.json() };
+    return { status: true, data: await readJson(response) };
   },
 
   tool_calls: async (tool_name: string, calls: number) => {
@@ -61,13 +70,13 @@ const tracker = {
       `/track/tool-calls`
     );
     if (!response.ok) {
-      const result = await response.json();
+      const result = await readJson(response);
       return {
         status: false,
         message: result.message,
       };
     }
-    return { status: true, data: await response.json() };
+    return { status: true, data: await readJson(response) };
   },
 
   app_open_count: async () => {
@@ -76,13 +85,13 @@ const tracker = {
       `/track/app-open-count`
     );
     if (!response.ok) {
-      const result = await response.json();
+      const result = await readJson(response);
       return {
         status: false,
         message: result.message,
       };
     }
-    return { status: true, data: await response.json() };
+    return { status: true, data: await readJson(response) };
   },
 
   page_open_count: async (page_name: string, open_count: number) => {
@@ -91,13 +100,13 @@ const tracker = {
       `/track/page-open-count`
     );
     if (!response.ok) {
-      const result = await response.json();
+      const result = await readJson(response);
       return {
         status: false,
         message: result.message,
       };
     }
-    return { status: true, data: await response.json() };
+    return { status: true, data: await readJson(response) };
   },
 
   token_usage: async (token_name: string, usage_count: number) => {
@@ -106,13 +115,13 @@ const tracker = {
       `/track/token-usage`
     );
     if (!response.ok) {
-      const result = await response.json();
+      const result = await readJson(response);
       return {
         status: false,
         message: result.message,
       };
     }
-    return { status: true, data: await response.json() };
+    return { status: true, data: await readJson(response) };
   },
 };
 

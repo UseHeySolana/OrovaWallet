@@ -74,7 +74,19 @@ async function fetchPricesUsd(tokenIds: string[]): Promise<Map<string, number>> 
   // We batch by comma-separated list.
   const ids = tokenIds.map(encodeURIComponent).join(",");
   const res = await fetch(`https://lite-api.jup.ag/price/v3?ids=${ids}`);
-  const json = await res.json();
+  if (!res.ok) return out;
+
+  const raw = await res.text();
+  let json: Record<string, { usdPrice?: unknown }>;
+  try {
+    json = raw ? JSON.parse(raw) : {};
+  } catch {
+    console.warn("[PriceWatcher] Ignoring non-JSON price response", {
+      preview: raw.slice(0, 80),
+    });
+    return out;
+  }
+
   for (const id of tokenIds) {
     const row = json?.[id];
     const usd = row?.usdPrice;

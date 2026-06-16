@@ -111,7 +111,18 @@ export async function refreshVerifiedTokensFromRemote(): Promise<void> {
     const res = await fetch(url, { headers: { Accept: "application/json" } });
     if (!res.ok) return;
 
-    const json = await res.json();
+    const raw = await res.text();
+    let json: unknown;
+    try {
+        json = raw ? JSON.parse(raw) : null;
+    } catch {
+        console.warn("[VerifiedTokens] Ignoring non-JSON token cache response", {
+            url,
+            preview: raw.slice(0, 80),
+        });
+        return;
+    }
+
     const list: unknown[] = Array.isArray(json)
         ? json
         : json &&

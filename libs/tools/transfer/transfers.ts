@@ -1,5 +1,5 @@
 import { Connection, Keypair, ParsedAccountData, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
-import { getAssociatedTokenAddress, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { getAssociatedTokenAddress, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, TokenAccountNotFoundError } from "@solana/spl-token";
 import WalletItem from "@/utils/store/wallet.store";
 import { keypairSign, signTransactions } from "@/utils/functions/extrafunctions";
 
@@ -158,8 +158,11 @@ export const getTokenBalance = async (
         console.log(`Token Balance: ${balance}`);
         return balance;
     } catch (error: any) {
-        if (error.message.includes("TokenAccountNotFoundError")) {
-            console.error("Token account not found. The wallet does not hold this token.");
+        if (
+            error instanceof TokenAccountNotFoundError ||
+            error?.name === "TokenAccountNotFoundError"
+        ) {
+            console.log("Token account not found. The wallet does not hold this token.");
             return 0;
         }
         console.error("Error fetching token balance:", error);
