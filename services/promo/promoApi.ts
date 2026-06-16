@@ -17,7 +17,9 @@ interface ActiveNudgeResponse {
 }
 
 export async function getActivePromoNudge(): Promise<PromoCampaign | null> {
-  if (!BASE_URL) return null;
+  if (!BASE_URL) {
+    throw new Error("EXPO_PUBLIC_API_URL is not configured");
+  }
 
   const res = await fetch(`${BASE_URL}/notification-nudges/active`, {
     method: "GET",
