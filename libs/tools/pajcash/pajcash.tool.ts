@@ -117,6 +117,58 @@ async function sendTokens(
   }
   return result as TransferResult;
 }
+
+function asOptionalString(value: unknown): string | undefined {
+  if (value == null || value === "") return undefined;
+  return String(value);
+}
+
+function asFiniteNumber(value: unknown): number | undefined {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.replace(/,/g, ""))
+        : NaN;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
+}
+
+function pajCashOrderId(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const record = data as Record<string, unknown>;
+  return asOptionalString(
+    record.id ??
+      record.orderId ??
+      record.order_id ??
+      record.transactionId ??
+      record.transaction_id ??
+      record.reference ??
+      record.referenceId ??
+      record.reference_id ??
+      record.paymentReference ??
+      record.payment_reference
+  );
+}
+
+function pajCashTokenAmount(
+  data: unknown,
+  fallback?: unknown
+): number | undefined {
+  if (!data || typeof data !== "object") return asFiniteNumber(fallback);
+  const record = data as Record<string, unknown>;
+  return asFiniteNumber(
+    record.amount ??
+      record.tokenAmount ??
+      record.token_amount ??
+      record.cryptoAmount ??
+      record.crypto_amount ??
+      record.receiveAmount ??
+      record.receive_amount ??
+      record.outputAmount ??
+      record.output_amount ??
+      fallback
+  );
+}
 import {
   recordDepositTransaction,
   recordOfframpTransaction,
@@ -451,9 +503,9 @@ export class PajCash {
         }
 
         const order = orderRes.data;
-        const orderId = String(order.id ?? "");
-        const tokenAmount = Number(String(order.amount ?? "").replace(/,/g, ""));
-        if (orderId && Number.isFinite(tokenAmount) && tokenAmount > 0) {
+        const orderId = pajCashOrderId(order);
+        const tokenAmount = pajCashTokenAmount(order, args.token_amount);
+        if (orderId && tokenAmount != null) {
           recordDepositTransaction({
             client_reference: `pajcash:onramp:${orderId}`,
             provider: "pajcash",
@@ -471,6 +523,12 @@ export class PajCash {
               account_name: String(order.accountName),
               confirmation_source: "order_created",
             },
+          });
+        } else {
+          console.warn("[PajCash Onramp] Skipping transaction record", {
+            orderKeys: order && typeof order === "object" ? Object.keys(order) : [],
+            hasOrderId: Boolean(orderId),
+            hasAmount: tokenAmount != null,
           });
         }
         if (messageId !== null) {

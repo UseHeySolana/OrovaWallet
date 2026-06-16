@@ -45,6 +45,8 @@ export function appTxRowSummary(tx: AppTransaction) {
   const output = formatAppTxAmount(tx.output_amount, outputToken);
   const title = formatAppTxType(type);
   const app = tx.app_called || tx.provider || "HeySolana";
+  const syncNote =
+    tx.is_local && tx.sync_status === "pending_sync" ? " • Sync pending" : "";
   const recipient = tx.recipient_address
     ? `to ${shortenPub(tx.recipient_address)}`
     : null;
@@ -61,7 +63,7 @@ export function appTxRowSummary(tx: AppTransaction) {
   if (type === "deposit") {
     return {
       title,
-      subtitle: app,
+      subtitle: `${app}${syncNote}`,
       amount: input ? `+ ${input}` : "",
       sent: false,
     };
@@ -78,7 +80,7 @@ export function appTxRowSummary(tx: AppTransaction) {
   ) {
     return {
       title,
-      subtitle: [app, recipient].filter(Boolean).join(" • "),
+      subtitle: [app, recipient].filter(Boolean).join(" • ") + syncNote,
       amount: input ? `- ${input}` : "",
       sent: true,
     };
@@ -86,7 +88,7 @@ export function appTxRowSummary(tx: AppTransaction) {
 
   return {
     title,
-    subtitle: app,
+    subtitle: `${app}${syncNote}`,
     amount: input,
     sent: true,
   };

@@ -35,6 +35,7 @@ import { useWalletScroll } from "@/context/WalletScrollContext";
 import { measureInOverlay } from "@/utils/measureInOverlay";
 import {
   getAppTransactions,
+  appTransactionRouteId,
   type AppTransaction,
 } from "@/services/appTransactions";
 import { appTxRowSummary } from "@/utils/appTransactionDisplay";
@@ -120,7 +121,10 @@ export default function WalletScreen({
     setHistoryLoading(true);
     setHistoryError(null);
     (async () => {
-      const res = await getAppTransactions({ limit: APP_TRANSACTION_PREVIEW_LIMIT });
+      const res = await getAppTransactions({
+        limit: APP_TRANSACTION_PREVIEW_LIMIT,
+        syncFirst: true,
+      });
       if (cancelled) return;
       setHistoryLoading(false);
       if (!res.status) {
@@ -140,7 +144,10 @@ export default function WalletScreen({
     if (activeTab === "history" && publicKey) {
       setHistoryLoading(true);
       setHistoryError(null);
-      const res = await getAppTransactions({ limit: APP_TRANSACTION_PREVIEW_LIMIT });
+      const res = await getAppTransactions({
+        limit: APP_TRANSACTION_PREVIEW_LIMIT,
+        syncFirst: true,
+      });
       setHistoryLoading(false);
       if (!res.status) {
         setWalletHistory([]);
@@ -586,7 +593,7 @@ export default function WalletScreen({
                 walletHistory.length > 0 &&
                 walletHistory.map((tx: AppTransaction, index: number) => {
                   const row = appTxRowSummary(tx);
-                  const key = tx.id ?? tx.signature ?? `tx-${index}`;
+                  const key = tx.local_id ?? tx.id ?? tx.signature ?? `tx-${index}`;
                   const date = tx.confirmed_at ?? tx.created_at ?? "";
                   return (
                     <View key={key}>
@@ -598,7 +605,7 @@ export default function WalletScreen({
                         onPress={() => {
                           router.push({
                             pathname: "/dashboard/transaction",
-                            params: { id: String(tx.id) },
+                            params: { id: appTransactionRouteId(tx) },
                           });
                         }}
                       >

@@ -6,7 +6,7 @@ import { useFonts } from "expo-font";
 import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-google-fonts/dm-sans";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { View } from 'react-native';
+import { View, AppState } from 'react-native';
 import { Image } from 'expo-image';
 import { AiServiceProvider } from "@/context/AiContext";
 import { KeyboardProvider } from "@/context/KeyboardContext";
@@ -24,6 +24,7 @@ import { Brain } from "@/libs/brain";
 import { initWallet } from "@/utils/wallet/initWallet";
 import { bootstrapVerifiedTokensList } from "@/utils/functions";
 import { initBugReporting } from "@/services/bugReport/initBugReporting";
+import { syncPendingAppTransactions } from "@/services/appTransactions";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -87,6 +88,14 @@ export default function RootLayout() {
         // non-fatal
       });
     }
+
+    void syncPendingAppTransactions();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void syncPendingAppTransactions();
+      }
+    });
+    return () => subscription.remove();
   }, [appReady]);
 
   if (!loaded && !error) {

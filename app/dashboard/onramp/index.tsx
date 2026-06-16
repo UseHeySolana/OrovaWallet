@@ -185,6 +185,43 @@ function asFiniteNumber(value: unknown): number | undefined {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : undefined;
 }
 
+function pajCashOrderId(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const record = data as Record<string, unknown>;
+  return asOptionalString(
+    record.id ??
+      record.orderId ??
+      record.order_id ??
+      record.transactionId ??
+      record.transaction_id ??
+      record.reference ??
+      record.referenceId ??
+      record.reference_id ??
+      record.paymentReference ??
+      record.payment_reference
+  );
+}
+
+function pajCashTokenAmount(
+  data: unknown,
+  fallback?: unknown
+): number | undefined {
+  if (!data || typeof data !== "object") return asFiniteNumber(fallback);
+  const record = data as Record<string, unknown>;
+  return asFiniteNumber(
+    record.amount ??
+      record.tokenAmount ??
+      record.token_amount ??
+      record.cryptoAmount ??
+      record.crypto_amount ??
+      record.receiveAmount ??
+      record.receive_amount ??
+      record.outputAmount ??
+      record.output_amount ??
+      fallback
+  );
+}
+
 function pajCashOrderSignature(data: unknown): string | undefined {
   if (!data || typeof data !== "object") return undefined;
   const record = data as Record<string, unknown>;
@@ -261,20 +298,29 @@ export default function Onramp() {
     status: AppTransactionStatus,
     statusData?: unknown
   ) => {
-    if (!publicKey || !orderData || typeof orderData !== "object") return;
+    if (!publicKey || !orderData || typeof orderData !== "object") {
+      logOnrampError("Skipping transaction record: missing wallet or order data", {
+        hasPublicKey: Boolean(publicKey),
+        hasOrderData: Boolean(orderData),
+      });
+      return;
+    }
 
     const orderRecord = orderData as Record<string, unknown>;
-    const orderId = asOptionalString(
-      orderRecord.id ?? orderRecord.orderId ?? orderRecord.order_id
-    );
-    const amount = asFiniteNumber(
-      orderRecord.amount ??
-        orderRecord.tokenAmount ??
-        orderRecord.token_amount ??
-        tokenAmount
+    const orderId = pajCashOrderId(orderData);
+    const amount = pajCashTokenAmount(
+      orderData,
+      quote?.amount ?? tokenAmount
     );
 
-    if (!orderId || amount == null) return;
+    if (!orderId || amount == null) {
+      logOnrampError("Skipping transaction record: missing order id or token amount", {
+        orderKeys: Object.keys(orderRecord),
+        hasOrderId: Boolean(orderId),
+        hasAmount: amount != null,
+      });
+      return;
+    }
 
     const recordKey = `${orderId}:${status}`;
     if (recordedOnrampStatesRef.current.has(recordKey)) return;
@@ -289,7 +335,7 @@ export default function Onramp() {
       token: asOptionalString(
         orderRecord.tokenSymbol ?? orderRecord.token_symbol ?? orderRecord.symbol
       ) ?? tokenLabel,
-      mint: asOptionalString(orderRecord.mint) ?? selectedToken?.address,
+      mint: asOptionalString(orderRecord.mint ?? quote?.mint) ?? selectedToken?.address,
       recipient: publicKey.toBase58(),
       status,
       raw_metadata: {

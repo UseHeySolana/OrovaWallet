@@ -2,6 +2,10 @@ import { BASE_URL } from "@/utils/constant";
 import AppSettings from "@/utils/store/settingsstore.store";
 import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
+import AppTransactionOutbox, {
+  type AppTransactionOutboxEntry,
+  type OutboxSyncStatus,
+} from "@/utils/store/appTransactionOutbox.store";
 
 export type AppTransactionCluster = "mainnet" | "devnet";
 export type AppTransactionStatus = "pending" | "submitted" | "confirmed" | "failed";
@@ -76,6 +80,10 @@ export interface AppTransaction {
   raw_metadata?: Record<string, unknown> | null;
   confirmed_at?: string | null;
   created_at?: string | null;
+  /** Local outbox row — not yet on backend or offline copy. */
+  is_local?: boolean;
+  local_id?: string;
+  sync_status?: OutboxSyncStatus;
 }
 
 type AppTransactionResponse<T> =
@@ -135,25 +143,98 @@ function enrichPayload(
   return enriched;
 }
 
-/**
- * POST /api/v2/app-transactions — fire-and-forget ledger ingest.
- */
-export async function recordAppTransaction(
-  payload: RecordAppTransactionPayload
-): Promise<boolean> {
-  if (!BASE_URL) {
-    if (__DEV__) {
-      console.warn("[appTransactions] EXPO_PUBLIC_API_URL not set; skipping record");
+function transactionSortTime(tx: AppTransaction): number {
+  const raw = tx.confirmed_at ?? tx.created_at;
+  if (!raw) return 0;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function localOutboxEntryToAppTransaction(
+  entry: AppTransactionOutboxEntry
+): AppTransaction {
+  const payload = entry.payload;
+  const status = payload.status ?? "submitted";
+  return {
+    id: 0,
+    is_local: true,
+    local_id: entry.localId,
+    sync_status: entry.sync_status,
+    client_reference: payload.client_reference ?? null,
+    signature: payload.signature ?? null,
+    cluster: payload.cluster ?? "mainnet",
+    wallet_address: payload.wallet_address ?? "",
+    username: payload.username ?? null,
+    mobile_number: payload.mobile_number ?? null,
+    transaction_type: payload.transaction_type,
+    status,
+    provider: payload.provider ?? null,
+    amount: payload.amount ?? payload.input_amount ?? null,
+    token: payload.token ?? payload.input_token_symbol ?? null,
+    input_token_mint: payload.input_token_mint ?? null,
+    input_token_symbol: payload.input_token_symbol ?? null,
+    input_amount: payload.input_amount ?? null,
+    input_amount_usd: payload.input_amount_usd ?? null,
+    output_token_mint: payload.output_token_mint ?? null,
+    output_token_symbol: payload.output_token_symbol ?? null,
+    output_amount: payload.output_amount ?? null,
+    output_amount_usd: payload.output_amount_usd ?? null,
+    platform_fee_amount: payload.platform_fee_amount ?? null,
+    platform_fee_token: payload.platform_fee_token ?? null,
+    platform_fee_usd: payload.platform_fee_usd ?? null,
+    network_fee_lamports: payload.network_fee_lamports ?? null,
+    recipient_address: payload.recipient_address ?? null,
+    app_called: payload.app_called ?? null,
+    raw_metadata: payload.raw_metadata ?? null,
+    created_at: entry.created_at,
+    confirmed_at: status === "confirmed" ? entry.updated_at : null,
+  };
+}
+
+export function mergeAppTransactions(
+  remote: AppTransaction[],
+  localEntries: AppTransactionOutboxEntry[]
+): AppTransaction[] {
+  const remoteByRef = new Map<string, AppTransaction>();
+  const remoteBySig = new Map<string, AppTransaction>();
+
+  for (const tx of remote) {
+    if (tx.client_reference) {
+      remoteByRef.set(tx.client_reference, tx);
     }
-    return false;
+    if (tx.signature) {
+      remoteBySig.set(`${tx.cluster}:${tx.signature}`, tx);
+    }
   }
 
-  const body = enrichPayload(payload);
-  if (!body.wallet_address) {
-    if (__DEV__) {
-      console.warn("[appTransactions] no wallet_address; skipping record");
+  const localRows: AppTransaction[] = [];
+  for (const entry of localEntries) {
+    const payload = entry.payload;
+    if (
+      payload.client_reference &&
+      remoteByRef.has(payload.client_reference)
+    ) {
+      continue;
     }
-    return false;
+    if (payload.signature) {
+      const cluster = payload.cluster ?? "mainnet";
+      if (remoteBySig.has(`${cluster}:${payload.signature}`)) {
+        continue;
+      }
+    }
+    localRows.push(localOutboxEntryToAppTransaction(entry));
+  }
+
+  return [...localRows, ...remote].sort(
+    (a, b) => transactionSortTime(b) - transactionSortTime(a)
+  );
+}
+
+async function pushAppTransactionToBackend(
+  body: RecordAppTransactionPayload
+): Promise<{ ok: true; remoteId?: number } | { ok: false; message?: string }> {
+  if (!BASE_URL) {
+    return { ok: false, message: "API URL is not configured" };
   }
 
   try {
@@ -163,21 +244,91 @@ export async function recordAppTransaction(
       body: JSON.stringify(body),
     });
 
+    const responseBody = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
+      const message =
+        typeof responseBody?.message === "string"
+          ? responseBody.message
+          : `HTTP ${res.status}`;
       if (__DEV__) {
-        console.warn("[appTransactions] record failed", res.status, errBody);
+        console.warn("[appTransactions] record failed", res.status, responseBody);
       }
-      return false;
+      return { ok: false, message };
     }
 
-    return true;
+    const remoteId =
+      typeof responseBody?.data?.id === "number" ? responseBody.data.id : undefined;
+    return { ok: true, remoteId };
   } catch (e) {
+    const message = e instanceof Error ? e.message : "Network error";
     if (__DEV__) {
       console.warn("[appTransactions] network error", e);
     }
+    return { ok: false, message };
+  }
+}
+
+/**
+ * Retry syncing locally queued transactions to the backend.
+ */
+export async function syncPendingAppTransactions(): Promise<{
+  synced: number;
+  failed: number;
+}> {
+  const pending = AppTransactionOutbox.getState().getPending();
+  let synced = 0;
+  let failed = 0;
+
+  for (const entry of pending) {
+    const body = enrichPayload(entry.payload);
+    if (!body.wallet_address) {
+      AppTransactionOutbox.getState().markSyncFailed(
+        entry.localId,
+        "Missing wallet address"
+      );
+      failed += 1;
+      continue;
+    }
+
+    const result = await pushAppTransactionToBackend(body);
+    if (result.ok) {
+      AppTransactionOutbox.getState().markSynced(entry.localId, result.remoteId);
+      synced += 1;
+    } else {
+      AppTransactionOutbox.getState().markSyncFailed(
+        entry.localId,
+        result.message
+      );
+      failed += 1;
+    }
+  }
+
+  return { synced, failed };
+}
+
+/**
+ * Save locally first, then POST /api/v2/app-transactions when possible.
+ */
+export async function recordAppTransaction(
+  payload: RecordAppTransactionPayload
+): Promise<boolean> {
+  const body = enrichPayload(payload);
+  if (!body.wallet_address) {
+    if (__DEV__) {
+      console.warn("[appTransactions] no wallet_address; skipping record");
+    }
     return false;
   }
+
+  const localId = AppTransactionOutbox.getState().upsert(body);
+  const result = await pushAppTransactionToBackend(body);
+  if (result.ok) {
+    AppTransactionOutbox.getState().markSynced(localId, result.remoteId);
+    return true;
+  }
+
+  AppTransactionOutbox.getState().markSyncFailed(localId, result.message);
+  return false;
 }
 
 /** Non-blocking wrapper for use after on-chain success. */
@@ -185,6 +336,20 @@ export function recordAppTransactionAsync(
   payload: RecordAppTransactionPayload
 ): void {
   void recordAppTransaction(payload);
+}
+
+export function getLocalAppTransaction(
+  localId: string
+): AppTransaction | null {
+  const entry = AppTransactionOutbox.getState().getByLocalId(localId);
+  return entry ? localOutboxEntryToAppTransaction(entry) : null;
+}
+
+export function appTransactionRouteId(tx: AppTransaction): string {
+  if (tx.is_local && tx.local_id) {
+    return `local:${tx.local_id}`;
+  }
+  return String(tx.id);
 }
 
 function appTransactionQuery(params?: { limit?: number }) {
@@ -201,31 +366,62 @@ function appTransactionQuery(params?: { limit?: number }) {
 
 export async function getAppTransactions(options?: {
   limit?: number;
+  syncFirst?: boolean;
 }): Promise<AppTransactionResponse<AppTransaction[]>> {
-  if (!BASE_URL) {
-    return { status: false, message: "API URL is not configured" };
-  }
-
-  const { wallet, query } = appTransactionQuery({ limit: options?.limit ?? 50 });
+  const wallet = WalletItem.getState().publicKey?.toString() ?? "";
+  const cluster = currentCluster();
   if (!wallet) {
     return { status: false, message: "Wallet not connected" };
   }
+
+  if (options?.syncFirst !== false) {
+    void syncPendingAppTransactions();
+  }
+
+  const localEntries = AppTransactionOutbox.getState().getForWallet(
+    wallet,
+    cluster
+  );
+
+  if (!BASE_URL) {
+    return {
+      status: true,
+      data: localEntries
+        .map(localOutboxEntryToAppTransaction)
+        .sort((a, b) => transactionSortTime(b) - transactionSortTime(a)),
+    };
+  }
+
+  const { query } = appTransactionQuery({ limit: options?.limit ?? 50 });
 
   try {
     const res = await fetch(`${BASE_URL}/v2/app-transactions?${query.toString()}`);
     const body = await res.json().catch(() => ({}));
     if (!res.ok || !body?.success) {
+      const localOnly = localEntries
+        .map(localOutboxEntryToAppTransaction)
+        .sort((a, b) => transactionSortTime(b) - transactionSortTime(a));
+      if (localOnly.length > 0) {
+        return { status: true, data: localOnly };
+      }
       return {
         status: false,
         message: body?.message ?? "Unable to load transactions",
       };
     }
 
+    const remote = Array.isArray(body.data) ? body.data : [];
     return {
       status: true,
-      data: Array.isArray(body.data) ? body.data : [],
+      data: mergeAppTransactions(remote, localEntries),
     };
   } catch (e) {
+    const localOnly = localEntries
+      .map(localOutboxEntryToAppTransaction)
+      .sort((a, b) => transactionSortTime(b) - transactionSortTime(a));
+    if (localOnly.length > 0) {
+      return { status: true, data: localOnly };
+    }
     return {
       status: false,
       message: e instanceof Error ? e.message : "Unable to load transactions",
@@ -236,6 +432,15 @@ export async function getAppTransactions(options?: {
 export async function getAppTransaction(
   id: string | number
 ): Promise<AppTransactionResponse<AppTransaction>> {
+  const idStr = String(id);
+  if (idStr.startsWith("local:")) {
+    const local = getLocalAppTransaction(idStr.slice("local:".length));
+    if (local) {
+      return { status: true, data: local };
+    }
+    return { status: false, message: "Transaction not found" };
+  }
+
   if (!BASE_URL) {
     return { status: false, message: "API URL is not configured" };
   }

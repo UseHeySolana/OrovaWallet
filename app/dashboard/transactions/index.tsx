@@ -11,7 +11,7 @@ import { router } from "expo-router";
 
 import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
-import { getAppTransactions, type AppTransaction } from "@/services/appTransactions";
+import { getAppTransactions, appTransactionRouteId, type AppTransaction } from "@/services/appTransactions";
 import { formatDate } from "@/utils/functions/extrafunctions";
 import { appTxRowSummary } from "@/utils/appTransactionDisplay";
 
@@ -29,13 +29,13 @@ function TransactionRow({ tx, index }: { tx: AppTransaction; index: number }) {
   const date = tx.confirmed_at ?? tx.created_at ?? "";
 
   return (
-    <View key={tx.id ?? tx.signature ?? `tx-${index}`}>
+    <View key={tx.local_id ?? tx.id ?? tx.signature ?? `tx-${index}`}>
       <TouchableNativeFeedback
         background={TouchableNativeFeedback.Ripple("#971BB2", false)}
         onPress={() => {
           router.push({
             pathname: "/dashboard/transaction",
-            params: { id: String(tx.id) },
+            params: { id: appTransactionRouteId(tx) },
           });
         }}
       >
@@ -82,7 +82,7 @@ export default function Transactions() {
     }
     setError(null);
 
-    const res = await getAppTransactions({ limit: 100 });
+    const res = await getAppTransactions({ limit: 100, syncFirst: true });
     if (res.status) {
       setTransactions(res.data);
     } else {
@@ -145,7 +145,7 @@ export default function Transactions() {
             ) : (
               transactions.map((tx, index) => (
                 <TransactionRow
-                  key={tx.id ?? tx.signature ?? `tx-${index}`}
+                  key={tx.local_id ?? tx.id ?? tx.signature ?? `tx-${index}`}
                   tx={tx}
                   index={index}
                 />
