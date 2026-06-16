@@ -36,7 +36,7 @@ function getApiKey(): string {
 function getWebhookUrl(): string {
   const url = (process.env.EXPO_PUBLIC_PAJCASH_WEBHOOK_URL || "").trim();
   if (url) return url;
-  return "https://heysolana.app/api/pajcash/webhook";
+  return "https://hey.yraytestings.com.ng/api/pajcash/webhook";
 }
 
 function ensureSdkInitialized(): void {
