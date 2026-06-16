@@ -7,12 +7,14 @@ import { JumiaTool } from "@/libs/tools/jumia/jumia.tool";
 import { KalshiTool } from "@/libs/tools/kalshi/kalshi.tool";
 import { BayseTool } from "@/libs/tools/bayse/bayse.tool";
 import { MagicBlockTool } from "@/libs/tools/magicblock/magicblock.tool";
+import { DextopusTool } from "@/libs/tools/dextopus/dextopus.tool";
 import { WalletBalanceTool } from "@/libs/tools/wallet/wallet.tool";
 import { TokenSearchTool } from "@/libs/tools/tokens/tokenSearch.tool";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 
 const toolRouter = (SessionManager: SessionManager) => {
   const magicblock = new MagicBlockTool(SessionManager);
+  const dextopus = new DextopusTool(SessionManager);
   const walletBalance = new WalletBalanceTool(SessionManager);
   const tokenSearch = new TokenSearchTool(SessionManager);
   return [
@@ -34,6 +36,11 @@ const toolRouter = (SessionManager: SessionManager) => {
     magicblock.privateTransfer,
     magicblock.privateWithdraw,
     magicblock.privateBalance,
+
+    // Dextopus cross-chain deposits
+    dextopus.createCrossChainDepositAddress,
+    dextopus.bridgeCryptoQuote,
+    dextopus.checkCrossChainDeposits,
 
     //crossmint
     new Crossmint(SessionManager).searchProductsAmazon,

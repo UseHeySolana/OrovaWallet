@@ -14,7 +14,7 @@ const depositOptions = [
   },
   {
     title: "Receive crypto",
-    description: "Transfer from an exchange or wallet",
+    description: "Receive on Solana or from another chain",
     icon: <MaterialCommunityIcons name="qrcode-scan" size={27} color="#6B6B78" />,
     onPress: () => router.push("/dashboard/qrcode"),
   },

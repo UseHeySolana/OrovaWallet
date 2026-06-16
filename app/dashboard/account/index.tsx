@@ -15,6 +15,32 @@ import { useThemeContext } from "@/context/ThemeContext";
 import Buttons from "@/components/ButtonComp";
 import AppSettings from "@/utils/store/settingsstore.store";
 import * as ImagePicker from "expo-image-picker";
+import { Directory, File, Paths } from "expo-file-system";
+
+const PROFILE_IMAGE_DIR = new Directory(Paths.document, "profile-images");
+
+const getImageExtension = (uri: string) => {
+  const path = uri.split("?")[0];
+  const extension = path.split(".").pop();
+  return extension && extension.length <= 5 ? extension : "jpg";
+};
+
+const persistProfileImage = async (uri: string) => {
+  if (!PROFILE_IMAGE_DIR.exists) {
+    PROFILE_IMAGE_DIR.create({
+      intermediates: true,
+      idempotent: true,
+    });
+  }
+
+  const source = new File(uri);
+  const destination = new File(
+    PROFILE_IMAGE_DIR,
+    `profile-${Date.now()}.${getImageExtension(uri)}`
+  );
+  source.copy(destination);
+  return destination.uri;
+};
 
 export default function Account() {
   const { user, setUser } = UserItem();
@@ -50,15 +76,17 @@ export default function Account() {
         quality: 0.8,
       });
       if (!result.canceled && result.assets[0]) {
-        const uri = result.assets[0].uri;
+        const uri = await persistProfileImage(result.assets[0].uri);
         setProfileImageUri(uri);
+        const currentUser = UserItem.getState().user;
+        if (!currentUser) return;
         setUser({
-          ...user!,
+          ...currentUser,
           profileImageUri: uri,
         });
         setToast("Profile picture updated", "success");
       }
-    } catch (err) {
+    } catch {
       setToast("Failed to pick image", "error");
     }
   };
@@ -70,8 +98,10 @@ export default function Account() {
       return;
     }
     if (!user) return;
+    const currentUser = UserItem.getState().user;
+    if (!currentUser) return;
     setUser({
-      ...user,
+      ...currentUser,
       username: trimmed,
     });
     setToast("Username updated", "success");
@@ -84,8 +114,10 @@ export default function Account() {
       return;
     }
     if (!user) return;
+    const currentUser = UserItem.getState().user;
+    if (!currentUser) return;
     setUser({
-      ...user,
+      ...currentUser,
       email: trimmed || undefined,
     });
     setToast(trimmed ? "Email saved for backup recovery" : "Email removed", "success");
