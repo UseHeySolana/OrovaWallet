@@ -14,7 +14,7 @@ import HeyText from "@/components/TextComp";
 import tracker from "@/utils/tracker";
 import { useThemeContext } from "@/context/ThemeContext";
 import { ACTIVE_PROMO, type PromoCampaign } from "@/utils/promo/promoConfig";
-import { getActivePromoNudge } from "@/services/promo/promoApi";
+import { getActivePromoNudge, reportPromoNudgeEvent } from "@/services/promo/promoApi";
 
 const STORAGE_PREFIX = "@heysolana/promo_dismissed_";
 
@@ -46,6 +46,7 @@ export function PromoNotificationModal({ blocked = false }: PromoNotificationMod
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  const shownPromoIdRef = useRef<string | null>(null);
   const imageSource =
     typeof promo?.image === "string" ? { uri: promo.image } : promo?.image;
   const hasImage = Boolean(imageSource);
@@ -96,6 +97,7 @@ export function PromoNotificationModal({ blocked = false }: PromoNotificationMod
     if (promo) {
       await markPromoDismissed(promo.id);
       tracker.buttons(`promo_dismiss_${promo.id}`, 1);
+      void reportPromoNudgeEvent(promo.id, "dismissed");
     }
     close();
   }, [close, promo]);
@@ -115,6 +117,10 @@ export function PromoNotificationModal({ blocked = false }: PromoNotificationMod
     }
     setVisible(true);
     tracker.buttons(`promo_shown_${promo.id}`, 1);
+    if (shownPromoIdRef.current !== promo.id) {
+      shownPromoIdRef.current = promo.id;
+      void reportPromoNudgeEvent(promo.id, "shown");
+    }
   }, [blocked, promo, promoLoaded]);
 
   const scheduleShow = useCallback(() => {
@@ -148,6 +154,7 @@ export function PromoNotificationModal({ blocked = false }: PromoNotificationMod
   const onCtaPress = useCallback(async () => {
     if (!promo?.action) return;
     tracker.buttons(`promo_cta_${promo.id}`, 1);
+    void reportPromoNudgeEvent(promo.id, "cta_clicked");
     await markPromoDismissed(promo.id);
     close();
 

@@ -28,7 +28,7 @@ const getDeviceUserKey = async () => {
   return deviceUserKeyPromise;
 };
 
-const getTrackingUserKey = async () => {
+export const getTrackingUserKey = async () => {
   const wallet = WalletItem.getState();
   const walletKey = wallet.publicKeyBase58 ?? wallet.publicKey?.toBase58();
 
