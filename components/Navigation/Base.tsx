@@ -3,10 +3,11 @@ import IconLibrary from '@/utils/icons'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import React from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native'
 import Feather from "@expo/vector-icons/Feather";
 import { useAi } from "@/context/AiContext";
 import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
+import { useThemeContext } from "@/context/ThemeContext";
 
 interface BASENAV {
   isSessionActive: boolean;
@@ -30,8 +31,11 @@ export const Base = ({
     isVoiceCommandRecording,
     voiceEnrolled,
   } = useAi();
+  const { isDarkMode } = useThemeContext();
   const [speakerMuted, setSpeakerMuted] = React.useState(false);
   const [micMuted, setMicMuted] = React.useState(false);
+  const bubbleIntro = React.useRef(new Animated.Value(0)).current;
+  const bubblePulse = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     if (!isSessionActive) {
@@ -40,11 +44,63 @@ export const Base = ({
     }
   }, [isSessionActive]);
 
-  if (inputMode === "chat" && !showWallet) return null;
-
   const isAiScreenOpen = !showWallet;
   const shouldShowCancel = isAiScreenOpen && isSessionActive;
   const showAudioSessionControls = shouldShowCancel && inputMode === "audio";
+  const showStartHint = isAiScreenOpen && !isSessionActive;
+  const bubbleBackgroundColor = isDarkMode ? "#2A2440" : "#FFFFFF";
+
+  React.useEffect(() => {
+    if (!showStartHint) {
+      bubbleIntro.setValue(0);
+      bubblePulse.setValue(0);
+      return undefined;
+    }
+
+    const intro = Animated.timing(bubbleIntro, {
+      toValue: 1,
+      duration: 320,
+      easing: Easing.out(Easing.back(1.4)),
+      useNativeDriver: true,
+    });
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bubblePulse, {
+          toValue: 1,
+          duration: 950,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bubblePulse, {
+          toValue: 0,
+          duration: 950,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.delay(900),
+      ])
+    );
+
+    intro.start();
+    pulse.start();
+
+    return () => {
+      intro.stop();
+      pulse.stop();
+    };
+  }, [bubbleIntro, bubblePulse, showStartHint]);
+
+  const handleSecondaryPress = () => {
+    if (isAiScreenOpen) {
+      tracker.buttons("open_wallet", 1);
+      setShowWallet(true);
+      return;
+    }
+
+    tracker.buttons("conversations", 1);
+    router.push("/dashboard/chat");
+  };
 
   const handleToggleSpeaker = () => {
     const next = !speakerMuted;
@@ -86,18 +142,21 @@ export const Base = ({
     }
   };
 
+  if (inputMode === "chat" && !showWallet) return null;
+
   return (
-    <View className="absolute right-4 bottom-10 flex flex-col items-center gap-y-3">
+    <View className="absolute right-4 pe-3 bottom-10 flex flex-col items-end gap-y-3">
       {!showAudioSessionControls && (
         <TouchableOpacity
-          onPress={() => {
-            tracker.buttons("conversations", 1);
-            router.push("/dashboard/chat");
-          }}
+          onPress={handleSecondaryPress}
           activeOpacity={0.85}
           className="h-[50] w-[50] bg-white/90 dark:bg-accent2 border border-white/70 dark:border-white/10 shadow flex items-center justify-center rounded-full"
         >
-          <IconLibrary.chat size={20} />
+          {isAiScreenOpen ? (
+            <IconLibrary.wallet size={22} />
+          ) : (
+            <IconLibrary.chat size={20} />
+          )}
         </TouchableOpacity>
       )}
 
@@ -131,23 +190,75 @@ export const Base = ({
         </>
       )}
 
-      <TouchableOpacity
-        onPress={handlePrimaryPress}
-        activeOpacity={0.85}
-        className={`rounded-full shadow flex items-center justify-center ${shouldShowCancel ? "h-[56] w-[56]" : "h-[72] w-[72]"
-          } ${shouldShowCancel ? "bg-red-500" : "bg-grey dark:bg-accent"
-          } ${isVoiceCommandRecording ? "border-4 border-red-500" : ""}`}
-      >
-        {shouldShowCancel ? (
-          <IconLibrary.cancel color="white" size={28} />
-        ) : (
-          <Image
-            source={require("@/assets/images/ai.png")}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
+      <View className="flex-row items-center">
+        {showStartHint && (
+          <Animated.View
+            style={{
+              opacity: bubbleIntro,
+              transform: [
+                {
+                  translateX: bubbleIntro.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [18, 0],
+                  }),
+                },
+                {
+                  scale: bubblePulse.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.04],
+                  }),
+                },
+              ],
+            }}
+          >
+            <TouchableOpacity
+              onPress={handlePrimaryPress}
+              activeOpacity={0.85}
+              className="mr-1 flex-row items-center"
+            >
+              <View
+                className="px-4 py-2 rounded-l-2xl rounded-t-2xl border border-white/70 dark:border-white/10 shadow"
+                style={{ backgroundColor: bubbleBackgroundColor }}
+              >
+                <Text className="text-sm font-semibold text-purple dark:text-white">
+                  Start
+                </Text>
+              </View>
+              {/* <View
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderTopWidth: 8,
+                  borderBottomWidth: 8,
+                  borderLeftWidth: 10,
+                  borderTopColor: "transparent",
+                  borderBottomColor: "transparent",
+                  borderLeftColor: bubbleBackgroundColor,
+                  marginLeft: -1,
+                }}
+              /> */}
+            </TouchableOpacity>
+          </Animated.View>
         )}
-      </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handlePrimaryPress}
+          activeOpacity={0.85}
+          className={`rounded-full shadow flex items-center justify-center ${shouldShowCancel ? "h-[56] w-[56]" : "h-[72] w-[72]"
+            } ${shouldShowCancel ? "bg-red-500" : "bg-grey dark:bg-accent"
+            } ${isVoiceCommandRecording ? "border-4 border-red-500" : ""}`}
+        >
+          {shouldShowCancel ? (
+            <IconLibrary.cancel color="white" size={28} />
+          ) : (
+            <Image
+              source={require("@/assets/images/ai.png")}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+            />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
