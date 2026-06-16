@@ -33,18 +33,18 @@ export const Base = ({
   const [speakerMuted, setSpeakerMuted] = React.useState(false);
   const [micMuted, setMicMuted] = React.useState(false);
 
-  if (inputMode === "chat" && !showWallet) return null;
-
-  const isAiScreenOpen = !showWallet;
-  const shouldShowCancel = isAiScreenOpen && isSessionActive;
-  const showAudioSessionControls = shouldShowCancel && inputMode === "audio";
-
   React.useEffect(() => {
     if (!isSessionActive) {
       setSpeakerMuted(false);
       setMicMuted(false);
     }
   }, [isSessionActive]);
+
+  if (inputMode === "chat" && !showWallet) return null;
+
+  const isAiScreenOpen = !showWallet;
+  const shouldShowCancel = isAiScreenOpen && isSessionActive;
+  const showAudioSessionControls = shouldShowCancel && inputMode === "audio";
 
   const handleToggleSpeaker = () => {
     const next = !speakerMuted;

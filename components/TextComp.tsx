@@ -24,9 +24,8 @@ const CText: React.FC<CustomTextProps> = ({
   <Animated.Text
     entering={FadeIn.duration(200).delay(100)}
     {...props}
-    className={`${
-      textColor ? textColor : "text-[1rem] text-dark dark:text-white"
-    } ${className}`}
+    className={`${textColor ? textColor : "text-[1rem] text-dark dark:text-white"
+      } ${className}`}
     style={[{ fontFamily: "reg" }, style]}
   >
     {children}
@@ -93,9 +92,8 @@ const CNumber: React.FC<CNumberProps> = ({
   return (
     <Animated.Text
       {...props}
-      className={`${textColor ?? "text-[1rem] text-dark dark:text-white"} ${
-        className ?? ""
-      }`}
+      className={`${textColor ?? "text-[1rem] text-dark dark:text-white"} ${className ?? ""
+        }`}
       style={[
         animatedStyle,
         { fontFamily: "reg", backfaceVisibility: "hidden" },

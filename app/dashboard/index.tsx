@@ -33,6 +33,7 @@ import { useThemeContext } from "@/context/ThemeContext";
 import Convo, { MessageType } from "@/utils/store/conversation.store";
 import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
 import SetPin from "@/components/Sheets/SetPinSheet";
+import { PromoNotificationModal } from "@/services/promo/PromoNotificationModal";
 
 import ToolsItem from "@/utils/store/toolsitems.store";
 import QuickActions from "@/services/WidgetService/QuickActions";
@@ -279,6 +280,7 @@ export default function Dashboard() {
           )}
 
           <SetPin open={setPinOpen} setOpen={setSetPinOpen} usage="first-time" />
+          <PromoNotificationModal blocked={setPinOpen} />
         </View>
       </DashboardOverlayRoot>
     </WalletScrollProvider>

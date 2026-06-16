@@ -1,0 +1,47 @@
+import { BASE_URL } from "@/utils/constant";
+import type { PromoCampaign } from "@/utils/promo/promoConfig";
+
+interface ActiveNudgeResponse {
+  success?: boolean;
+  data?: {
+    id?: number;
+    campaign_key?: string;
+    enabled?: boolean;
+    headline?: string;
+    highlight?: string | null;
+    body?: string | null;
+    image?: string | null;
+    ctaLabel?: string | null;
+    action?: ({ type: "route"; path: string } | { type: "external"; url: string }) | null;
+  } | null;
+}
+
+export async function getActivePromoNudge(): Promise<PromoCampaign | null> {
+  if (!BASE_URL) return null;
+
+  const res = await fetch(`${BASE_URL}/notification-nudges/active`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = (await res.json().catch(() => ({}))) as ActiveNudgeResponse;
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch active notification nudge");
+  }
+
+  const nudge = json.data;
+  if (!nudge?.campaign_key || !nudge.headline || nudge.enabled === false) {
+    return null;
+  }
+
+  return {
+    id: nudge.campaign_key,
+    enabled: true,
+    image: nudge.image ?? undefined,
+    headline: nudge.headline,
+    highlight: nudge.highlight ?? undefined,
+    body: nudge.body ?? undefined,
+    ctaLabel: nudge.ctaLabel ?? undefined,
+    action: nudge.action ?? undefined,
+  };
+}
