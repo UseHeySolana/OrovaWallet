@@ -280,6 +280,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
   const voiceDebugText = voiceVerificationDebug
     ? formatVoiceVerificationDebug(voiceVerificationDebug)
     : null;
+  const showInlineEndButton = keyboardHeight === 0;
 
   const chatContent = (
     <View
@@ -350,7 +351,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
             />
           </TouchableOpacity>
         )}
-        {isSessionActive && (
+        {isSessionActive && inputMode !== "audio" && (
           <>
             <TouchableOpacity
               onPress={handleToggleSpeaker}
@@ -442,15 +443,17 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
                   color={chatInput.trim() ? "#fff" : "#888"}
                 />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={stopSession}
-                activeOpacity={0.7}
-                className="p-2 rounded-xl bg-red-500/90 dark:bg-red-600/90"
-              >
-                <CText className="text-white text-sm" style={{ fontFamily: "md" }}>
-                  End
-                </CText>
-              </TouchableOpacity>
+              {showInlineEndButton && (
+                <TouchableOpacity
+                  onPress={stopSession}
+                  activeOpacity={0.7}
+                  className="p-2 rounded-xl bg-red-500/90 dark:bg-red-600/90"
+                >
+                  <CText className="text-white text-sm" style={{ fontFamily: "md" }}>
+                    End
+                  </CText>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <TouchableOpacity
