@@ -66,13 +66,13 @@ export default function Login() {
           ...userDetails,
           mobileNumber: user.mobileNumber,
         });
-        if (pin.length > 0 && openWithAuth) {
-          setPinSignin(true);
-        } else if (openWithAuth) {
+        if (openWithAuth) {
           setFingerPrintSigning(true);
           setTimeout(() => {
             BiometricAuth();
           }, 1000);
+        } else if (pin.length > 0) {
+          setPinSignin(true);
         } else {
           setCurrentState("start-wallet");
         }
