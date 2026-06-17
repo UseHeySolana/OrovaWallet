@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist, PersistStorage } from 'zustand/middleware';
 import { getQvacP2pManager } from '@/libs/qvac/qvacP2pManager';
-import type { VoiceBackend } from '@/libs/voiceinfra/types';
+import type { QvacHostMode, VoiceBackend } from '@/libs/voiceinfra/types';
 
 function defaultVoiceBackend(): VoiceBackend {
     const env = process.env.EXPO_PUBLIC_VOICE_BACKEND;
@@ -24,6 +24,12 @@ interface Settings {
     /** Voice assistant inference backend: OpenAI Realtime or on-device QVAC. */
     voiceBackend: VoiceBackend;
     setVoiceBackend: (backend: VoiceBackend) => void;
+    /** Run QVAC voice models on this phone or delegate to a laptop provider. */
+    qvacHostMode: QvacHostMode;
+    setQvacHostMode: (mode: QvacHostMode) => void;
+    /** Hyperswarm public key from `npm run qvac:laptop-host` on your computer. */
+    laptopProviderPublicKey: string;
+    setLaptopProviderPublicKey: (key: string) => void;
     /** User completed the public vs private AI onboarding screen. */
     voiceEngineOnboarded: boolean;
     markVoiceEngineOnboarded: () => void;
@@ -95,6 +101,11 @@ const AppSettings = create(
             aiVoice: "alloy",
             voiceBackend: defaultVoiceBackend(),
             setVoiceBackend: (backend: VoiceBackend) => set({ voiceBackend: backend }),
+            qvacHostMode: "laptop",
+            setQvacHostMode: (mode: QvacHostMode) => set({ qvacHostMode: mode }),
+            laptopProviderPublicKey: "",
+            setLaptopProviderPublicKey: (key: string) =>
+                set({ laptopProviderPublicKey: key.trim() }),
             voiceEngineOnboarded: false,
             markVoiceEngineOnboarded: () => set({ voiceEngineOnboarded: true }),
             aiName: "Orova",
@@ -142,6 +153,8 @@ const AppSettings = create(
                         notifications: true,
                         aiVoice: "alloy",
                         voiceBackend: defaultVoiceBackend(),
+                        qvacHostMode: "laptop",
+                        laptopProviderPublicKey: "",
                         voiceEngineOnboarded: false,
                         network: "https://mainnet.helius-rpc.com/?api-key=",
                         alreadyOpened: false,

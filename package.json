@@ -28,6 +28,7 @@
     "update:ios": "EXPO_PUBLIC_API_URL=https://hey.yraytestings.com.ng/api eas update --branch production --platform ios --clear-cache",
     "update:list": "eas update:list",
     "postinstall": "patch-package",
+    "qvac:laptop-host": "node ./scripts/qvac-laptop-host.mjs",
     "logs": "./scripts/check-logs.sh",
     "logs:errors": "./scripts/check-logs.sh errors",
     "logs:react": "./scripts/check-logs.sh react"

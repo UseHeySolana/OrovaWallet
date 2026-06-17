@@ -1,4 +1,4 @@
-import type { VoiceBackend } from "./types";
+import type { QvacHostMode, VoiceBackend } from "./types";
 
 export const QVAC_MODEL_STORAGE_ESTIMATE_GB = 1;
 
@@ -10,6 +10,30 @@ export type VoiceBackendOption = {
   pros: string[];
   cons: string[];
 };
+
+export type QvacHostModeOption = {
+  id: QvacHostMode;
+  title: string;
+  badge: string;
+  summary: string;
+};
+
+export const qvacHostModeOptions: QvacHostModeOption[] = [
+  {
+    id: "laptop",
+    title: "My laptop (recommended)",
+    badge: "Best for most phones",
+    summary:
+      "Your phone captures mic audio and plays replies, but Whisper, Llama, and TTS run on a computer you control. No heavy model load on the phone.",
+  },
+  {
+    id: "device",
+    title: "This phone",
+    badge: "Fully offline after download",
+    summary:
+      "All models run on-device. Needs about 1 GB of storage and enough RAM — may not work on older or low-memory devices.",
+  },
+];
 
 export const voiceBackendOptions: VoiceBackendOption[] = [
   {
@@ -31,20 +55,19 @@ export const voiceBackendOptions: VoiceBackendOption[] = [
   },
   {
     id: "qvac",
-    title: "Private AI (on your phone)",
+    title: "Private AI (QVAC)",
     badge: "Best for privacy",
     summary:
-      "Speech recognition, the language model, and text-to-speech all run locally with QVAC. After the first download, conversations can stay entirely on your device.",
+      "Speech recognition, the language model, and text-to-speech stay off the cloud. Run models on your laptop (recommended) or directly on your phone if it has enough memory.",
     pros: [
       "Conversations are not sent to the cloud for AI inference",
-      "Works offline once models are downloaded",
+      "Laptop mode keeps your phone light — no model download on the device",
       "You stay in control of what leaves your phone",
     ],
     cons: [
-      `First setup downloads about ${QVAC_MODEL_STORAGE_ESTIMATE_GB} GB of models`,
-      "Uses more battery, RAM, and storage while the assistant is active",
+      "Laptop mode needs your computer running the host script and on the same network",
+      "On-phone mode downloads about 1 GB and uses significant RAM",
       "Wallet tool calls are limited compared to cloud mode today",
-      "First response may be slower while models load",
     ],
   },
 ];
@@ -54,12 +77,19 @@ export const voiceEngineOnboardingIntro = {
   subtitle:
     "Pick where your voice assistant runs. You can change this later in AI Settings.",
   storageNote:
-    "Private AI keeps inference on your phone but needs extra space for Whisper, Llama, and speech models. Public AI uses the cloud and keeps your install light.",
+    "Private AI can run on your laptop so your phone does not load heavy models. Public AI uses the cloud and keeps your install light.",
 };
 
 export function labelForVoiceBackend(backend: VoiceBackend): string {
   return (
     voiceBackendOptions.find((option) => option.id === backend)?.title ??
-    (backend === "qvac" ? "Private AI (on your phone)" : "Public AI (cloud)")
+    (backend === "qvac" ? "Private AI (QVAC)" : "Public AI (cloud)")
+  );
+}
+
+export function labelForQvacHostMode(mode: QvacHostMode): string {
+  return (
+    qvacHostModeOptions.find((option) => option.id === mode)?.title ??
+    (mode === "laptop" ? "My laptop" : "This phone")
   );
 }

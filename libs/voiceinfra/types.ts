@@ -2,6 +2,9 @@ import type { Connection } from "@solana/web3.js";
 
 export type VoiceBackend = "openai" | "qvac";
 
+/** Where QVAC voice models run when voiceBackend is "qvac". */
+export type QvacHostMode = "device" | "laptop";
+
 export type VoiceSessionMode = "loading" | "human" | "aispeaking";
 
 export interface VoiceSessionCallbacks {

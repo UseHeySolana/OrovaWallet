@@ -5,17 +5,13 @@ import { Audio } from "expo-av";
 import { v4 as uuidv4 } from "uuid";
 import {
   completion,
-  loadModel,
   startQVACProvider,
   textToSpeech,
   transcribeStream,
   unloadModel,
-  LLAMA_3_2_1B_INST_Q4_0,
-  TTS_EN_SUPERTONIC_Q8_0,
-  VAD_SILERO_5_1_2,
-  WHISPER_TINY,
 } from "@qvac/sdk";
 
+import { ensureQvacHyperswarmSeed } from "@/libs/qvac/qvacSeed";
 import Convo from "@/utils/store/conversation.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { summarizeConversation } from "@/utils/functions/extrafunctions";
@@ -29,15 +25,8 @@ import {
   sleep,
   TTS_SAMPLE_RATE,
 } from "./qvacVoiceAudio";
+import { loadQvacVoiceModels } from "./qvacVoiceModels";
 import type { VoiceAssistantSession, VoiceSessionCallbacks } from "./types";
-
-const VAD_PARAMS = {
-  threshold: 0.6,
-  min_speech_duration_ms: 300,
-  min_silence_duration_ms: 700,
-  max_speech_duration_s: 15.0,
-  speech_pad_ms: 200,
-};
 
 const POST_PLAYBACK_COOLDOWN_MS = 300;
 
@@ -50,8 +39,8 @@ type ChatRole = "system" | "user" | "assistant";
 let audioRecordInitialized = false;
 
 /**
- * On-device QVAC voice loop: Whisper+VAD → Llama → Supertonic TTS.
- * See docs/Voiceassistant.md for tuning notes.
+ * QVAC voice loop: Whisper+VAD → Llama → Supertonic TTS.
+ * Models can run on-device or delegate to a laptop provider (see qvacHostMode).
  */
 export class QvacVoiceSession implements VoiceAssistantSession {
   functionMessageId: string | null = null;
@@ -103,45 +92,23 @@ export class QvacVoiceSession implements VoiceAssistantSession {
         }
       }
 
-      if (!this.providerStarted) {
+      const { qvacHostMode, laptopProviderPublicKey } = AppSettings.getState();
+      const useLaptopHost = qvacHostMode === "laptop";
+
+      if (useLaptopHost) {
+        await ensureQvacHyperswarmSeed();
+      } else if (!this.providerStarted) {
         await startQVACProvider();
         this.providerStarted = true;
       }
 
-      this.asrModelId = await loadModel({
-        modelSrc: WHISPER_TINY,
-        modelType: "whispercpp-transcription",
-        modelConfig: {
-          vadModelSrc: VAD_SILERO_5_1_2,
-          audio_format: "f32le",
-          strategy: "greedy",
-          n_threads: 4,
-          language: "en",
-          no_timestamps: true,
-          suppress_blank: true,
-          suppress_nst: true,
-          temperature: 0.0,
-          vad_params: VAD_PARAMS,
-        },
+      const models = await loadQvacVoiceModels({
+        hostMode: qvacHostMode,
+        laptopProviderPublicKey,
       });
-
-      this.llmModelId = await loadModel({
-        modelSrc: LLAMA_3_2_1B_INST_Q4_0,
-        modelType: "llamacpp-completion",
-        modelConfig: { ctx_size: 4096 },
-      });
-
-      this.ttsModelId = await loadModel({
-        modelSrc: TTS_EN_SUPERTONIC_Q8_0,
-        modelType: "tts-ggml",
-        modelConfig: {
-          ttsEngine: "supertonic",
-          language: "en",
-          voice: "F1",
-          ttsSpeed: 1.05,
-          ttsNumInferenceSteps: 5,
-        },
-      });
+      this.asrModelId = models.asrModelId;
+      this.llmModelId = models.llmModelId;
+      this.ttsModelId = models.ttsModelId;
 
       this.conversationId = new Date().getTime().toString();
       this.callbacks.setConversationId(this.conversationId);
