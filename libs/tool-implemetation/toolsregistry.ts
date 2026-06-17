@@ -9,25 +9,25 @@ import { BayseTool } from "@/libs/tools/bayse/bayse.tool";
 import { MagicBlockTool } from "@/libs/tools/magicblock/magicblock.tool";
 import { WalletBalanceTool } from "@/libs/tools/wallet/wallet.tool";
 import { TokenSearchTool } from "@/libs/tools/tokens/tokenSearch.tool";
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 
-const toolRouter = (SessionManager: SessionManager) => {
-  const magicblock = new MagicBlockTool(SessionManager);
-  const walletBalance = new WalletBalanceTool(SessionManager);
-  const tokenSearch = new TokenSearchTool(SessionManager);
+const toolRouter = (session: VoiceAssistantSession) => {
+  const magicblock = new MagicBlockTool(session);
+  const walletBalance = new WalletBalanceTool(session);
+  const tokenSearch = new TokenSearchTool(session);
   return [
     walletBalance.checkWalletBalance,
     tokenSearch.searchSplTokens,
-    new TransferFunction(SessionManager).transferFunction,
-    new AirBills(SessionManager).buyAirtime,
-    new SwapFunction(SessionManager).swapFunction,
-    new SwapFunction(SessionManager).checkPrice,
-    new AirBills(SessionManager).buyElectricityBill,
-    new PajCash(SessionManager).pajcashInitiate,
-    new PajCash(SessionManager).pajcashVerify,
-    new PajCash(SessionManager).pajitOfframp,
-    new PajCash(SessionManager).pajcashOnramp,
-    new PajCash(SessionManager).getNairaRate,
+    new TransferFunction(session).transferFunction,
+    new AirBills(session).buyAirtime,
+    new SwapFunction(session).swapFunction,
+    new SwapFunction(session).checkPrice,
+    new AirBills(session).buyElectricityBill,
+    new PajCash(session).pajcashInitiate,
+    new PajCash(session).pajcashVerify,
+    new PajCash(session).pajitOfframp,
+    new PajCash(session).pajcashOnramp,
+    new PajCash(session).getNairaRate,
 
     // MagicBlock Private Payments
     magicblock.privateDeposit,
@@ -36,14 +36,14 @@ const toolRouter = (SessionManager: SessionManager) => {
     magicblock.privateBalance,
 
     //crossmint
-    new Crossmint(SessionManager).searchProductsAmazon,
-    new Crossmint(SessionManager).createAmazonOrder,
-    new Crossmint(SessionManager).productDetails,
+    new Crossmint(session).searchProductsAmazon,
+    new Crossmint(session).createAmazonOrder,
+    new Crossmint(session).productDetails,
 
     // Jumia
-    new JumiaTool(SessionManager).searchJumiaProducts,
-    new JumiaTool(SessionManager).getJumiaProductDetails,
-    new JumiaTool(SessionManager).placeJumiaOrder,
+    new JumiaTool(session).searchJumiaProducts,
+    new JumiaTool(session).getJumiaProductDetails,
+    new JumiaTool(session).placeJumiaOrder,
 
     // // Kalshi
     // new KalshiTool(SessionManager).activateKalshi,

@@ -1,4 +1,4 @@
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
@@ -66,7 +66,7 @@ export class BayseTool {
   public getPortfolio: FunctionParams;
   public getActivities: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.activateBayse = this.activate_bayse();
     this.bayseStatus = this.bayse_status();
     this.searchEvents = this.search_events();

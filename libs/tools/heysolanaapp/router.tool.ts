@@ -1,5 +1,5 @@
 import AppSettings from "@/utils/store/settingsstore.store";
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { router, useSegments } from "expo-router";
 
 
@@ -29,7 +29,7 @@ export class Routing {
     public goBack: any;
     public qrCode: any;
 
-    constructor(public session: SessionManager) {
+    constructor(public session: VoiceAssistantSession) {
         this.changeRoute = this.change_route()
         this.goBack = this.go_back()
         this.qrCode = this.qr_code()

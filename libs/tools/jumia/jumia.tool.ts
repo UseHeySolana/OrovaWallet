@@ -1,4 +1,4 @@
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import UserItem from "@/utils/store/userstore.store";
@@ -57,7 +57,7 @@ export class JumiaTool {
   public placeJumiaOrder: FunctionParams;
   public getJumiaProductDetails: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.searchJumiaProducts = this.search_products();
     this.placeJumiaOrder = this.place_order();
     this.getJumiaProductDetails = this.jumia_product_details();

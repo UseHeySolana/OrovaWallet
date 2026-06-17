@@ -1,5 +1,5 @@
 import AppSettings from "@/utils/store/settingsstore.store";
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
@@ -142,7 +142,7 @@ export class AirBills {
   public buyAirtime: FunctionParams;
   public buyElectricityBill: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.buyAirtime = this.buy_airtime();
     this.buyElectricityBill = this.buy_electricity_bill();
   }

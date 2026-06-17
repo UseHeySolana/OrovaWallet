@@ -1,12 +1,12 @@
 import AppSettings from "@/utils/store/settingsstore.store";
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 
 export class Settings {
     public setVoice: FunctionParams;
     public setName: FunctionParams;
 
-    constructor(public session: SessionManager) {
+    constructor(public session: VoiceAssistantSession) {
         this.setVoice = this.set_voice()
         this.setName = this.set_name()
     }

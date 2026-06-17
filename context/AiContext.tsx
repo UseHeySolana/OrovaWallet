@@ -1,5 +1,8 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
-import SessionManager from "../libs/voiceinfra/SessionManager";
+import {
+    createVoiceAssistantSession,
+    type VoiceAssistantSession,
+} from "@/libs/voiceinfra/createVoiceAssistantSession";
 import { Audio } from "expo-av";
 import { Connection } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -23,7 +26,7 @@ export type AiInputMode = 'audio' | 'chat';
 
 interface AIService {
     connection: Connection | null;
-    sessionManager: SessionManager | null,
+    sessionManager: VoiceAssistantSession | null,
     isSessionActive: boolean,
     startSession: () => Promise<void>,
     stopSession: () => void,
@@ -44,9 +47,9 @@ const AiService = createContext<AIService | null>(null);
 
 export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const { user, userWallet } = UserItem()
-    const { network, setLoading } = AppSettings()
+    const { network, setLoading, voiceBackend } = AppSettings()
 
-    const [sessionManager, setSessionManager] = useState<SessionManager | null>(null);
+    const [sessionManager, setSessionManager] = useState<VoiceAssistantSession | null>(null);
     const [isSessionActive, setIsSessionActive] = useState(false);
     const [permissionGranted, setPermissionGranted] = useState(false);
     const [refresh, setRefresh] = useState(0);
@@ -152,7 +155,9 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             setConnection(connection);
             if (isSessionActive || sessionManager) return;
 
-            const manager = new SessionManager(userWallet, connection,
+            const manager = createVoiceAssistantSession(
+                userWallet,
+                connection,
                 {
                     setMode: (mode) => setCurrentMode(mode),
                     setConversationId: setActiveConversationId,
@@ -164,7 +169,8 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                         awaitingAssistantResponseRef.current = false;
                         syncVoiceStreamSuppression();
                     },
-                }
+                },
+                voiceBackend
             );
             setSessionManager(manager);
             const tokenDetails = userWallet?.tokenAccounts.map((token: any) => ({
@@ -209,7 +215,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 sessionManager.stopSession();
             }
         };
-    }, [permissionGranted, refresh, user, userWallet, setActiveConversationId]);
+    }, [permissionGranted, refresh, user, userWallet, voiceBackend, setActiveConversationId]);
 
     const refreshVoiceEnrollment = useCallback(async () => {
         if (!VOICE_VERIFICATION_ENABLED) {
@@ -379,7 +385,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 // Speaker was verified, but Laravel transcription returned empty.
                 // Fall back to the realtime session's manual audio buffer path.
                 addLocalAssistantMessage("Voice verified. Transcribing your command...");
-                sessionManager.sendVerifiedAudioChunk(audioBase64);
+                sessionManager.sendVerifiedAudioChunk?.(audioBase64);
             },
             onStateChange: (state) => {
                 setVoiceGateStatus(state);

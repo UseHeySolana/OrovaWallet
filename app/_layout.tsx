@@ -25,6 +25,9 @@ import { initWallet } from "@/utils/wallet/initWallet";
 import { bootstrapVerifiedTokensList } from "@/utils/functions";
 import { initBugReporting } from "@/services/bugReport/initBugReporting";
 import { syncPendingAppTransactions } from "@/services/appTransactions";
+import { getQvacBrainProvider } from "@/libs/brain/qvacProvider";
+import { isQvacP2pEnabled } from "@/libs/qvac";
+import WalletItem from "@/utils/store/wallet.store";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -95,6 +98,16 @@ export default function RootLayout() {
         void syncPendingAppTransactions();
       }
     });
+
+    if (isQvacP2pEnabled()) {
+      const wallet =
+        WalletItem.getState().publicKeyBase58 ??
+        WalletItem.getState().publicKey?.toBase58();
+      if (wallet) {
+        void getQvacBrainProvider().ensureProviderStarted().catch(() => {});
+      }
+    }
+
     return () => subscription.remove();
   }, [appReady]);
 

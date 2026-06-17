@@ -1,8 +1,8 @@
-import SessionManager from "../voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { toolManipulator } from "@/libs/tools/heysolanaapp/toolManipulator";
 
-const toolFunctions = (SessionManager: SessionManager) => {
-  return [new toolManipulator(SessionManager).chooseTools];
+const toolFunctions = (session: VoiceAssistantSession) => {
+  return [new toolManipulator(session).chooseTools];
 };
 
 export { toolFunctions };

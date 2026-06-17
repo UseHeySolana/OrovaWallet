@@ -1,4 +1,4 @@
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
@@ -60,7 +60,7 @@ export class Crossmint {
   public createAmazonOrder: FunctionParams;
   public productDetails: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.createAmazonOrder = this.create_order();
     this.searchProductsAmazon = this.search_product();
     this.productDetails = this.product_details();

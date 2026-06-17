@@ -1,5 +1,5 @@
 import AppSettings from "@/utils/store/settingsstore.store";
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import { ParsedAccountData, PublicKey } from "@solana/web3.js";
@@ -43,7 +43,7 @@ function parseMintAddress(token: string): string | null {
 
 async function getMintDecimals(
   mint: string,
-  connection?: SessionManager["connection"]
+  connection?: VoiceAssistantSession["connection"]
 ): Promise<number> {
   if (!connection) return 6;
   try {
@@ -58,7 +58,7 @@ async function getMintDecimals(
 
 async function resolveMint(
   token: string,
-  connection?: SessionManager["connection"]
+  connection?: VoiceAssistantSession["connection"]
 ): Promise<{
   mint: string;
   decimals: number;
@@ -92,7 +92,7 @@ async function sendTokens(
   token: string,
   amount: number,
   recipient: string,
-  connection: SessionManager["connection"]
+  connection: VoiceAssistantSession["connection"]
 ): Promise<TransferResult> {
   if (token.toLowerCase() === "sol") {
     const result = await transferSol(recipient, amount, connection);
@@ -181,7 +181,7 @@ export class PajCash {
   public pajcashOnramp: FunctionParams;
   public getNairaRate: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.pajcashInitiate = this.pajcash_initiate();
     this.pajcashVerify = this.pajcash_verify();
     this.pajitOfframp = this.pajit_offramp();

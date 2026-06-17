@@ -14,7 +14,7 @@
 
 import { Connection, PublicKey } from "@solana/web3.js";
 
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -133,7 +133,7 @@ export class MagicBlockTool {
   public privateWithdraw: FunctionParams;
   public privateBalance: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.privateDeposit = this.private_deposit_spl();
     this.privateTransfer = this.private_transfer_spl();
     this.privateWithdraw = this.private_withdraw_spl();

@@ -1,4 +1,4 @@
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import { completeConversation } from "@/utils/functions";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
@@ -12,7 +12,7 @@ import Convo from "@/utils/store/conversation.store";
 export class TokenSearchTool {
     public searchSplTokens: FunctionParams;
 
-    constructor(public session: SessionManager) {
+    constructor(public session: VoiceAssistantSession) {
         this.searchSplTokens = this.search_spl_tokens();
     }
 

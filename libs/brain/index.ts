@@ -4,6 +4,7 @@ export { defaultLocalOpenAIBaseUrl } from "./localBaseUrl";
 export { PriceWatcher } from "./priceWatcher";
 export { runBrainDigest } from "./digest";
 export type { DigestOptions } from "./digest";
+export { QvacBrainProvider, getQvacBrainProvider } from "./qvacProvider";
 export { buildContextualBrainSuggestions } from "./contextualSuggestions";
 export {
   addDevSolPriceAlert,

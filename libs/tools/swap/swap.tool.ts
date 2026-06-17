@@ -1,4 +1,4 @@
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import {
     convertSpeech,
@@ -39,7 +39,7 @@ export class SwapFunction {
     public swapFunction: FunctionParams;
     public checkPrice: FunctionParams;
 
-    constructor(public session: SessionManager) {
+    constructor(public session: VoiceAssistantSession) {
         this.swapFunction = this.swap_tokens()
         this.checkPrice = this.check_price()
     }

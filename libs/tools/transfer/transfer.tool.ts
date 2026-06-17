@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { transferSol, transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import AppSettings from "@/utils/store/settingsstore.store";
@@ -191,7 +191,7 @@ const aiTransfer = async (connection: Connection, args: { amount: number, token:
 export class TransferFunction {
     public transferFunction: FunctionParams;
 
-    constructor(public session: SessionManager) {
+    constructor(public session: VoiceAssistantSession) {
         this.transferFunction = this.transfer_tokens()
     }
     transfer_tokens() {

@@ -21,6 +21,7 @@ import {
   deactivatePushTokenOnBackend,
   registerPushTokenWithBackend,
 } from "@/services/push/pushNotifications";
+import { labelForVoiceBackend } from "@/libs/voiceinfra/voiceBackendCopy";
 import { PushNotificationDevTools } from "@/services/push/PushNotificationDevTools";
 
 type SettingsMenu2Item = {
@@ -42,8 +43,9 @@ const settingsMenu = [
   {
     title: "AI Assistant",
     route: "/aisetup",
-    subtitle: `${AppSettings.getState().aiName} -- ${AppSettings.getState().aiLanguage
-      }`,
+    subtitle: `${AppSettings.getState().aiName} · ${labelForVoiceBackend(
+      AppSettings.getState().voiceBackend
+    )}`,
     icon: (
       <View className="h-[18px] w-[18px]  rounded-full">
         <Image

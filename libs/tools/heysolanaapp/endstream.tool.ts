@@ -1,12 +1,12 @@
 import AppSettings from "@/utils/store/settingsstore.store";
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import GeminiSessionManager from "@/libs/voiceinfra/gemini/GeminiSessionManager";
 import { FunctionParams } from "@/utils/types/types";
 
 export class EndStream {
     public endStream: FunctionParams;
 
-    constructor(public session: SessionManager | GeminiSessionManager) {
+    constructor(public session: VoiceAssistantSession | GeminiSessionManager) {
         this.endStream = this.end_stream()
     }
     end_stream() {

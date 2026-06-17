@@ -259,7 +259,7 @@ export class QvacDevLab {
     log("Loading LLAMA_3_2_1B_INST_Q4_0...");
     const modelId = await loadModel({
       modelSrc: LLAMA_3_2_1B_INST_Q4_0,
-      modelType: "llm",
+      modelType: "llamacpp-completion",
       modelConfig: { ctx_size: 2048 },
       onProgress: (p) =>
         log(`LLM download ${p.percentage?.toFixed?.(1) ?? "?"}%`),
@@ -279,7 +279,7 @@ export class QvacDevLab {
     log("Loading QWEN3_600M_INST_Q4 (tools enabled)...");
     const modelId = await loadModel({
       modelSrc: QWEN3_600M_INST_Q4,
-      modelType: "llm",
+      modelType: "llamacpp-completion",
       modelConfig: {
         ctx_size: 4096,
         tools: true,
@@ -302,7 +302,7 @@ export class QvacDevLab {
     log("Loading EMBEDDINGGEMMA_300M_Q4_0...");
     const modelId = await loadModel({
       modelSrc: EMBEDDINGGEMMA_300M_Q4_0,
-      modelType: "embeddings",
+      modelType: "llamacpp-embedding",
       onProgress: (p) =>
         log(`Embed download ${p.percentage?.toFixed?.(1) ?? "?"}%`),
     });

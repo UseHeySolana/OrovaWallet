@@ -1,4 +1,4 @@
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
 import { FunctionParams } from "@/utils/types/types";
 
@@ -8,7 +8,7 @@ export class toolManipulator {
     public toolsDes: FunctionParams[];
 
 
-    constructor(public session: SessionManager,) {
+    constructor(public session: VoiceAssistantSession,) {
         this.toolsDes = toolRouter(session)
         this.chooseTools = this.choose_tools()
     }

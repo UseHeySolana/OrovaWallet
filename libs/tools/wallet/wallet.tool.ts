@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import { convertSpeech } from "@/utils/functions/extrafunctions";
@@ -16,7 +16,7 @@ import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
 export class WalletBalanceTool {
   public checkWalletBalance: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.checkWalletBalance = this.check_wallet_balance();
   }
 

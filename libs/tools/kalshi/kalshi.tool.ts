@@ -1,4 +1,4 @@
-import SessionManager from "@/libs/voiceinfra/SessionManager";
+import type { VoiceAssistantSession } from "@/libs/voiceinfra/types";
 import { FunctionParams } from "@/utils/types/types";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
@@ -87,7 +87,7 @@ export class KalshiTool {
   public getOrders: FunctionParams;
   public getPositions: FunctionParams;
 
-  constructor(public session: SessionManager) {
+  constructor(public session: VoiceAssistantSession) {
     this.activateKalshi = this.activate_kalshi();
     this.backupApiKey = this.backup_api_key();
     this.kalshiStatus = this.kalshi_status();
