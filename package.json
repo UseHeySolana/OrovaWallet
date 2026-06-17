@@ -127,7 +127,7 @@
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-audio-record": "^0.2.2",
-    "react-native-bare-kit": "^0.11.5",
+    "react-native-bare-kit": "^0.14.0",
     "react-native-calendar-events": "^2.2.0",
     "react-native-country-code-select": "^0.0.3",
     "react-native-css-interop": "^0.2.2",
