@@ -4715,13 +4715,6 @@ bare-inspect@^3.1.2:
     bare-ansi-escapes "^2.1.0"
     bare-type "^1.0.0"
 
-bare-lief@^0.1.0:
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/bare-lief/-/bare-lief-0.1.6.tgz#4ee988380a0fd5a850b412ef8ca27e4c2ab7e1c4"
-  integrity sha512-eNqgZGoHVPGtbkLoDPVyKKEe9uTkXFqOvTevb1iDv3SXv/eU7kMgJoAukSdvFUg7QWNiqd2o/pZwaMy5n3cjNw==
-  dependencies:
-    require-addon "^1.2.0"
-
 bare-lief@^0.2.0:
   version "0.2.4"
   resolved "https://registry.npmjs.org/bare-lief/-/bare-lief-0.2.4.tgz"
@@ -4729,20 +4722,6 @@ bare-lief@^0.2.0:
   dependencies:
     bare-assert "^1.2.0"
     require-addon "^1.2.0"
-
-bare-link@^2.1.8:
-  version "2.1.10"
-  resolved "https://registry.yarnpkg.com/bare-link/-/bare-link-2.1.10.tgz#154aeb5c105c58b5c26d9ce72c98c1dbf2bce466"
-  integrity sha512-oqoh5RJ6kuPRozDfOvVFpdcbRRFmUoxz4LU/bjMbBGWvAwO3f2v1i38GScyMUAs5MMtiyoSmIzZqw0QbLM5Erg==
-  dependencies:
-    bare-fs "^4.0.0"
-    bare-lief "^0.1.0"
-    bare-module-resolve "^1.12.0"
-    bare-os "^3.2.0"
-    bare-path "^3.0.0"
-    bare-subprocess "^5.0.2"
-    bare-url "^2.0.9"
-    paparam "^1.5.0"
 
 bare-link@^3.0.1, bare-link@^3.2.1:
   version "3.2.2"
@@ -5090,7 +5069,7 @@ bare-structured-clone@^1.4.0:
     bare-url "^2.4.0"
     compact-encoding "^3.0.1"
 
-bare-subprocess@^5.0.0, bare-subprocess@^5.0.2, bare-subprocess@^5.2.3:
+bare-subprocess@^5.0.0, bare-subprocess@^5.2.3:
   version "5.2.3"
   resolved "https://registry.npmjs.org/bare-subprocess/-/bare-subprocess-5.2.3.tgz"
   integrity sha512-07wwswlV7M3sC9IykbZRZ/jHAkrXFWVLqdBWGv1y0ojCimtRD9hGwxdHmR5FUFmDUZLNsBmTYJNQqgio5+A85Q==
@@ -12235,15 +12214,6 @@ react-native-audio-record@^0.2.2:
   version "0.2.2"
   resolved "https://registry.npmjs.org/react-native-audio-record/-/react-native-audio-record-0.2.2.tgz"
   integrity sha512-+JEY3AWz21xylePbXZ81DLHcqU5oJYztn3Uel3ay53P3ZrvJlwfmOmyOuoavA9boPV1O0dLLQIu9gC7xbKwNvQ==
-
-react-native-bare-kit@^0.11.5:
-  version "0.11.5"
-  resolved "https://registry.yarnpkg.com/react-native-bare-kit/-/react-native-bare-kit-0.11.5.tgz#e7aee99084ef5036391adf1bf616f5270547f2ae"
-  integrity sha512-VTM1mRip9g3NqUUG2MsRg1HWFAXjVotq4ZlzHnzAHrHwEnlrnDa5Ex5Yqsq3HYh78Q3rvdFbNcxpKVv+CuLW1Q==
-  dependencies:
-    bare-events "^2.6.1"
-    bare-link "^2.1.8"
-    streamx "^2.21.0"
 
 react-native-bare-kit@^0.14.0:
   version "0.14.2"

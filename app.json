@@ -1,7 +1,11 @@
 {
   "expo": {
     "name": "Orova",
+<<<<<<< HEAD
     "slug": "heysolana",
+=======
+    "slug": "orova",
+>>>>>>> 6c4a83f (Rename app from Heysolana to Orova in app.json and clean up yarn.lock by removing outdated dependencies for better maintenance and performance.)
     "owner": "yraylabs",
     "version": "2.1.9",
     "orientation": "portrait",
