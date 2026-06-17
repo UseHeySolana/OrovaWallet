@@ -18,6 +18,7 @@ import {
 } from "@/libs/voiceinfra/VerifiedVoiceStream";
 import { fetchVoiceStatus } from "@/services/voiceAuthApi";
 import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
+import { formatQvacDelegateError } from "@/libs/voiceinfra/qvacDelegateErrors";
 
 /** Extra tail after WebRTC reports assistant playback stopped (echo guard). */
 const VOICE_RESUME_AFTER_PLAYBACK_MS = 450;
@@ -262,6 +263,11 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
             useAudio: VOICE_VERIFICATION_ENABLED ? false : inputMode === "audio",
         }).then(() => {
             setIsSessionActive(true);
+        }).catch((error) => {
+            console.error("[AiContext] startSession failed:", error);
+            AppSettings.getState().setToast(formatQvacDelegateError(error), "error");
+            setIsSessionActive(false);
+            throw error;
         }).finally(() => {
             startSessionPromiseRef.current = null;
         });

@@ -2,13 +2,14 @@ import { Pressable, TextInput, View } from "react-native";
 import CText from "@/components/TextComp";
 import Feather from "@expo/vector-icons/Feather";
 import type { QvacHostMode } from "@/libs/voiceinfra/types";
+import { normalizeLaptopHostAddress } from "@/libs/voiceinfra/qvacLanUrls";
 import { qvacHostModeOptions } from "@/libs/voiceinfra/voiceBackendCopy";
 
 type QvacHostModePickerProps = {
   hostMode: QvacHostMode;
-  providerPublicKey: string;
+  hostAddress: string;
   onHostModeChange: (mode: QvacHostMode) => void;
-  onProviderKeyChange: (key: string) => void;
+  onHostAddressChange: (address: string) => void;
 };
 
 function HostOption({
@@ -53,9 +54,9 @@ function HostOption({
 
 export default function QvacHostModePicker({
   hostMode,
-  providerPublicKey,
+  hostAddress,
   onHostModeChange,
-  onProviderKeyChange,
+  onHostAddressChange,
 }: QvacHostModePickerProps) {
   return (
     <View className="gap-y-3">
@@ -71,24 +72,27 @@ export default function QvacHostModePicker({
       {hostMode === "laptop" ? (
         <View className="gap-y-2 rounded-2xl border border-purple/20 bg-purple/5 p-4 dark:bg-purple/10">
           <CText style={{ fontFamily: "bold" }} className="text-[0.92rem]">
-            Laptop provider key
+            Laptop address (same Wi‑Fi)
           </CText>
           <CText className="text-[0.82rem] leading-5 text-black/65 dark:text-grey/75">
-            On your computer, open the HeySolana wallet repo and run{" "}
-            <CText style={{ fontFamily: "bold" }}>npm run qvac:laptop-host</CText>
-            . Copy the provider public key it prints and paste it here. Keep that
-            terminal open while you use voice.
+            Open <CText style={{ fontFamily: "bold" }}>HeySolana Voice Host</CText>{" "}
+            on your computer. When it shows Ready, copy the local address it
+            displays (for example{" "}
+            <CText style={{ fontFamily: "bold" }}>192.168.1.129:8787</CText>) and
+            paste it here. Keep Voice Host open while you talk to Orova.
           </CText>
           <TextInput
-            value={providerPublicKey}
-            onChangeText={onProviderKeyChange}
-            placeholder="Paste provider public key"
+            value={hostAddress}
+            onChangeText={(text) => {
+              onHostAddressChange(normalizeLaptopHostAddress(text) || text);
+            }}
+            placeholder="192.168.1.129:8787"
             placeholderTextColor="#999"
             autoCapitalize="none"
             autoCorrect={false}
-            multiline
+            keyboardType="url"
             style={{ fontFamily: "reg" }}
-            className="min-h-[72px] rounded-xl border border-grey/40 bg-white px-3 py-2 text-[0.85rem] text-black dark:border-line dark:bg-dark dark:text-white"
+            className="rounded-xl border border-grey/40 bg-white px-3 py-2 text-[0.85rem] text-black dark:border-line dark:bg-dark dark:text-white"
           />
         </View>
       ) : null}

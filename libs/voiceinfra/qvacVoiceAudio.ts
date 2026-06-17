@@ -1,5 +1,7 @@
 import { Buffer } from "buffer";
-import { Audio } from "expo-av";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
+import { File, Paths } from "expo-file-system";
+import InCallManager from "react-native-incall-manager";
 
 export const MIC_SAMPLE_RATE = 16_000;
 export const TTS_SAMPLE_RATE = 44_100;
@@ -31,8 +33,13 @@ export function int16Base64ToF32Buffer(base64: string): Buffer {
   return f32;
 }
 
-export function int16ArrayToBuffer(samples: Int16Array): Buffer {
-  return Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength);
+export function int16ArrayToBuffer(samples: ArrayLike<number>): Buffer {
+  const buffer = Buffer.alloc(samples.length * 2);
+  for (let i = 0; i < samples.length; i += 1) {
+    const value = Math.max(-32_768, Math.min(32_767, Math.round(samples[i] ?? 0)));
+    buffer.writeInt16LE(value, i * 2);
+  }
+  return buffer;
 }
 
 export function createWavHeader(
@@ -62,6 +69,14 @@ export function createWavHeader(
   return header;
 }
 
+function estimateWavDurationMs(wavBuffer: Buffer): number {
+  if (wavBuffer.length < 44) return 30_000;
+  const sampleRate = wavBuffer.readUInt32LE(24);
+  const dataBytes = wavBuffer.length - 44;
+  if (!sampleRate || dataBytes <= 0) return 30_000;
+  return Math.ceil((dataBytes / 2 / sampleRate) * 1000) + 1500;
+}
+
 export async function playWavBuffer(wavBuffer: Buffer): Promise<void> {
   await Audio.setAudioModeAsync({
     allowsRecordingIOS: true,
@@ -69,23 +84,61 @@ export async function playWavBuffer(wavBuffer: Buffer): Promise<void> {
     staysActiveInBackground: false,
     shouldDuckAndroid: true,
     playThroughEarpieceAndroid: false,
+    interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+    interruptionModeIOS: InterruptionModeIOS.DuckOthers,
   });
 
-  const base64 = wavBuffer.toString("base64");
-  const { sound } = await Audio.Sound.createAsync(
-    { uri: `data:audio/wav;base64,${base64}` },
-    { shouldPlay: true }
-  );
+  InCallManager.start({ media: "audio", auto: false, ringback: "" });
+  InCallManager.setSpeakerphoneOn(true);
 
-  await new Promise<void>((resolve, reject) => {
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (!status.isLoaded) return;
-      if (status.didJustFinish) {
-        void sound.unloadAsync().then(() => resolve()).catch(reject);
-      }
-      if ("error" in status && status.error) {
-        reject(new Error(String(status.error)));
-      }
+  const file = new File(Paths.cache, `qvac-tts-${Date.now()}.wav`);
+
+  try {
+    file.create({ overwrite: true });
+    file.write(new Uint8Array(wavBuffer));
+
+    const { sound } = await Audio.Sound.createAsync(
+      { uri: file.uri },
+      { shouldPlay: true, volume: 1.0 }
+    );
+
+    const maxWaitMs = Math.max(estimateWavDurationMs(wavBuffer), 5_000);
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        const unload = sound.unloadAsync();
+        void Promise.resolve(unload).finally(() => {
+          if (error) reject(error);
+          else resolve();
+        });
+      };
+
+      const timeout = setTimeout(() => finish(), maxWaitMs);
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isLoaded) {
+          if ("error" in status && status.error) {
+            finish(new Error(String(status.error)));
+          }
+          return;
+        }
+        if (status.didJustFinish) {
+          finish();
+        }
+      });
     });
-  });
+  } finally {
+    InCallManager.stop();
+    try {
+      if (file.exists) {
+        file.delete();
+      }
+    } catch {
+      // ignore temp file cleanup errors
+    }
+  }
 }

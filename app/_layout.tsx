@@ -27,6 +27,7 @@ import { initBugReporting } from "@/services/bugReport/initBugReporting";
 import { syncPendingAppTransactions } from "@/services/appTransactions";
 import { getQvacBrainProvider } from "@/libs/brain/qvacProvider";
 import { isQvacP2pEnabled } from "@/libs/qvac";
+import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
@@ -99,7 +100,11 @@ export default function RootLayout() {
       }
     });
 
-    if (isQvacP2pEnabled()) {
+    const { voiceBackend, qvacHostMode } = AppSettings.getState();
+    const skipPhoneQvacProvider =
+      voiceBackend === "qvac" && qvacHostMode === "laptop";
+
+    if (isQvacP2pEnabled() && !skipPhoneQvacProvider) {
       const wallet =
         WalletItem.getState().publicKeyBase58 ??
         WalletItem.getState().publicKey?.toBase58();

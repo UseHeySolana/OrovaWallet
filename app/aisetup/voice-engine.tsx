@@ -6,9 +6,10 @@ import Feather from "@expo/vector-icons/Feather";
 import Buttons from "@/components/ButtonComp";
 import CText from "@/components/TextComp";
 import VoiceEnginePicker from "@/components/AiSetup/VoiceEnginePicker";
+import QvacHostModePicker from "@/components/AiSetup/QvacHostModePicker";
 import IconLibrary from "@/utils/icons";
 import AppSettings from "@/utils/store/settingsstore.store";
-import type { VoiceBackend } from "@/libs/voiceinfra/types";
+import type { QvacHostMode, VoiceBackend } from "@/libs/voiceinfra/types";
 import {
   QVAC_MODEL_STORAGE_ESTIMATE_GB,
   voiceEngineOnboardingIntro,
@@ -18,24 +19,38 @@ export default function VoiceEngineOnboardingScreen() {
   const {
     voiceBackend,
     voiceEngineOnboarded,
+    qvacHostMode,
+    laptopHostAddress,
     setVoiceBackend,
+    setQvacHostMode,
+    setLaptopHostAddress,
     markVoiceEngineOnboarded,
     setToast,
   } = AppSettings();
   const [selected, setSelected] = useState<VoiceBackend>(voiceBackend ?? "openai");
+  const [hostMode, setHostMode] = useState<QvacHostMode>(qvacHostMode ?? "laptop");
+  const [hostAddress, setHostAddress] = useState(laptopHostAddress ?? "");
   const isReviewing = voiceEngineOnboarded;
 
   const handleContinue = () => {
     setVoiceBackend(selected);
+    if (selected === "qvac") {
+      setQvacHostMode(hostMode);
+      setLaptopHostAddress(hostAddress);
+    }
     if (!isReviewing) {
       markVoiceEngineOnboarded();
     }
-    setToast(
-      selected === "qvac"
-        ? `Private AI selected. About ${QVAC_MODEL_STORAGE_ESTIMATE_GB} GB downloads on first voice session.`
-        : "Public AI selected.",
-      "info"
-    );
+    if (selected === "qvac") {
+      setToast(
+        hostMode === "laptop"
+          ? "Private AI selected. Pair with HeySolana Voice Host on your computer when you start voice."
+          : `Private AI selected. About ${QVAC_MODEL_STORAGE_ESTIMATE_GB} GB downloads on first voice session.`,
+        "info"
+      );
+    } else {
+      setToast("Public AI selected.", "info");
+    }
     if (isReviewing) {
       router.back();
       return;
@@ -81,6 +96,20 @@ export default function VoiceEngineOnboardingScreen() {
         </View>
 
         <VoiceEnginePicker selected={selected} onSelect={setSelected} />
+
+        {selected === "qvac" ? (
+          <View className="gap-y-2">
+            <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
+              Where should models run?
+            </CText>
+            <QvacHostModePicker
+              hostMode={hostMode}
+              hostAddress={hostAddress}
+              onHostModeChange={setHostMode}
+              onHostAddressChange={setHostAddress}
+            />
+          </View>
+        ) : null}
 
         <View className="rounded-2xl bg-white p-4 dark:bg-accent">
           <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">

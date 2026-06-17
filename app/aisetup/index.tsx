@@ -7,8 +7,9 @@ import { router } from "expo-router";
 import { Switch } from "react-native";
 import { TextInput } from "react-native";
 import IconLibrary from "@/utils/icons";
-import type { VoiceBackend } from "@/libs/voiceinfra/types";
 import VoiceEnginePicker from "@/components/AiSetup/VoiceEnginePicker";
+import QvacHostModePicker from "@/components/AiSetup/QvacHostModePicker";
+import type { QvacHostMode, VoiceBackend } from "@/libs/voiceinfra/types";
 import {
   labelForVoiceBackend,
   QVAC_MODEL_STORAGE_ESTIMATE_GB,
@@ -56,6 +57,8 @@ export default function SetUpAi() {
     aiName,
     aiLanguage,
     voiceBackend,
+    qvacHostMode,
+    laptopHostAddress,
     voiceEngineOnboarded,
     setToast,
   } = AppSettings();
@@ -65,6 +68,8 @@ export default function SetUpAi() {
     language: aiLanguage,
     assistantName: aiName,
     voiceBackend: voiceBackend,
+    qvacHostMode: qvacHostMode,
+    laptopHostAddress: laptopHostAddress,
   });
 
   useEffect(() => {
@@ -82,6 +87,10 @@ export default function SetUpAi() {
     AppSettings.getState().setAiLanguage(settings.language);
     AppSettings.getState().setAiActive(settings.aiActive);
     AppSettings.getState().setVoiceBackend(settings.voiceBackend);
+    if (settings.voiceBackend === "qvac") {
+      AppSettings.getState().setQvacHostMode(settings.qvacHostMode);
+      AppSettings.getState().setLaptopHostAddress(settings.laptopHostAddress);
+    }
     setToast("Settings saved", "success");
   };
 
@@ -156,7 +165,9 @@ export default function SetUpAi() {
               <View className="gap-y-3 px-4 pb-2">
                 <CText className="text-[0.86rem] leading-5 text-black/65 dark:text-grey/75">
                   {settings.voiceBackend === "qvac"
-                    ? `Private AI runs on your phone and may download about ${QVAC_MODEL_STORAGE_ESTIMATE_GB} GB of models.`
+                    ? settings.qvacHostMode === "laptop"
+                      ? "Private AI runs on your computer via HeySolana Voice Host — no model download on your phone."
+                      : `Private AI runs on this phone and may download about ${QVAC_MODEL_STORAGE_ESTIMATE_GB} GB of models.`
                     : "Public AI uses cloud voice — light on storage, needs internet."}
                 </CText>
                 <Pressable
@@ -174,6 +185,18 @@ export default function SetUpAi() {
                     setSettings({ ...settings, voiceBackend: backend })
                   }
                 />
+                {settings.voiceBackend === "qvac" ? (
+                  <QvacHostModePicker
+                    hostMode={settings.qvacHostMode}
+                    hostAddress={settings.laptopHostAddress}
+                    onHostModeChange={(mode: QvacHostMode) =>
+                      setSettings({ ...settings, qvacHostMode: mode })
+                    }
+                    onHostAddressChange={(address: string) =>
+                      setSettings({ ...settings, laptopHostAddress: address })
+                    }
+                  />
+                ) : null}
                 <CText className="text-[0.8rem] text-black/50 dark:text-grey/60">
                   Current: {labelForVoiceBackend(settings.voiceBackend)}
                 </CText>

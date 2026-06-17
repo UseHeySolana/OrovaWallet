@@ -1,4 +1,5 @@
 import {
+  heartbeat,
   loadModel,
   LLAMA_3_2_1B_INST_Q4_0,
   TTS_EN_SUPERTONIC_Q8_0,
@@ -8,6 +9,9 @@ import {
 
 import { QVAC_DELEGATE_TIMEOUT_MS } from "@/libs/qvac/constants";
 import type { QvacHostMode } from "./types";
+
+/** First delegated connect can be slow while Hyperswarm bootstraps. */
+const LAPTOP_PREFLIGHT_TIMEOUT_MS = 45_000;
 
 export const QVAC_VOICE_VAD_PARAMS = {
   threshold: 0.6,
@@ -49,6 +53,16 @@ export async function loadQvacVoiceModels(input: {
     throw new Error(
       "Add your laptop provider public key in AI Settings before starting private voice."
     );
+  }
+
+  if (input.hostMode === "laptop" && delegate?.providerPublicKey) {
+    input.onProgress?.("Connecting to laptop", 0);
+    await heartbeat({
+      delegate: {
+        providerPublicKey: delegate.providerPublicKey,
+        timeout: LAPTOP_PREFLIGHT_TIMEOUT_MS,
+      },
+    });
   }
 
   const asrModelId = await loadModel({

@@ -1,0 +1,219 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="QVAC System Overview" id="qvac-system-overview">
+    <mxGraphModel dx="1164" dy="756" grid="1" gridSize="10" guides="1" tooltips="1" connect="0" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" background="none" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Clients -->
+        <mxCell id="clients" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=light-dark(#000000,#33FF33);" value="Clients" vertex="1">
+          <mxGeometry height="220" width="320" x="40" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="mobile-wallet" parent="clients" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="HeySolana Wallet&lt;br&gt;Expo / React Native app" vertex="1">
+          <mxGeometry height="70" width="260" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="voice-host" parent="clients" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="HeySolana Voice Host&lt;br&gt;Electron desktop app" vertex="1">
+          <mxGeometry height="70" width="260" x="30" y="130" as="geometry" />
+        </mxCell>
+
+        <!-- Features -->
+        <mxCell id="features" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=light-dark(#000000,#FFCC99);" value="Features" vertex="1">
+          <mxGeometry height="340" width="320" x="40" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-context" parent="features" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="AiServiceProvider&lt;br&gt;voice + chat session orchestration" vertex="1">
+          <mxGeometry height="70" width="260" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="voice-session" parent="features" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="QvacVoiceSession&lt;br&gt;mic → ASR → LLM → TTS loop" vertex="1">
+          <mxGeometry height="80" width="260" x="30" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="brain-provider" parent="features" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="QvacBrainProvider&lt;br&gt;local LLM + embeddings + P2P fallback" vertex="1">
+          <mxGeometry height="80" width="260" x="30" y="230" as="geometry" />
+        </mxCell>
+
+        <!-- Wallet libs -->
+        <mxCell id="wallet-libs" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=default;swimlaneFillColor=none;" value="Wallet libs" vertex="1">
+          <mxGeometry height="340" width="360" x="400" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="voiceinfra" parent="wallet-libs" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="libs/voiceinfra&lt;br&gt;Lan client, voice models, pairing, audio" vertex="1">
+          <mxGeometry height="80" width="300" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="qvac-lib" parent="wallet-libs" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="libs/qvac&lt;br&gt;Hyperswarm seed, P2P manager, constants" vertex="1">
+          <mxGeometry height="80" width="300" x="30" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="compute-api" parent="wallet-libs" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="services/qvacComputeApi&lt;br&gt;register, route, receipt, balance" vertex="1">
+          <mxGeometry height="80" width="300" x="30" y="235" as="geometry" />
+        </mxCell>
+
+        <!-- Runtime -->
+        <mxCell id="runtime" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=light-dark(#000000,#33FF33);" value="Runtime" vertex="1">
+          <mxGeometry height="500" width="420" x="800" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="qvac-sdk" parent="runtime" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="@qvac/sdk&lt;br&gt;loadModel, completion, transcribeStream,&lt;br&gt;textToSpeech, embed, startQVACProvider" vertex="1">
+          <mxGeometry height="95" width="360" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="asr" parent="runtime" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="ASR worker&lt;br&gt;Whisper Tiny + Silero VAD" vertex="1">
+          <mxGeometry height="70" width="160" x="30" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="llm" parent="runtime" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="LLM worker&lt;br&gt;Llama 3.2 1B Instruct Q4" vertex="1">
+          <mxGeometry height="70" width="170" x="210" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="tts" parent="runtime" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="TTS worker&lt;br&gt;Supertonic English" vertex="1">
+          <mxGeometry height="70" width="160" x="30" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="embed" parent="runtime" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="Embed worker&lt;br&gt;EmbeddingGemma 300M Q4" vertex="1">
+          <mxGeometry height="70" width="170" x="210" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="lan-bridge" parent="runtime" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="LanVoiceBridge&lt;br&gt;HTTP /v1/chat, /v1/speak&lt;br&gt;WS /v1/transcribe on :8787" vertex="1">
+          <mxGeometry height="90" width="360" x="30" y="360" as="geometry" />
+        </mxCell>
+
+        <!-- Backend -->
+        <mxCell id="backend" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=light-dark(#000000,#FF9999);" value="Backend" vertex="1">
+          <mxGeometry height="220" width="320" x="800" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="laravel" parent="backend" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="HeySolanaBackend&lt;br&gt;QvacComputeController&lt;br&gt;/sdk/qvac/wallet/*" vertex="1">
+          <mxGeometry height="90" width="260" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="postgres" parent="backend" style="ellipse;shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="Postgres&lt;br&gt;providers, jobs, receipts, withdrawals" vertex="1">
+          <mxGeometry height="95" width="260" x="30" y="145" as="geometry" />
+        </mxCell>
+
+        <!-- Infra -->
+        <mxCell id="infra" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=light-dark(#000000,#FF9999);" value="Infra" vertex="1">
+          <mxGeometry height="220" width="280" x="1160" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="secure-store" parent="infra" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="SecureStore&lt;br&gt;QVAC_HYPERSWARM_SEED per install" vertex="1">
+          <mxGeometry height="70" width="220" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="model-storage" parent="infra" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="Local model cache&lt;br&gt;GGUF weights (~1 GB voice bundle)" vertex="1">
+          <mxGeometry height="70" width="220" x="30" y="130" as="geometry" />
+        </mxCell>
+
+        <!-- External -->
+        <mxCell id="external" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=light-dark(#000000,#CC99FF);" value="External" vertex="1">
+          <mxGeometry height="340" width="300" x="1280" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hyperswarm" parent="external" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="Hyperswarm DHT&lt;br&gt;encrypted provider RPC + delegate" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="lan-wifi" parent="external" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="Local Wi‑Fi LAN&lt;br&gt;same-network HTTP + WebSocket" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="openai-alt" parent="external" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;dashed=1;" value="OpenAI Realtime&lt;br&gt;optional cloud voice backend" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="235" as="geometry" />
+        </mxCell>
+
+        <!-- Host modes legend -->
+        <mxCell id="modes" parent="1" style="swimlane;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;gradientColor=none;strokeColor=default;swimlaneFillColor=none;" value="Host modes" vertex="1">
+          <mxGeometry height="200" width="360" x="400" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="mode-laptop-lan" parent="modes" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="laptop + LAN (recommended)&lt;br&gt;phone mic/speaker, inference on desktop" vertex="1">
+          <mxGeometry height="55" width="300" x="30" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mode-laptop-p2p" parent="modes" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="laptop + P2P&lt;br&gt;delegate loadModel to paired provider key" vertex="1">
+          <mxGeometry height="55" width="300" x="30" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="mode-device" parent="modes" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;" value="device&lt;br&gt;all models run on phone after download" vertex="1">
+          <mxGeometry height="55" width="300" x="30" y="170" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: clients → features -->
+        <mxCell id="e-mobile-ai" edge="1" parent="1" source="mobile-wallet" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="ai-context" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ai-voice" edge="1" parent="1" source="ai-context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="voice-session" value="voiceBackend=qvac">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-ai-brain" edge="1" parent="1" source="ai-context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="brain-provider" value="brain digest / suggestions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-host-lan" edge="1" parent="1" source="voice-host" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="lan-bridge" value="QvacHostService">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Features → libs -->
+        <mxCell id="e-voice-voiceinfra" edge="1" parent="1" source="voice-session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="voiceinfra" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-brain-qvaclib" edge="1" parent="1" source="brain-provider" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="qvac-lib" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p2p-api" edge="1" parent="1" source="qvac-lib" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="compute-api" value="share compute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Libs → runtime -->
+        <mxCell id="e-voiceinfra-sdk" edge="1" parent="1" source="voiceinfra" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="qvac-sdk" value="loadModel + streams">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-voiceinfra-lan" edge="1" parent="1" source="voiceinfra" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="lan-bridge" value="QvacLanVoiceClient">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-brain-sdk" edge="1" parent="1" source="brain-provider" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="qvac-sdk" value="completion + embed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SDK → workers -->
+        <mxCell id="e-sdk-asr" edge="1" parent="1" source="qvac-sdk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="asr" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-sdk-llm" edge="1" parent="1" source="qvac-sdk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="llm" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-sdk-tts" edge="1" parent="1" source="qvac-sdk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="tts" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-sdk-embed" edge="1" parent="1" source="qvac-sdk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="embed" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-lan-workers" edge="1" parent="1" source="lan-bridge" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="asr" value="transcribeStream / completion / TTS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- External connections -->
+        <mxCell id="e-sdk-hyperswarm" edge="1" parent="1" source="qvac-sdk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="hyperswarm" value="startQVACProvider + delegate RPC">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-lan-wifi" edge="1" parent="1" source="lan-bridge" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="lan-wifi" value="0.0.0.0:8787">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-voiceinfra-lanwifi" edge="1" parent="1" source="voiceinfra" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="lan-wifi" value="phone → laptop">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-openai-alt" edge="1" parent="1" source="ai-context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="openai-alt" value="voiceBackend=openai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Backend flow -->
+        <mxCell id="e-api-laravel" edge="1" parent="1" source="compute-api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="laravel" value="POST /sdk/qvac/wallet/*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-laravel-postgres" edge="1" parent="1" source="laravel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="postgres" value="providers + jobs + receipts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-brain-route" edge="1" parent="1" source="brain-provider" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="compute-api" value="/route + /receipts when local LLM unavailable">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-route-hyperswarm" edge="1" parent="1" source="laravel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="hyperswarm" value="returns provider_public_key + job ticket">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Infra -->
+        <mxCell id="e-seed-sdk" edge="1" parent="1" source="qvac-lib" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="secure-store" value="ensureQvacHyperswarmSeed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-models-storage" edge="1" parent="1" source="qvac-sdk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;" target="model-storage" value="GGUF cache">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Voice loop annotation -->
+        <mxCell id="voice-loop-note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;" value="Voice loop: mic PCM → transcribeStream (VAD utterances) → completion(history) → textToSpeech → speaker&lt;br&gt;Mic gated during playback + 300 ms cooldown to prevent self-hearing." vertex="1">
+          <mxGeometry height="50" width="720" x="40" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="p2p-note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;" value="P2P marketplace: providers register + heartbeat → consumers /route → delegate inference → /receipts/submit credits points." vertex="1">
+          <mxGeometry height="40" width="720" x="40" y="940" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

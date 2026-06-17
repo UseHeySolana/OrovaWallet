@@ -26,9 +26,28 @@ import {
   TTS_SAMPLE_RATE,
 } from "./qvacVoiceAudio";
 import { loadQvacVoiceModels } from "./qvacVoiceModels";
+import { formatQvacDelegateError } from "./qvacDelegateErrors";
+import { QvacLanVoiceClient } from "./qvacLanClient";
+import { normalizeLaptopHostAddress } from "./qvacLanUrls";
 import type { VoiceAssistantSession, VoiceSessionCallbacks } from "./types";
 
 const POST_PLAYBACK_COOLDOWN_MS = 300;
+
+async function safeAudioRecordStop(): Promise<void> {
+  try {
+    await Promise.resolve(AudioRecord.stop());
+  } catch {
+    // ignore stop errors when mic is already idle
+  }
+}
+
+async function safeAudioRecordStart(): Promise<void> {
+  try {
+    await Promise.resolve(AudioRecord.start());
+  } catch {
+    // ignore start errors when session is closing
+  }
+}
 
 const VOICE_SYSTEM_SUFFIX =
   " You are a concise, friendly voice assistant. Keep responses under two sentences. " +
@@ -66,6 +85,10 @@ export class QvacVoiceSession implements VoiceAssistantSession {
   } | null = null;
   private utteranceLoopPromise: Promise<void> | null = null;
   private turnInFlight = false;
+  private lanClient: QvacLanVoiceClient | null = null;
+  private lanTranscribe:
+    | ReturnType<QvacLanVoiceClient["connectTranscribe"]>
+    | null = null;
 
   constructor(
     public readonly connection: Connection,
@@ -92,23 +115,39 @@ export class QvacVoiceSession implements VoiceAssistantSession {
         }
       }
 
-      const { qvacHostMode, laptopProviderPublicKey } = AppSettings.getState();
+      const { qvacHostMode, laptopProviderPublicKey, laptopHostAddress } =
+        AppSettings.getState();
       const useLaptopHost = qvacHostMode === "laptop";
+      const lanAddress = normalizeLaptopHostAddress(laptopHostAddress);
+      const useLanBridge = useLaptopHost && !!lanAddress;
 
-      if (useLaptopHost) {
+      if (useLanBridge) {
+        AppSettings.getState().setToast(
+          "Connecting to your laptop on the local network…",
+          "info"
+        );
+        this.lanClient = new QvacLanVoiceClient(lanAddress);
+        await this.lanClient.checkHealth();
+      } else if (useLaptopHost) {
+        AppSettings.getState().setToast(
+          "Connecting over P2P… add your laptop IP in AI Settings if this fails.",
+          "info"
+        );
         await ensureQvacHyperswarmSeed();
       } else if (!this.providerStarted) {
         await startQVACProvider();
         this.providerStarted = true;
       }
 
-      const models = await loadQvacVoiceModels({
-        hostMode: qvacHostMode,
-        laptopProviderPublicKey,
-      });
-      this.asrModelId = models.asrModelId;
-      this.llmModelId = models.llmModelId;
-      this.ttsModelId = models.ttsModelId;
+      if (!useLanBridge) {
+        const models = await loadQvacVoiceModels({
+          hostMode: qvacHostMode,
+          laptopProviderPublicKey,
+        });
+        this.asrModelId = models.asrModelId;
+        this.llmModelId = models.llmModelId;
+        this.ttsModelId = models.ttsModelId;
+      }
 
       this.conversationId = new Date().getTime().toString();
       this.callbacks.setConversationId(this.conversationId);
@@ -118,11 +157,20 @@ export class QvacVoiceSession implements VoiceAssistantSession {
       });
 
       if (this.useVoiceInput) {
-        await this.startMicPipeline();
+        if (useLanBridge) {
+          await this.startLanMicPipeline();
+        } else {
+          await this.startMicPipeline();
+        }
       }
 
       this.active = true;
       this.callbacks.setMode("human");
+    } catch (error) {
+      console.error("[QvacVoiceSession] startSession failed:", error);
+      AppSettings.getState().setToast(formatQvacDelegateError(error), "error");
+      this.callbacks.setMode("loading");
+      throw error;
     } finally {
       AppSettings.getState().setLoading(false);
     }
@@ -148,7 +196,7 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     this.shuttingDown = true;
     this.active = false;
 
-    await AudioRecord.stop().catch(() => undefined);
+    await safeAudioRecordStop();
 
     try {
       this.transcribeSession?.end();
@@ -156,6 +204,9 @@ export class QvacVoiceSession implements VoiceAssistantSession {
       // session may already be closed
     }
     this.transcribeSession = null;
+    this.lanTranscribe?.close();
+    this.lanTranscribe = null;
+    this.lanClient = null;
 
     const ids = [this.ttsModelId, this.llmModelId, this.asrModelId];
     this.ttsModelId = null;
@@ -181,6 +232,44 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     }
 
     this.callbacks.setMode("loading");
+  }
+
+  private async startLanMicPipeline(): Promise<void> {
+    if (!this.lanClient) {
+      throw new Error("Laptop voice client is not configured");
+    }
+
+    this.lanTranscribe = this.lanClient.connectTranscribe(
+      (rawText) => {
+        if (this.shuttingDown || !this.active || this.turnInFlight) return;
+        if (!isMeaningfulTranscript(rawText)) return;
+        void this.handleTurn(rawText.trim(), "voice");
+      },
+      (message) => {
+        console.warn("[QvacVoiceSession] LAN transcribe:", message);
+      }
+    );
+
+    if (!audioRecordInitialized) {
+      AudioRecord.init({
+        sampleRate: MIC_SAMPLE_RATE,
+        channels: 1,
+        bitsPerSample: 16,
+        wavFile: "qvac_voice_assistant.wav",
+      });
+      AudioRecord.on("data", (data: string) => {
+        if (!this.active || this.shuttingDown || this.isSpeaking) return;
+        if (!this.lanTranscribe) return;
+        try {
+          this.lanTranscribe.sendAudio(int16Base64ToF32Buffer(data));
+        } catch {
+          // ignore write errors when stream is closing
+        }
+      });
+      audioRecordInitialized = true;
+    }
+
+    await AudioRecord.start();
   }
 
   private async startMicPipeline(): Promise<void> {
@@ -259,7 +348,10 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     userText: string,
     source: "voice" | "chat"
   ): Promise<void> {
-    if (!userText || !this.llmModelId || !this.ttsModelId || !this.conversationId) {
+    if (!userText || !this.conversationId) {
+      return;
+    }
+    if (!this.lanClient && (!this.llmModelId || !this.ttsModelId)) {
       return;
     }
     if (this.turnInFlight) return;
@@ -293,61 +385,88 @@ export class QvacVoiceSession implements VoiceAssistantSession {
       source: source === "chat" ? "chat" : "voice",
     });
 
-    try {
-      const run = completion({
-        modelId: this.llmModelId,
-        history: this.history,
-        stream: true,
-      });
-
-      let assistantText = "";
-      for await (const event of run.events) {
-        if (event.type === "contentDelta") {
-          assistantText += event.text;
-          Convo.getState().updateMessage({
-            messageId: assistantMessageId,
-            content: assistantText,
-          });
-        }
-      }
-
-      const final = await run.final;
-      assistantText = (final.contentText || assistantText).trim();
-      this.history.push({ role: "assistant", content: assistantText });
-
+    const messageSource = source === "chat" ? "chat" : "voice";
+    const updateAssistantMessage = (text: string) => {
       Convo.getState().updateMessage({
         messageId: assistantMessageId,
-        content: assistantText,
+        content: { content: text },
+        source: messageSource,
       });
+    };
+
+    try {
+      let assistantText = "";
+
+      if (this.lanClient) {
+        assistantText = await this.lanClient.complete(this.history);
+        updateAssistantMessage(assistantText);
+      } else {
+        const run = completion({
+          modelId: this.llmModelId!,
+          history: this.history,
+          stream: true,
+        });
+
+        for await (const event of run.events) {
+          if (event.type === "contentDelta") {
+            assistantText += event.text;
+            updateAssistantMessage(assistantText);
+          }
+        }
+
+        const final = await run.final;
+        assistantText = (final.contentText || assistantText).trim();
+      }
+
+      this.history.push({ role: "assistant", content: assistantText });
+
+      updateAssistantMessage(assistantText);
 
       if (assistantText.length > 0) {
         this.callbacks.setMode("aispeaking");
 
-        const ttsResult = textToSpeech({
-          modelId: this.ttsModelId,
-          text: assistantText,
-          inputType: "text",
-          stream: false,
-        });
+        const shouldResumeMic =
+          this.useVoiceInput && this.active && !this.shuttingDown;
+        if (shouldResumeMic) {
+          await safeAudioRecordStop();
+        }
 
-        const samples = await ttsResult.buffer;
-        const audioData = int16ArrayToBuffer(samples);
-        const wavBuffer = Buffer.concat([
-          createWavHeader(audioData.length, TTS_SAMPLE_RATE),
-          audioData,
-        ]);
+        try {
+          let wavBuffer: Buffer;
+          if (this.lanClient) {
+            wavBuffer = await this.lanClient.speak(assistantText);
+          } else {
+            const ttsResult = textToSpeech({
+              modelId: this.ttsModelId!,
+              text: assistantText,
+              inputType: "text",
+              stream: false,
+            });
 
-        await playWavBuffer(wavBuffer);
-        await sleep(POST_PLAYBACK_COOLDOWN_MS);
+            const samples = await ttsResult.buffer;
+            if (!samples?.length) {
+              throw new Error("Speech synthesis produced no audio");
+            }
+            const audioData = int16ArrayToBuffer(samples);
+            wavBuffer = Buffer.concat([
+              createWavHeader(audioData.length, TTS_SAMPLE_RATE),
+              audioData,
+            ]);
+          }
+
+          await playWavBuffer(wavBuffer);
+          await sleep(POST_PLAYBACK_COOLDOWN_MS);
+        } finally {
+          if (shouldResumeMic) {
+            await safeAudioRecordStart();
+          }
+        }
       }
     } catch (error) {
       console.warn("[QvacVoiceSession] turn failed:", error);
       const message =
         error instanceof Error ? error.message : "Voice assistant turn failed";
-      Convo.getState().updateMessage({
-        messageId: assistantMessageId,
-        content: message,
-      });
+      updateAssistantMessage(message);
     } finally {
       this.isSpeaking = false;
       this.turnInFlight = false;

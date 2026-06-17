@@ -24,7 +24,7 @@ export const qvacHostModeOptions: QvacHostModeOption[] = [
     title: "My laptop (recommended)",
     badge: "Best for most phones",
     summary:
-      "Your phone captures mic audio and plays replies, but Whisper, Llama, and TTS run on a computer you control. No heavy model load on the phone.",
+      "Your phone captures mic audio and plays replies, but Whisper, Llama, and TTS run on a computer you control. Pair over your local Wi‑Fi address shown in Voice Host.",
   },
   {
     id: "device",
@@ -65,7 +65,7 @@ export const voiceBackendOptions: VoiceBackendOption[] = [
       "You stay in control of what leaves your phone",
     ],
     cons: [
-      "Laptop mode needs your computer running the host script and on the same network",
+      "Laptop mode needs HeySolana Voice Host running on your computer and on the same network",
       "On-phone mode downloads about 1 GB and uses significant RAM",
       "Wallet tool calls are limited compared to cloud mode today",
     ],

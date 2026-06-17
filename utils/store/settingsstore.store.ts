@@ -27,7 +27,10 @@ interface Settings {
     /** Run QVAC voice models on this phone or delegate to a laptop provider. */
     qvacHostMode: QvacHostMode;
     setQvacHostMode: (mode: QvacHostMode) => void;
-    /** Hyperswarm public key from `npm run qvac:laptop-host` on your computer. */
+    /** Same-Wi‑Fi address from HeySolana Voice Host, e.g. 192.168.1.10:8787 */
+    laptopHostAddress: string;
+    setLaptopHostAddress: (address: string) => void;
+    /** Legacy P2P provider key (optional fallback when LAN address is unset). */
     laptopProviderPublicKey: string;
     setLaptopProviderPublicKey: (key: string) => void;
     /** User completed the public vs private AI onboarding screen. */
@@ -106,6 +109,9 @@ const AppSettings = create(
             laptopProviderPublicKey: "",
             setLaptopProviderPublicKey: (key: string) =>
                 set({ laptopProviderPublicKey: key.trim() }),
+            laptopHostAddress: "",
+            setLaptopHostAddress: (address: string) =>
+                set({ laptopHostAddress: address.trim() }),
             voiceEngineOnboarded: false,
             markVoiceEngineOnboarded: () => set({ voiceEngineOnboarded: true }),
             aiName: "Orova",
@@ -155,6 +161,7 @@ const AppSettings = create(
                         voiceBackend: defaultVoiceBackend(),
                         qvacHostMode: "laptop",
                         laptopProviderPublicKey: "",
+                        laptopHostAddress: "",
                         voiceEngineOnboarded: false,
                         network: "https://mainnet.helius-rpc.com/?api-key=",
                         alreadyOpened: false,
