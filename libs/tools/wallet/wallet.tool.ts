@@ -7,8 +7,9 @@ import { convertSpeech } from "@/utils/functions/extrafunctions";
 import UserItem from "@/utils/store/userstore.store";
 import { completeConversation, resolveMetasForMints } from "@/utils/functions";
 import { getBalance } from "@/utils/wallet";
-import { getTokenBalance } from "@/libs/tools/transfer/transfers";
 import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
+
+const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 /**
  * Voice/chat tool: balances read directly from Solana RPC (no Zustand / DAS cache).
@@ -50,21 +51,14 @@ export class WalletBalanceTool {
         const metaByMint = await resolveMetasForMints(mints);
 
         for (const acc of accounts) {
-          if (acc.balance <= 0) continue;
+          if (acc.mint === SOL_MINT || acc.balance <= 0) continue;
           const meta = metaByMint.get(acc.mint);
           const label = meta?.symbol ?? acc.symbol;
           const decimals = meta?.decimals ?? acc.decimals;
-          const bal = await getTokenBalance(
-            owner.toBase58(),
-            acc.mint,
-            decimals,
-            conn
+          const bal = acc.balance;
+          parts.push(
+            `${bal < 1 ? bal.toFixed(Math.min(decimals, 6)) : bal.toFixed(2)} ${label}`
           );
-          if (bal > 0) {
-            parts.push(
-              `${bal < 1 ? bal.toFixed(Math.min(decimals, 6)) : bal.toFixed(2)} ${label}`
-            );
-          }
         }
 
         if (messageId !== null) completeConversation(messageId, "complete");

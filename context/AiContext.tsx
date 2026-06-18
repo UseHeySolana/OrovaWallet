@@ -174,37 +174,38 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 voiceBackend
             );
             setSessionManager(manager);
-            const tokenDetails = userWallet?.tokenAccounts.map((token: any) => ({
-                name: token.name,
-                image: token.image,
-                symbol: token.symbol,
-                balance:
-                    Number(token.balance) > 0
-                        ? Number(token.balance).toFixed(2)
-                        : token.balance,
-                decimals: token.decimals,
-                usdc_price: token.usdc_price,
-                mint: token.mint,
-            }));
+            const tokenDetails = (userWallet?.tokenAccounts ?? [])
+                .map((token: any) => {
+                    const balanceNum = Number(token.balance);
+                    const priceNum = Number(token.usdc_price);
+                    const usdValue =
+                        Number.isFinite(balanceNum) && Number.isFinite(priceNum)
+                            ? balanceNum * priceNum
+                            : undefined;
+                    return {
+                        symbol: token.symbol,
+                        balance:
+                            Number.isFinite(balanceNum) ? Number(balanceNum.toFixed(4)) : token.balance,
+                        usd_value:
+                            usdValue !== undefined && Number.isFinite(usdValue)
+                                ? Number(usdValue.toFixed(2))
+                                : undefined,
+                    };
+                })
+                .filter((t: any) => t.symbol)
+                .sort((a: any, b: any) => (b.usd_value ?? 0) - (a.usd_value ?? 0))
+                .slice(0, 12);
             if (user) {
-                const newPrompt = getAssistantPromptBase() + "" +
-                    `this is the list of tokens in the user wallet ${JSON.stringify(
-                        tokenDetails,
-                        null,
-                        2
-                    )} ` +
-                    `this is the user details ${"UserName: " +
-                    user?.username +
-                    "," +
-                    "Total Balance in SOL : " + "\n" +
-                    userWallet?.balance +
-                    ", Total Balance in USD/Dollars:" +
-                    userWallet?.totalUsdBalance + "\n" +
-                    ", Sol token balance alone " + "\n" +
-                    userWallet?.solBalance
-                    }
-                    `
-                    ;
+                const walletSummary =
+                    `\n\nUser context (keep short; do not repeat unless asked):\n` +
+                    `- Username: ${user?.username ?? "unknown"}\n` +
+                    `- Total: ~${userWallet?.totalUsdBalance ?? "?"} USD\n` +
+                    `- SOL: ~${userWallet?.solBalance ?? "?"} SOL\n` +
+                    `- Top tokens: ${tokenDetails
+                        .map((t: any) => `${t.symbol}:${t.balance}${t.usd_value !== undefined ? `(~$${t.usd_value})` : ""}`)
+                        .join(", ")}\n`;
+
+                const newPrompt = getAssistantPromptBase() + walletSummary;
                 setPrompt(newPrompt)
             } else {
                 const newPrompt = 'You are a text-to-speech assistant. Any text I provide should be converted into speech and played back. Always respond in English unless explicitly instructed otherwise.';
@@ -274,6 +275,12 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         startSessionPromiseRef.current = startPromise;
         return startPromise;
     }, [inputMode, sessionManager, prompt]);
+
+    useEffect(() => {
+        if (!isSessionActive || !sessionManager?.setVoiceInputEnabled) return;
+        const wantAudio = !VOICE_VERIFICATION_ENABLED && inputMode === "audio";
+        void sessionManager.setVoiceInputEnabled(wantAudio);
+    }, [inputMode, isSessionActive, sessionManager]);
 
     const stopSession = useCallback(() => {
         setLoading(true);

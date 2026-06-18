@@ -28,6 +28,8 @@ export interface VoiceAssistantSession {
   isChatInputSession(): boolean;
 
   sendTextMessage(message: string): void;
+  /** Start or stop the mic/transcribe pipeline on an active session (e.g. Audio ↔ Chat toggle). */
+  setVoiceInputEnabled?(enabled: boolean): Promise<void>;
   sendVerifiedAudioChunk?(audioBase64: string): void;
 
   toggleSpeaker?(speakerOn: boolean): void;

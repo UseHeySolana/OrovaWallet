@@ -19,6 +19,65 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Strip markdown / unsupported chars before Supertonic TTS (e.g. backtick U+0060). */
+export function sanitizeTextForTts(text: string): string {
+  let spoken = text.trim();
+  if (!spoken) return spoken;
+
+  spoken = spoken.replace(/```[\s\S]*?```/g, " ");
+  spoken = spoken.split("`").join("");
+  spoken = spoken.split("\u0060").join("");
+  spoken = spoken.replace(/\*\*([^*]+)\*\*/g, "$1");
+  spoken = spoken.replace(/\*([^*]+)\*/g, "$1");
+  spoken = spoken.replace(/__([^_]+)__/g, "$1");
+  spoken = spoken.replace(/_([^_]+)_/g, "$1");
+  spoken = spoken.replace(/^#{1,6}\s+/gm, "");
+  spoken = spoken.replace(/^[\s]*[-*•]\s+/gm, "");
+  spoken = spoken.replace(/^\s*\d+\.\s+/gm, "");
+  spoken = spoken.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  spoken = spoken.replace(/[\u2018\u2019]/g, "'");
+  spoken = spoken.replace(/[\u201C\u201D]/g, '"');
+  spoken = spoken.replace(/[\u2013\u2014]/g, ", ");
+
+  const allowedPunct = " .,!?'-$%/+:;()";
+  let cleaned = "";
+  for (let i = 0; i < spoken.length; i += 1) {
+    const ch = spoken[i]!;
+    const code = ch.charCodeAt(0);
+    if (code === 0x60) continue;
+    if (code >= 0x30 && code <= 0x39) {
+      cleaned += ch;
+      continue;
+    }
+    if (code >= 0x41 && code <= 0x5a) {
+      cleaned += ch;
+      continue;
+    }
+    if (code >= 0x61 && code <= 0x7a) {
+      cleaned += ch;
+      continue;
+    }
+    if (code >= 0xc0 && code <= 0x024f) {
+      cleaned += ch;
+      continue;
+    }
+    if (allowedPunct.includes(ch)) {
+      cleaned += ch;
+      continue;
+    }
+    if (code === 0x20 || code === 0x09 || code === 0x0a || code === 0x0d) {
+      cleaned += " ";
+    }
+  }
+
+  return cleaned.replace(/\s+/g, " ").trim();
+}
+
+/** Last-resort scrub immediately before Supertonic synthesis. */
+export function scrubForSupertonic(text: string): string {
+  return sanitizeTextForTts(text).split("`").join("").split("\u0060").join("");
+}
+
 /** Convert react-native-audio-record base64 int16 PCM to f32le for QVAC Whisper. */
 export function int16Base64ToF32Buffer(base64: string): Buffer {
   const int16Buf = Buffer.from(base64, "base64");

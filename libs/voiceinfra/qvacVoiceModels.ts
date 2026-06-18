@@ -1,7 +1,9 @@
 import {
   heartbeat,
   loadModel,
+  EMBEDDINGGEMMA_300M_Q4_0,
   LLAMA_3_2_1B_INST_Q4_0,
+  QWEN3_600M_INST_Q4,
   TTS_EN_SUPERTONIC_Q8_0,
   VAD_SILERO_5_1_2,
   WHISPER_TINY,
@@ -14,17 +16,22 @@ import type { QvacHostMode } from "./types";
 const LAPTOP_PREFLIGHT_TIMEOUT_MS = 45_000;
 
 export const QVAC_VOICE_VAD_PARAMS = {
-  threshold: 0.6,
-  min_speech_duration_ms: 300,
-  min_silence_duration_ms: 700,
+  // Lower threshold so normal speaking volume triggers VAD reliably.
+  threshold: 0.4,
+  min_speech_duration_ms: 200,
+  min_silence_duration_ms: 600,
   max_speech_duration_s: 15.0,
   speech_pad_ms: 200,
 };
 
 export type QvacVoiceModelIds = {
   asrModelId: string;
-  llmModelId: string;
+  /** Llama — natural chat / voice replies (no tool calling). */
+  chatModelId: string;
+  /** Qwen — wallet tool selection and execution. */
+  toolModelId: string;
   ttsModelId: string;
+  embedModelId: string;
 };
 
 function buildDelegate(providerPublicKey: string) {
@@ -36,8 +43,8 @@ function buildDelegate(providerPublicKey: string) {
 }
 
 /**
- * Load Whisper + VAD, LLM, and TTS for the voice assistant loop.
- * On laptop mode, inference runs on the remote provider — no local model weights on phone.
+ * Load Whisper + VAD, Llama (chat), Qwen (tools), embeddings, and TTS.
+ * On laptop mode, inference runs on the remote provider.
  */
 export async function loadQvacVoiceModels(input: {
   hostMode: QvacHostMode;
@@ -86,13 +93,35 @@ export async function loadQvacVoiceModels(input: {
     },
   });
 
-  const llmModelId = await loadModel({
+  const chatModelId = await loadModel({
     modelSrc: LLAMA_3_2_1B_INST_Q4_0,
     modelType: "llamacpp-completion",
     modelConfig: { ctx_size: 4096 },
     delegate,
     onProgress: (progress) => {
-      input.onProgress?.("Language model", progress.percentage);
+      input.onProgress?.("Chat language model (Llama)", progress.percentage);
+    },
+  });
+
+  const toolModelId = await loadModel({
+    modelSrc: QWEN3_600M_INST_Q4,
+    modelType: "llamacpp-completion",
+    modelConfig: {
+      ctx_size: 4096,
+      tools: true,
+    },
+    delegate,
+    onProgress: (progress) => {
+      input.onProgress?.("Tool language model (Qwen)", progress.percentage);
+    },
+  });
+
+  const embedModelId = await loadModel({
+    modelSrc: EMBEDDINGGEMMA_300M_Q4_0,
+    modelType: "llamacpp-embedding",
+    delegate,
+    onProgress: (progress) => {
+      input.onProgress?.("Embedding model", progress.percentage);
     },
   });
 
@@ -112,5 +141,5 @@ export async function loadQvacVoiceModels(input: {
     },
   });
 
-  return { asrModelId, llmModelId, ttsModelId };
+  return { asrModelId, chatModelId, toolModelId, ttsModelId, embedModelId };
 }

@@ -10,7 +10,9 @@
 import {
   loadModel,
   startQVACProvider,
+  EMBEDDINGGEMMA_300M_Q4_0,
   LLAMA_3_2_1B_INST_Q4_0,
+  QWEN3_600M_INST_Q4,
   TTS_EN_SUPERTONIC_Q8_0,
   VAD_SILERO_5_1_2,
   WHISPER_TINY,
@@ -35,7 +37,7 @@ async function main() {
   const provider = await startQVACProvider();
   console.log(`Provider public key:\n  ${provider.publicKey}\n`);
   console.log("Copy the key above into HeySolana → AI Settings → Laptop provider key.\n");
-  console.log("Loading voice models (first run downloads ~1 GB)...\n");
+  console.log("Loading voice models (first run downloads ~1.5 GB)...\n");
 
   await loadModel({
     modelSrc: WHISPER_TINY,
@@ -59,7 +61,20 @@ async function main() {
     modelSrc: LLAMA_3_2_1B_INST_Q4_0,
     modelType: "llamacpp-completion",
     modelConfig: { ctx_size: 4096 },
-    onProgress: (p) => logProgress("Llama", p),
+    onProgress: (p) => logProgress("Llama chat model", p),
+  });
+
+  await loadModel({
+    modelSrc: QWEN3_600M_INST_Q4,
+    modelType: "llamacpp-completion",
+    modelConfig: { ctx_size: 4096, tools: true },
+    onProgress: (p) => logProgress("Qwen tool model", p),
+  });
+
+  await loadModel({
+    modelSrc: EMBEDDINGGEMMA_300M_Q4_0,
+    modelType: "llamacpp-embedding",
+    onProgress: (p) => logProgress("Embedding model", p),
   });
 
   await loadModel({

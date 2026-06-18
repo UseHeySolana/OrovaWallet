@@ -113,9 +113,10 @@ function formatChatTranscript(messages: MessageType[], aiName: string, username?
         ? new Date(message.timestamp).toLocaleString()
         : "Unknown time";
       const content = message.content?.trim() || "[empty message]";
-      const toolSummary = message.tool
-        ? `\nTool: ${message.tool.owner ? `${message.tool.owner}.` : ""}${message.tool.action} (${message.tool.status})`
-        : "";
+      const toolSummary =
+        message.tool?.action && message.tool?.status
+          ? `\nTool: ${message.tool.owner ? `${message.tool.owner}.` : ""}${message.tool.action} (${message.tool.status})`
+          : "";
 
       return `[${timestamp}] ${speaker}: ${content}${toolSummary}`;
     })

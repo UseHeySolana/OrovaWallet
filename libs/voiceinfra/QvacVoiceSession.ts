@@ -4,17 +4,29 @@ import AudioRecord from "react-native-audio-record";
 import { Audio } from "expo-av";
 import { v4 as uuidv4 } from "uuid";
 import {
-  completion,
   startQVACProvider,
   textToSpeech,
   transcribeStream,
   unloadModel,
 } from "@qvac/sdk";
 
+import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
 import { ensureQvacHyperswarmSeed } from "@/libs/qvac/qvacSeed";
 import Convo from "@/utils/store/conversation.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { summarizeConversation } from "@/utils/functions/extrafunctions";
+import tracker from "@/utils/tracker";
+import type { FunctionParams } from "@/utils/types/types";
+import {
+  cleanAssistantReply,
+  completeChatTurn,
+  completeVoiceTurn,
+  formatQvacTools,
+  selectRelevantTools,
+  shouldUseToolModel,
+  type QvacChatMessage,
+  type QvacToolCall,
+} from "./qvacVoiceCompletion";
 import {
   createWavHeader,
   int16ArrayToBuffer,
@@ -22,6 +34,7 @@ import {
   isMeaningfulTranscript,
   MIC_SAMPLE_RATE,
   playWavBuffer,
+  scrubForSupertonic,
   sleep,
   TTS_SAMPLE_RATE,
 } from "./qvacVoiceAudio";
@@ -50,15 +63,12 @@ async function safeAudioRecordStart(): Promise<void> {
 }
 
 const VOICE_SYSTEM_SUFFIX =
-  " You are a concise, friendly voice assistant. Keep responses under two sentences. " +
-  "Never use markdown, lists, or code blocks — your output will be spoken aloud.";
-
-type ChatRole = "system" | "user" | "assistant";
+  " Reply with only the short spoken answer — never output thinking tags, reasoning, or repeat these instructions.";
 
 let audioRecordInitialized = false;
 
 /**
- * QVAC voice loop: Whisper+VAD → Llama → Supertonic TTS.
+ * QVAC voice loop: Whisper → Llama (chat) or Qwen (tools) → Supertonic TTS.
  * Models can run on-device or delegate to a laptop provider (see qvacHostMode).
  */
 export class QvacVoiceSession implements VoiceAssistantSession {
@@ -71,11 +81,14 @@ export class QvacVoiceSession implements VoiceAssistantSession {
   private providerStarted = false;
 
   private asrModelId: string | null = null;
-  private llmModelId: string | null = null;
+  private chatModelId: string | null = null;
+  private toolModelId: string | null = null;
   private ttsModelId: string | null = null;
+  private embedModelId: string | null = null;
+  private availableFunctions: FunctionParams[] = [];
 
   private conversationId: string | null = null;
-  private history: Array<{ role: ChatRole; content: string }> = [];
+  private history: QvacChatMessage[] = [];
   private systemInstructions = "";
 
   private transcribeSession: {
@@ -102,6 +115,7 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     this.useVoiceInput = options?.useAudio !== false;
     this.systemInstructions = (instructions ?? "") + VOICE_SYSTEM_SUFFIX;
     this.history = [{ role: "system", content: this.systemInstructions }];
+    this.availableFunctions = toolRouter(this);
     this.shuttingDown = false;
 
     AppSettings.getState().setLoading(true);
@@ -145,8 +159,10 @@ export class QvacVoiceSession implements VoiceAssistantSession {
           laptopProviderPublicKey,
         });
         this.asrModelId = models.asrModelId;
-        this.llmModelId = models.llmModelId;
+        this.chatModelId = models.chatModelId;
+        this.toolModelId = models.toolModelId;
         this.ttsModelId = models.ttsModelId;
+        this.embedModelId = models.embedModelId;
       }
 
       this.conversationId = new Date().getTime().toString();
@@ -188,6 +204,23 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     void this.handleTurn(message.trim(), "chat");
   }
 
+  async setVoiceInputEnabled(enabled: boolean): Promise<void> {
+    if (this.useVoiceInput === enabled) return;
+    this.useVoiceInput = enabled;
+    if (!this.active || this.shuttingDown) return;
+
+    if (!enabled) {
+      await this.stopMicPipeline();
+      return;
+    }
+
+    if (this.lanClient) {
+      await this.startLanMicPipeline();
+    } else if (this.asrModelId) {
+      await this.startMicPipeline();
+    }
+  }
+
   sendVerifiedAudioChunk(audioBase64: string): void {
     void this.transcribeVerifiedChunk(audioBase64);
   }
@@ -208,10 +241,19 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     this.lanTranscribe = null;
     this.lanClient = null;
 
-    const ids = [this.ttsModelId, this.llmModelId, this.asrModelId];
+    const ids = [
+      this.ttsModelId,
+      this.embedModelId,
+      this.toolModelId,
+      this.chatModelId,
+      this.asrModelId,
+    ];
     this.ttsModelId = null;
-    this.llmModelId = null;
+    this.embedModelId = null;
+    this.toolModelId = null;
+    this.chatModelId = null;
     this.asrModelId = null;
+    this.availableFunctions = [];
 
     for (const modelId of ids) {
       if (!modelId) continue;
@@ -234,9 +276,27 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     this.callbacks.setMode("loading");
   }
 
+  private async stopMicPipeline(): Promise<void> {
+    await safeAudioRecordStop();
+
+    try {
+      this.transcribeSession?.end();
+    } catch {
+      // session may already be closed
+    }
+    this.transcribeSession = null;
+    this.lanTranscribe?.close();
+    this.lanTranscribe = null;
+  }
+
   private async startLanMicPipeline(): Promise<void> {
     if (!this.lanClient) {
       throw new Error("Laptop voice client is not configured");
+    }
+
+    if (this.lanTranscribe) {
+      await safeAudioRecordStart();
+      return;
     }
 
     this.lanTranscribe = this.lanClient.connectTranscribe(
@@ -275,6 +335,11 @@ export class QvacVoiceSession implements VoiceAssistantSession {
   private async startMicPipeline(): Promise<void> {
     if (!this.asrModelId) {
       throw new Error("ASR model not loaded");
+    }
+
+    if (this.transcribeSession) {
+      await safeAudioRecordStart();
+      return;
     }
 
     this.transcribeSession = await transcribeStream({ modelId: this.asrModelId });
@@ -344,6 +409,107 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     }
   }
 
+  private async executeToolCall(
+    call: QvacToolCall,
+    messageSource: string
+  ): Promise<string> {
+    const functionDef = this.availableFunctions.find((fn) => fn.name === call.name);
+    const callId = uuidv4();
+
+    if (this.conversationId) {
+      Convo.getState().setMessages({
+        id: callId,
+        role: "tool",
+        content: "",
+        timestamp: Date.now(),
+        conversation_id: this.conversationId,
+        tool: {
+          owner: functionDef?.owner,
+          status: "pending",
+          action: call.name,
+          arguments: call.arguments,
+        },
+        source: messageSource,
+      });
+      this.functionMessageId = callId;
+    }
+
+    if (!functionDef?.handler) {
+      const errorText = JSON.stringify({ error: `Unknown tool: ${call.name}` });
+      if (this.conversationId && this.functionMessageId) {
+        Convo.getState().updateMessage({
+          messageId: this.functionMessageId,
+          source: messageSource,
+          toolUpdates: {
+            status: "failed",
+            action: call.name,
+            owner: functionDef?.owner,
+          },
+        });
+      }
+      return errorText;
+    }
+
+    try {
+      const result = await functionDef.handler(call.arguments);
+      tracker.tool_calls(call.name, 1);
+      if (this.conversationId && this.functionMessageId) {
+        Convo.getState().updateMessage({
+          messageId: this.functionMessageId,
+          source: messageSource,
+          toolUpdates: {
+            status: "complete",
+            action: call.name,
+            owner: functionDef.owner,
+          },
+        });
+      }
+      return typeof result === "string" ? result : JSON.stringify(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Tool execution failed";
+      if (this.conversationId && this.functionMessageId) {
+        Convo.getState().updateMessage({
+          messageId: this.functionMessageId,
+          source: messageSource,
+          toolUpdates: {
+            status: "failed",
+            action: call.name,
+            owner: functionDef.owner,
+          },
+        });
+      }
+      return JSON.stringify({ error: message });
+    }
+  }
+
+  private async resolveToolsForTurn(userText: string): Promise<FunctionParams[]> {
+    if (this.availableFunctions.length <= 12) {
+      return this.availableFunctions;
+    }
+
+    if (this.lanClient) {
+      try {
+        return await selectRelevantTools({
+          userText,
+          tools: this.availableFunctions,
+          embedTextFn: (text) => this.lanClient!.embedText(text),
+        });
+      } catch {
+        return this.availableFunctions.slice(0, 12);
+      }
+    }
+
+    if (!this.embedModelId) {
+      return this.availableFunctions.slice(0, 12);
+    }
+
+    return selectRelevantTools({
+      embedModelId: this.embedModelId,
+      userText,
+      tools: this.availableFunctions,
+    });
+  }
+
   private async handleTurn(
     userText: string,
     source: "voice" | "chat"
@@ -351,7 +517,7 @@ export class QvacVoiceSession implements VoiceAssistantSession {
     if (!userText || !this.conversationId) {
       return;
     }
-    if (!this.lanClient && (!this.llmModelId || !this.ttsModelId)) {
+    if (!this.lanClient && (!this.chatModelId || !this.toolModelId || !this.ttsModelId)) {
       return;
     }
     if (this.turnInFlight) return;
@@ -396,26 +562,48 @@ export class QvacVoiceSession implements VoiceAssistantSession {
 
     try {
       let assistantText = "";
+      const useTools = await shouldUseToolModel({
+        userText,
+        tools: this.availableFunctions,
+        embedModelId: this.embedModelId ?? undefined,
+        embedTextFn: this.lanClient
+          ? (text) => this.lanClient!.embedText(text)
+          : undefined,
+      });
+      const relevantTools = useTools
+        ? await this.resolveToolsForTurn(userText)
+        : [];
+      const qvacTools = formatQvacTools(relevantTools);
 
       if (this.lanClient) {
-        assistantText = await this.lanClient.complete(this.history);
-        updateAssistantMessage(assistantText);
-      } else {
-        const run = completion({
-          modelId: this.llmModelId!,
+        assistantText = cleanAssistantReply(
+          await this.lanClient.completeTurn({
+            history: this.history,
+            useTools,
+            tools: qvacTools,
+            executeToolCall: (call) => this.executeToolCall(call, messageSource),
+            onContentDelta: updateAssistantMessage,
+          })
+        );
+      } else if (useTools) {
+        const result = await completeVoiceTurn({
+          modelId: this.toolModelId!,
           history: this.history,
-          stream: true,
+          tools: qvacTools,
+          onContentDelta: updateAssistantMessage,
+          executeToolCall: (call) => this.executeToolCall(call, messageSource),
         });
+        assistantText = cleanAssistantReply(result.contentText);
+      } else {
+        assistantText = await completeChatTurn({
+          modelId: this.chatModelId!,
+          history: this.history,
+          onContentDelta: updateAssistantMessage,
+        });
+      }
 
-        for await (const event of run.events) {
-          if (event.type === "contentDelta") {
-            assistantText += event.text;
-            updateAssistantMessage(assistantText);
-          }
-        }
-
-        const final = await run.final;
-        assistantText = (final.contentText || assistantText).trim();
+      if (!assistantText) {
+        assistantText = "Hey, how can I help you today?";
       }
 
       this.history.push({ role: "assistant", content: assistantText });
@@ -424,6 +612,11 @@ export class QvacVoiceSession implements VoiceAssistantSession {
 
       if (assistantText.length > 0) {
         this.callbacks.setMode("aispeaking");
+
+        let spokenText = scrubForSupertonic(assistantText);
+        if (!spokenText) {
+          throw new Error("Nothing to speak after removing unsupported characters");
+        }
 
         const shouldResumeMic =
           this.useVoiceInput && this.active && !this.shuttingDown;
@@ -434,11 +627,11 @@ export class QvacVoiceSession implements VoiceAssistantSession {
         try {
           let wavBuffer: Buffer;
           if (this.lanClient) {
-            wavBuffer = await this.lanClient.speak(assistantText);
+            wavBuffer = await this.lanClient.speak(spokenText);
           } else {
             const ttsResult = textToSpeech({
               modelId: this.ttsModelId!,
-              text: assistantText,
+              text: scrubForSupertonic(spokenText),
               inputType: "text",
               stream: false,
             });

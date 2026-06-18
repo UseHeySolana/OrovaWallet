@@ -264,14 +264,15 @@ export class QvacBrainProvider {
     await this.ensureStarted();
     if (!this.embedModelId) return null;
 
-    const res = await embed({
-      modelId: this.embedModelId,
-      input: text,
-    });
-
-    // @ts-ignore
-    const vec = res?.embeddings?.[0];
-    return Array.isArray(vec) ? vec : null;
+    try {
+      const res = await embed({
+        modelId: this.embedModelId,
+        text,
+      });
+      return Array.isArray(res.embedding) ? res.embedding : null;
+    } catch {
+      return null;
+    }
   }
 }
 
