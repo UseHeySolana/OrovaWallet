@@ -15,7 +15,7 @@ import type { QvacHostMode } from "./types";
 /** First delegated connect can be slow while Hyperswarm bootstraps. */
 const LAPTOP_PREFLIGHT_TIMEOUT_MS = 45_000;
 
-export const QVAC_VOICE_VAD_PARAMS = {
+export const QVAC_VOICE_VAD_PARAMS = {                                                
   // Lower threshold so normal speaking volume triggers VAD reliably.
   threshold: 0.4,
   min_speech_duration_ms: 200,
