@@ -39,7 +39,7 @@ export default function QrCode() {
 
   const [chains, setChains] = useState<DextopusChain[]>([]);
   const [savedAddresses, setSavedAddresses] = useState<DextopusDepositAddress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(__DEV__);
   const [error, setError] = useState<string | null>(null);
 
   const chainNameById = useMemo(
@@ -48,7 +48,7 @@ export default function QrCode() {
   );
 
   const loadData = useCallback(async () => {
-    if (!walletAddress) return;
+    if (!walletAddress || !__DEV__) return;
     setLoading(true);
     setError(null);
     try {
@@ -105,7 +105,9 @@ export default function QrCode() {
           Receive crypto
         </CText>
         <CText className="text-[0.95rem] text-gray-500 dark:text-gray-400 mt-1">
-          Share your Solana address, or get a deposit address for another network.
+          {__DEV__
+            ? "Share your Solana address, or get a deposit address for another network."
+            : "Share your Solana address to receive SOL and tokens."}
         </CText>
       </View>
 
@@ -113,69 +115,71 @@ export default function QrCode() {
         <View className="gap-y-5 pb-10">
           <SolanaReceiveQr />
 
-          <View className="bg-white dark:bg-accent rounded-xl p-4 gap-y-3">
-            <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
-              Receiving from another network?
-            </CText>
-            <CText className="text-gray-500 dark:text-gray-400">
-              Generate a deposit address for Base, Ethereum, and more. Funds arrive in your HeySolana wallet on Solana.
-            </CText>
+          {__DEV__ ? (
+            <View className="bg-white dark:bg-accent rounded-xl p-4 gap-y-3">
+              <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
+                Receiving from another network?
+              </CText>
+              <CText className="text-gray-500 dark:text-gray-400">
+                Generate a deposit address for Base, Ethereum, and more. Funds arrive in your HeySolana wallet on Solana.
+              </CText>
 
-            {loading ? (
-              <View className="py-4 items-center">
-                <ActivityIndicator />
-              </View>
-            ) : error ? (
-              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
-                <CText className="text-red-600 dark:text-red-300">{error}</CText>
-              </View>
-            ) : (
-              <>
-                {savedAddresses.length > 0 ? (
-                  <View className="gap-y-2">
-                    {savedAddresses.map((address) => (
-                      <TouchableOpacity
-                        key={address.id}
-                        onPress={() => openSavedAddress(address)}
-                        className="bg-grey dark:bg-dark rounded-xl p-3 flex-row items-center"
-                      >
-                        <View className="w-10 h-10 rounded-full bg-purple/10 items-center justify-center mr-3">
-                          <MaterialCommunityIcons
-                            name="swap-horizontal"
-                            size={20}
-                            color="#971BB2"
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <CText style={{ fontFamily: "bold" }}>
-                            {savedAddressLabel(address, chainNameById)}
-                          </CText>
-                          <CText className="text-gray-500 dark:text-gray-400 mt-1">
-                            Arrives as {address.settlement_symbol || "USDC"} on Solana
-                          </CText>
-                        </View>
-                        <IconLibrary.angle_right />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : null}
+              {loading ? (
+                <View className="py-4 items-center">
+                  <ActivityIndicator />
+                </View>
+              ) : error ? (
+                <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
+                  <CText className="text-red-600 dark:text-red-300">{error}</CText>
+                </View>
+              ) : (
+                <>
+                  {savedAddresses.length > 0 ? (
+                    <View className="gap-y-2">
+                      {savedAddresses.map((address) => (
+                        <TouchableOpacity
+                          key={address.id}
+                          onPress={() => openSavedAddress(address)}
+                          className="bg-grey dark:bg-dark rounded-xl p-3 flex-row items-center"
+                        >
+                          <View className="w-10 h-10 rounded-full bg-purple/10 items-center justify-center mr-3">
+                            <MaterialCommunityIcons
+                              name="swap-horizontal"
+                              size={20}
+                              color="#971BB2"
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <CText style={{ fontFamily: "bold" }}>
+                              {savedAddressLabel(address, chainNameById)}
+                            </CText>
+                            <CText className="text-gray-500 dark:text-gray-400 mt-1">
+                              Arrives as {address.settlement_symbol || "USDC"} on Solana
+                            </CText>
+                          </View>
+                          <IconLibrary.angle_right />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : null}
 
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="Add another network"
-                  onPress={() => router.push("/dashboard/qrcode/crosschain")}
-                  className="bg-purple rounded-xl py-4 px-4"
-                >
-                  <CText
-                    className="text-white text-center"
-                    style={{ fontFamily: "bold" }}
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Add another network"
+                    onPress={() => router.push("/dashboard/qrcode/crosschain")}
+                    className="bg-purple rounded-xl py-4 px-4"
                   >
-                    {savedAddresses.length > 0 ? "Add another network" : "Set up cross-chain receive"}
-                  </CText>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+                    <CText
+                      className="text-white text-center"
+                      style={{ fontFamily: "bold" }}
+                    >
+                      {savedAddresses.length > 0 ? "Add another network" : "Set up cross-chain receive"}
+                    </CText>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </View>
