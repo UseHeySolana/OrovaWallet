@@ -1,12 +1,10 @@
 import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
-import OpenAI from "openai";
 
 import Convo from "@/utils/store/conversation.store";
 import type { MessageType } from "@/utils/store/conversation.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import BrainStore from "@/utils/store/brain.store";
-import { defaultLocalOpenAIBaseUrl } from "./localBaseUrl";
 import { PriceWatcher } from "./priceWatcher";
 import { runBrainDigest } from "./digest";
 import type { BrainConfig, BrainEvent } from "./types";
@@ -20,17 +18,16 @@ function now() {
   return Date.now();
 }
 
-function safeJsonStringify(value: any) {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "";
-  }
-}
-
 function buildToolTitle(action: string) {
   const cleaned = (action || "tool").replace(/[_-]/g, " ").trim();
   return cleaned ? cleaned : "Tool";
+}
+
+function isBrainSuggestionsLlmEnabled() {
+  return (
+    process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "1" ||
+    process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "true"
+  );
 }
 
 export class Brain {
@@ -44,7 +41,6 @@ export class Brain {
     { status: "pending" | "failed" | "complete"; toolAction: string }
   >();
 
-  private llmClient: OpenAI | null = null;
   private prevMessagesSnapshot: MessageType[] = [];
   private priceWatcher = new PriceWatcher();
   private appStateSub: { remove: () => void } | null = null;
@@ -71,13 +67,6 @@ export class Brain {
       await this.initNotifications();
     }
 
-    const suggestionsLlmEnv =
-      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "1" ||
-      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "true";
-    if (this.config.llmEnabled || suggestionsLlmEnv) {
-      this.initLlm();
-    }
-
     this.subscribeToConversationStore();
     this.startForegroundServices();
   }
@@ -88,27 +77,11 @@ export class Brain {
     for (const unsub of this.unsubscribers) unsub();
     this.unsubscribers = [];
     this.lastToolStatusByMessageId.clear();
-    this.llmClient = null;
     this.priceWatcher.stop();
     this.appStateSub?.remove?.();
     this.appStateSub = null;
     if (this.digestTimer) clearInterval(this.digestTimer);
     this.digestTimer = null;
-  }
-
-  private initLlm() {
-    const baseURL =
-      this.config.llmBaseUrl ||
-      process.env.EXPO_PUBLIC_QVAC_BASE_URL ||
-      defaultLocalOpenAIBaseUrl();
-
-    // OpenAI SDK requires an apiKey string; local servers may ignore it.
-    const apiKey =
-      process.env.EXPO_PUBLIC_OPENAI_API_KEY ||
-      process.env.EXPO_PUBLIC_QVAC_API_KEY ||
-      "local";
-
-    this.llmClient = new OpenAI({ apiKey, baseURL });
   }
 
   private async initNotifications() {
@@ -160,15 +133,10 @@ export class Brain {
   }
 
   private async kickDigest() {
-    const suggestionsLlmEnv =
-      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "1" ||
-      process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "true";
-    const useDigestLlm =
-      !!this.llmClient && (this.config.llmEnabled || suggestionsLlmEnv);
+    const useBackendLlm =
+      this.config.llmEnabled || isBrainSuggestionsLlmEnabled();
     await runBrainDigest({
-      llm: useDigestLlm
-        ? { client: this.llmClient, model: this.config.llmModel ?? "my-llm" }
-        : null,
+      useBackendLlm,
     });
   }
 
@@ -273,32 +241,4 @@ export class Brain {
       // ignore
     }
   }
-
-  private async generateNotificationBodyWithLlm(
-    event: Extract<BrainEvent, { type: "conversation.tool.status_changed" }>
-  ): Promise<string> {
-    if (!this.llmClient) return "";
-
-    const model = this.config.llmModel || "my-llm";
-    const args = safeJsonStringify(event.args);
-
-    const prompt = [
-      "Write a short push-notification body (max 90 characters).",
-      "No emojis. No quotes. No extra text.",
-      `Context: toolAction=${event.toolAction}, status=${event.status}.`,
-      args ? `Args: ${args}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    // Use the "Responses" API since you already use it elsewhere.
-    const resp = await this.llmClient.responses.create({
-      model,
-      input: prompt,
-    });
-
-    const text = (resp.output_text || "").trim();
-    return text || (event.status === "complete" ? "Tap to view details." : "Tap to review and retry.");
-  }
 }
-

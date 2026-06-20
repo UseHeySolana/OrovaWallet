@@ -67,8 +67,12 @@ export function seedDevBrainJournalSample() {
  * and forces a new insight card (unique dedupe key). For __DEV__ tooling only.
  */
 export async function runDevBrainDigestNow() {
+  const useBackendLlm =
+    process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "1" ||
+    process.env.EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM === "true";
+
   await runBrainDigest({
-    llm: null,
+    useBackendLlm,
     qvac: null,
     devSkipDigestInterval: true,
     devReprocessAllEvents: true,

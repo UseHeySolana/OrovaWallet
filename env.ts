@@ -8,5 +8,4 @@ export const env = {
     HELIUS_API: Constants.expoConfig?.extra?.EXPO_PUBLIC_HELIUS_API,
     FIREBASE: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE,
     APIFY_KEY: Constants.expoConfig?.extra?.EXPO_PUBLIC_APIFY_KEY,
-    OPENAI_KEY: Constants.expoConfig?.extra?.EXPO_PUBLIC_OPENAI_API_KEY,
 };
