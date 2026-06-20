@@ -30,8 +30,7 @@ SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
 const brain = new Brain({
   notificationsEnabled: true,
-  // llmEnabled: full Brain LLM hooks. For digest-only model calls you can set
-  // EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM=true plus EXPO_PUBLIC_QVAC_BASE_URL / API keys.
+  // llmEnabled: backend Brain digest LLM. Or set EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM=true.
   llmEnabled: false,
   llmModel: "my-llm",
 });

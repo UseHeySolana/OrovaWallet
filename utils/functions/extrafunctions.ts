@@ -7,7 +7,9 @@ import { Connection, Keypair, SystemProgram, Transaction, PublicKey, VersionedTr
 import { api_key } from "@/utils/dashboard";
 import { Linking } from "react-native";
 import { confirm } from "@/services/confirmation";
-import OpenAI from "openai";
+import {
+  requestAiTextLine,
+} from "@/services/aiTextApi";
 
 const cleanNumber = (input: any) => {
   // Remove non-digit characters
@@ -22,43 +24,22 @@ const showToast = (message: string) => {
   AppSettings.getState().setToast(message, "info");
 };
 
-const generate = async (instructions: string) => {
-  const client = new OpenAI({
-    apiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY || "",
-  });
-
-  const response = await client.responses.create({
-    model: "gpt-4.1",
-    input: instructions,
-  });
-
-  return response.output_text;
-};
-
 const convertSpeech = async (sentence: any) => {
-  const result = await generate(
-    `"${sentence} "Can you rewrite this sentence in a more conversational tone, I want to use it for a text to speech api, make it friendly
-        
-        Don't return any extra text just the re construct the sentence in a more conversational tone.
-        `
-  );
-  return result;
+  const text = String(sentence ?? "");
+  const result = await requestAiTextLine("convert_speech", text);
+  return result || text;
 };
 
 const summarizeProduct = async (sentence: any) => {
-  const result = await generate(
-    `"${sentence} "Can you summarize this product in a single sentence. like give a short summary of the product if it is a great product or not, and if its a good fit for what the user is looking for , highlight the features of the product, refrence the ratings and comments on the product to help your feedback.
-        `
-  );
-  return result;
+  const text = String(sentence ?? "");
+  const result = await requestAiTextLine("summarize_product", text);
+  return result || text;
 };
 
 const summarizeConversation = async (sentence: any) => {
-  const result = await generate(
-    `"${sentence} "Can you summarize this conversation in one short header line. Do not include line breaks. Just what happened; keep it very short and concise, 100 characters max. eg. Airtime Purchase, amount and recipient, give similar examples for other actions, if failed, just use e.g Failed Airtime purchase.
-        `
-  );
-  return result.replace(/\s+/g, " ").trim();
+  const text = String(sentence ?? "");
+  const result = await requestAiTextLine("summarize_conversation", text);
+  return (result || text).replace(/\s+/g, " ").trim();
 };
 
 export type SolanaHistoryCluster = "devnet" | "mainnet";

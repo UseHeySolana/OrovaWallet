@@ -1,17 +1,18 @@
 import { v4 as uuidv4 } from "uuid";
-import OpenAI from "openai";
 
 import BrainStore, {
   type BrainEventLogItem,
   type BrainSuggestion,
   type BrainSuggestionType,
 } from "@/utils/store/brain.store";
+import { requestBrainDigestSuggestions } from "@/services/aiTextApi";
 import type { QvacBrainProvider } from "./qvacProvider";
 import { buildContextualBrainSuggestions } from "./contextualSuggestions";
 
 export interface DigestOptions {
   qvac?: QvacBrainProvider | null;
-  llm?: { client: OpenAI; model: string } | null;
+  /** Use backend OpenAI proxy for digest suggestions. */
+  useBackendLlm?: boolean;
   /** Dev: bypass the 12h digest throttle (do not use in production flows). */
   devSkipDigestInterval?: boolean;
   /** Dev: summarize latest journal tail regardless of `lastDigestAt`. */
@@ -67,55 +68,29 @@ function parseSuggestionsJsonArray(raw: string): any[] | null {
 }
 
 /**
- * Uses an OpenAI-compatible `responses` endpoint (same stack as Brain LLM) to turn the
- * local journal into short, actionable suggestion cards.
+ * Uses the backend OpenAI proxy to turn the local journal into suggestion cards.
  */
-async function generateSuggestionsWithOpenAI(
-  events: BrainEventLogItem[],
-  client: OpenAI,
-  model: string
+async function generateSuggestionsWithBackend(
+  events: BrainEventLogItem[]
 ): Promise<BrainSuggestion[]> {
-  const chronological = [...events]
+  const payload = [...events]
     .sort((a, b) => a.createdAt - b.createdAt)
     .slice(-80)
-    .map((e) => {
-      const extra = e.data ? ` ${JSON.stringify(e.data)}` : "";
-      return `- ${new Date(e.createdAt).toISOString()} [${e.type}] ${e.summary}${extra}`;
-    })
-    .join("\n");
-
-  const input = [
-    "You are the in-wallet Brain for Hey Solana, a self-custody Solana wallet app.",
-    "Read the recent on-device activity log (user messages + assistant/tool events).",
-    "Propose 2–4 short, proactive suggestions that feel personal to what was discussed.",
-    "Examples: offer to swap if they talked prices; open Send if they mentioned paying someone;",
-    "nudge to chat if a tool failed; mention Jumia, airtime, or off-ramp only if the log hints at it.",
-    "",
-    "Return ONLY a JSON array (no markdown fences, no extra text). Each item:",
-    '{ "type": "trade"|"price_alert"|"reminder"|"insight"|"security"|"generic",',
-    '"title": string (<= 44 chars), "body": string (<= 220 chars),',
-    '"link": string optional, "dedupeKey": string optional }',
-    "",
-    "Hard rules: never ask for seed phrase, private keys, or recovery text; stay non-custodial.",
-    APP_ROUTE_HINT,
-    "",
-    "Activity log:",
-    chronological || "(empty)",
-  ].join("\n");
+    .map((event) => ({
+      type: event.type,
+      summary: event.summary,
+      createdAt: event.createdAt,
+      data: event.data,
+    }));
 
   try {
-    const resp = await client.responses.create({
-      model,
-      input,
-    });
-    const text = (resp.output_text || "").trim();
-    const parsed = parseSuggestionsJsonArray(text);
-    if (!parsed?.length) return [];
+    const parsed = await requestBrainDigestSuggestions(payload);
+    if (!parsed.length) return [];
 
     const now = Date.now();
     return parsed
       .slice(0, 4)
-      .map((s: any) => ({
+      .map((s) => ({
         id: uuidv4(),
         type: coerceSuggestionType(s?.type),
         title: String(s?.title || "Suggestion").slice(0, 80),
@@ -169,8 +144,8 @@ export async function runBrainDigest(options: DigestOptions): Promise<void> {
 
   if (options.qvac) {
     suggestions = await generateSuggestionsWithLlm(ev, options.qvac);
-  } else if (options.llm?.client) {
-    suggestions = await generateSuggestionsWithOpenAI(ev, options.llm.client, options.llm.model);
+  } else if (options.useBackendLlm) {
+    suggestions = await generateSuggestionsWithBackend(ev);
     if (!suggestions.length) {
       suggestions = buildContextualBrainSuggestions(ev, options.devUniqueDedupeKey);
     }

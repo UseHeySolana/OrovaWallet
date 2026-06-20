@@ -167,8 +167,8 @@ export default function BrainHome() {
             <CText className="text-[0.85rem] opacity-70 mb-4">
               Price alerts: keep app in foreground, enable notifications in Settings, then add the
               test SOL alert. Digest: seeds sample chat/tool events then builds suggestion cards. Set
-              EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM=true (and your OpenAI-compatible URL) for model-written
-              cards with contextual rules as fallback.
+              EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM=true for backend model-written cards with
+              contextual rules as fallback.
             </CText>
             <CText className="text-[0.8rem] opacity-60 mb-3">
               Active price alerts: {priceAlerts.length}
