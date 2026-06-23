@@ -18,6 +18,7 @@ interface PajCashBeneficiariesState {
   setBeneficiaries: (beneficiaries: PajCashBeneficiary[]) => void;
   upsertBeneficiary: (beneficiary: Omit<PajCashBeneficiary, "id" | "updatedAt">) => void;
   removeBeneficiary: (id: string) => void;
+  clearBeneficiaries: () => void;
 }
 
 function beneficiaryId(bankId: string, accountNumber: string) {
@@ -49,6 +50,7 @@ const PajCashBeneficiaries = create<PajCashBeneficiariesState>()(
         set((state) => ({
           beneficiaries: state.beneficiaries.filter((item) => item.id !== id),
         })),
+      clearBeneficiaries: () => set({ beneficiaries: [] }),
     }),
     {
       name: "pajcash-beneficiaries",

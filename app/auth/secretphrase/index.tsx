@@ -78,7 +78,7 @@ export default function SecretPhrase({ navigation }: any) {
   )
 
   const { keypair, updateKeypair, publicKey, updatePassphrase } = WalletItem();
-  const { user } = UserItem();
+  const { user, setUser } = UserItem();
   const { setLoading, isLoading, setToast } = AppSettings()
 
 
@@ -149,6 +149,10 @@ export default function SecretPhrase({ navigation }: any) {
         }
         const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
         if (response.status !== false) {
+          setUser({
+            ...user,
+            wallet_address: keyPair.publicKey.toBase58(),
+          });
           setToast("Wallet Created", 'success')
           router.replace('/dashboard')
           setLoading(false)

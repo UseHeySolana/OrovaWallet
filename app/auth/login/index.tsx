@@ -166,6 +166,7 @@ export default function Login() {
             userDetails.mobileNumber,
             selectedValue.callingCode
           ),
+          wallet_address: userDetails.wallet_address,
           pin: "",
         });
         router.replace("/dashboard");
@@ -178,6 +179,7 @@ export default function Login() {
             userDetails.mobileNumber,
             selectedValue.callingCode
           ),
+          wallet_address: userDetails.wallet_address,
           pin: "",
         });
         setCurrentState("start-wallet");

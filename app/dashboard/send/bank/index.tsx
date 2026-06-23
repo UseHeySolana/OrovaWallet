@@ -20,7 +20,6 @@ import { ButtonInlineLoader } from "@/components/skeletons";
 import { CText } from "@/components/TextComp";
 import {
   deletePajCashBeneficiary,
-  getPajCashBeneficiaries,
   savePajCashBeneficiary,
 } from "@/services/pajcashBeneficiariesApi";
 import IconLibrary from "@/utils/icons";
@@ -32,7 +31,6 @@ import PajCashSession from "@/utils/store/pajcashSession.store";
 import TxQueue from "@/utils/store/txqueue.store";
 import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
-import WalletItem from "@/utils/store/wallet.store";
 import { Chain, Currency, pajcash } from "@/libs/tools/pajcash/pajcash";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -142,13 +140,11 @@ export default function SendToBank() {
     };
   }, [params.balance, params.decimals, params.image, params.name, params.symbol, selectedMint]);
   const { user, userWallet } = UserItem();
-  const publicKey = WalletItem((state) => state.publicKey);
   const { setToast } = AppSettings();
   const pajSession = PajCashSession();
-  const { beneficiaries, setBeneficiaries, upsertBeneficiary, removeBeneficiary } =
+  const { beneficiaries, upsertBeneficiary, removeBeneficiary } =
     PajCashBeneficiaries();
   const lastResolvedAccountRef = useRef<string | null>(null);
-  const beneficiariesLoadedWalletRef = useRef<string | null>(null);
 
   const defaultRecipient = useMemo(
     () =>
@@ -190,11 +186,9 @@ export default function SendToBank() {
   const [loading, setLoading] = useState<
     "otp" | "verify" | "banks" | "resolve" | "quote" | "order" | null
   >(null);
-  const [beneficiariesLoading, setBeneficiariesLoading] = useState(false);
   const [quote, setQuote] = useState<any>(null);
 
   const isPajCashVerified = pajSession.isSessionValid();
-  const walletAddress = publicKey?.toBase58() || user?.wallet_address || "";
   const isFiatMode = quoteMode === "fiat";
   const tokenAmount = parseAmount(amount);
   const ngnAmount = parseAmount(fiatAmount);
@@ -245,27 +239,6 @@ export default function SendToBank() {
     void loadBanks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPajCashVerified, banks.length, loading]);
-
-  useEffect(() => {
-    if (!walletAddress || beneficiariesLoading) return;
-    if (beneficiariesLoadedWalletRef.current === walletAddress) return;
-    let cancelled = false;
-    beneficiariesLoadedWalletRef.current = walletAddress;
-    setBeneficiariesLoading(true);
-    getPajCashBeneficiaries(walletAddress)
-      .then((items) => {
-        if (!cancelled) setBeneficiaries(items);
-      })
-      .catch((err) => {
-        console.warn("[PajCash Beneficiaries] load failed", err);
-      })
-      .finally(() => {
-        if (!cancelled) setBeneficiariesLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [walletAddress, beneficiariesLoading, setBeneficiaries]);
 
   useEffect(() => {
     if (!isPajCashVerified || !selectedToken || !activeQuoteAmount || activeQuoteAmount <= 0) {
@@ -397,13 +370,11 @@ export default function SendToBank() {
       accountName: nextAccountName,
     };
     upsertBeneficiary(beneficiary);
-    if (walletAddress) {
-      savePajCashBeneficiary(walletAddress, beneficiary)
-        .then(upsertBeneficiary)
-        .catch((err) => {
-          console.warn("[PajCash Beneficiaries] save failed", err);
-        });
-    }
+    savePajCashBeneficiary(beneficiary)
+      .then(upsertBeneficiary)
+      .catch((err) => {
+        console.warn("[PajCash Beneficiaries] save failed", err);
+      });
     setLastError("");
     if (!options.quiet) {
       setStatusMessage("Bank account resolved.");
@@ -630,8 +601,7 @@ export default function SendToBank() {
 
   const deleteBeneficiary = (beneficiary: PajCashBeneficiary) => {
     removeBeneficiary(beneficiary.id);
-    if (!walletAddress) return;
-    deletePajCashBeneficiary(walletAddress, beneficiary).catch((err) => {
+    deletePajCashBeneficiary(beneficiary).catch((err) => {
       console.warn("[PajCash Beneficiaries] delete failed", err);
       upsertBeneficiary(beneficiary);
       setToast("Could not delete beneficiary. Please try again.", "error");
