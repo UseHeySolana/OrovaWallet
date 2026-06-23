@@ -12,7 +12,11 @@ import {
   getUserDetails,
   resolveTokenByQuery,
 } from "@/utils/functions";
-import { airBills } from "@/libs/tools/airbills/airbills";
+import {
+  airBills,
+  findInternetPlan,
+  normalizeAirbillsPhoneNumber,
+} from "@/libs/tools/airbills/airbills";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { getTokenBalance } from "@/libs/tools/transfer/transfers";
 import { recordAppTransactionAsync } from "@/services/appTransactions";
@@ -35,6 +39,17 @@ type BuyAirtimeArgs = {
   network?: string;
   networkId?: string;
   amount: number;
+};
+
+type BuyDataBundleArgs = {
+  username?: string;
+  phoneNumber?: string;
+  mobileNumber?: string;
+  network?: string;
+  networkId?: string;
+  prodId?: string;
+  planName?: string;
+  amount?: number;
 };
 
 const ELECTRICITY_PROVIDERS: Record<string, string> = {
@@ -124,27 +139,60 @@ const AIRTIME_NETWORK_IDS: Record<string, string> = {
   airtel: "04",
 };
 
-const normalizeAirbillsPhoneNumber = (value?: string) => {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (digits.startsWith("234") && digits.length === 13) {
-    return `0${digits.slice(3)}`;
-  }
-  if (!digits.startsWith("0") && digits.length === 10) {
-    return `0${digits}`;
-  }
-  return digits;
-};
-
 const resolveAirtimeNetworkId = (value?: string) =>
   AIRTIME_NETWORK_IDS[normalizeLookupValue(value)] || "";
+
+const formatInternetPlanOptions = (plans: { prodName: string; prodAmount: number; prodId: string }[]) => {
+  const preview = plans.slice(0, 12);
+  const lines = preview.map(
+    (plan) => `${plan.prodName} — ₦${plan.prodAmount} (prodId: ${plan.prodId})`
+  );
+  if (plans.length > preview.length) {
+    lines.push(`…and ${plans.length - preview.length} more plans`);
+  }
+  return lines.join("\n");
+};
+
+const resolveAirbillsMobileNumber = async (
+  args: { username?: string; phoneNumber?: string; mobileNumber?: string },
+  convertSpeechFn: typeof convertSpeech
+) => {
+  const directPhone = args.phoneNumber || args.mobileNumber;
+  if (directPhone?.trim()) {
+    return normalizeAirbillsPhoneNumber(directPhone);
+  }
+
+  const user = UserItem.getState().user;
+  if (
+    !args.username ||
+    args.username.toLowerCase() === user?.username.toLowerCase() ||
+    args.username.toLowerCase() === "myself" ||
+    args.username.toLowerCase() === "me"
+  ) {
+    return normalizeAirbillsPhoneNumber(user?.mobileNumber || "");
+  }
+
+  const userCheck = await getUserDetails(args.username);
+  if (!userCheck) {
+    return {
+      error: await convertSpeechFn(
+        "Sorry there is no user on the Hey Solana App with that username"
+      ),
+    };
+  }
+
+  return normalizeAirbillsPhoneNumber(userCheck.phoneNumber);
+};
 
 export class AirBills {
   public buyAirtime: FunctionParams;
   public buyElectricityBill: FunctionParams;
+  public buyDataBundle: FunctionParams;
 
   constructor(public session: SessionManager) {
     this.buyAirtime = this.buy_airtime();
     this.buyElectricityBill = this.buy_electricity_bill();
+    this.buyDataBundle = this.buy_data_bundle();
   }
 
   buy_electricity_bill() {
@@ -507,6 +555,218 @@ export class AirBills {
 
           return await convertSpeech("Airtime purchase failed!");
         }
+      },
+    };
+  }
+
+  buy_data_bundle() {
+    return {
+      name: "buy-data-bundle",
+      description:
+        "Purchase a mobile data/internet bundle for the user's own phone number, another Hey Solana username, or a direct mobile phone number. Fetch plans from Airbills using the phone network, then match prodId or plan name. The amount must exactly match the plan price returned by Airbills.",
+      parameters: {
+        type: "object",
+        properties: {
+          username: {
+            type: "string",
+            description:
+              "The Hey Solana username of the person you are sending the data bundle to.",
+          },
+          phoneNumber: {
+            type: "string",
+            description:
+              "The mobile phone number to send the data bundle to. Use this when the recipient is not a Hey Solana username.",
+          },
+          networkId: {
+            type: "string",
+            enum: ["01", "02", "03", "04"],
+            description:
+              "Optional network code: 01 MTN, 02 Glo, 03 9mobile, 04 Airtel. If omitted, Airbills network-checker will detect it from the phone number.",
+          },
+          network: {
+            type: "string",
+            enum: ["MTN", "Glo", "9mobile", "Airtel"],
+            description:
+              "Optional network name. Use only if the user provides the mobile network.",
+          },
+          prodId: {
+            type: "string",
+            description:
+              "The data plan ID from Airbills /list/internet. Prefer this when the user picks a specific plan.",
+          },
+          planName: {
+            type: "string",
+            description:
+              "Human-readable plan label to match against Airbills plan names, for example '1 GB Weekly' or '500 MB Monthly'.",
+          },
+          amount: {
+            type: "number",
+            description:
+              "Exact plan price in NGN from the Airbills internet plan list. Required unless prodId uniquely identifies the plan.",
+          },
+        },
+        required: [],
+      },
+      handler: async (args: BuyDataBundleArgs) => {
+        const pk = WalletItem.getState().publicKey?.toString() || "";
+        if (!pk) {
+          return "Please connect your wallet to proceed";
+        }
+
+        const usdcMeta = await resolveTokenByQuery("USDC");
+        if (!usdcMeta) {
+          return "USDC could not be resolved (configure EXPO_PUBLIC_JUP_API_KEY for Jupiter token search).";
+        }
+
+        const usdcBalance = await getTokenBalance(
+          pk,
+          usdcMeta.address,
+          usdcMeta.decimals,
+          this.session.connection
+        );
+
+        if (usdcBalance <= 0) {
+          return "You do not have any USDC in your wallet, please swap some token and try again";
+        }
+
+        const mobileResult = await resolveAirbillsMobileNumber(args, convertSpeech);
+        if (typeof mobileResult === "object" && "error" in mobileResult) {
+          return mobileResult.error;
+        }
+        const mobileNumber = mobileResult as string;
+
+        if (!mobileNumber) {
+          return "Please provide the mobile number you want to buy a data bundle for";
+        }
+
+        let networkId = resolveAirtimeNetworkId(args.networkId || args.network);
+        if (!networkId) {
+          const networkResponse =
+            await airBills.airtime.detectNetwork(mobileNumber);
+          if (!networkResponse.status) {
+            return (
+              networkResponse.message ||
+              "Could not detect network for this phone number"
+            );
+          }
+          networkId = networkResponse.data?.networkId || "";
+        }
+
+        if (!networkId) {
+          return "Could not detect network for this phone number";
+        }
+
+        const plansResponse = await airBills.internet.listPlans(networkId);
+        if (!plansResponse.status || !plansResponse.data?.plans?.length) {
+          return (
+            plansResponse.message ||
+            "No data plans are available for this network right now"
+          );
+        }
+
+        const { batch, plans } = plansResponse.data;
+        const selectedPlan = findInternetPlan(plans, {
+          prodId: args.prodId,
+          planName: args.planName,
+          amount: args.amount,
+        });
+
+        if (!selectedPlan) {
+          if (!args.prodId && !args.planName && args.amount == null) {
+            return `Please choose a data plan for this number:\n${formatInternetPlanOptions(plans)}`;
+          }
+          return `I couldn't match that data plan. Available plans:\n${formatInternetPlanOptions(plans)}`;
+        }
+
+        const keyPair = WalletItem.getState().keypair || null;
+        if (!keyPair) {
+          return "Please connect your wallet to proceed";
+        }
+
+        const response = await airBills.internet.purchaseDataBundle({
+          phoneNumber: mobileNumber,
+          networkId,
+          amount: Number(selectedPlan.prodAmount),
+          prodId: selectedPlan.prodId,
+          batch,
+          userWalletAddress: pk,
+          token: "USDC",
+        });
+
+        if (!response.status) {
+          return (
+            response.message || "Data bundle purchase failed, please try again"
+          );
+        }
+
+        const result = response.data;
+        const dataId = result?.id;
+        const transactionIx = result?.ix;
+
+        if (!transactionIx || !dataId) {
+          return "Data bundle purchase failed, missing transaction payload";
+        }
+
+        const res = await signTransactions({ tx: transactionIx });
+        if (!res.status) {
+          const messageId = this.session.functionMessageId;
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return res.message;
+        }
+
+        const confirmation = await this.session.connection.confirmTransaction(
+          res.message,
+          "confirmed"
+        );
+
+        if (confirmation) {
+          const completePurchaseRes =
+            await airBills.internet.completePurchase(dataId);
+
+          if (completePurchaseRes.status) {
+            const messageId = this.session.functionMessageId;
+            const network = AppSettings.getState().networkShort;
+            if (messageId !== null) {
+              completeConversation(
+                messageId,
+                "complete",
+                `https://explorer.solana.com/tx/${res.message}?cluster=${network}`
+              );
+            }
+            recordAppTransactionAsync({
+              signature: res.message,
+              transaction_type: "internet",
+              status: "confirmed",
+              provider: "airbills",
+              app_called: "Airbills",
+              input_token_symbol: "USDC",
+              input_amount: Number(selectedPlan.prodAmount),
+              input_amount_usd: Number(selectedPlan.prodAmount),
+              amount: Number(selectedPlan.prodAmount),
+              token: "USDC",
+              raw_metadata: {
+                mobile_number: mobileNumber,
+                network_id: networkId,
+                prod_id: selectedPlan.prodId,
+                plan_name: selectedPlan.prodName,
+              },
+            });
+            return await convertSpeech(
+              `Your ${selectedPlan.prodName} data bundle purchase is successfull`
+            );
+          }
+
+          const messageId = this.session.functionMessageId;
+          if (messageId !== null) completeConversation(messageId, "failed");
+          return await convertSpeech("Data bundle purchase failed!");
+        }
+
+        const messageId = this.session.functionMessageId;
+        if (messageId !== null) {
+          completeConversation(messageId, "failed");
+        }
+
+        return await convertSpeech("Data bundle purchase failed!");
       },
     };
   }

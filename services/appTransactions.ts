@@ -13,6 +13,7 @@ export type AppTransactionType =
   | "swap"
   | "transfer"
   | "airtime"
+  | "internet"
   | "electricity"
   | "commerce"
   | "offramp"

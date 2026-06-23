@@ -353,6 +353,17 @@ export default function AppItems() {
           </View>
         </View>
 
+        {activated && appData?.dashboardRoute && (
+          <View className="w-full mt-4">
+            <Buttons
+              type="primary"
+              className="w-full py-4 rounded-3xl"
+              text="Open Airbills"
+              onPress={() => router.push(appData.dashboardRoute as any)}
+            />
+          </View>
+        )}
+
         {activated && appData?.tools?.length > 0 && (
           <View className="w-full flex-1 flex-col justify-start items-start shadow gap-y-2 mt-4 bg-white dark:bg-accent p-3 py-3 rounded-2xl">
             <Pressable

@@ -85,7 +85,9 @@ const ToolItem = (props: ItemProps) => {
                 className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
               />
             </View>
-          ) : item?.tool?.action?.includes("airtime") ? (
+          ) : item?.tool?.action?.includes("airtime") ||
+            item?.tool?.action?.includes("data") ||
+            item?.tool?.action?.includes("electricity") ? (
             <View className="w-10 h-10 rounded-full overflow-hidden">
               <Image
                 source={require("@/assets/apps/airbillslogo.jpg")}
@@ -150,7 +152,9 @@ const ToolItem = (props: ItemProps) => {
                   ? "Jumia"
                   : item?.tool?.action?.includes("amazon")
                     ? "Crossmint"
-                    : item?.tool?.action?.includes("airtime")
+                    : item?.tool?.action?.includes("airtime") ||
+                        item?.tool?.action?.includes("data") ||
+                        item?.tool?.action?.includes("electricity")
                       ? "AirBills"
                       : item?.tool?.action?.includes("search_spl_tokens")
                         ? "Jupiter"

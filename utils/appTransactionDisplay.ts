@@ -71,6 +71,7 @@ export function appTxRowSummary(tx: AppTransaction) {
 
   if (
     type === "airtime" ||
+    type === "internet" ||
     type === "electricity" ||
     type === "commerce" ||
     type === "offramp" ||

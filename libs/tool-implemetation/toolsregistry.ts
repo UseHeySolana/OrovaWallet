@@ -25,6 +25,7 @@ const toolRouter = (SessionManager: SessionManager) => {
     new SwapFunction(SessionManager).swapFunction,
     new SwapFunction(SessionManager).checkPrice,
     new AirBills(SessionManager).buyElectricityBill,
+    new AirBills(SessionManager).buyDataBundle,
     new PajCash(SessionManager).pajcashInitiate,
     new PajCash(SessionManager).pajcashVerify,
     new PajCash(SessionManager).pajitOfframp,

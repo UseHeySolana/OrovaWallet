@@ -9,6 +9,7 @@ import { TouchableNativeFeedback } from "react-native";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { delayPromise } from "@/utils/functions";
 import { openURL } from "@/utils/functions/extrafunctions";
+import { router } from "expo-router";
 import { pajcash } from "@/libs/tools/pajcash/pajcash";
 import PajCashSession from "@/utils/store/pajcashSession.store";
 
@@ -330,6 +331,26 @@ const ParamsComponent = ({
                         className="w-full py-4 px-4 rounded-3xl"
                         text={item?.action?.type}
                         onPress={async () => {
+                          if (item.action.route) {
+                            const routeParams: Record<string, string> = {};
+                            item.action.params?.forEach((param: any) => {
+                              const value =
+                                toolConfig?.find(
+                                  (configItem: any) =>
+                                    configItem?.type === param.name
+                                )?.value || "";
+                              if (value) {
+                                routeParams[param.name] = String(value);
+                              }
+                            });
+                            router.push({
+                              pathname: item.action.route as any,
+                              params: routeParams,
+                            });
+                            setSetUpParams(null);
+                            return;
+                          }
+
                           const params = item.action.params.map((param: any) => {
                             return toolConfig?.find(
                               (item: any) => item?.type === param.name

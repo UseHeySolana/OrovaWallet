@@ -17,6 +17,8 @@ export interface App {
   is_new: boolean;
   ratings: number;
   short_des: string;
+  /** In-app screen for browsing or purchasing without chat. */
+  dashboardRoute?: string;
   brand_colors?: {
     primary: string;
     secondary: string;
@@ -27,6 +29,7 @@ export interface App {
     action?: {
       type: string;
       url?: (...args: any[]) => any;
+      route?: string;
       params: any[];
     };
   }[];
@@ -104,7 +107,8 @@ const apps: App[] = [
     banner: require("@/assets/apps/airbillsbg.jpeg"),
     icon: require("@/assets/apps/airbillslogo.jpg"),
     description:
-      "Airbills is a platform that allows you to get utility such as airtime and electricity bill with solana tokens.",
+      "Airbills lets you buy airtime, mobile data bundles, and electricity bills with USDC on Solana.",
+    dashboardRoute: "/dashboard/airbills",
 
     url: "https://airbills.com",
     tags: ["Tools"],
@@ -119,6 +123,68 @@ const apps: App[] = [
     is_new: true,
     ratings: 4.5,
     tools: [
+      {
+        name: "airtime",
+        params: [
+          {
+            name: "phone_number",
+            type: "string",
+            label: "Phone number",
+            placeholder: "08012345678",
+            helper: "The mobile number that will receive the airtime.",
+          },
+          {
+            name: "network_id",
+            type: "select",
+            optional: true,
+            options: [
+              { value: "01", name: "MTN" },
+              { value: "02", name: "Glo" },
+              { value: "03", name: "9mobile" },
+              { value: "04", name: "Airtel" },
+            ],
+          },
+        ],
+        action: {
+          type: "Top Up",
+          route: "/dashboard/airbills/airtime",
+          params: [
+            { name: "phone_number", type: "string" },
+            { name: "network_id", type: "string" },
+          ],
+        },
+      },
+      {
+        name: "internet",
+        params: [
+          {
+            name: "phone_number",
+            type: "string",
+            label: "Phone number",
+            placeholder: "08012345678",
+            helper: "The mobile number that will receive the data bundle.",
+          },
+          {
+            name: "network_id",
+            type: "select",
+            optional: true,
+            options: [
+              { value: "01", name: "MTN" },
+              { value: "02", name: "Glo" },
+              { value: "03", name: "9mobile" },
+              { value: "04", name: "Airtel" },
+            ],
+          },
+        ],
+        action: {
+          type: "Browse Plans",
+          route: "/dashboard/airbills/data",
+          params: [
+            { name: "phone_number", type: "string" },
+            { name: "network_id", type: "string" },
+          ],
+        },
+      },
       {
         name: "electricity",
         params: [

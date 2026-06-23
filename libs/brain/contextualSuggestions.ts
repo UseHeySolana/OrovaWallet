@@ -170,7 +170,7 @@ export function buildContextualBrainSuggestions(
 
   if (
     corpusMatches(/\b(airtime|recharge|data plan|electricity|utility|bill pay|airbill)\b/i, corpus) ||
-    slugMatches([...completed, ...failed], ["airtime", "electricity", "bill"])
+    slugMatches([...completed, ...failed], ["airtime", "internet", "electricity", "bill"])
   ) {
     drafts.push({
       intent: "bills",
@@ -179,7 +179,7 @@ export function buildContextualBrainSuggestions(
         id: uuidv4(),
         type: "generic",
         title: "Airtime & utility",
-        body: "You can buy airtime or electricity through the assistant’s bill tools — say what country and meter or phone number you need.",
+        body: "You can buy airtime, mobile data, or electricity through the assistant’s bill tools — say the phone number or meter details you need.",
         createdAt: Date.now(),
         link: "/dashboard/chat",
         dedupeKey: `digest:ctx:bills:${bucket}`,

@@ -26,11 +26,13 @@ Response:
 
 { "status": "00", "message": "Successful", "data": { "network": "MTN" } }
 
-GET /api/vendor/gateway/list/internet/:batch
-List available data/internet plans.
+GET /api/vendor/gateway/list/internet?networkId=:networkId
+List available data/internet plans for a mobile network.
 
-Param Type Values
-batch path 01, 02
+Query Param Type Required Values
+networkId query Yes 01 MTN, 02 Glo, 03 9mobile, 04 Airtel
+
+Response includes `batch` (required for purchase) and `dataPlan` grouped by network name.
 GET /api/vendor/gateway/list/bet
 List available betting platforms.
 

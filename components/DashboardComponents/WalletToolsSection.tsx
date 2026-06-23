@@ -11,10 +11,10 @@ function imageSource(source: string | App["icon"]) {
   return typeof source === "string" ? { uri: source } : source;
 }
 
-function openApp(appName: string) {
+function openApp(app: App) {
   router.push({
-    pathname: "/settings/apps/appitem",
-    params: { app: appName },
+    pathname: app.dashboardRoute || "/settings/apps/appitem",
+    params: app.dashboardRoute ? undefined : { app: app.name },
   });
 }
 
@@ -40,7 +40,7 @@ export default function WalletToolsSection() {
         {featuredApps.map((item) => (
           <Pressable
             key={item.name}
-            onPress={() => openApp(item.name)}
+            onPress={() => openApp(item)}
             className="h-[9rem] min-w-[15rem] max-w-[18rem] shadow-sm relative rounded-3xl overflow-hidden bg-white dark:bg-accent"
           >
             <Image

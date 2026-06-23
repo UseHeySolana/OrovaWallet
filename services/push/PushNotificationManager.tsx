@@ -56,6 +56,15 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     router.push("/dashboard");
     return;
   }
+  if (type === "scheduled_campaign" || type === "inactive_user_reminder") {
+    const link = data.link;
+    if (typeof link === "string" && link.startsWith("/")) {
+      router.push(link as any);
+      return;
+    }
+    router.push("/dashboard");
+    return;
+  }
 
   const link = data.link ?? data.url;
   if (typeof link === "string" && link.startsWith("/")) {
