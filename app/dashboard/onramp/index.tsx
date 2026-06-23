@@ -23,7 +23,7 @@ import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import PajCashSession from "@/utils/store/pajcashSession.store";
-import { pajcash, Chain, Currency } from "@/libs/tools/pajcash/pajcash";
+import { pajcash, Chain, Currency, PAJCASH_REVALIDATE_MESSAGE } from "@/libs/tools/pajcash/pajcash";
 import { copyItem, resolveTokenByQuery } from "@/utils/functions";
 import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
 import {
@@ -545,7 +545,7 @@ export default function Onramp() {
   const previewRate = async (options: { quiet?: boolean } = {}) => {
     if (!pajcash.getSessionToken()) {
       if (!options.quiet) {
-        setLastError("Verify your PajCash session first");
+        setLastError(PAJCASH_REVALIDATE_MESSAGE);
         setStatusMessage("");
       }
       return;
@@ -657,10 +657,10 @@ export default function Onramp() {
       return;
     }
     if (!pajcash.getSessionToken()) {
-      setLastError("Verify your PajCash session first");
+      setLastError(PAJCASH_REVALIDATE_MESSAGE);
       setStatusMessage("");
       logOnrampError("Order blocked: PajCash session missing or expired");
-      setToast("Verify your PajCash session first", "error");
+      setToast(PAJCASH_REVALIDATE_MESSAGE, "error");
       return;
     }
     setLastError("");

@@ -54,7 +54,37 @@ function ensureSdkInitialized(): void {
   sdkInitialized = true;
 }
 
+export const PAJCASH_REVALIDATE_MESSAGE =
+  "Your PajCash session expired. Enter your email or phone again to receive a new verification code.";
+
+function isPajSessionInvalidError(err: unknown): boolean {
+  if (typeof err === "string") {
+    const lower = err.toLowerCase();
+    return (
+      lower.includes("session is invalid") ||
+      lower.includes("session expired") ||
+      lower.includes("unauthorized")
+    );
+  }
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    if (o.statusCode === 401) return true;
+    const message =
+      typeof o.message === "string" ? o.message.toLowerCase() : "";
+    const error = typeof o.error === "string" ? o.error.toLowerCase() : "";
+    return (
+      message.includes("session is invalid") ||
+      message.includes("session expired") ||
+      error === "unauthorized"
+    );
+  }
+  return false;
+}
+
 function formatPajError(err: unknown): string {
+  if (isPajSessionInvalidError(err)) {
+    return PAJCASH_REVALIDATE_MESSAGE;
+  }
   if (typeof err === "string") return err;
   if (err && typeof err === "object") {
     const o = err as Record<string, unknown>;
@@ -122,6 +152,9 @@ async function wrap<T>(fn: () => Promise<T>): Promise<ApiResult<T>> {
     const data = await fn();
     return { status: true, data };
   } catch (err) {
+    if (isPajSessionInvalidError(err)) {
+      PajCashSession.getState().clearSession();
+    }
     return { status: false, message: formatPajError(err) };
   }
 }
@@ -165,8 +198,7 @@ const pajcash = {
     if (!token) {
       return {
         status: false,
-        message:
-          "PajCash session expired or missing. Use pajcash-initiate-session and pajcash-verify-session first.",
+        message: PAJCASH_REVALIDATE_MESSAGE,
       };
     }
     return { status: true, data: token };

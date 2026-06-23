@@ -31,7 +31,7 @@ import PajCashSession from "@/utils/store/pajcashSession.store";
 import TxQueue from "@/utils/store/txqueue.store";
 import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
-import { Chain, Currency, pajcash } from "@/libs/tools/pajcash/pajcash";
+import { Chain, Currency, pajcash, PAJCASH_REVALIDATE_MESSAGE } from "@/libs/tools/pajcash/pajcash";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 
@@ -431,8 +431,8 @@ export default function SendToBank() {
 
   const createOrder = async () => {
     if (!isPajCashVerified) {
-      setLastError("Verify your PajCash session first");
-      setToast("Verify your PajCash session first", "error");
+      setLastError(PAJCASH_REVALIDATE_MESSAGE);
+      setToast(PAJCASH_REVALIDATE_MESSAGE, "error");
       return;
     }
     if (!selectedToken) {
