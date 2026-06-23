@@ -20,6 +20,7 @@ import {
   AirtimeQuickAmountTile,
   buildQuickAirtimeOptions,
   formatNaira,
+  formatUsdc,
   NetworkBadge,
   NetworkPickerSheet,
 } from "@/components/Airbills/shared";
@@ -189,7 +190,7 @@ export default function AirbillsAirtimeScreen() {
 
       let redemptionId: string | undefined;
       let pointsUsed = 0;
-      let usdcDue = faceAmount;
+      let ngnPayable = faceAmount;
 
       if (usePoints && pointsConfig?.redeem_airtime_enabled) {
         pointsUsed = Math.min(pointsToUse, maxPointsForAirtimePurchase(
@@ -206,7 +207,7 @@ export default function AirbillsAirtimeScreen() {
               airtimeAmountNgn: faceAmount,
             });
             redemptionId = redemption.redemption_id;
-            usdcDue = redemption.usdc_due_ngn;
+            ngnPayable = redemption.usdc_due_ngn;
             setPointsBalance(redemption.balance);
           } catch (error) {
             setToast(
@@ -236,7 +237,7 @@ export default function AirbillsAirtimeScreen() {
 
       const response = await airBills.airtime.purchaseAirtime(
         normalized,
-        usdcDue,
+        ngnPayable,
         walletAddress,
         networkId
       );
@@ -249,11 +250,16 @@ export default function AirbillsAirtimeScreen() {
         return;
       }
 
+      const usdcPayable = Number(response.data.amountInToken ?? 0);
+
       const confirmParts = [
-        `Buy ${formatNaira(faceAmount)} airtime for ${formatPhoneDisplay(normalized)}`,
+        `Buy ${formatNaira(ngnPayable)} airtime for ${formatPhoneDisplay(normalized)}`,
       ];
       if (pointsUsed > 0) {
-        confirmParts.push(`using ${formatPointsLabel(pointsUsed)} + ${formatNaira(usdcDue)} USDC`);
+        confirmParts.push(`(${formatPointsLabel(pointsUsed)} applied)`);
+      }
+      if (Number.isFinite(usdcPayable) && usdcPayable > 0) {
+        confirmParts.push(`Pay ${formatUsdc(usdcPayable)}`);
       }
       confirmParts.push("?");
 
@@ -298,15 +304,17 @@ export default function AirbillsAirtimeScreen() {
         provider: "airbills",
         app_called: "Airbills",
         input_token_symbol: "USDC",
-        input_amount: faceAmount,
-        input_amount_usd: usdcDue,
-        amount: faceAmount,
+        input_amount: ngnPayable,
+        input_amount_usd:
+          Number.isFinite(usdcPayable) && usdcPayable > 0 ? usdcPayable : undefined,
+        amount: ngnPayable,
         token: "USDC",
         raw_metadata: {
           mobile_number: normalized,
           network_id: networkId,
-          airtime_face_amount_ngn: faceAmount,
-          usdc_paid_ngn: usdcDue,
+          airtime_selected_ngn: faceAmount,
+          airtime_amount_ngn: ngnPayable,
+          usdc_paid: usdcPayable,
           points_used: pointsUsed,
           points_redemption_id: redemptionId,
         },
@@ -314,7 +322,7 @@ export default function AirbillsAirtimeScreen() {
 
       await refreshPoints();
 
-      const successParts = [`${formatNaira(faceAmount)} airtime purchased`];
+      const successParts = [`${formatNaira(ngnPayable)} airtime purchased`];
       if (pointsUsed > 0) {
         successParts.push(`(${formatPointsLabel(pointsUsed)} applied)`);
       }
@@ -527,8 +535,9 @@ export default function AirbillsAirtimeScreen() {
               </View>
               {usePoints && maxApplicablePoints > 0 && (
                 <CText className="mt-2 text-[0.8rem] text-purple">
-                  {formatPointsLabel(pointsToUse)} off · pay{" "}
-                  {formatNaira(Math.max(MIN_AIRTIME, checkoutAmount - pointsToUse))} USDC
+                  {formatPointsLabel(pointsToUse)} off ·{" "}
+                  {formatNaira(Math.max(MIN_AIRTIME, checkoutAmount - pointsToUse))} airtime
+                  (USDC amount set by Airbills FX)
                 </CText>
               )}
             </View>

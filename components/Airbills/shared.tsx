@@ -19,6 +19,13 @@ export function formatNairaSpaced(amount: number) {
   return `₦ ${amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
+export function formatUsdc(amount: number, maximumFractionDigits = 4) {
+  return `$${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits,
+  })} USDC`;
+}
+
 export type QuickAirtimeOption = {
   amount: number;
   cashbackPoints: number;

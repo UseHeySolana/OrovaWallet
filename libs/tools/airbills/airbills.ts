@@ -243,9 +243,8 @@ const airBills = {
     },
 
     getAirtimePrice: async (amount: number) => {
-      // New API no longer exposes a direct airtime quote endpoint.
-      // Kept for compatibility with existing call sites.
-      return { status: true, data: { usd: amount } };
+      // amount is NGN face value; Airbills returns the real USDC charge in amountInToken.
+      return { status: true, data: { ngn: amount } };
     },
 
     /**
