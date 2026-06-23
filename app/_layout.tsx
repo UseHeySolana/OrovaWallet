@@ -13,6 +13,7 @@ import { KeyboardProvider } from "@/context/KeyboardContext";
 import { PIPManager } from "@/services/PIPService/PIPManager";
 import { WidgetManager } from "@/services/WidgetService/WidgetManager";
 import { PushNotificationManager } from "@/services/push/PushNotificationManager";
+import { PajCashBeneficiariesManager } from "@/services/pajcash/PajCashBeneficiariesManager";
 import { NotificationPermissionNudge } from "@/services/push/NotificationPermissionNudge";
 
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -126,10 +127,12 @@ export default function RootLayout() {
               <PIPManager>
                 <PIPDeepLinkHandler />
                 <PushNotificationManager>
+                  <PajCashBeneficiariesManager>
                   <NotificationPermissionNudge />
                   <WidgetManager>
                     <StackView />
                   </WidgetManager>
+                  </PajCashBeneficiariesManager>
                 </PushNotificationManager>
               </PIPManager>
             </AiServiceProvider>

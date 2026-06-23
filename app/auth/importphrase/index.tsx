@@ -34,7 +34,7 @@ export default function ImportPhrase({ navigation }: any) {
   const [mnemonic, setMnemonic] = useState("");
   const { setLoading, setToast } = AppSettings()
   const { updateKeypair, updatePassphrase } = WalletItem();
-  const { user } = UserItem();
+  const { user, setUser } = UserItem();
   const { isKeyboardVisible } = useKeyboard();
 
   const importWallet = async () => {
@@ -84,6 +84,10 @@ export default function ImportPhrase({ navigation }: any) {
           );
           if (response.status !== false) {
             updateKeypair(keyPair);
+            setUser({
+              ...user,
+              wallet_address: keyPair.publicKey.toBase58(),
+            });
             setToast("Wallet Created", "success");
             router.replace("/dashboard");
             setLoading(false);

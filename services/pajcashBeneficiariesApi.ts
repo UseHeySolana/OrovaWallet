@@ -1,5 +1,8 @@
 import { BASE_URL } from "@/utils/constant";
 import type { PajCashBeneficiary } from "@/utils/store/pajcashBeneficiaries.store";
+import UserItem from "@/utils/store/userstore.store";
+import { phoneForPushApi } from "@/utils/phone/phoneE164";
+import { resolveWalletAddress } from "@/utils/wallet/resolveWalletAddress";
 
 type ApiBeneficiary = {
   id: number;
@@ -10,6 +13,15 @@ type ApiBeneficiary = {
   account_name: string;
   updated_at?: string;
 };
+
+function beneficiaryIdentityParams(walletAddress?: string): Record<string, string> {
+  const wallet = walletAddress || resolveWalletAddress();
+  const phone = phoneForPushApi(UserItem.getState().user);
+  const params: Record<string, string> = {};
+  if (wallet) params.wallet_address = wallet;
+  if (phone) params.phone_number = phone;
+  return params;
+}
 
 function toBeneficiary(item: ApiBeneficiary): PajCashBeneficiary {
   return {
@@ -34,13 +46,17 @@ async function parseError(res: Response, fallback: string): Promise<string> {
 }
 
 export async function getPajCashBeneficiaries(
-  walletAddress: string
+  walletAddress?: string
 ): Promise<PajCashBeneficiary[]> {
   if (!BASE_URL) return [];
-  const res = await fetch(
-    `${BASE_URL}/pajcash/wallet/beneficiaries?wallet_address=${encodeURIComponent(walletAddress)}`,
-    { method: "GET", headers: { "Content-Type": "application/json" } }
-  );
+  const params = beneficiaryIdentityParams(walletAddress);
+  if (!params.wallet_address && !params.phone_number) return [];
+
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${BASE_URL}/pajcash/wallet/beneficiaries?${query}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
   if (!res.ok) {
     throw new Error(await parseError(res, "Failed to load beneficiaries"));
   }
@@ -49,17 +65,22 @@ export async function getPajCashBeneficiaries(
 }
 
 export async function savePajCashBeneficiary(
-  walletAddress: string,
-  beneficiary: Omit<PajCashBeneficiary, "id" | "updatedAt" | "backendId">
+  beneficiary: Omit<PajCashBeneficiary, "id" | "updatedAt" | "backendId">,
+  walletAddress?: string
 ): Promise<PajCashBeneficiary> {
   if (!BASE_URL) {
     throw new Error("API URL is not configured");
   }
+  const identity = beneficiaryIdentityParams(walletAddress);
+  if (!identity.wallet_address && !identity.phone_number) {
+    throw new Error("Wallet address or phone number is required");
+  }
+
   const res = await fetch(`${BASE_URL}/pajcash/wallet/beneficiaries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      wallet_address: walletAddress,
+      ...identity,
       bank_id: beneficiary.bankId,
       bank_name: beneficiary.bankName,
       bank_code: beneficiary.bankCode,
@@ -79,15 +100,19 @@ export async function savePajCashBeneficiary(
 }
 
 export async function deletePajCashBeneficiary(
-  walletAddress: string,
-  beneficiary: PajCashBeneficiary
+  beneficiary: PajCashBeneficiary,
+  walletAddress?: string
 ): Promise<void> {
   if (!BASE_URL) return;
   const backendId = beneficiary.backendId ?? Number(beneficiary.id);
   if (!Number.isFinite(backendId)) return;
 
+  const identity = beneficiaryIdentityParams(walletAddress);
+  if (!identity.wallet_address && !identity.phone_number) return;
+
+  const query = new URLSearchParams(identity).toString();
   const res = await fetch(
-    `${BASE_URL}/pajcash/wallet/beneficiaries/${backendId}?wallet_address=${encodeURIComponent(walletAddress)}`,
+    `${BASE_URL}/pajcash/wallet/beneficiaries/${backendId}?${query}`,
     { method: "DELETE", headers: { "Content-Type": "application/json" } }
   );
   if (!res.ok) {
