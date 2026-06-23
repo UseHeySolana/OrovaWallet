@@ -37,7 +37,9 @@ import { formatPhoneDisplay } from "@/libs/tools/airbills/dataPlanDisplay";
 import { recordAppTransactionAsync } from "@/services/appTransactions";
 import {
   cancelHeyPointsAirtimeRedemption,
+  checkoutAirtimeWithTreasury,
   formatPointsLabel,
+  fulfillAirtimeTreasuryLeg,
   getHeyPointsBalance,
   getHeyPointsConfig,
   maxPointsForAirtimePurchase,
@@ -191,13 +193,72 @@ export default function AirbillsAirtimeScreen() {
       let redemptionId: string | undefined;
       let pointsUsed = 0;
       let ngnPayable = faceAmount;
+      let requiresTreasuryLeg = false;
 
       if (usePoints && pointsConfig?.redeem_airtime_enabled) {
-        pointsUsed = Math.min(pointsToUse, maxPointsForAirtimePurchase(
-          pointsConfig,
-          pointsBalance,
-          faceAmount
-        ));
+        pointsUsed = Math.min(
+          pointsToUse,
+          maxPointsForAirtimePurchase(pointsConfig, pointsBalance, faceAmount)
+        );
+
+        if (pointsUsed > 0 && pointsConfig.treasury_checkout_enabled && pointsUsed >= faceAmount) {
+          setPurchasing(true);
+          setLoading(true);
+          try {
+            const result = await checkoutAirtimeWithTreasury({
+              walletAddress,
+              phoneNumber: normalized,
+              networkId,
+              airtimeAmountNgn: faceAmount,
+              points: pointsUsed,
+            });
+            setPointsBalance(result.balance);
+
+            recordAppTransactionAsync({
+              signature: result.treasury.signature,
+              transaction_type: "airtime",
+              status: "confirmed",
+              provider: "airbills",
+              app_called: "Airbills",
+              input_token_symbol: "USDC",
+              input_amount: 0,
+              input_amount_usd:
+                result.treasury.amount_in_token > 0
+                  ? result.treasury.amount_in_token
+                  : undefined,
+              amount: faceAmount,
+              token: "USDC",
+              raw_metadata: {
+                mobile_number: normalized,
+                network_id: networkId,
+                airtime_selected_ngn: faceAmount,
+                points_used: pointsUsed,
+                points_redemption_id: result.redemption.redemption_id,
+                treasury_full_checkout: true,
+                treasury_signature: result.treasury.signature,
+                treasury_amount_in_token: result.treasury.amount_in_token,
+                usdc_paid: 0,
+              },
+            });
+
+            await refreshPoints();
+            setToast(
+              `${formatNaira(faceAmount)} airtime purchased (${formatPointsLabel(pointsUsed)} applied)`,
+              "success"
+            );
+            setCustomAmount("");
+            setSelectedAmount(null);
+          } catch (error) {
+            setToast(
+              error instanceof Error ? error.message : "Treasury checkout failed",
+              "error"
+            );
+          } finally {
+            setPurchasing(false);
+            setLoading(false);
+          }
+          return;
+        }
 
         if (pointsUsed > 0) {
           try {
@@ -207,7 +268,8 @@ export default function AirbillsAirtimeScreen() {
               airtimeAmountNgn: faceAmount,
             });
             redemptionId = redemption.redemption_id;
-            ngnPayable = redemption.usdc_due_ngn;
+            ngnPayable = redemption.usdc_due_ngn ?? redemption.ngn_payable ?? faceAmount - pointsUsed;
+            requiresTreasuryLeg = !!redemption.requires_treasury_leg;
             setPointsBalance(redemption.balance);
           } catch (error) {
             setToast(
@@ -297,6 +359,34 @@ export default function AirbillsAirtimeScreen() {
         return;
       }
 
+      let treasurySignature: string | undefined;
+      let treasuryUsdcPaid: number | undefined;
+
+      if (requiresTreasuryLeg && redemptionId) {
+        setLoading(true);
+        try {
+          const treasuryLeg = await fulfillAirtimeTreasuryLeg({
+            walletAddress,
+            redemptionId,
+            phoneNumber: normalized,
+            networkId,
+            userTransactionSignature: signed.message,
+          });
+          treasurySignature = treasuryLeg.treasury.signature;
+          treasuryUsdcPaid = treasuryLeg.treasury.amount_in_token;
+          setPointsBalance(treasuryLeg.balance);
+        } catch (error) {
+          setToast(
+            error instanceof Error
+              ? `${error.message}. Your payment went through; contact support if airtime is short.`
+              : "Points top-up failed after payment. Contact support if airtime is short.",
+            "error"
+          );
+        } finally {
+          setLoading(false);
+        }
+      }
+
       recordAppTransactionAsync({
         signature: signed.message,
         transaction_type: "airtime",
@@ -307,7 +397,7 @@ export default function AirbillsAirtimeScreen() {
         input_amount: ngnPayable,
         input_amount_usd:
           Number.isFinite(usdcPayable) && usdcPayable > 0 ? usdcPayable : undefined,
-        amount: ngnPayable,
+        amount: requiresTreasuryLeg ? faceAmount : ngnPayable,
         token: "USDC",
         raw_metadata: {
           mobile_number: normalized,
@@ -317,12 +407,16 @@ export default function AirbillsAirtimeScreen() {
           usdc_paid: usdcPayable,
           points_used: pointsUsed,
           points_redemption_id: redemptionId,
+          requires_treasury_leg: requiresTreasuryLeg,
+          treasury_signature: treasurySignature,
+          treasury_amount_in_token: treasuryUsdcPaid,
         },
       });
 
       await refreshPoints();
 
-      const successParts = [`${formatNaira(ngnPayable)} airtime purchased`];
+      const loadedNgn = requiresTreasuryLeg && treasurySignature ? faceAmount : ngnPayable;
+      const successParts = [`${formatNaira(loadedNgn)} airtime purchased`];
       if (pointsUsed > 0) {
         successParts.push(`(${formatPointsLabel(pointsUsed)} applied)`);
       }
@@ -536,8 +630,9 @@ export default function AirbillsAirtimeScreen() {
               {usePoints && maxApplicablePoints > 0 && (
                 <CText className="mt-2 text-[0.8rem] text-purple">
                   {formatPointsLabel(pointsToUse)} off ·{" "}
-                  {formatNaira(Math.max(MIN_AIRTIME, checkoutAmount - pointsToUse))} airtime
-                  (USDC amount set by Airbills FX)
+                  {pointsConfig?.treasury_checkout_enabled
+                    ? `${formatNaira(checkoutAmount)} airtime (you pay ${formatNaira(Math.max(0, checkoutAmount - pointsToUse))} USDC)`
+                    : `${formatNaira(Math.max(MIN_AIRTIME, checkoutAmount - pointsToUse))} airtime (USDC amount set by Airbills FX)`}
                 </CText>
               )}
             </View>

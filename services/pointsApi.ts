@@ -16,6 +16,7 @@ export interface HeyPointsConfig {
   redeem_gas_enabled: boolean;
   max_redeem_percent_airtime: number;
   lamports_per_point: number;
+  treasury_checkout_enabled?: boolean;
   quick_amounts: HeyPointsQuickAmount[];
 }
 
@@ -54,8 +55,25 @@ export interface AirtimePointsRedemption {
   points_used: number;
   discount_ngn: number;
   usdc_due_ngn: number;
+  ngn_payable?: number;
   balance: number;
   expires_at?: string;
+  requires_treasury_leg?: boolean;
+  requires_treasury_full_checkout?: boolean;
+}
+
+export interface AirtimeTreasuryCheckoutResult {
+  signature: string;
+  vendor_transaction_id: string;
+  amount_ngn: number;
+  amount_in_token: number;
+  treasury_public_key: string;
+}
+
+export interface AirtimeTreasuryFullCheckoutResponse {
+  redemption: AirtimePointsRedemption;
+  treasury: AirtimeTreasuryCheckoutResult;
+  balance: number;
 }
 
 async function parseJson<T>(res: Response): Promise<T> {
@@ -128,8 +146,11 @@ export function maxPointsForAirtimePurchase(
     (airtimeAmountNgn * config.max_redeem_percent_airtime) / 100
   );
   const minUsdcDue = 50;
-  const minDueCap =
-    airtimeAmountNgn > minUsdcDue ? airtimeAmountNgn - minUsdcDue : 0;
+  const minDueCap = config.treasury_checkout_enabled
+    ? airtimeAmountNgn
+    : airtimeAmountNgn > minUsdcDue
+      ? airtimeAmountNgn - minUsdcDue
+      : 0;
 
   return Math.max(0, Math.min(balance, percentCap, minDueCap, airtimeAmountNgn));
 }
@@ -149,6 +170,56 @@ export async function redeemHeyPointsForAirtime(params: {
     }),
   });
   const data = await parseJson<{ success: boolean; data: AirtimePointsRedemption }>(res);
+  return data.data;
+}
+
+export async function checkoutAirtimeWithTreasury(params: {
+  walletAddress: string;
+  phoneNumber: string;
+  networkId: string;
+  airtimeAmountNgn: number;
+  points: number;
+}): Promise<AirtimeTreasuryFullCheckoutResponse> {
+  const res = await fetch(`${BASE_URL}/v2/points/checkout/airtime/treasury`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      wallet_address: params.walletAddress,
+      phone_number: params.phoneNumber,
+      network_id: params.networkId,
+      airtime_amount_ngn: params.airtimeAmountNgn,
+      points: params.points,
+    }),
+  });
+  const data = await parseJson<{
+    success: boolean;
+    data: AirtimeTreasuryFullCheckoutResponse;
+  }>(res);
+  return data.data;
+}
+
+export async function fulfillAirtimeTreasuryLeg(params: {
+  walletAddress: string;
+  redemptionId: string;
+  phoneNumber: string;
+  networkId: string;
+  userTransactionSignature?: string;
+}): Promise<{ treasury: AirtimeTreasuryCheckoutResult; balance: number }> {
+  const res = await fetch(`${BASE_URL}/v2/points/checkout/airtime/treasury-leg`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      wallet_address: params.walletAddress,
+      redemption_id: params.redemptionId,
+      phone_number: params.phoneNumber,
+      network_id: params.networkId,
+      user_transaction_signature: params.userTransactionSignature,
+    }),
+  });
+  const data = await parseJson<{
+    success: boolean;
+    data: { treasury: AirtimeTreasuryCheckoutResult; balance: number };
+  }>(res);
   return data.data;
 }
 
