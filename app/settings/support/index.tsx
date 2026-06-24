@@ -10,7 +10,9 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
+import { Image } from "expo-image";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as ImagePicker from "expo-image-picker";
 
 import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
@@ -19,8 +21,10 @@ import {
   endSupportChat,
   getSupportHistory,
   getSupportMessages,
+  resolveSupportAttachmentUrl,
   sendSupportMessage,
   type SupportConversation,
+  type SupportImageAttachment,
   type SupportMessage,
 } from "@/services/supportChatApi";
 
@@ -50,6 +54,26 @@ function formatHistoryDate(iso?: string | null) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+async function pickSupportImage(): Promise<SupportImageAttachment | null> {
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) return null;
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 0.85,
+  });
+
+  if (result.canceled || !result.assets[0]?.uri) return null;
+
+  const asset = result.assets[0];
+  return {
+    uri: asset.uri,
+    mimeType: asset.mimeType ?? "image/jpeg",
+    fileName: asset.fileName ?? `support-${Date.now()}.jpg`,
+  };
 }
 
 function SupportAvatar({ size = 72 }: { size?: number }) {
@@ -82,33 +106,66 @@ function SupportAvatar({ size = 72 }: { size?: number }) {
   );
 }
 
-function SupportMessageBubble({
-  message,
-}: {
-  message: SupportMessage;
-}) {
+function SupportMessageBubble({ message }: { message: SupportMessage }) {
   const isUser = message.sender_type === "user";
+  const hasImage = !!message.attachment_url;
 
   return (
     <View className={`mb-4 w-full ${isUser ? "items-end" : "items-start"}`}>
       <View
-        className={`max-w-[82%] rounded-2xl px-4 py-3 ${
-          isUser
-            ? "rounded-tr-md bg-[#E8E8EC] dark:bg-accent"
-            : "rounded-tl-md"
-        }`}
+        className={`max-w-[82%] overflow-hidden rounded-2xl ${
+          isUser ? "rounded-tr-md bg-[#E8E8EC] dark:bg-accent" : "rounded-tl-md"
+        } ${hasImage || message.body ? "px-1 py-1" : ""}`}
         style={!isUser ? { backgroundColor: `${BRAND}22` } : undefined}
       >
-        <CText
-          className={`text-[14px] leading-5 ${
-            isUser ? "text-black dark:text-white" : "text-black dark:text-white"
-          }`}
-        >
-          {message.body}
-        </CText>
+        {hasImage && (
+          <Image
+            source={{ uri: resolveSupportAttachmentUrl(message.attachment_url)! }}
+            style={{ width: 220, height: 220, borderRadius: 14 }}
+            contentFit="cover"
+          />
+        )}
+        {!!message.body && (
+          <CText
+            className={`px-3 py-2 text-[14px] leading-5 text-black dark:text-white ${
+              hasImage ? "pt-1" : ""
+            }`}
+          >
+            {message.body}
+          </CText>
+        )}
       </View>
       <CText className="mt-1 px-1 text-[11px] text-black/40 dark:text-grey/50">
         {formatTime(message.created_at)}
+      </CText>
+    </View>
+  );
+}
+
+function PendingImagePreview({
+  image,
+  onRemove,
+}: {
+  image: SupportImageAttachment;
+  onRemove: () => void;
+}) {
+  return (
+    <View className="mb-2 flex-row items-center px-4">
+      <View className="relative">
+        <Image
+          source={{ uri: image.uri }}
+          style={{ width: 72, height: 72, borderRadius: 12 }}
+          contentFit="cover"
+        />
+        <Pressable
+          onPress={onRemove}
+          className="absolute -right-2 -top-2 h-6 w-6 items-center justify-center rounded-full bg-black"
+        >
+          <Ionicons name="close" size={14} color="#fff" />
+        </Pressable>
+      </View>
+      <CText className="ml-3 flex-1 text-[12px] text-black/55 dark:text-grey/60">
+        Image ready to send
       </CText>
     </View>
   );
@@ -118,21 +175,38 @@ function MessageInputBar({
   value,
   onChangeText,
   onSend,
+  onPickImage,
+  pendingImage,
+  onRemoveImage,
   sending,
   placeholder,
 }: {
   value: string;
   onChangeText: (t: string) => void;
   onSend: () => void;
+  onPickImage: () => void;
+  pendingImage: SupportImageAttachment | null;
+  onRemoveImage: () => void;
   sending: boolean;
   placeholder: string;
 }) {
   const { isDarkMode } = useThemeContext();
-  const canSend = value.trim().length > 0 && !sending;
+  const canSend = (value.trim().length > 0 || !!pendingImage) && !sending;
 
   return (
-    <View className="border-t border-black/5 bg-white px-4 py-3 dark:border-white/10 dark:bg-black">
-      <View className="flex-row items-end gap-x-2">
+    <View className="border-t border-black/5 bg-white dark:border-white/10 dark:bg-black">
+      {pendingImage && (
+        <PendingImagePreview image={pendingImage} onRemove={onRemoveImage} />
+      )}
+      <View className="flex-row items-end gap-x-2 px-4 py-3">
+        <Pressable
+          onPress={onPickImage}
+          disabled={sending}
+          className="mb-1 h-11 w-11 items-center justify-center rounded-full"
+          style={{ backgroundColor: `${BRAND}18` }}
+        >
+          <Ionicons name="image-outline" size={22} color={BRAND} />
+        </Pressable>
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -174,6 +248,7 @@ export default function SupportScreen() {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [history, setHistory] = useState<SupportConversation[]>([]);
   const [draft, setDraft] = useState("");
+  const [pendingImage, setPendingImage] = useState<SupportImageAttachment | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -228,19 +303,36 @@ export default function SupportScreen() {
     await loadThread(convId);
   };
 
+  const handlePickImage = async () => {
+    const image = await pickSupportImage();
+    if (image) setPendingImage(image);
+  };
+
   const handleSend = async (textOverride?: string) => {
     const text = (textOverride ?? draft).trim();
-    if (!text || sending || !user) return;
+    const attachment = textOverride ? null : pendingImage;
+    if ((!text && !attachment) || sending || !user) return;
 
     setSending(true);
-    if (!textOverride) setDraft("");
+    if (!textOverride) {
+      setDraft("");
+      setPendingImage(null);
+    }
     setError(null);
 
-    const result = await sendSupportMessage(text, user, conversationId ?? undefined);
+    const result = await sendSupportMessage(
+      text,
+      user,
+      conversationId ?? undefined,
+      attachment
+    );
     setSending(false);
 
     if (!result) {
-      if (!textOverride) setDraft(text);
+      if (!textOverride) {
+        setDraft(text);
+        if (attachment) setPendingImage(attachment);
+      }
       setError("Message failed to send. Try again.");
       return;
     }
@@ -253,6 +345,7 @@ export default function SupportScreen() {
   };
 
   const handleEndChat = async () => {
+    setPendingImage(null);
     if (!conversationId || !user) {
       setMode("landing");
       setConversationId(null);
@@ -338,6 +431,9 @@ export default function SupportScreen() {
           value={draft}
           onChangeText={setDraft}
           onSend={() => void handleSend()}
+          onPickImage={() => void handlePickImage()}
+          pendingImage={pendingImage}
+          onRemoveImage={() => setPendingImage(null)}
           sending={sending}
           placeholder="Message…"
         />
@@ -379,9 +475,18 @@ export default function SupportScreen() {
           </CText>
         </View>
 
+        {pendingImage && (
+          <View className="mx-5 mt-4">
+            <PendingImagePreview
+              image={pendingImage}
+              onRemove={() => setPendingImage(null)}
+            />
+          </View>
+        )}
+
         <View className="mx-5 mt-6">
           <View
-            className="flex-row items-center rounded-2xl bg-white px-4 py-1 shadow-sm dark:bg-accent"
+            className="flex-row items-center rounded-2xl bg-white px-3 py-1 shadow-sm dark:bg-accent"
             style={{
               shadowColor: "#000",
               shadowOpacity: 0.06,
@@ -390,6 +495,13 @@ export default function SupportScreen() {
               elevation: 2,
             }}
           >
+            <Pressable
+              onPress={() => void handlePickImage()}
+              disabled={sending}
+              className="p-2"
+            >
+              <Ionicons name="image-outline" size={22} color={BRAND} />
+            </Pressable>
             <TextInput
               value={draft}
               onChangeText={setDraft}
@@ -402,7 +514,7 @@ export default function SupportScreen() {
             />
             <Pressable
               onPress={() => void handleSend()}
-              disabled={!draft.trim() || sending}
+              disabled={(!draft.trim() && !pendingImage) || sending}
               className="p-2"
             >
               {sending ? (
@@ -411,7 +523,7 @@ export default function SupportScreen() {
                 <Ionicons
                   name="send"
                   size={22}
-                  color={draft.trim() ? BRAND : "#ccc"}
+                  color={draft.trim() || pendingImage ? BRAND : "#ccc"}
                 />
               )}
             </Pressable>
@@ -422,9 +534,7 @@ export default function SupportScreen() {
           {QUICK_TOPICS.map((topic) => (
             <Pressable
               key={topic}
-              onPress={() => {
-                setDraft(topic);
-              }}
+              onPress={() => setDraft(topic)}
               className="rounded-full border border-black/8 bg-white px-4 py-3 dark:border-white/10 dark:bg-accent"
             >
               <CText className="text-center text-[13px] text-black/75 dark:text-grey/80">
@@ -452,7 +562,15 @@ export default function SupportScreen() {
                   className="mr-3 h-10 w-10 items-center justify-center rounded-full"
                   style={{ backgroundColor: `${BRAND}18` }}
                 >
-                  <Ionicons name="chatbubble-ellipses-outline" size={18} color={BRAND} />
+                  <Ionicons
+                    name={
+                      item.last_message_preview === "Photo"
+                        ? "image-outline"
+                        : "chatbubble-ellipses-outline"
+                    }
+                    size={18}
+                    color={BRAND}
+                  />
                 </View>
                 <View className="min-w-0 flex-1">
                   <CText

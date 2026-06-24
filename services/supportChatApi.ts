@@ -26,10 +26,20 @@ export interface SupportMessage {
   sender_type: SupportSenderType;
   sender_admin_id?: number | null;
   body: string;
+  attachment_url?: string | null;
+  attachment_mime?: string | null;
+  attachment_original_name?: string | null;
+  has_attachment?: boolean;
   read_at?: string | null;
   created_at?: string;
   admin?: { id: number; name: string } | null;
 }
+
+export type SupportImageAttachment = {
+  uri: string;
+  mimeType?: string;
+  fileName?: string;
+};
 
 export type SupportIdentity = {
   phone_number?: string;
@@ -37,6 +47,38 @@ export type SupportIdentity = {
   user_id?: number;
   username?: string;
 };
+
+function apiOrigin(): string {
+  if (!BASE_URL) return "";
+  return BASE_URL.replace(/\/api\/?$/, "");
+}
+
+/** Align attachment host with the wallet API host (dev LAN vs localhost). */
+export function resolveSupportAttachmentUrl(
+  url: string | null | undefined
+): string | undefined {
+  if (!url) return undefined;
+  const origin = apiOrigin();
+  if (!origin) return url;
+
+  try {
+    const parsed = new URL(url);
+    const api = new URL(origin);
+    if (
+      parsed.hostname !== api.hostname ||
+      (parsed.port || "") !== (api.port || "")
+    ) {
+      parsed.hostname = api.hostname;
+      parsed.port = api.port;
+      parsed.protocol = api.protocol;
+      return parsed.toString();
+    }
+  } catch {
+    if (url.startsWith("/")) return `${origin}${url}`;
+  }
+
+  return url;
+}
 
 function identityFromUser(user: UserType | null | undefined): SupportIdentity {
   const phone = phoneForPushApi(user ?? null);
@@ -131,19 +173,52 @@ export async function getSupportMessages(
 export async function sendSupportMessage(
   body: string,
   user: UserType | null | undefined,
-  conversationId?: number
+  conversationId?: number,
+  attachment?: SupportImageAttachment | null
 ): Promise<{
   conversation: SupportConversation;
   message: SupportMessage;
 } | null> {
   if (!BASE_URL) return null;
   const identity = identityFromUser(user);
+  const trimmed = body.trim();
+
+  if (!trimmed && !attachment) return null;
+
+  if (attachment) {
+    const form = new FormData();
+    if (trimmed) form.append("body", trimmed);
+    if (identity.phone_number) form.append("phone_number", identity.phone_number);
+    if (identity.wallet_address) form.append("wallet_address", identity.wallet_address);
+    if (identity.username) form.append("username", identity.username);
+    if (conversationId != null) form.append("conversation_id", String(conversationId));
+
+    const mime = attachment.mimeType ?? "image/jpeg";
+    const name = attachment.fileName ?? `support-${Date.now()}.jpg`;
+    form.append("attachment", {
+      uri: attachment.uri,
+      type: mime,
+      name,
+    } as unknown as Blob);
+
+    const res = await fetch(`${BASE_URL}/support/messages`, {
+      method: "POST",
+      body: form,
+    });
+    const json = await parseJson<{
+      success: boolean;
+      data: { conversation: SupportConversation; message: SupportMessage };
+    }>(res);
+    if (!res.ok || !json?.success) return null;
+    return json.data;
+  }
+
   const res = await fetch(`${BASE_URL}/support/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...identity,
-      body,
+      body: trimmed,
       conversation_id: conversationId,
     }),
   });
