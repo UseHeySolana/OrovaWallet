@@ -1,6 +1,7 @@
 import { BASE_URL } from "@/utils/constant";
 import { phoneForPushApi } from "@/utils/phone/phoneE164";
 import type { UserType } from "@/utils/types/user.types";
+import * as FileSystem from "expo-file-system";
 
 export type SupportConversationStatus = "open" | "resolved" | "closed";
 export type SupportSenderType = "user" | "admin";
@@ -170,6 +171,12 @@ export async function getSupportMessages(
   return json.data;
 }
 
+async function readImageBase64(uri: string): Promise<string> {
+  return FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+}
+
 export async function sendSupportMessage(
   body: string,
   user: UserType | null | undefined,
@@ -185,42 +192,31 @@ export async function sendSupportMessage(
 
   if (!trimmed && !attachment) return null;
 
-  if (attachment) {
-    const form = new FormData();
-    if (trimmed) form.append("body", trimmed);
-    if (identity.phone_number) form.append("phone_number", identity.phone_number);
-    if (identity.wallet_address) form.append("wallet_address", identity.wallet_address);
-    if (identity.username) form.append("username", identity.username);
-    if (conversationId != null) form.append("conversation_id", String(conversationId));
+  const payload: Record<string, unknown> = {
+    ...identity,
+    conversation_id: conversationId,
+  };
+  if (trimmed) payload.body = trimmed;
 
+  if (attachment) {
     const mime = attachment.mimeType ?? "image/jpeg";
     const name = attachment.fileName ?? `support-${Date.now()}.jpg`;
-    form.append("attachment", {
-      uri: attachment.uri,
-      type: mime,
-      name,
-    } as unknown as Blob);
-
-    const res = await fetch(`${BASE_URL}/support/messages`, {
-      method: "POST",
-      body: form,
-    });
-    const json = await parseJson<{
-      success: boolean;
-      data: { conversation: SupportConversation; message: SupportMessage };
-    }>(res);
-    if (!res.ok || !json?.success) return null;
-    return json.data;
+    try {
+      payload.attachment_base64 = await readImageBase64(attachment.uri);
+      payload.attachment_mime = mime;
+      payload.attachment_name = name;
+    } catch {
+      return null;
+    }
   }
 
   const res = await fetch(`${BASE_URL}/support/messages`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...identity,
-      body: trimmed,
-      conversation_id: conversationId,
-    }),
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
   const json = await parseJson<{
     success: boolean;

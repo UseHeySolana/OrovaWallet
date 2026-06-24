@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { Image } from "expo-image";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
@@ -246,6 +247,7 @@ function MessageInputBar({
 export default function SupportScreen() {
   const { isDarkMode } = useThemeContext();
   const { user } = UserItem();
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<"landing" | "chat">("landing");
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -255,9 +257,37 @@ export default function SupportScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const listRef = useRef<FlatList<SupportMessage>>(null);
 
   const displayName = user?.username ?? "there";
+  const keyboardInset = Math.max(0, keyboardHeight - insets.bottom);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (keyboardHeight <= 0 || mode !== "chat") return;
+    const timer = setTimeout(
+      () => listRef.current?.scrollToEnd({ animated: true }),
+      100
+    );
+    return () => clearTimeout(timer);
+  }, [keyboardHeight, mode]);
 
   const loadHistory = useCallback(async () => {
     if (!user) {
@@ -384,10 +414,9 @@ export default function SupportScreen() {
 
   if (mode === "chat") {
     return (
-      <KeyboardAvoidingView
+      <View
         className="flex-1 bg-grey dark:bg-dark"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+        style={{ paddingBottom: keyboardInset }}
       >
         <View className="flex-row items-center gap-x-3 border-b border-black/5 px-4 pb-3 pt-3 dark:border-white/10">
           <Pressable onPress={() => void handleEndChat()} className="p-1">
@@ -434,6 +463,8 @@ export default function SupportScreen() {
             data={messages}
             keyExtractor={(item) => String(item.id)}
             className="flex-1"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
             contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
             onContentSizeChange={() =>
               listRef.current?.scrollToEnd({ animated: false })
@@ -452,15 +483,14 @@ export default function SupportScreen() {
           sending={sending}
           placeholder="Message…"
         />
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
+    <View
       className="flex-1 bg-grey dark:bg-dark"
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      style={{ paddingBottom: keyboardInset }}
     >
       <View className="flex-row items-center gap-x-3 px-4 pb-2 pt-3">
         <Pressable onPress={() => router.back()} className="p-1">
@@ -479,6 +509,7 @@ export default function SupportScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         <View className="items-center px-6 pt-6">
           <SupportAvatar size={76} />
@@ -620,6 +651,6 @@ export default function SupportScreen() {
           </View>
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
