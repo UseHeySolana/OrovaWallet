@@ -17,10 +17,12 @@ import IconLibrary from "@/utils/icons";
 import WalletItem from "@/utils/store/wallet.store";
 import { copyItem } from "@/utils/functions";
 import {
-  createDextopusDepositAddress,
+  findOrCreateDextopusDepositAddress,
+  matchDextopusDepositAddress,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
   DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS,
+  DEXTOPUS_UNSUPPORTED_ORIGIN_CHAIN_IDS,
   getDextopusChains,
   getDextopusTokens,
   listDextopusDepositAddresses,
@@ -85,7 +87,8 @@ export default function DextopusCrossChainDeposit({
       chains.filter(
         (chain) =>
           chain.chainId !== DEXTOPUS_SOLANA_CHAIN_ID &&
-          !DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS.has(chain.chainId)
+          !DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS.has(chain.chainId) &&
+          !DEXTOPUS_UNSUPPORTED_ORIGIN_CHAIN_IDS.has(chain.chainId)
       ),
     [chains]
   );
@@ -209,12 +212,15 @@ export default function DextopusCrossChainDeposit({
 
     if (submitting) return;
 
-    const existing = savedAddresses.find(
-      (address) =>
-        address.origin_chain_id === selectedChain.chainId &&
-        normalizeAsset(address.origin_asset) === normalizeAsset(token.address) &&
-        address.settlement_chain_id === DEXTOPUS_SOLANA_CHAIN_ID
-    );
+    const existing = matchDextopusDepositAddress(savedAddresses, {
+      wallet_address: walletAddress,
+      origin_chain_id: selectedChain.chainId,
+      origin_asset: token.address,
+      origin_symbol: token.symbol,
+      settlement_asset: DEXTOPUS_USDC_MAINNET,
+      settlement_symbol: "USDC",
+      settlement_address: walletAddress,
+    });
 
     if (existing) {
       setActiveAddress(existing);
@@ -225,7 +231,7 @@ export default function DextopusCrossChainDeposit({
     setSubmitting(true);
     setError(null);
     try {
-      const address = await createDextopusDepositAddress({
+      const address = await findOrCreateDextopusDepositAddress({
         wallet_address: walletAddress,
         origin_chain_id: selectedChain.chainId,
         origin_asset: token.address,

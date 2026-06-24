@@ -4,10 +4,11 @@ import WalletItem from "@/utils/store/wallet.store";
 import { completeConversation } from "@/utils/functions";
 import { router } from "expo-router";
 import {
-  createDextopusDepositAddress,
+  findOrCreateDextopusDepositAddress,
   createDextopusQuote,
   DEXTOPUS_NATIVE_SOL_ASSET,
   DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS,
+  DEXTOPUS_UNSUPPORTED_ORIGIN_CHAIN_IDS,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
   getDextopusChains,
@@ -100,7 +101,13 @@ export class DextopusTool {
           if (DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS.has(originChainId)) {
             return this.fail(
               messageId,
-              "Bitcoin and Tron cross-chain deposits are not supported yet."
+              "That network is not supported for cross-chain deposits yet."
+            );
+          }
+          if (DEXTOPUS_UNSUPPORTED_ORIGIN_CHAIN_IDS.has(originChainId)) {
+            return this.fail(
+              messageId,
+              "That network is not available for deposits right now. Try Base, Ethereum, or Arbitrum."
             );
           }
 
@@ -118,7 +125,7 @@ export class DextopusTool {
           }
 
           const settlement = resolveSettlementAsset(args.receive_token || "USDC");
-          const address = await createDextopusDepositAddress({
+          const address = await findOrCreateDextopusDepositAddress({
             wallet_address: walletAddress,
             origin_chain_id: originChainId,
             origin_asset: originToken.address,

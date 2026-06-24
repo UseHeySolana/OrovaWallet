@@ -40,15 +40,28 @@ import {
   type AppTransactionStatus,
 } from "@/services/appTransactions";
 import {
-  createDextopusDepositAddress,
+  findOrCreateDextopusDepositAddress,
+  DEXTOPUS_BRIDGE_FEE_RATE,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
+  grossUpForDextopusFee,
   isEvmAddress,
   getDextopusChains,
   getDextopusTokens,
   type DextopusChain,
   type DextopusToken,
 } from "@/services/dextopusApi";
+
+type OnrampBridgeRoute = {
+  deposit_address: string;
+  settlement_chain_id: number;
+  settlement_chain_name: string;
+  settlement_asset: string;
+  settlement_symbol: string;
+  settlement_address: string;
+  recipient_receive_amount: number;
+  usdc_send_amount: number;
+};
 
 function isNigerianPhoneNumber(phone?: string | null): boolean {
   const compact = String(phone || "").replace(/[\s()-]/g, "");
@@ -201,15 +214,15 @@ function pajCashOrderId(data: unknown): string | undefined {
   const record = data as Record<string, unknown>;
   return asOptionalString(
     record.id ??
-      record.orderId ??
-      record.order_id ??
-      record.transactionId ??
-      record.transaction_id ??
-      record.reference ??
-      record.referenceId ??
-      record.reference_id ??
-      record.paymentReference ??
-      record.payment_reference
+    record.orderId ??
+    record.order_id ??
+    record.transactionId ??
+    record.transaction_id ??
+    record.reference ??
+    record.referenceId ??
+    record.reference_id ??
+    record.paymentReference ??
+    record.payment_reference
   );
 }
 
@@ -221,15 +234,15 @@ function pajCashTokenAmount(
   const record = data as Record<string, unknown>;
   return asFiniteNumber(
     record.amount ??
-      record.tokenAmount ??
-      record.token_amount ??
-      record.cryptoAmount ??
-      record.crypto_amount ??
-      record.receiveAmount ??
-      record.receive_amount ??
-      record.outputAmount ??
-      record.output_amount ??
-      fallback
+    record.tokenAmount ??
+    record.token_amount ??
+    record.cryptoAmount ??
+    record.crypto_amount ??
+    record.receiveAmount ??
+    record.receive_amount ??
+    record.outputAmount ??
+    record.output_amount ??
+    fallback
   );
 }
 
@@ -238,18 +251,18 @@ function pajCashOrderSignature(data: unknown): string | undefined {
   const record = data as Record<string, unknown>;
   return asOptionalString(
     record.signature ??
-      record.transactionHash ??
-      record.transaction_hash ??
-      record.txHash ??
-      record.tx_hash ??
-      record.hash
+    record.transactionHash ??
+    record.transaction_hash ??
+    record.txHash ??
+    record.tx_hash ??
+    record.hash
   );
 }
 
 export default function Onramp() {
   const { user } = UserItem();
   const publicKey = WalletItem((state) => state.publicKey);
-  const { setToast, network } = AppSettings();
+  const { setToast } = AppSettings();
   const pajSession = PajCashSession();
   const paymentPollRunRef = useRef(0);
   const recordedOnrampStatesRef = useRef<Set<string>>(new Set());
@@ -300,13 +313,14 @@ export default function Onramp() {
   const [chainSearch, setChainSearch] = useState("");
   const [destAddress, setDestAddress] = useState("");
   const [dextopusAddress, setDextopusAddress] = useState<string | null>(null);
+  const [activeBridgeRoute, setActiveBridgeRoute] = useState<OnrampBridgeRoute | null>(null);
   const [dextopusTokens, setDextopusTokens] = useState<DextopusToken[]>([]);
   const [dexTokenSearchLoading, setDexTokenSearchLoading] = useState(false);
 
   const isSolanaChain = selectedChainId === DEXTOPUS_SOLANA_CHAIN_ID;
 
   useEffect(() => {
-    getDextopusChains().then((list) => setChains(list)).catch(() => {});
+    getDextopusChains().then((list) => setChains(list)).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -317,7 +331,7 @@ export default function Onramp() {
       .then((tokens) => {
         if (!cancelled) setDextopusTokens(tokens);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!cancelled) setDexTokenSearchLoading(false);
       });
@@ -360,7 +374,8 @@ export default function Onramp() {
   const recordPajCashOnrampOrder = (
     orderData: unknown,
     status: AppTransactionStatus,
-    statusData?: unknown
+    statusData?: unknown,
+    bridgeRoute?: OnrampBridgeRoute | null
   ) => {
     if (!publicKey || !orderData || typeof orderData !== "object") {
       logOnrampError("Skipping transaction record: missing wallet or order data", {
@@ -372,10 +387,9 @@ export default function Onramp() {
 
     const orderRecord = orderData as Record<string, unknown>;
     const orderId = pajCashOrderId(orderData);
-    const amount = pajCashTokenAmount(
-      orderData,
-      quote?.amount ?? tokenAmount
-    );
+    const amount =
+      bridgeRoute?.recipient_receive_amount ??
+      pajCashTokenAmount(orderData, quote?.amount ?? tokenAmount);
 
     if (!orderId || amount == null) {
       logOnrampError("Skipping transaction record: missing order id or token amount", {
@@ -400,10 +414,11 @@ export default function Onramp() {
         orderRecord.tokenSymbol ?? orderRecord.token_symbol ?? orderRecord.symbol
       ) ?? tokenLabel,
       mint: asOptionalString(orderRecord.mint ?? quote?.mint) ?? selectedToken?.address,
-      recipient: publicKey.toBase58(),
+      recipient: bridgeRoute?.settlement_address ?? publicKey.toBase58(),
       status,
       raw_metadata: {
         order_id: orderId,
+        wallet_address: publicKey.toBase58(),
         fiat_amount: asOptionalString(
           orderRecord.fiatAmount ?? orderRecord.fiat_amount ?? fiatAmount
         ),
@@ -422,6 +437,25 @@ export default function Onramp() {
               ? "pajcash_status"
               : "wallet_activity"
             : "order_created",
+        ...(bridgeRoute
+          ? {
+              bridge: {
+                provider: "dextopus",
+                pajcash_recipient: bridgeRoute.deposit_address,
+                deposit_address: bridgeRoute.deposit_address,
+                origin_chain_id: DEXTOPUS_SOLANA_CHAIN_ID,
+                origin_asset: DEXTOPUS_USDC_MAINNET,
+                settlement_chain_id: bridgeRoute.settlement_chain_id,
+                settlement_chain_name: bridgeRoute.settlement_chain_name,
+                settlement_asset: bridgeRoute.settlement_asset,
+                settlement_symbol: bridgeRoute.settlement_symbol,
+                settlement_address: bridgeRoute.settlement_address,
+                recipient_receive_amount: bridgeRoute.recipient_receive_amount,
+                usdc_send_amount: bridgeRoute.usdc_send_amount,
+                dextopus_fee_rate: DEXTOPUS_BRIDGE_FEE_RATE,
+              },
+            }
+          : {}),
       },
     });
   };
@@ -471,9 +505,13 @@ export default function Onramp() {
   const tokenLabel = isSolanaChain
     ? (selectedToken?.symbol || token.trim().toUpperCase())
     : "USDC";
-  const youReceiveLabel = isSolanaChain ? tokenLabel : "USDC (bridged to " + (selectedToken?.symbol ?? tokenLabel) + ")";
   const isPajCashVerified = pajSession.isSessionValid();
   const activeQuoteAmount = quoteMode === "fiat" ? fiatAmount : tokenAmount;
+  const parsedRecipientAmount = parseAmount(tokenAmount);
+  const bridgedUsdcSendAmount =
+    !isSolanaChain && Number.isFinite(parsedRecipientAmount) && parsedRecipientAmount > 0
+      ? grossUpForDextopusFee(parsedRecipientAmount)
+      : null;
   const expectedTokenAmount =
     quoteMode === "fiat"
       ? formatQuoteAmount(quote?.amount) || tokenAmount
@@ -491,11 +529,11 @@ export default function Onramp() {
       const query = tokenSearch.trim().toLowerCase();
       const source = query
         ? dextopusTokens.filter(
-            (t) =>
-              t.symbol.toLowerCase().includes(query) ||
-              t.name?.toLowerCase().includes(query) ||
-              t.address.toLowerCase().includes(query)
-          )
+          (t) =>
+            t.symbol.toLowerCase().includes(query) ||
+            t.name?.toLowerCase().includes(query) ||
+            t.address.toLowerCase().includes(query)
+        )
         : dextopusTokens;
       const hits: TokenSearchHit[] = source.slice(0, 30).map((t) => ({
         meta: {
@@ -680,7 +718,11 @@ export default function Onramp() {
     const res =
       quoteMode === "fiat"
         ? await pajcash.getTokenQuote(amount, mint, Currency.NGN)
-        : await pajcash.getFiatQuote(amount, mint, Currency.NGN);
+        : await pajcash.getFiatQuote(
+            !isSolanaChain ? grossUpForDextopusFee(amount) : amount,
+            mint,
+            Currency.NGN
+          );
 
     if (!options.quiet) {
       setLoading(null);
@@ -768,34 +810,26 @@ export default function Onramp() {
       return;
     }
 
-    let amount = parseAmount(fiatAmount);
     const desiredTokenAmount = parseAmount(tokenAmount);
-    if (
-      (!Number.isFinite(amount) || amount <= 0) &&
+    const orderByTokenAmount =
       quoteMode === "token" &&
       Number.isFinite(desiredTokenAmount) &&
-      desiredTokenAmount > 0
-    ) {
-      setStatusMessage("Fetching PajCash rate...");
-      const fiatQuote = await pajcash.getFiatQuote(desiredTokenAmount, mint, Currency.NGN);
-      if (!fiatQuote.status) {
-        setLastError(fiatQuote.message);
+      desiredTokenAmount > 0;
+    const pajcashTokenAmount =
+      orderByTokenAmount && !isSolanaChain
+        ? grossUpForDextopusFee(desiredTokenAmount)
+        : desiredTokenAmount;
+
+    let fiatOrderAmount = parseAmount(fiatAmount);
+
+    if (!orderByTokenAmount) {
+      if (!Number.isFinite(fiatOrderAmount) || fiatOrderAmount <= 0) {
+        setLastError("Enter a valid NGN amount");
         setStatusMessage("");
-        setToast(fiatQuote.message, "error");
+        logOnrampError("Order blocked: invalid fiat amount", { fiatAmount });
+        setToast("Enter a valid NGN amount", "error");
         return;
       }
-      const quotedFiat = parseAmount(String(fiatQuote.data.fiatAmount ?? ""));
-      amount = quotedFiat;
-      setFiatAmount(formatQuoteAmount(fiatQuote.data.fiatAmount));
-      setQuote(fiatQuote.data);
-    }
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setLastError("Enter a valid NGN amount");
-      setStatusMessage("");
-      logOnrampError("Order blocked: invalid fiat amount", { fiatAmount });
-      setToast("Enter a valid NGN amount", "error");
-      return;
     }
 
     if (!isSolanaChain && !destAddress.trim()) {
@@ -813,19 +847,78 @@ export default function Onramp() {
       return;
     }
 
+    let bridgeRoute: OnrampBridgeRoute | null = null;
+
+    // PajCash always settles USDC on Solana; Dextopus routes it to the recipient chain.
+    if (!isSolanaChain && selectedToken && destAddress.trim()) {
+      setStatusMessage("Preparing bridge route...");
+      setDextopusAddress(null);
+      setActiveBridgeRoute(null);
+      try {
+        const dexAddr = await findOrCreateDextopusDepositAddress({
+          wallet_address: publicKey.toBase58(),
+          origin_chain_id: DEXTOPUS_SOLANA_CHAIN_ID,
+          origin_asset: DEXTOPUS_USDC_MAINNET,
+          origin_symbol: "USDC",
+          settlement_chain_id: selectedChainId,
+          settlement_asset: selectedToken.address,
+          settlement_symbol: selectedToken.symbol,
+          settlement_address: destAddress.trim(),
+        });
+        const recipientReceiveAmount =
+          orderByTokenAmount && Number.isFinite(desiredTokenAmount) && desiredTokenAmount > 0
+            ? desiredTokenAmount
+            : parseAmount(formatQuoteAmount(quote?.amount) || "0");
+        const usdcSendAmount =
+          recipientReceiveAmount > 0
+            ? grossUpForDextopusFee(recipientReceiveAmount)
+            : pajcashTokenAmount;
+
+        bridgeRoute = {
+          deposit_address: dexAddr.deposit_address,
+          settlement_chain_id: selectedChainId,
+          settlement_chain_name: selectedChainName,
+          settlement_asset: selectedToken.address,
+          settlement_symbol: selectedToken.symbol,
+          settlement_address: destAddress.trim(),
+          recipient_receive_amount: recipientReceiveAmount,
+          usdc_send_amount: usdcSendAmount,
+        };
+        setDextopusAddress(dexAddr.deposit_address);
+        setActiveBridgeRoute(bridgeRoute);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Could not prepare the bridge to the recipient network.";
+        setLastError(message);
+        setStatusMessage("");
+        setToast(message, "error");
+        return;
+      }
+    }
+
+    const pajcashRecipient = bridgeRoute?.deposit_address ?? publicKey.toBase58();
+
     setStatusMessage("Creating PajCash onramp order...");
     logOnramp("Creating order", {
-      fiatAmount: amount,
+      fiatAmount: orderByTokenAmount ? undefined : fiatOrderAmount,
+      tokenAmount: orderByTokenAmount ? pajcashTokenAmount : undefined,
+      recipientReceiveAmount:
+        orderByTokenAmount && !isSolanaChain ? desiredTokenAmount : undefined,
       currency: Currency.NGN,
-      recipient: publicKey.toBase58(),
+      recipient: pajcashRecipient,
       mint,
       chain: Chain.SOLANA,
+      bridged: Boolean(bridgeRoute),
     });
     setLoading("order");
     const res = await pajcash.createOnramp({
-      fiatAmount: amount,
+      ...(orderByTokenAmount
+        ? { amount: pajcashTokenAmount }
+        : { fiatAmount: fiatOrderAmount }),
       currency: Currency.NGN,
-      recipient: publicKey.toBase58(),
+      recipient: pajcashRecipient,
       mint,
       chain: Chain.SOLANA,
     });
@@ -839,7 +932,19 @@ export default function Onramp() {
       return;
     }
 
-    recordPajCashOnrampOrder(res.data, "pending");
+    if (orderByTokenAmount) {
+      setFiatAmount(formatQuoteAmount(res.data.fiatAmount));
+      setQuote((prev: Record<string, unknown> | null) => ({
+        ...(prev ?? {}),
+        amount: res.data.amount,
+        fiatAmount: res.data.fiatAmount,
+        fee: res.data.fee,
+        rate: res.data.rate,
+        mint: res.data.mint,
+      }));
+    }
+
+    recordPajCashOnrampOrder(res.data, "pending", undefined, bridgeRoute);
     setOrder(res.data);
     setOrderSheetOpen(true);
     setPaymentCheckState("idle");
@@ -858,24 +963,9 @@ export default function Onramp() {
     });
     setToast("Onramp order created", "success");
 
-    if (!isSolanaChain && selectedToken && destAddress.trim()) {
-      try {
-        setDextopusAddress(null);
-        const dexAddr = await createDextopusDepositAddress({
-          wallet_address: publicKey.toBase58(),
-          origin_chain_id: DEXTOPUS_SOLANA_CHAIN_ID,
-          origin_asset: DEXTOPUS_USDC_MAINNET,
-          origin_symbol: "USDC",
-          settlement_asset: selectedToken.address,
-          settlement_symbol: selectedToken.symbol,
-          settlement_address: destAddress.trim(),
-        });
-        setDextopusAddress(dexAddr.deposit_address);
-      } catch {
-        setDextopusAddress(null);
-      }
-    } else {
+    if (!bridgeRoute) {
       setDextopusAddress(null);
+      setActiveBridgeRoute(null);
     }
   };
 
@@ -903,10 +993,13 @@ export default function Onramp() {
           data: statusRes.data as Record<string, unknown>,
         });
         if (isOrderConfirmed(statusRes.data)) {
-          recordPajCashOnrampOrder(order, "confirmed", statusRes.data);
+          recordPajCashOnrampOrder(order, "confirmed", statusRes.data, activeBridgeRoute);
           setPaymentCheckState("confirmed");
-          setPaymentCheckMessage("Payment confirmed. Your tokens should arrive shortly.");
-          setStatusMessage("Payment confirmed. Your tokens should arrive shortly.");
+          const successMessage = activeBridgeRoute
+            ? "Payment confirmed. Your funds are being delivered to the recipient network."
+            : "Payment confirmed. Your tokens should arrive shortly.";
+          setPaymentCheckMessage(successMessage);
+          setStatusMessage(successMessage);
           setToast("Payment confirmed", "success");
           return;
         }
@@ -924,7 +1017,7 @@ export default function Onramp() {
         });
       }
 
-      if (user && publicKey) {
+      if (user && publicKey && !activeBridgeRoute) {
         const refreshed = await refreshUserWalletBalances({ force: true });
         if (paymentPollRunRef.current !== runId) return;
         if (refreshed) {
@@ -1072,7 +1165,9 @@ export default function Onramp() {
   const tokenAmountCard = (
     <View className="bg-white dark:bg-accent rounded-2xl px-4 pt-3 pb-3 min-h-[145px]">
       <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-3">
-        {isSolanaChain ? "YOU RECEIVE" : "YOU RECEIVE (ON SOLANA)"}
+        {isSolanaChain
+          ? "YOU RECEIVE"
+          : `RECIPIENT RECEIVES (${selectedToken?.symbol ?? tokenLabel} on ${selectedChainName})`}
       </CText>
       <View className="flex-row items-start justify-between gap-x-3">
         <View className="flex-1 min-w-0">
@@ -1090,11 +1185,19 @@ export default function Onramp() {
             />
           )}
           <CText className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
-            Expected: {formattedExpectedTokenAmount || "0"} {tokenLabel || "token"}
+            {isSolanaChain
+              ? `Expected: ${formattedExpectedTokenAmount || "0"} ${tokenLabel || "token"}`
+              : `About ${formattedExpectedTokenAmount || "0"} ${selectedToken?.symbol ?? tokenLabel} after delivery`}
           </CText>
+          {bridgedUsdcSendAmount ? (
+            <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
+              Sends {formatAmountWithCommas(bridgedUsdcSendAmount)} USDC (0.5% Dextopus fee included)
+            </CText>
+          ) : null}
           {expectedFiatAmount ? (
             <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
               Pay about {formattedExpectedFiatAmount} NGN
+              {quoteMode === "token" ? " (fee included)" : ""}
             </CText>
           ) : null}
           {quoteError ? (
@@ -1381,6 +1484,7 @@ export default function Onramp() {
                         setQuoteError("");
                         setDestAddress("");
                         setDextopusAddress(null);
+                        setActiveBridgeRoute(null);
                         setChainPickerOpen(false);
                         setChainSearch("");
                       }}
@@ -1407,7 +1511,7 @@ export default function Onramp() {
         <DragableSheet
           close={closeOrderSheet}
           panClose
-          snapPoints={["52%", "72%"]}
+          snapPoints={["52%", "90%"]}
           child={
             <View className="w-full flex-1 gap-y-4 pb-6">
               <View className="gap-y-1">
@@ -1475,9 +1579,30 @@ export default function Onramp() {
                 <View className="flex-row justify-between gap-x-3">
                   <CText className="text-black/60 dark:text-grey/70">Token amount</CText>
                   <CText style={{ fontFamily: "bold" }} className="flex-1 text-right">
-                    {formatAmountWithCommas(order.amount)}
+                    {formatAmountWithCommas(
+                      activeBridgeRoute?.recipient_receive_amount ?? order.amount
+                    )}{" "}
+                    {activeBridgeRoute
+                      ? activeBridgeRoute.settlement_symbol
+                      : tokenLabel}
                   </CText>
                 </View>
+                {activeBridgeRoute ? (
+                  <View className="flex-row justify-between gap-x-3">
+                    <CText className="text-black/60 dark:text-grey/70">USDC sent</CText>
+                    <CText className="flex-1 text-right text-black/70 dark:text-grey/80">
+                      {formatAmountWithCommas(activeBridgeRoute.usdc_send_amount)} USDC
+                    </CText>
+                  </View>
+                ) : null}
+                {asFiniteNumber(order.fee) ? (
+                  <View className="flex-row justify-between gap-x-3">
+                    <CText className="text-black/60 dark:text-grey/70">PajCash fee</CText>
+                    <CText className="flex-1 text-right text-black/70 dark:text-grey/80">
+                      {formatAmountWithCommas(order.fee)} {tokenLabel}
+                    </CText>
+                  </View>
+                ) : null}
                 <View className="gap-y-1">
                   <CText className="text-black/60 dark:text-grey/70">Order ID</CText>
                   <CText
@@ -1493,37 +1618,26 @@ export default function Onramp() {
               {dextopusAddress ? (
                 <View className="w-full p-4 rounded-2xl bg-purple/5 border border-purple/20 gap-y-2">
                   <CText style={{ fontFamily: "bold" }} className="text-purple">
-                    Bridge to {selectedChainName}
+                    Delivery to {selectedChainName}
                   </CText>
                   <CText className="text-[0.85rem] text-black/60 dark:text-grey/70">
-                    After USDC arrives in your wallet, send it to this address. It will be bridged to {tokenLabel} on {selectedChainName} automatically.
+                    PajCash will deliver USDC directly to the delivery route. Funds will arrive as{" "}
+                    {tokenLabel} at the recipient address on {selectedChainName}.
                   </CText>
-                  <View className="bg-white dark:bg-accent2 rounded-xl p-3 flex-row items-center justify-between">
-                    <CText className="flex-1 text-[0.85rem]" style={{ fontFamily: "bold" }} selectable>
-                      {dextopusAddress}
-                    </CText>
-                    <Pressable
-                      onPress={() => void copyPaymentDetail("Deposit address", dextopusAddress)}
-                      className="px-2 py-1 rounded-full bg-white dark:bg-accent2 ml-2"
-                    >
-                      <MaterialCommunityIcons name="content-copy" size={16} color="#971BB2" />
-                    </Pressable>
-                  </View>
                   <CText className="text-[0.75rem] text-black/40 dark:text-grey/50">
-                    Destination: {destAddress.trim() ? `${destAddress.trim().slice(0, 8)}...` : "your wallet"}
+                    Recipient: {destAddress.trim()}
                   </CText>
                 </View>
               ) : null}
 
               {paymentCheckMessage ? (
                 <View
-                  className={`w-full p-3 rounded-2xl ${
-                    paymentCheckState === "confirmed"
+                  className={`w-full p-3 rounded-2xl ${paymentCheckState === "confirmed"
                       ? "bg-green-100 dark:bg-green-950/30"
                       : paymentCheckState === "failed"
                         ? "bg-orange-100 dark:bg-orange-950/30"
                         : "bg-grey/50 dark:bg-black/30"
-                  }`}
+                    }`}
                 >
                   <View className="flex-row items-center gap-x-2">
                     {paymentCheckState === "checking" ? (

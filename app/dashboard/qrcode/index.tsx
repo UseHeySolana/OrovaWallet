@@ -8,7 +8,7 @@ import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
 import WalletItem from "@/utils/store/wallet.store";
 import {
-  createDextopusDepositAddress,
+  findOrCreateDextopusDepositAddress,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
   getDextopusChains,
@@ -65,7 +65,11 @@ export default function QrCode() {
       setChains(chainList);
 
       const missingChains = POPULAR_CHAINS.filter(
-        (chainId) => !addresses.some((a) => a.origin_chain_id === chainId)
+        (chainId) =>
+          !addresses.some(
+            (row) =>
+              row.origin_chain_id === chainId && row.settlement_chain_id === DEXTOPUS_SOLANA_CHAIN_ID
+          )
       );
 
       if (missingChains.length > 0) {
@@ -74,7 +78,7 @@ export default function QrCode() {
             const tokens = await getDextopusTokens(chainId, true);
             const usdc = tokens.find((t) => t.symbol.toUpperCase() === "USDC");
             if (!usdc) throw new Error(`No USDC on chain ${chainId}`);
-            return createDextopusDepositAddress({
+            return findOrCreateDextopusDepositAddress({
               wallet_address: walletAddress,
               origin_chain_id: chainId,
               origin_asset: usdc.address,

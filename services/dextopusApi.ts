@@ -4,10 +4,27 @@ export const DEXTOPUS_SOLANA_CHAIN_ID = 792703809;
 export const DEXTOPUS_NATIVE_SOL_ASSET = "11111111111111111111111111111111";
 export const DEXTOPUS_USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
+/** Dextopus bridge fee taken from the routed USDC amount. */
+export const DEXTOPUS_BRIDGE_FEE_RATE = 0.005;
+
+/** Gross up a net receive amount so the recipient still gets `netAmount` after Dextopus fee. */
+export function grossUpForDextopusFee(netAmount: number, feeRate = DEXTOPUS_BRIDGE_FEE_RATE): number {
+  if (!Number.isFinite(netAmount) || netAmount <= 0) return netAmount;
+  if (!Number.isFinite(feeRate) || feeRate <= 0 || feeRate >= 1) return netAmount;
+  return Math.ceil((netAmount / (1 - feeRate)) * 1_000_000) / 1_000_000;
+}
+
 /** Chains where Dextopus requires a chain-native refund address we do not collect yet. */
 export const DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS = new Set<number>([
   8253038, // bitcoin
   728126428, // tron
+  324, // zksync
+  59144, // linea
+]);
+
+/** Chains where Dextopus static deposit generation is known to fail. */
+export const DEXTOPUS_UNSUPPORTED_ORIGIN_CHAIN_IDS = new Set<number>([
+  56, // bsc
 ]);
 
 export function isEvmAddress(value: string): boolean {
@@ -199,22 +216,74 @@ export async function getDextopusDestinations(
   );
 }
 
-export async function createDextopusDepositAddress(payload: {
+export type DextopusDepositAddressPayload = {
   wallet_address: string;
   origin_chain_id: number;
   origin_asset: string;
   origin_symbol?: string;
+  settlement_chain_id?: number;
   settlement_asset: string;
   settlement_symbol?: string;
   settlement_address?: string;
   refund_to?: string;
-}): Promise<DextopusDepositAddress> {
+};
+
+export function normalizeDextopusAsset(asset?: string | null): string {
+  const trimmed = (asset ?? "").trim();
+  return trimmed.startsWith("0x") ? trimmed.toLowerCase() : trimmed;
+}
+
+export function normalizeDextopusSettlementAddress(chainId: number, address: string): string {
+  const trimmed = address.trim();
+  if (chainId !== DEXTOPUS_SOLANA_CHAIN_ID && trimmed.startsWith("0x")) {
+    return trimmed.toLowerCase();
+  }
+  return trimmed;
+}
+
+/** Match a saved deposit address for the same full bridge route (origin → settlement). */
+export function matchDextopusDepositAddress(
+  addresses: DextopusDepositAddress[],
+  payload: DextopusDepositAddressPayload
+): DextopusDepositAddress | undefined {
+  const settlementChainId = payload.settlement_chain_id ?? DEXTOPUS_SOLANA_CHAIN_ID;
+  const settlementAddress = normalizeDextopusSettlementAddress(
+    settlementChainId,
+    payload.settlement_address ?? payload.wallet_address
+  );
+  const originAsset = normalizeDextopusAsset(payload.origin_asset);
+  const settlementAsset = normalizeDextopusAsset(payload.settlement_asset);
+
+  return addresses.find(
+    (row) =>
+      row.origin_chain_id === payload.origin_chain_id &&
+      normalizeDextopusAsset(row.origin_asset) === originAsset &&
+      row.settlement_chain_id === settlementChainId &&
+      normalizeDextopusAsset(row.settlement_asset) === settlementAsset &&
+      normalizeDextopusSettlementAddress(settlementChainId, row.settlement_address) === settlementAddress
+  );
+}
+
+export async function findOrCreateDextopusDepositAddress(
+  payload: DextopusDepositAddressPayload
+): Promise<DextopusDepositAddress> {
+  const saved = await listDextopusDepositAddresses(payload.wallet_address);
+  const existing = matchDextopusDepositAddress(saved, payload);
+  if (existing) return existing;
+  return createDextopusDepositAddress(payload);
+}
+
+export async function createDextopusDepositAddress(
+  payload: DextopusDepositAddressPayload
+): Promise<DextopusDepositAddress> {
+  // Default settlement is Solana (cross-chain receive flow).
+  // Buy/onramp flow must pass settlement_chain_id for the recipient network.
   const json = await postJson<{ data: DextopusDepositAddress }>("/dextopus/wallet/deposit-address", {
     wallet_address: payload.wallet_address,
     origin_chain_id: payload.origin_chain_id,
     origin_asset: payload.origin_asset,
     origin_symbol: payload.origin_symbol,
-    settlement_chain_id: DEXTOPUS_SOLANA_CHAIN_ID,
+    settlement_chain_id: payload.settlement_chain_id ?? DEXTOPUS_SOLANA_CHAIN_ID,
     settlement_asset: payload.settlement_asset,
     settlement_symbol: payload.settlement_symbol,
     settlement_address: payload.settlement_address ?? payload.wallet_address,

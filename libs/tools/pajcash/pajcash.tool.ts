@@ -467,30 +467,39 @@ export class PajCash {
         }
 
         let fiatAmount = args.fiat_amount;
-        if (
-          (!Number.isFinite(fiatAmount) || !fiatAmount || fiatAmount <= 0) &&
-          Number.isFinite(args.token_amount) &&
-          args.token_amount &&
-          args.token_amount > 0
-        ) {
-          const fiatQuote = await pajcash.getFiatQuote(
-            args.token_amount,
-            meta.mint,
-            Currency.NGN
-          );
-          if (!fiatQuote.status) {
-            if (messageId !== null) completeConversation(messageId, "failed");
-            return fiatQuote.message;
-          }
-          fiatAmount = Number(fiatQuote.data.fiatAmount);
-        }
+        const tokenAmount = args.token_amount;
+        const orderByTokenAmount =
+          Number.isFinite(tokenAmount) && tokenAmount && tokenAmount > 0 &&
+          (!Number.isFinite(fiatAmount) || !fiatAmount || fiatAmount <= 0);
 
-        if (!Number.isFinite(fiatAmount) || !fiatAmount || fiatAmount <= 0) {
-          return `How much NGN do you want to spend, or how much ${meta.symbol} do you want to buy?`;
+        if (!orderByTokenAmount) {
+          if (
+            (!Number.isFinite(fiatAmount) || !fiatAmount || fiatAmount <= 0) &&
+            Number.isFinite(tokenAmount) &&
+            tokenAmount &&
+            tokenAmount > 0
+          ) {
+            const fiatQuote = await pajcash.getFiatQuote(
+              tokenAmount,
+              meta.mint,
+              Currency.NGN
+            );
+            if (!fiatQuote.status) {
+              if (messageId !== null) completeConversation(messageId, "failed");
+              return fiatQuote.message;
+            }
+            fiatAmount = Number(fiatQuote.data.fiatAmount);
+          }
+
+          if (!Number.isFinite(fiatAmount) || !fiatAmount || fiatAmount <= 0) {
+            return `How much NGN do you want to spend, or how much ${meta.symbol} do you want to buy?`;
+          }
         }
 
         const orderRes = await pajcash.createOnramp({
-          fiatAmount,
+          ...(orderByTokenAmount
+            ? { amount: tokenAmount }
+            : { fiatAmount }),
           currency: Currency.NGN,
           recipient: pk.toBase58(),
           mint: meta.mint,
@@ -504,13 +513,13 @@ export class PajCash {
 
         const order = orderRes.data;
         const orderId = pajCashOrderId(order);
-        const tokenAmount = pajCashTokenAmount(order, args.token_amount);
-        if (orderId && tokenAmount != null) {
+        const recordedTokenAmount = pajCashTokenAmount(order, args.token_amount);
+        if (orderId && recordedTokenAmount != null) {
           recordDepositTransaction({
             client_reference: `pajcash:onramp:${orderId}`,
             provider: "pajcash",
             app_called: "Pajcash",
-            amount: tokenAmount,
+            amount: recordedTokenAmount,
             token: meta.symbol,
             mint: meta.mint,
             recipient: pk.toBase58(),
