@@ -116,11 +116,12 @@ const settingsMenu2: SettingsMenu2Item[] = [
     icon: <IconLibrary.connection />,
   },
 
-  // {
-  //   title: "Feedback",
-  //   route: "/manageaccounts",
-  //   icon: <IconLibrary.commenting />,
-  // },
+  {
+    title: "Help & Support",
+    route: "/settings/support",
+    subtitle: "Chat with the HeySolana team",
+    icon: <IconLibrary.commenting />,
+  },
   {
     title: "Notifications",
     route: "notifications",

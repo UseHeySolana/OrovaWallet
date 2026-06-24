@@ -66,6 +66,15 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     router.push("/dashboard");
     return;
   }
+  if (type === "support_reply") {
+    const link = data.link;
+    if (typeof link === "string" && link.startsWith("/")) {
+      router.push(link as any);
+      return;
+    }
+    router.push("/settings/support");
+    return;
+  }
   if (type === "push_campaign" || type === "admin_broadcast") {
     const campaignKey = data.campaign_key;
     if (typeof campaignKey === "string" && campaignKey.trim()) {
