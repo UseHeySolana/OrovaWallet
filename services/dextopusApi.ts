@@ -152,7 +152,7 @@ export async function getDextopusTokens(
     tokens?: DextopusToken[];
   }>("/dextopus/tokens", {
     chain_id: chainId,
-    supports_static_address: supportsStaticAddress,
+    ...(supportsStaticAddress ? { supports_static_address: true } : {}),
   });
 
   const topLevelTokens = (json.tokens ?? [])

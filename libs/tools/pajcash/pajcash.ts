@@ -20,6 +20,10 @@ import {
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import PajCashSession from "@/utils/store/pajcashSession.store";
+import {
+  clearPajCashSession,
+  savePajCashSession,
+} from "@/services/pajcashSessionApi";
 
 let sdkInitialized = false;
 
@@ -154,6 +158,7 @@ async function wrap<T>(fn: () => Promise<T>): Promise<ApiResult<T>> {
   } catch (err) {
     if (isPajSessionInvalidError(err)) {
       PajCashSession.getState().clearSession();
+      void clearPajCashSession().catch(() => {});
     }
     return { status: false, message: formatPajError(err) };
   }
@@ -184,6 +189,13 @@ const pajcash = {
         recipient,
         token: verified.token,
         expiresAt: verified.expiresAt,
+      });
+      void savePajCashSession({
+        recipient,
+        token: verified.token,
+        expiresAt: verified.expiresAt ?? null,
+      }).catch((err) => {
+        console.warn("[PajCash SDK] failed to persist session", err);
       });
       return verified;
     }),

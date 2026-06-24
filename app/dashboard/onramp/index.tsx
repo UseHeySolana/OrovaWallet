@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { router } from "expo-router";
@@ -38,6 +39,15 @@ import {
   recordDepositTransaction,
   type AppTransactionStatus,
 } from "@/services/appTransactions";
+import {
+  createDextopusDepositAddress,
+  DEXTOPUS_SOLANA_CHAIN_ID,
+  DEXTOPUS_USDC_MAINNET,
+  getDextopusChains,
+  getDextopusTokens,
+  type DextopusChain,
+  type DextopusToken,
+} from "@/services/dextopusApi";
 
 function isNigerianPhoneNumber(phone?: string | null): boolean {
   const compact = String(phone || "").replace(/[\s()-]/g, "");
@@ -283,6 +293,59 @@ export default function Onramp() {
   const [statusMessage, setStatusMessage] = useState("");
   const [lastError, setLastError] = useState("");
 
+  const [selectedChainId, setSelectedChainId] = useState(DEXTOPUS_SOLANA_CHAIN_ID);
+  const [chains, setChains] = useState<DextopusChain[]>([]);
+  const [chainPickerOpen, setChainPickerOpen] = useState(false);
+  const [chainSearch, setChainSearch] = useState("");
+  const [destAddress, setDestAddress] = useState("");
+  const [dextopusAddress, setDextopusAddress] = useState<string | null>(null);
+  const [dextopusTokens, setDextopusTokens] = useState<DextopusToken[]>([]);
+  const [dexTokenSearchLoading, setDexTokenSearchLoading] = useState(false);
+
+  const isSolanaChain = selectedChainId === DEXTOPUS_SOLANA_CHAIN_ID;
+
+  useEffect(() => {
+    getDextopusChains().then((list) => setChains(list)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (isSolanaChain) return;
+    let cancelled = false;
+    setDexTokenSearchLoading(true);
+    getDextopusTokens(selectedChainId, false)
+      .then((tokens) => {
+        if (!cancelled) setDextopusTokens(tokens);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setDexTokenSearchLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [selectedChainId, isSolanaChain]);
+
+  const filteredChains = useMemo(() => {
+    const query = chainSearch.trim().toLowerCase();
+    if (!query) return chains;
+    return chains.filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        String(c.chainId).includes(query)
+    );
+  }, [chains, chainSearch]);
+
+  const formatDexChainName = (name: string) =>
+    name
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ");
+
+  const selectedChainName = useMemo(() => {
+    if (isSolanaChain) return "Solana";
+    const found = chains.find((c) => c.chainId === selectedChainId);
+    return found ? formatDexChainName(found.name) : `Chain ${selectedChainId}`;
+  }, [chains, selectedChainId, isSolanaChain]);
+
   const saveRecipient = (value: string) => {
     logOnramp("Saving PajCash recipient", {
       recipient: value.includes("@") ? "email" : value,
@@ -404,7 +467,10 @@ export default function Onramp() {
     return null;
   };
 
-  const tokenLabel = selectedToken?.symbol || token.trim().toUpperCase();
+  const tokenLabel = isSolanaChain
+    ? (selectedToken?.symbol || token.trim().toUpperCase())
+    : "USDC";
+  const youReceiveLabel = isSolanaChain ? tokenLabel : "USDC (bridged to " + (selectedToken?.symbol ?? tokenLabel) + ")";
   const isPajCashVerified = pajSession.isSessionValid();
   const activeQuoteAmount = quoteMode === "fiat" ? fiatAmount : tokenAmount;
   const expectedTokenAmount =
@@ -420,6 +486,30 @@ export default function Onramp() {
 
   useEffect(() => {
     if (!tokenPickerOpen) return;
+    if (!isSolanaChain) {
+      const query = tokenSearch.trim().toLowerCase();
+      const source = query
+        ? dextopusTokens.filter(
+            (t) =>
+              t.symbol.toLowerCase().includes(query) ||
+              t.name?.toLowerCase().includes(query) ||
+              t.address.toLowerCase().includes(query)
+          )
+        : dextopusTokens;
+      const hits: TokenSearchHit[] = source.slice(0, 30).map((t) => ({
+        meta: {
+          address: t.address,
+          symbol: t.symbol,
+          name: t.name ?? t.symbol,
+          decimals: t.decimals ?? 6,
+          logo: t.logoUrl ?? "",
+        },
+        isVerified: true,
+      }));
+      setTokenHits(hits);
+      return;
+    }
+
     let cancelled = false;
     setTokenSearchLoading(true);
     const delay = tokenSearch.trim() ? 300 : 0;
@@ -433,7 +523,7 @@ export default function Onramp() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [tokenPickerOpen, tokenSearch]);
+  }, [tokenPickerOpen, tokenSearch, isSolanaChain, dextopusTokens]);
 
   const closeTokenPicker = () => {
     setTokenPickerOpen(false);
@@ -567,7 +657,9 @@ export default function Onramp() {
       setLoading("quote");
     }
 
-    const mint = await resolveMint(token);
+    const mint = !isSolanaChain
+      ? DEXTOPUS_USDC_MAINNET
+      : await resolveMint(token);
     if (!mint) {
       if (!options.quiet) {
         setLastError("Could not resolve that SPL token");
@@ -665,7 +757,9 @@ export default function Onramp() {
     }
     setLastError("");
     setStatusMessage("Resolving token...");
-    const mint = await resolveMint(token);
+    const mint = !isSolanaChain
+      ? DEXTOPUS_USDC_MAINNET
+      : await resolveMint(token);
     if (!mint) {
       setLastError("Could not resolve that SPL token");
       setStatusMessage("");
@@ -700,6 +794,13 @@ export default function Onramp() {
       setStatusMessage("");
       logOnrampError("Order blocked: invalid fiat amount", { fiatAmount });
       setToast("Enter a valid NGN amount", "error");
+      return;
+    }
+
+    if (!isSolanaChain && !destAddress.trim()) {
+      setLastError(`Enter the ${selectedChainName} wallet address to receive ${tokenLabel}`);
+      setStatusMessage("");
+      setToast(`Enter the ${selectedChainName} wallet address`, "error");
       return;
     }
 
@@ -747,6 +848,26 @@ export default function Onramp() {
       fee: res.data.fee,
     });
     setToast("Onramp order created", "success");
+
+    if (!isSolanaChain && selectedToken && destAddress.trim()) {
+      try {
+        setDextopusAddress(null);
+        const dexAddr = await createDextopusDepositAddress({
+          wallet_address: publicKey.toBase58(),
+          origin_chain_id: DEXTOPUS_SOLANA_CHAIN_ID,
+          origin_asset: DEXTOPUS_USDC_MAINNET,
+          origin_symbol: "USDC",
+          settlement_asset: selectedToken.address,
+          settlement_symbol: selectedToken.symbol,
+          settlement_address: destAddress.trim(),
+        });
+        setDextopusAddress(dexAddr.deposit_address);
+      } catch {
+        setDextopusAddress(null);
+      }
+    } else {
+      setDextopusAddress(null);
+    }
   };
 
   const handlePaid = async () => {
@@ -942,7 +1063,7 @@ export default function Onramp() {
   const tokenAmountCard = (
     <View className="bg-white dark:bg-accent rounded-2xl px-4 pt-3 pb-3 min-h-[145px]">
       <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-3">
-        YOU RECEIVE
+        {isSolanaChain ? "YOU RECEIVE" : "YOU RECEIVE (ON SOLANA)"}
       </CText>
       <View className="flex-row items-start justify-between gap-x-3">
         <View className="flex-1 min-w-0">
@@ -974,23 +1095,33 @@ export default function Onramp() {
         <TokenPill />
       </View>
       <View className="mt-3">
-        <TextInput
-          className="w-full h-[44px] text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 px-3"
-          value={token}
-          placeholder="Token symbol or mint, e.g. BONK"
-          placeholderTextColor="grey"
-          onChangeText={(value) => {
-            setToken(value);
-            setSelectedToken(null);
-            setQuote(null);
-            setQuoteError("");
-          }}
-          autoCapitalize="characters"
-          autoCorrect={false}
-        />
-        <CText className="text-[0.8rem] text-black/50 dark:text-grey/60 mt-1">
-          Search or paste any SPL token mint.
-        </CText>
+        {isSolanaChain ? (
+          <>
+            <TextInput
+              className="w-full h-[44px] text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 px-3"
+              value={token}
+              placeholder="Token symbol or mint, e.g. BONK"
+              placeholderTextColor="grey"
+              onChangeText={(value) => {
+                setToken(value);
+                setSelectedToken(null);
+                setQuote(null);
+                setQuoteError("");
+              }}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <CText className="text-[0.8rem] text-black/50 dark:text-grey/60 mt-1">
+              Search or paste any SPL token mint.
+            </CText>
+          </>
+        ) : (
+          <CText className="text-[0.8rem] text-black/50 dark:text-grey/60">
+            {selectedToken
+              ? `${selectedToken.symbol} on ${selectedChainName} will be sent to your recipient address after bridging.`
+              : "Select a token using the pill above."}
+          </CText>
+        )}
       </View>
     </View>
   );
@@ -1036,6 +1167,41 @@ export default function Onramp() {
                 textColor="text-red-700 dark:text-red-300"
               >
                 {lastError}
+              </CText>
+            </View>
+          )}
+
+          <Pressable
+            onPress={() => setChainPickerOpen(true)}
+            className="w-full flex-row items-center justify-between bg-white dark:bg-accent rounded-2xl px-4 py-4"
+          >
+            <View>
+              <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-1">
+                NETWORK
+              </CText>
+              <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
+                {selectedChainName}
+              </CText>
+            </View>
+            <AntDesign name="down" size={12} color="#6B7280" />
+          </Pressable>
+
+          {!isSolanaChain && (
+            <View className="bg-white dark:bg-accent rounded-2xl px-4 py-4">
+              <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-2">
+                RECIPIENT WALLET
+              </CText>
+              <TextInput
+                className="h-[44px] text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 px-3"
+                value={destAddress}
+                placeholder={`Enter ${selectedChainName} wallet address`}
+                placeholderTextColor="grey"
+                onChangeText={setDestAddress}
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+              <CText className="text-[0.75rem] text-gray-400 dark:text-gray-500 mt-1">
+                {tokenLabel} will be sent to this address on {selectedChainName}.
               </CText>
             </View>
           )}
@@ -1142,19 +1308,25 @@ export default function Onramp() {
           child={
             <View className="w-full flex-1 gap-y-3 pb-6">
               <CText style={{ fontFamily: "bold" }} className="text-[18px] text-center">
-                Select SPL token
+                {isSolanaChain ? "Select SPL token" : `Select token on ${selectedChainName}`}
               </CText>
               <CText className="text-[12px] text-center text-gray-500 dark:text-gray-400">
-                Jupiter token list · search any symbol or mint
+                {isSolanaChain
+                  ? "Jupiter token list · search any symbol or mint"
+                  : `Tokens available for deposit on ${selectedChainName}`}
               </CText>
               <SearchInput onSearch={setTokenSearch} value={tokenSearch} />
-              {tokenSearchLoading ? (
+              {tokenSearchLoading || dexTokenSearchLoading ? (
                 <ActivityIndicator color="#971BB2" className="py-6" />
               ) : tokenHits.length === 0 ? (
                 <CText className="text-center text-gray-500 py-6 px-4">
                   {tokenSearch.trim()
                     ? "No tokens found. Try a symbol or mint address."
-                    : "Could not load tokens. Check EXPO_PUBLIC_JUP_API_KEY."}
+                    : isSolanaChain
+                      ? "Could not load tokens. Check EXPO_PUBLIC_JUP_API_KEY."
+                      : dexTokenSearchLoading
+                        ? "Loading tokens..."
+                        : `No tokens available on ${selectedChainName}.`}
                 </CText>
               ) : (
                 <FlatList
@@ -1165,6 +1337,59 @@ export default function Onramp() {
                   renderItem={renderTokenRow}
                 />
               )}
+            </View>
+          }
+        />
+      ) : null}
+      {chainPickerOpen ? (
+        <DragableSheet
+          close={() => { setChainPickerOpen(false); setChainSearch(""); }}
+          panClose
+          snapPoints={["72%", "88%"]}
+          child={
+            <View className="w-full flex-1 gap-y-3 pb-6">
+              <CText style={{ fontFamily: "bold" }} className="text-[18px] text-center">
+                Select network
+              </CText>
+              <SearchInput onSearch={setChainSearch} value={chainSearch} />
+              <FlatList
+                data={[
+                  { chainId: DEXTOPUS_SOLANA_CHAIN_ID, name: "Solana" },
+                  ...filteredChains.filter((c) => c.chainId !== DEXTOPUS_SOLANA_CHAIN_ID),
+                ]}
+                keyExtractor={(item) => String(item.chainId)}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => {
+                  const selected = selectedChainId === item.chainId;
+                  return (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedChainId(item.chainId);
+                        setSelectedToken(null);
+                        setToken("");
+                        setTokenHits([]);
+                        setQuote(null);
+                        setQuoteError("");
+                        setDestAddress("");
+                        setDextopusAddress(null);
+                        setChainPickerOpen(false);
+                        setChainSearch("");
+                      }}
+                      className="py-4 border-b border-gray-100 dark:border-gray-800"
+                    >
+                      <CText style={{ fontFamily: selected ? "bold" : "regular" }}>
+                        {item.name}
+                      </CText>
+                      <CText className="text-gray-500 dark:text-gray-400 mt-1">
+                        Chain ID {item.chainId}
+                      </CText>
+                    </TouchableOpacity>
+                  );
+                }}
+                ListEmptyComponent={
+                  <CText className="text-center text-gray-500 py-6">No networks found.</CText>
+                }
+              />
             </View>
           }
         />
@@ -1255,6 +1480,31 @@ export default function Onramp() {
                   </CText>
                 </View>
               </View>
+
+              {dextopusAddress ? (
+                <View className="w-full p-4 rounded-2xl bg-purple/5 border border-purple/20 gap-y-2">
+                  <CText style={{ fontFamily: "bold" }} className="text-purple">
+                    Bridge to {selectedChainName}
+                  </CText>
+                  <CText className="text-[0.85rem] text-black/60 dark:text-grey/70">
+                    After USDC arrives in your wallet, send it to this address. It will be bridged to {tokenLabel} on {selectedChainName} automatically.
+                  </CText>
+                  <View className="bg-white dark:bg-accent2 rounded-xl p-3 flex-row items-center justify-between">
+                    <CText className="flex-1 text-[0.85rem]" style={{ fontFamily: "bold" }} selectable>
+                      {dextopusAddress}
+                    </CText>
+                    <Pressable
+                      onPress={() => void copyPaymentDetail("Deposit address", dextopusAddress)}
+                      className="px-2 py-1 rounded-full bg-white dark:bg-accent2 ml-2"
+                    >
+                      <MaterialCommunityIcons name="content-copy" size={16} color="#971BB2" />
+                    </Pressable>
+                  </View>
+                  <CText className="text-[0.75rem] text-black/40 dark:text-grey/50">
+                    Destination: {destAddress.trim() ? `${destAddress.trim().slice(0, 8)}...` : "your wallet"}
+                  </CText>
+                </View>
+              ) : null}
 
               {paymentCheckMessage ? (
                 <View

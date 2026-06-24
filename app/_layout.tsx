@@ -14,6 +14,7 @@ import { PIPManager } from "@/services/PIPService/PIPManager";
 import { WidgetManager } from "@/services/WidgetService/WidgetManager";
 import { PushNotificationManager } from "@/services/push/PushNotificationManager";
 import { PajCashBeneficiariesManager } from "@/services/pajcash/PajCashBeneficiariesManager";
+import { PajCashSessionManager } from "@/services/pajcash/PajCashSessionManager";
 import { NotificationPermissionNudge } from "@/services/push/NotificationPermissionNudge";
 
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -130,10 +131,12 @@ export default function RootLayout() {
                 <WhatsAppCampaignTracker />
                 <PushNotificationManager>
                   <PajCashBeneficiariesManager>
+                  <PajCashSessionManager>
                   <NotificationPermissionNudge />
                   <WidgetManager>
                     <StackView />
                   </WidgetManager>
+                  </PajCashSessionManager>
                   </PajCashBeneficiariesManager>
                 </PushNotificationManager>
               </PIPManager>
