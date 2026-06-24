@@ -99,6 +99,8 @@ export async function registerPushTokenWithBackend(
   const phone = resolvePhoneForPushRegistration(params);
   if (phone) body.phone_number = phone;
   if (params.user_id != null) body.user_id = params.user_id;
+  const wallet = params.user?.wallet_address?.trim();
+  if (wallet) body.wallet_address = wallet;
 
   try {
     const response = await request.postJson(body, "/notifications/register-token");

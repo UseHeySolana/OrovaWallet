@@ -17,6 +17,9 @@ import * as ImagePicker from "expo-image-picker";
 import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
 import UserItem from "@/utils/store/userstore.store";
+import AppSettings from "@/utils/store/settingsstore.store";
+import { registerPushTokenWithBackend } from "@/services/push/pushNotifications";
+import { consumePendingSupportConversationId } from "@/services/supportPushNavigation";
 import {
   endSupportChat,
   getSupportHistory,
@@ -287,7 +290,19 @@ export default function SupportScreen() {
 
   useEffect(() => {
     void loadHistory();
-  }, [loadHistory]);
+    if (user && AppSettings.getState().notifications) {
+      void registerPushTokenWithBackend({ user });
+    }
+  }, [loadHistory, user]);
+
+  useEffect(() => {
+    const pendingId = consumePendingSupportConversationId();
+    if (pendingId != null && user) {
+      setMode("chat");
+      setConversationId(pendingId);
+      void loadThread(pendingId);
+    }
+  }, [user, loadThread]);
 
   useEffect(() => {
     if (mode !== "chat" || !conversationId) return;
