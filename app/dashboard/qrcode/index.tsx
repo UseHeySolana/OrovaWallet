@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { router } from "expo-router";
 
@@ -25,6 +25,7 @@ export default function QrCode() {
   const [selectedNetworkId, setSelectedNetworkId] = useState(DEXTOPUS_SOLANA_CHAIN_ID);
   const [networkPickerOpen, setNetworkPickerOpen] = useState(false);
   const [networkSearch, setNetworkSearch] = useState("");
+  const [crossChainDepositView, setCrossChainDepositView] = useState(false);
 
   const networkOptions = useMemo(() => {
     const solana: DextopusChain = {
@@ -55,6 +56,7 @@ export default function QrCode() {
 
   const selectNetwork = (chainId: number) => {
     setSelectedNetworkId(chainId);
+    setCrossChainDepositView(false);
     setNetworkPickerOpen(false);
     setNetworkSearch("");
   };
@@ -81,31 +83,39 @@ export default function QrCode() {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View className="gap-y-4 pb-6">
-          <CText className="text-[0.95rem] text-gray-500 dark:text-gray-400">
-            {isSolanaReceive
-              ? "Share your Solana address for SPL tokens and SOL."
-              : "Choose where the sender will send from and where you want to settle."}
-          </CText>
+          {!crossChainDepositView ? (
+            <>
+              <CText className="text-[0.95rem] text-gray-500 dark:text-gray-400">
+                {isSolanaReceive
+                  ? "Share your Solana address for SPL tokens and SOL."
+                  : "Choose where the sender will send from and where you want to settle."}
+              </CText>
 
-          <Pressable
-            onPress={() => setNetworkPickerOpen(true)}
-            className="w-full flex-row items-center justify-between bg-white dark:bg-accent rounded-2xl px-4 py-4"
-          >
-            <View>
-              <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-1">
-                NETWORK
-              </CText>
-              <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
-                {selectedNetworkName}
-              </CText>
-            </View>
-            <AntDesign name="down" size={12} color="#6B7280" />
-          </Pressable>
+              <Pressable
+                onPress={() => setNetworkPickerOpen(true)}
+                className="w-full flex-row items-center justify-between bg-white dark:bg-accent rounded-2xl px-4 py-4"
+              >
+                <View>
+                  <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-1">
+                    NETWORK
+                  </CText>
+                  <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
+                    {selectedNetworkName}
+                  </CText>
+                </View>
+                <AntDesign name="down" size={12} color="#6B7280" />
+              </Pressable>
+            </>
+          ) : null}
 
           {isSolanaReceive ? (
             <SolanaReceiveQr />
           ) : (
-            <DextopusCrossChainDeposit key="cross-chain-receive" embedded hideSavedList />
+            <DextopusCrossChainDeposit
+              embedded
+              hideSavedList
+              onDepositViewChange={setCrossChainDepositView}
+            />
           )}
         </View>
       </ScrollView>
@@ -124,15 +134,13 @@ export default function QrCode() {
                 Select network
               </CText>
               <SearchInput onSearch={setNetworkSearch} value={networkSearch} />
-              <FlatList
-                data={filteredNetworks}
-                keyExtractor={(item) => String(item.chainId)}
-                keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => {
+              <View className="gap-y-0">
+                {filteredNetworks.map((item) => {
                   const selected = selectedNetworkId === item.chainId;
                   const isSolana = item.chainId === DEXTOPUS_SOLANA_CHAIN_ID;
                   return (
                     <Pressable
+                      key={String(item.chainId)}
                       onPress={() => selectNetwork(item.chainId)}
                       className="py-4 border-b border-gray-100 dark:border-gray-800"
                     >
@@ -146,11 +154,8 @@ export default function QrCode() {
                       </CText>
                     </Pressable>
                   );
-                }}
-                ListEmptyComponent={
-                  <CText className="text-center text-gray-500 py-6">No networks found.</CText>
-                }
-              />
+                })}
+              </View>
             </View>
           }
         />

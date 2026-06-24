@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   ScrollView,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import AntDesign from "@expo/vector-icons/AntDesign";
 import QRCode from "react-native-qrcode-svg";
+import * as Sharing from "expo-sharing";
+import { captureRef } from "react-native-view-shot";
 import { scale } from "react-native-size-matters";
 
 import Buttons from "@/components/ButtonComp";
@@ -50,6 +52,93 @@ function pickDefaultToken(tokens: DextopusToken[]): DextopusToken | null {
   return usdc ?? usdt ?? tokens[0];
 }
 
+function CrossChainDepositQr({
+  depositAddress,
+  routeSummary,
+}: {
+  depositAddress: string;
+  routeSummary: string;
+}) {
+  const qrcodeRef = useRef(null);
+
+  const share = async () => {
+    if (qrcodeRef.current == null) return;
+    const available = await Sharing.isAvailableAsync();
+    if (!available) return;
+    const result = await captureRef(qrcodeRef.current, {
+      result: "tmpfile",
+      quality: 1,
+      format: "png",
+    });
+    await Sharing.shareAsync(result);
+  };
+
+  return (
+    <View className="gap-y-4 pb-8">
+      <CText className="text-center text-gray-500 dark:text-gray-400 px-2">{routeSummary}</CText>
+
+      <View
+        style={{ width: scale(320), padding: scale(10) }}
+        className="flex bg-white shadow-sm rounded-xl dark:bg-accent h-fit m-auto flex-row justify-center items-center"
+      >
+        <View className="border border-purple/40 p-4 rounded-xl">
+          <View
+            ref={qrcodeRef}
+            style={{ width: scale(250), height: scale(250) }}
+            className="overflow-hidden rounded-xl"
+          >
+            <QRCode
+              value={depositAddress}
+              size={scale(249)}
+              logo={require("@/assets/images/ballicon.png")}
+              logoBackgroundColor="transparent"
+            />
+          </View>
+
+          <View className="flex flex-row justify-between py-5">
+            <View className="w-[45%]">
+              <Buttons
+                buttonType="feedback"
+                className="py-4 rounded-full"
+                onPress={share}
+                type="primary"
+                text="Share"
+                icon={
+                  <View className="rotate-[270deg]">
+                    <AntDesign name="down" size={16} color="white" />
+                  </View>
+                }
+              />
+            </View>
+            <View className="w-[45%]">
+              <Buttons
+                buttonType="feedback"
+                className="py-4 rounded-full"
+                onPress={() => copyItem(depositAddress)}
+                type="primary"
+                text="Copy"
+                icon={
+                  <View>
+                    <IconLibrary.copy color="white" />
+                  </View>
+                }
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => copyItem(depositAddress)}
+        className="bg-white dark:bg-accent rounded-xl p-3 mx-1"
+      >
+        <CText className="text-center text-[0.85rem]">{depositAddress}</CText>
+        <CText className="text-center text-purple mt-1 text-[0.8rem]">Tap to copy address</CText>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 type PickerKind = "originNetwork" | "originToken" | "settlementNetwork" | "settlementToken";
 
 type DextopusCrossChainDepositProps = {
@@ -62,6 +151,7 @@ type DextopusCrossChainDepositProps = {
   hideSavedList?: boolean;
   embedded?: boolean;
   lockSettlementNetwork?: boolean;
+  onDepositViewChange?: (active: boolean) => void;
 };
 
 export default function DextopusCrossChainDeposit({
@@ -74,6 +164,7 @@ export default function DextopusCrossChainDeposit({
   hideSavedList = false,
   embedded = false,
   lockSettlementNetwork = false,
+  onDepositViewChange,
 }: DextopusCrossChainDepositProps = {}) {
   const { publicKey } = WalletItem();
   const walletAddress = publicKey?.toString() ?? "";
@@ -96,11 +187,36 @@ export default function DextopusCrossChainDeposit({
   const [settlementAddress, setSettlementAddress] = useState("");
 
   const [activeAddress, setActiveAddress] = useState<DextopusDepositAddress | null>(null);
+  const [depositViewActive, setDepositViewActive] = useState(false);
   const [activePicker, setActivePicker] = useState<PickerKind | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
 
-  const qrcodeRef = useRef(null);
   const initialSelectionApplied = useRef(false);
+
+  const chainNameById = useMemo(
+    () => new Map(chains.map((chain) => [chain.chainId, chain.name])),
+    [chains]
+  );
+
+  const enterDepositView = useCallback(
+    (address: DextopusDepositAddress) => {
+      setActiveAddress(address);
+      setDepositViewActive(true);
+      setError(null);
+      onDepositViewChange?.(true);
+    },
+    [onDepositViewChange]
+  );
+
+  const startNewRoute = useCallback(() => {
+    setActiveAddress(null);
+    setDepositViewActive(false);
+    setError(null);
+    setOriginChain(null);
+    setOriginToken(null);
+    setOriginTokens([]);
+    onDepositViewChange?.(false);
+  }, [onDepositViewChange]);
 
   const originChains = useMemo(
     () =>
@@ -345,6 +461,10 @@ export default function DextopusCrossChainDeposit({
 
   const resetGeneratedAddress = () => {
     setActiveAddress(null);
+    if (depositViewActive) {
+      setDepositViewActive(false);
+      onDepositViewChange?.(false);
+    }
   };
 
   const selectOriginChain = (chain: DextopusChain) => {
@@ -417,8 +537,7 @@ export default function DextopusCrossChainDeposit({
 
     const existing = matchDextopusDepositAddress(savedAddresses, payload);
     if (existing) {
-      setActiveAddress(existing);
-      setError(null);
+      enterDepositView(existing);
       return;
     }
 
@@ -426,11 +545,11 @@ export default function DextopusCrossChainDeposit({
     setError(null);
     try {
       const address = await findOrCreateDextopusDepositAddress(payload);
-      setActiveAddress(address);
       setSavedAddresses((prev) => {
         const withoutDup = prev.filter((item) => item.id !== address.id);
         return [address, ...withoutDup];
       });
+      enterDepositView(address);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create deposit address");
     } finally {
@@ -443,10 +562,17 @@ export default function DextopusCrossChainDeposit({
     ? formatChainName(settlementChain.name)
     : "Choose network";
 
-  const routeSummary =
-    activeAddress && originChain && settlementChain && originToken && settlementToken
-      ? `Send ${originToken.symbol} on ${originChainLabel} to this address. Funds arrive as ${settlementToken.symbol} on ${settlementChainLabel}.`
-      : null;
+  const activeAddressRouteSummary = useMemo(() => {
+    if (!activeAddress) return "";
+    const originName = formatChainName(
+      chainNameById.get(activeAddress.origin_chain_id) ?? `Chain ${activeAddress.origin_chain_id}`
+    );
+    const settlementName = formatChainName(
+      chainNameById.get(activeAddress.settlement_chain_id) ??
+        `Chain ${activeAddress.settlement_chain_id}`
+    );
+    return `Send ${activeAddress.origin_symbol || "tokens"} on ${originName}. Funds arrive as ${activeAddress.settlement_symbol || "tokens"} on ${settlementName}.`;
+  }, [activeAddress, chainNameById]);
 
   const pickerRow = (
     label: string,
@@ -474,12 +600,128 @@ export default function DextopusCrossChainDeposit({
     </TouchableOpacity>
   );
 
+  const setupContent = (
+    <View className="gap-y-4 pb-10">
+      <View className="gap-y-2">
+        <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
+          Send from
+        </CText>
+        <CText className="text-gray-500 dark:text-gray-400 text-[0.85rem]">
+          Which network and token will the sender use?
+        </CText>
+        {pickerRow(
+          "Network",
+          originChainLabel,
+          originToken ? `Sending ${originToken.symbol}` : undefined,
+          () => openPicker("originNetwork")
+        )}
+        {originChain
+          ? pickerRow(
+              "Token",
+              originToken?.symbol ?? "Choose token",
+              originToken?.name,
+              () => openPicker("originToken")
+            )
+          : null}
+      </View>
+
+      <View className="gap-y-2">
+        <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
+          Settle to
+        </CText>
+        <CText className="text-gray-500 dark:text-gray-400 text-[0.85rem]">
+          Where should the funds arrive after bridging?
+        </CText>
+        {pickerRow(
+          "Network",
+          settlementChainLabel,
+          settlementToken ? `Receiving ${settlementToken.symbol}` : undefined,
+          () => openPicker("settlementNetwork"),
+          lockSettlementNetwork
+        )}
+        {settlementChain
+          ? pickerRow(
+              "Token",
+              settlementToken?.symbol ?? "Choose token",
+              settlementToken?.name,
+              () => openPicker("settlementToken")
+            )
+          : null}
+        {settlementChain && !isSolanaSettlement ? (
+          <View className="bg-white dark:bg-accent rounded-xl px-4 py-4">
+            <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">
+              Recipient wallet
+            </CText>
+            <TextInput
+              className="h-[44px] mt-2 text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 px-3"
+              value={settlementAddress}
+              placeholder={`Enter ${settlementChainLabel} wallet address`}
+              placeholderTextColor="grey"
+              onChangeText={(value) => {
+                setSettlementAddress(value);
+                resetGeneratedAddress();
+              }}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+        ) : settlementChain && isSolanaSettlement ? (
+          <View className="bg-white dark:bg-accent rounded-xl px-4 py-4">
+            <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">
+              Recipient wallet
+            </CText>
+            <CText style={{ fontFamily: "bold" }} className="text-[0.95rem] mt-2">
+              Your HeySolana wallet
+            </CText>
+            <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem] mt-1">
+              {walletAddress}
+            </CText>
+          </View>
+        ) : null}
+      </View>
+
+      {error ? (
+        <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
+          <CText className="text-red-600 dark:text-red-300">{error}</CText>
+        </View>
+      ) : null}
+
+      <Buttons
+        text={submitting ? "Creating address..." : "Generate deposit QR"}
+        onPress={handleGenerate}
+        loading={submitting}
+      />
+    </View>
+  );
+
+  const depositViewContent = activeAddress?.deposit_address ? (
+    <View className="gap-y-4 pb-10">
+      <TouchableOpacity onPress={startNewRoute} className="self-start px-1 py-1">
+        <CText className="text-purple" style={{ fontFamily: "bold" }}>
+          + Add new route
+        </CText>
+      </TouchableOpacity>
+
+      <CrossChainDepositQr
+        depositAddress={activeAddress.deposit_address}
+        routeSummary={activeAddressRouteSummary}
+      />
+    </View>
+  ) : null;
+
+  const mainContent =
+    depositViewActive && activeAddress?.deposit_address ? depositViewContent : setupContent;
+
+  const pickerItems = filteredPickerItems as (DextopusChain | DextopusToken)[];
+
   return (
     <View className="relative w-full flex-1 items-start justify-start gap-y-4 bg-transparent">
       {loading ? (
         <View className="w-full py-10 items-center">
           <ActivityIndicator size="large" />
         </View>
+      ) : embedded ? (
+        <View className="w-full">{mainContent}</View>
       ) : (
         <ScrollView
           className="w-full flex-1"
@@ -487,167 +729,7 @@ export default function DextopusCrossChainDeposit({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          <View className="gap-y-4 pb-10">
-            <View className="gap-y-2">
-              <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
-                Send from
-              </CText>
-              <CText className="text-gray-500 dark:text-gray-400 text-[0.85rem]">
-                Which network and token will the sender use?
-              </CText>
-              {pickerRow(
-                "Network",
-                originChainLabel,
-                originToken ? `Sending ${originToken.symbol}` : undefined,
-                () => openPicker("originNetwork")
-              )}
-              {originChain
-                ? pickerRow(
-                    "Token",
-                    originToken?.symbol ?? "Choose token",
-                    originToken?.name,
-                    () => openPicker("originToken")
-                  )
-                : null}
-            </View>
-
-            <View className="gap-y-2">
-              <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
-                Settle to
-              </CText>
-              <CText className="text-gray-500 dark:text-gray-400 text-[0.85rem]">
-                Where should the funds arrive after bridging?
-              </CText>
-              {pickerRow(
-                "Network",
-                settlementChainLabel,
-                settlementToken ? `Receiving ${settlementToken.symbol}` : undefined,
-                () => openPicker("settlementNetwork"),
-                lockSettlementNetwork
-              )}
-              {settlementChain
-                ? pickerRow(
-                    "Token",
-                    settlementToken?.symbol ?? "Choose token",
-                    settlementToken?.name,
-                    () => openPicker("settlementToken")
-                  )
-                : null}
-              {settlementChain && !isSolanaSettlement ? (
-                <View className="bg-white dark:bg-accent rounded-xl px-4 py-4">
-                  <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">
-                    Recipient wallet
-                  </CText>
-                  <TextInput
-                    className="h-[44px] mt-2 text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 px-3"
-                    value={settlementAddress}
-                    placeholder={`Enter ${settlementChainLabel} wallet address`}
-                    placeholderTextColor="grey"
-                    onChangeText={(value) => {
-                      setSettlementAddress(value);
-                      resetGeneratedAddress();
-                    }}
-                    autoCorrect={false}
-                    autoCapitalize="none"
-                  />
-                </View>
-              ) : settlementChain && isSolanaSettlement ? (
-                <View className="bg-white dark:bg-accent rounded-xl px-4 py-4">
-                  <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">
-                    Recipient wallet
-                  </CText>
-                  <CText style={{ fontFamily: "bold" }} className="text-[0.95rem] mt-2">
-                    Your HeySolana wallet
-                  </CText>
-                  <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem] mt-1">
-                    {walletAddress}
-                  </CText>
-                </View>
-              ) : null}
-            </View>
-
-            {error ? (
-              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
-                <CText className="text-red-600 dark:text-red-300">{error}</CText>
-              </View>
-            ) : null}
-
-            <Buttons
-              text={submitting ? "Creating address..." : "Generate deposit QR"}
-              onPress={handleGenerate}
-              loading={submitting}
-            />
-
-            {activeAddress?.deposit_address ? (
-              <View className="bg-white dark:bg-accent rounded-xl p-4 gap-y-4">
-                <CText style={{ fontFamily: "bold" }} className="text-[1.05rem]">
-                  Deposit address
-                </CText>
-                {routeSummary ? (
-                  <CText className="text-gray-500 dark:text-gray-400">{routeSummary}</CText>
-                ) : null}
-
-                <View className="items-center">
-                  <View
-                    ref={qrcodeRef}
-                    style={{ width: scale(220), height: scale(220) }}
-                    className="bg-white p-3 rounded-xl"
-                  >
-                    <QRCode value={activeAddress.deposit_address} size={scale(190)} />
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => copyItem(activeAddress.deposit_address)}
-                  className="bg-grey dark:bg-dark rounded-xl p-3"
-                >
-                  <CText className="text-center">{activeAddress.deposit_address}</CText>
-                  <CText className="text-center text-purple mt-1">Tap to copy</CText>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            {!hideSavedList && !embedded && savedAddresses.length > 0 ? (
-              <View className="gap-y-2">
-                <CText style={{ fontFamily: "bold" }}>Saved addresses</CText>
-                {savedAddresses.map((address) => (
-                  <View key={address.id} className="bg-white dark:bg-accent rounded-xl p-3 mb-2">
-                    <CText style={{ fontFamily: "bold" }}>
-                      {address.origin_symbol || "TOKEN"} from{" "}
-                      {formatChainName(
-                        chains.find((c) => c.chainId === address.origin_chain_id)?.name ??
-                          `Chain ${address.origin_chain_id}`
-                      )}
-                    </CText>
-                    <CText className="text-gray-500 dark:text-gray-400 mt-1">
-                      Arrives as {address.settlement_symbol || "TOKEN"} on{" "}
-                      {formatChainName(
-                        chains.find((c) => c.chainId === address.settlement_chain_id)?.name ??
-                          `Chain ${address.settlement_chain_id}`
-                      )}
-                    </CText>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-
-            {!embedded && recentDeposits.length > 0 ? (
-              <View className="gap-y-2">
-                <CText style={{ fontFamily: "bold" }}>Recent deposits</CText>
-                {recentDeposits.map((deposit) => (
-                  <View key={deposit.id} className="bg-white dark:bg-accent rounded-xl p-3 mb-2">
-                    <CText style={{ fontFamily: "bold" }}>
-                      {deposit.status?.replace(/_/g, " ").toLowerCase() ?? "pending"}
-                    </CText>
-                    <CText className="text-gray-500 dark:text-gray-400 mt-1">
-                      {deposit.origin_amount_formatted || deposit.origin_amount || "—"} →{" "}
-                      {deposit.settlement_amount_formatted || deposit.settlement_amount || "pending"}
-                    </CText>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-          </View>
+          {mainContent}
         </ScrollView>
       )}
 
@@ -663,66 +745,60 @@ export default function DextopusCrossChainDeposit({
               </CText>
               <SearchInput onSearch={setPickerSearch} value={pickerSearch} />
 
-              <FlatList
-                data={filteredPickerItems as (DextopusChain | DextopusToken)[]}
-                keyExtractor={(item) => {
-                  if ("symbol" in item && "address" in item) {
+              <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+                {pickerItems.length === 0 ? (
+                  <CText className="text-center text-gray-500 py-6">No options found.</CText>
+                ) : (
+                  pickerItems.map((item) => {
+                    if (activePicker === "originNetwork" || activePicker === "settlementNetwork") {
+                      const chain = item as DextopusChain;
+                      const selected =
+                        activePicker === "originNetwork"
+                          ? originChain?.chainId === chain.chainId
+                          : settlementChain?.chainId === chain.chainId;
+                      return (
+                        <TouchableOpacity
+                          key={`chain-${chain.chainId}`}
+                          onPress={() =>
+                            activePicker === "originNetwork"
+                              ? selectOriginChain(chain)
+                              : selectSettlementChain(chain)
+                          }
+                          className="py-4 border-b border-gray-100 dark:border-gray-800"
+                        >
+                          <CText style={{ fontFamily: selected ? "bold" : "regular" }}>
+                            {formatChainName(chain.name)}
+                          </CText>
+                        </TouchableOpacity>
+                      );
+                    }
+
                     const token = item as DextopusToken;
-                    return `token-${token.chainId}-${token.address}`;
-                  }
-                  return `chain-${(item as DextopusChain).chainId}`;
-                }}
-                keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => {
-                  if (activePicker === "originNetwork" || activePicker === "settlementNetwork") {
-                    const chain = item as DextopusChain;
                     const selected =
-                      activePicker === "originNetwork"
-                        ? originChain?.chainId === chain.chainId
-                        : settlementChain?.chainId === chain.chainId;
+                      activePicker === "originToken"
+                        ? originToken?.address === token.address
+                        : settlementToken?.address === token.address;
                     return (
                       <TouchableOpacity
+                        key={`token-${token.chainId}-${token.address}`}
                         onPress={() =>
-                          activePicker === "originNetwork"
-                            ? selectOriginChain(chain)
-                            : selectSettlementChain(chain)
+                          activePicker === "originToken"
+                            ? selectOriginToken(token)
+                            : selectSettlementToken(token)
                         }
                         className="py-4 border-b border-gray-100 dark:border-gray-800"
                       >
                         <CText style={{ fontFamily: selected ? "bold" : "regular" }}>
-                          {formatChainName(chain.name)}
+                          {token.symbol}
                         </CText>
+                        {token.name ? (
+                          <CText className="text-gray-500 dark:text-gray-400 mt-1">{token.name}</CText>
+                        ) : null}
                       </TouchableOpacity>
                     );
-                  }
-
-                  const token = item as DextopusToken;
-                  const selected =
-                    activePicker === "originToken"
-                      ? originToken?.address === token.address
-                      : settlementToken?.address === token.address;
-                  return (
-                    <TouchableOpacity
-                      onPress={() =>
-                        activePicker === "originToken"
-                          ? selectOriginToken(token)
-                          : selectSettlementToken(token)
-                      }
-                      className="py-4 border-b border-gray-100 dark:border-gray-800"
-                    >
-                      <CText style={{ fontFamily: selected ? "bold" : "regular" }}>
-                        {token.symbol}
-                      </CText>
-                      {token.name ? (
-                        <CText className="text-gray-500 dark:text-gray-400 mt-1">{token.name}</CText>
-                      ) : null}
-                    </TouchableOpacity>
-                  );
-                }}
-                ListEmptyComponent={
-                  <CText className="text-center text-gray-500 py-6">No options found.</CText>
-                }
-              />
+                  })
+                )}
+              </ScrollView>
             </View>
           }
         />
