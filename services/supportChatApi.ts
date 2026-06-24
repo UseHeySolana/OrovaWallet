@@ -64,7 +64,37 @@ async function parseJson<T>(res: Response): Promise<T | null> {
   }
 }
 
-export async function getSupportConversation(
+export async function getSupportHistory(
+  user: UserType | null | undefined
+): Promise<SupportConversation[]> {
+  if (!BASE_URL) return [];
+  const identity = identityFromUser(user);
+  if (!identity.phone_number && !identity.wallet_address) return [];
+
+  const qs = identityQuery(identity);
+  const res = await fetch(`${BASE_URL}/support/history?${qs}`);
+  const json = await parseJson<{ success: boolean; data: SupportConversation[] }>(res);
+  if (!res.ok || !json?.success) return [];
+  return json.data ?? [];
+}
+
+export async function endSupportChat(
+  conversationId: number,
+  user: UserType | null | undefined
+): Promise<SupportConversation | null> {
+  if (!BASE_URL) return null;
+  const identity = identityFromUser(user);
+  const qs = identityQuery(identity);
+  const res = await fetch(
+    `${BASE_URL}/support/conversations/${conversationId}/end?${qs}`,
+    { method: "PATCH" }
+  );
+  const json = await parseJson<{ success: boolean; data: SupportConversation }>(res);
+  if (!res.ok || !json?.success) return null;
+  return json.data;
+}
+
+export async function getActiveSupportConversation(
   user: UserType | null | undefined
 ): Promise<SupportConversation | null> {
   if (!BASE_URL) return null;
@@ -73,10 +103,12 @@ export async function getSupportConversation(
 
   const qs = identityQuery(identity);
   const res = await fetch(`${BASE_URL}/support/conversation?${qs}`);
-  const json = await parseJson<{ success: boolean; data: SupportConversation }>(res);
+  const json = await parseJson<{ success: boolean; data: SupportConversation | null }>(res);
   if (!res.ok || !json?.success) return null;
-  return json.data;
+  return json.data ?? null;
 }
+
+export const getSupportConversation = getActiveSupportConversation;
 
 export async function getSupportMessages(
   conversationId: number,

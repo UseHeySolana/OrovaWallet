@@ -115,11 +115,15 @@ const settingsMenu2: SettingsMenu2Item[] = [
 
     icon: <IconLibrary.connection />,
   },
+];
+
+const settingsMenu3: SettingsMenu2Item[] = [
+
 
   {
     title: "Help & Support",
     route: "/settings/support",
-    subtitle: "Chat with the HeySolana team",
+    subtitle: "Chat with the Orova team",
     icon: <IconLibrary.commenting />,
   },
   {
@@ -137,6 +141,10 @@ const settingsMenu2: SettingsMenu2Item[] = [
     subtitle: "Change the app mode",
     icon: <IconLibrary.moon />,
   },
+
+]
+
+const settingsMenu4: SettingsMenu2Item[] = [
   {
     title: "Logout",
     route: "logout",
@@ -251,6 +259,168 @@ export default function Settings() {
 
         <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow-sm  bottom-10 bg-white dark:bg-accent ">
           {settingsMenu2.map((item, index) => {
+            return (
+              <Pressable
+                onPress={() => {
+                  routeNavigation(item.route, item.type);
+                }}
+                key={index}
+                className="py-1 flex flex-row justify-between items-center"
+              >
+                <View className="flex-1 flex-row justify-start items-center gap-x-2">
+                  <View className="h-6 flex flex-row justify-center items-center w-6">
+                    {item.toggleFor === "notifications" ? (
+                      <Ionicons
+                        name="notifications-outline"
+                        size={20}
+                        color={isDarkMode ? "#f3f4f6" : "#374151"}
+                      />
+                    ) : item.icon ? (
+                      item.icon
+                    ) : (
+                      <IconLibrary.angle_right />
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <CText className="text-[1.2rem]">{item.title}</CText>
+                    <CText textColor="text-gray-400" className="text-[1rem] ">
+                      {item.subtitle}
+                    </CText>
+                  </View>
+                </View>
+
+                {item.route && item.route !== "logout" && (
+                  <>
+                    {item.type === "toggle" ? (
+                      <Switch
+                        trackColor={{ false: "red", true: "green" }}
+                        thumbColor={"white"}
+                        ios_backgroundColor="#3e3e3e"
+                        onValueChange={(enabled) => {
+                          if (item.toggleFor === "notifications") {
+                            updateNotifications(enabled);
+                            if (enabled) {
+                              void registerPushTokenWithBackend({
+                                user,
+                              }).then((ok) => {
+                                if (!ok) {
+                                  setToast(
+                                    "Could not enable push. Check system notification permission and EXPO_PUBLIC_API_URL.",
+                                    "error"
+                                  );
+                                  updateNotifications(false);
+                                }
+                              });
+                            } else {
+                              void deactivatePushTokenOnBackend();
+                            }
+                            return;
+                          }
+                          toggleTheme(enabled ? "dark" : "light");
+                          setLoading(false);
+                        }}
+                        value={
+                          item.toggleFor === "notifications"
+                            ? notifications
+                            : isDarkMode
+                        }
+                      />
+                    ) : (
+                      <Pressable onPress={() => router.back()} className="p-3">
+                        <IconLibrary.angle_right />
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+
+
+        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow-sm  bottom-10 bg-white dark:bg-accent ">
+          {settingsMenu3.map((item, index) => {
+            return (
+              <Pressable
+                onPress={() => {
+                  routeNavigation(item.route, item.type);
+                }}
+                key={index}
+                className="py-1 flex flex-row justify-between items-center"
+              >
+                <View className="flex-1 flex-row justify-start items-center gap-x-2">
+                  <View className="h-6 flex flex-row justify-center items-center w-6">
+                    {item.toggleFor === "notifications" ? (
+                      <Ionicons
+                        name="notifications-outline"
+                        size={20}
+                        color={isDarkMode ? "#f3f4f6" : "#374151"}
+                      />
+                    ) : item.icon ? (
+                      item.icon
+                    ) : (
+                      <IconLibrary.angle_right />
+                    )}
+                  </View>
+                  <View className="flex-1">
+                    <CText className="text-[1.2rem]">{item.title}</CText>
+                    <CText textColor="text-gray-400" className="text-[1rem] ">
+                      {item.subtitle}
+                    </CText>
+                  </View>
+                </View>
+
+                {item.route && item.route !== "logout" && (
+                  <>
+                    {item.type === "toggle" ? (
+                      <Switch
+                        trackColor={{ false: "red", true: "green" }}
+                        thumbColor={"white"}
+                        ios_backgroundColor="#3e3e3e"
+                        onValueChange={(enabled) => {
+                          if (item.toggleFor === "notifications") {
+                            updateNotifications(enabled);
+                            if (enabled) {
+                              void registerPushTokenWithBackend({
+                                user,
+                              }).then((ok) => {
+                                if (!ok) {
+                                  setToast(
+                                    "Could not enable push. Check system notification permission and EXPO_PUBLIC_API_URL.",
+                                    "error"
+                                  );
+                                  updateNotifications(false);
+                                }
+                              });
+                            } else {
+                              void deactivatePushTokenOnBackend();
+                            }
+                            return;
+                          }
+                          toggleTheme(enabled ? "dark" : "light");
+                          setLoading(false);
+                        }}
+                        value={
+                          item.toggleFor === "notifications"
+                            ? notifications
+                            : isDarkMode
+                        }
+                      />
+                    ) : (
+                      <Pressable onPress={() => router.back()} className="p-3">
+                        <IconLibrary.angle_right />
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+
+
+        <View className="w-11/12  m-auto p-4 gap-y-4  rounded-2xl shadow-sm  bottom-10 bg-white dark:bg-accent ">
+          {settingsMenu4.map((item, index) => {
             return (
               <Pressable
                 onPress={() => {
