@@ -10,6 +10,7 @@ interface ButtonsProp {
   type?: "primary" | "secondary";
   className?: string;
   textClass?: string;
+  compact?: boolean;
   onPress: () => void;
   style?: {};
   icon?: React.ReactNode;
@@ -32,11 +33,13 @@ onPress:() => void;
  * @returns 
  */
 export default function Buttons(props: ButtonsProp) {
-  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType, accessibilityLabel } = props;
+  const { loading, style, textClass, text, className, type = "primary", onPress, buttonType, accessibilityLabel, compact } = props;
   const loaderVariant = type === "primary" ? "primary" : "secondary";
 
   const buttonColor = type === "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
   const textColor = type === "primary" ? "#FFFFFF" : "#FFFFFF"
+  const sizeClass = compact ? "py-1.5 rounded-xl" : "py-5 rounded-full";
+  const fontSize = compact ? 12 : 16;
 
   const trackPress = () => {
     tracker.buttons(text || accessibilityLabel || "Button", 1);
@@ -50,7 +53,7 @@ export default function Buttons(props: ButtonsProp) {
         <ButtonInlineLoader variant={loaderVariant} />
       ) : text ? (
         <Text
-          style={{ fontFamily: "bold", color: textColor, textAlign: "center", fontSize: 16 }}
+          style={{ fontFamily: "bold", color: textColor, textAlign: "center", fontSize }}
           className={textClass}
         >
           {text}
@@ -75,7 +78,7 @@ export default function Buttons(props: ButtonsProp) {
               <View
                 accessibilityRole="button"
                 accessibilityLabel={accessibilityLabel}
-                className={`${buttonColor} ${className ? className : "py-5 rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}
+                className={`${buttonColor} ${className ? className : sizeClass} w-full flex flex-row justify-center items-center gap-x-2`}
               >
                 {innerContent}
               </View>
@@ -89,7 +92,7 @@ export default function Buttons(props: ButtonsProp) {
           onPress={trackPress}
           style={[style, className?.includes?.("flex-1") && { flex: 1 }]}
         >
-          <View className={`${buttonColor} ${className ? className : "py-5  rounded-full"} w-full flex flex-row justify-center items-center gap-x-2`}>
+          <View className={`${buttonColor} ${className ? className : sizeClass} w-full flex flex-row justify-center items-center gap-x-2`}>
             {innerContent}
           </View>
         </TouchableOpacity>

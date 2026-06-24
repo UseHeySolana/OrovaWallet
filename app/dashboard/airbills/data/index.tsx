@@ -19,6 +19,7 @@ import {
   formatNaira,
   NetworkBadge,
   NetworkPickerSheet,
+  AirbillsDataPlanCardBanner,
 } from "@/components/Airbills/shared";
 import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
@@ -71,6 +72,7 @@ function PlanGridCard({
       style={{ width }}
       className="mb-3 overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-accent"
     >
+      <AirbillsDataPlanCardBanner />
       {!!cashbackPoints && cashbackPoints > 0 && (
         <View className="items-center bg-purple px-1 py-1">
           <CText
@@ -81,16 +83,16 @@ function PlanGridCard({
           </CText>
         </View>
       )}
-      <View className="min-h-[118px] items-center justify-center px-2 py-3">
+      <View className="min-h-[92px] items-center justify-center px-2 py-1.5">
         <CText style={{ fontFamily: "bold" }} className="w-full text-center text-[1.1rem]">
           {item.sizeLabel}
         </CText>
         {!!item.validityLabel && (
-          <CText className="mt-1 w-full text-center text-[0.78rem] text-black/55 dark:text-grey/60">
+          <CText className="mt-0.5 w-full text-center text-[0.78rem] text-black/55 dark:text-grey/60">
             {item.validityLabel}
           </CText>
         )}
-        <CText style={{ fontFamily: "bold" }} className="mt-3 w-full text-center text-[0.95rem]">
+        <CText style={{ fontFamily: "bold" }} className="mt-1.5 w-full text-center text-[0.95rem]">
           {formatNaira(Number(item.plan.prodAmount))}
         </CText>
         {busy && (
@@ -100,7 +102,7 @@ function PlanGridCard({
         )}
       </View>
       {!!item.footerLabel && (
-        <View className="items-center justify-center bg-purple/10 px-2 py-1.5">
+        <View className="items-center justify-center bg-purple/10 px-2 py-1">
           <CText
             className="text-center text-[0.68rem] text-purple"
             numberOfLines={2}

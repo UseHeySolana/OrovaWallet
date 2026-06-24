@@ -3,7 +3,10 @@ import { useAi } from "@/context/AiContext";
 import type { DataPlanPickerRow } from "@/utils/store/conversation.store";
 import { CText } from "@/components/TextComp";
 import Buttons from "@/components/ButtonComp";
-import { formatNaira } from "@/components/Airbills/shared";
+import {
+  AirbillsDataPlanCardBanner,
+  formatNaira,
+} from "@/components/Airbills/shared";
 import {
   CHAT_DATA_PLAN_CATEGORIES,
   type DataPlanCategory,
@@ -57,6 +60,7 @@ export default function DataPlanPicker({
             <View key={item.id} className="min-w-[46%] flex-1">
               <Buttons
                 text={item.label}
+                compact
                 onPress={() => onPickCategory(item.id, item.label)}
               />
             </View>
@@ -102,7 +106,8 @@ export default function DataPlanPicker({
             key={plan.prodId}
             className="flex flex-col items-stretch justify-between bg-white dark:bg-accent shadow-lg w-[168px] rounded-2xl overflow-hidden"
           >
-            <View className="min-h-[118px] items-center justify-center px-2 py-3">
+            <AirbillsDataPlanCardBanner />
+            <View className="min-h-[92px] items-center justify-center px-2 py-1.5">
               <CText
                 numberOfLines={1}
                 className="w-full text-center text-[1.1rem]"
@@ -111,19 +116,19 @@ export default function DataPlanPicker({
                 {plan.sizeLabel}
               </CText>
               {!!plan.validityLabel && (
-                <CText className="mt-1 w-full text-center text-[0.78rem] text-black/55 dark:text-grey/60">
+                <CText className="mt-0.5 w-full text-center text-[0.78rem] text-black/55 dark:text-grey/60">
                   {plan.validityLabel}
                 </CText>
               )}
               <CText
-                className="mt-3 w-full text-center text-[0.95rem]"
+                className="mt-1.5 w-full text-center text-[0.95rem]"
                 style={{ fontFamily: "bold" }}
               >
                 {formatNaira(plan.prodAmount)}
               </CText>
             </View>
             {!!plan.footerLabel && (
-              <View className="items-center justify-center bg-purple/10 px-2 py-1.5">
+              <View className="items-center justify-center bg-purple/10 px-2 py-1">
                 <CText
                   className="text-center text-[0.68rem] text-purple"
                   numberOfLines={2}
@@ -132,8 +137,8 @@ export default function DataPlanPicker({
                 </CText>
               </View>
             )}
-            <View className="p-2">
-              <Buttons text="Select" onPress={() => onPickPlan(plan)} />
+            <View className="px-2 pb-2 pt-1">
+              <Buttons compact text="Select" onPress={() => onPickPlan(plan)} />
             </View>
           </View>
         ))}

@@ -1,5 +1,6 @@
 import { Pressable, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Image } from "expo-image";
 
 import CText from "@/components/TextComp";
 import DragableSheet from "@/components/CustomItems/DragableSheet";
@@ -17,6 +18,19 @@ export function formatNaira(amount: number) {
 
 export function formatNairaSpaced(amount: number) {
   return `₦ ${amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
+/** Compact Airbills strip shown at the top of data plan cards. */
+export function AirbillsDataPlanCardBanner({ height = 24 }: { height?: number }) {
+  return (
+    <View style={{ height }} className="w-full overflow-hidden bg-[#0f172a]">
+      <Image
+        source={require("@/assets/apps/airbillsbg.jpeg")}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="cover"
+      />
+    </View>
+  );
 }
 
 export function formatUsdc(amount: number, maximumFractionDigits = 4) {
