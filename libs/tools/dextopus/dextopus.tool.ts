@@ -7,6 +7,7 @@ import {
   createDextopusDepositAddress,
   createDextopusQuote,
   DEXTOPUS_NATIVE_SOL_ASSET,
+  DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
   getDextopusChains,
@@ -95,6 +96,12 @@ export class DextopusTool {
           const originChainId = resolveChainId(args.origin_chain, chains);
           if (!originChainId) {
             return this.fail(messageId, `I couldn't find the chain "${args.origin_chain}".`);
+          }
+          if (DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS.has(originChainId)) {
+            return this.fail(
+              messageId,
+              "Bitcoin and Tron cross-chain deposits are not supported yet."
+            );
           }
 
           const tokens = await getDextopusTokens(originChainId, true);

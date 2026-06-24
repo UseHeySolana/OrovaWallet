@@ -43,6 +43,7 @@ import {
   createDextopusDepositAddress,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
+  isEvmAddress,
   getDextopusChains,
   getDextopusTokens,
   type DextopusChain,
@@ -801,6 +802,14 @@ export default function Onramp() {
       setLastError(`Enter the ${selectedChainName} wallet address to receive ${tokenLabel}`);
       setStatusMessage("");
       setToast(`Enter the ${selectedChainName} wallet address`, "error");
+      return;
+    }
+
+    if (!isSolanaChain && !isEvmAddress(destAddress)) {
+      const message = `Enter a valid ${selectedChainName} wallet address (0x…).`;
+      setLastError(message);
+      setStatusMessage("");
+      setToast(message, "error");
       return;
     }
 

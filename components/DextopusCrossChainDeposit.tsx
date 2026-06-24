@@ -20,6 +20,7 @@ import {
   createDextopusDepositAddress,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
+  DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS,
   getDextopusChains,
   getDextopusTokens,
   listDextopusDepositAddresses,
@@ -80,7 +81,12 @@ export default function DextopusCrossChainDeposit({
   const initialSelectionApplied = useRef(false);
 
   const originChains = useMemo(
-    () => chains.filter((chain) => chain.chainId !== DEXTOPUS_SOLANA_CHAIN_ID),
+    () =>
+      chains.filter(
+        (chain) =>
+          chain.chainId !== DEXTOPUS_SOLANA_CHAIN_ID &&
+          !DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS.has(chain.chainId)
+      ),
     [chains]
   );
 

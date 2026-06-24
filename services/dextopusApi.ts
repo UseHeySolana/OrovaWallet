@@ -4,6 +4,16 @@ export const DEXTOPUS_SOLANA_CHAIN_ID = 792703809;
 export const DEXTOPUS_NATIVE_SOL_ASSET = "11111111111111111111111111111111";
 export const DEXTOPUS_USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
+/** Chains where Dextopus requires a chain-native refund address we do not collect yet. */
+export const DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS = new Set<number>([
+  8253038, // bitcoin
+  728126428, // tron
+]);
+
+export function isEvmAddress(value: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(value.trim());
+}
+
 export interface DextopusChain {
   chainId: number;
   name: string;
