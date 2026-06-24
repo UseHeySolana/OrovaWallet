@@ -323,3 +323,45 @@ I want Naira.
 ```
 
 Everything between those two statements is Orova's job, with Dextopus acting as the routing engine underneath.
+
+---
+
+# TODO
+
+## Dextopus onramp deposit address strategy
+
+**Status:** Deferred — decide later.
+
+**Context:** PajCash onramp settles USDC on Solana. For cross-chain buys, PajCash sends USDC to a Dextopus Solana deposit address; Dextopus bridges and settles on the destination chain.
+
+Dextopus static addresses (`POST /deposit/static/generate`) are **reusable**, but each address is bound to a **full route** at creation time:
+
+- Origin: Solana USDC (what PajCash sends)
+- Settlement chain (e.g. Base)
+- Settlement token (e.g. USDC, WETH)
+- Settlement recipient (e.g. `0xRecipient`)
+
+Sending USDC to the same Solana address multiple times always follows that same route. It is **not** one universal inbox that can settle to different destinations per payment.
+
+**Current behavior:** Route-specific reuse. We return an existing address when wallet + origin + settlement chain + settlement token + settlement recipient all match. Otherwise we generate a new one.
+
+**When a new Solana deposit address is required:**
+
+| Change | New address? |
+| --- | --- |
+| Same chain, same token, same recipient | No — reuse |
+| Different recipient on same chain | Yes |
+| Different token on same chain | Yes |
+| Different chain | Yes |
+
+**Options to decide:**
+
+1. **Route-specific reuse (current)** — Correct when users pick different destinations per buy. Reuse only when the full route matches.
+2. **One fixed address per user** — Only viable if every onramp settles to the **same** chain, token, and recipient (e.g. always the user’s linked Base USDC wallet). Reusing one address across different destinations would mis-route funds.
+3. **Per-order quotes** — Use `POST /deposit/quote` for a fresh deposit address each buy. Not reusable, but always matches the selected route.
+
+**Related code:**
+
+- Backend dedup: `HeySolanaBackend/app/Http/Controllers/DextopusWalletController.php` (`generateDepositAddress`)
+- Wallet client: `HeySolanaWallet/services/dextopusApi.ts` (`findOrCreateDextopusDepositAddress`, `matchDextopusDepositAddress`)
+- Onramp flow: `HeySolanaWallet/app/dashboard/onramp/index.tsx`

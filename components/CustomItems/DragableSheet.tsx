@@ -2,8 +2,7 @@
 import { useThemeContext } from "@/context/ThemeContext";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { StatusBar } from "react-native";
-import { Pressable, View } from "react-native";
+import { Keyboard, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface DragableSheetProps {
@@ -35,22 +34,28 @@ const DragableSheet = (props: DragableSheetProps) => {
             }}
             onChange={(e) => onChange(e)}
             snapPoints={snapPoints ? snapPoints : ["60%"]}
-            backdropComponent={(props) =>
+            backdropComponent={(backdropProps) => (
                 <BottomSheetBackdrop
-                    {...props}
+                    {...backdropProps}
                     disappearsOnIndex={-1}
                     appearsOnIndex={0}
                     pressBehavior="collapse"
+                    onPress={() => {
+                        Keyboard.dismiss();
+                        backdropProps.onPress?.();
+                    }}
                     style={{
                         height: "100%",
                         backgroundColor: 'black',
                     }}
                 />
-            }
+            )}
             enablePanDownToClose={panClose ?? false}
         >
-            <BottomSheetView className="h-full px-4 rounded-t-3xl" >
-                {child}
+            <BottomSheetView className="h-full px-4 rounded-t-3xl">
+                <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss} accessible={false}>
+                    {child}
+                </Pressable>
             </BottomSheetView>
         </BottomSheet>
 

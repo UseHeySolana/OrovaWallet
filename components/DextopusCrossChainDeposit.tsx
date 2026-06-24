@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   ScrollView,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,9 +19,10 @@ import WalletItem from "@/utils/store/wallet.store";
 import { copyItem } from "@/utils/functions";
 import {
   findOrCreateDextopusDepositAddress,
+  isEvmAddress,
   matchDextopusDepositAddress,
+  normalizeDextopusAsset,
   DEXTOPUS_SOLANA_CHAIN_ID,
-  DEXTOPUS_USDC_MAINNET,
   DEXTOPUS_REFUND_REQUIRED_ORIGIN_CHAIN_IDS,
   DEXTOPUS_UNSUPPORTED_ORIGIN_CHAIN_IDS,
   getDextopusChains,
@@ -41,26 +43,37 @@ function formatChainName(name: string) {
     .join(" ");
 }
 
-function normalizeAsset(asset?: string | null) {
-  return (asset ?? "").trim().toLowerCase();
+function pickDefaultToken(tokens: DextopusToken[]): DextopusToken | null {
+  if (tokens.length === 0) return null;
+  const usdc = tokens.find((t) => t.symbol.toUpperCase() === "USDC");
+  const usdt = tokens.find((t) => t.symbol.toUpperCase() === "USDT");
+  return usdc ?? usdt ?? tokens[0];
 }
 
-type PickerKind = "network";
+type PickerKind = "originNetwork" | "originToken" | "settlementNetwork" | "settlementToken";
 
 type DextopusCrossChainDepositProps = {
   initialChainId?: number;
+  initialSettlementChainId?: number;
   initialOriginAsset?: string;
   initialOriginSymbol?: string;
   initialSettlementAsset?: string;
   initialSettlementSymbol?: string;
   hideSavedList?: boolean;
+  embedded?: boolean;
+  lockSettlementNetwork?: boolean;
 };
 
 export default function DextopusCrossChainDeposit({
   initialChainId,
+  initialSettlementChainId,
   initialOriginAsset,
   initialOriginSymbol,
+  initialSettlementAsset,
+  initialSettlementSymbol,
   hideSavedList = false,
+  embedded = false,
+  lockSettlementNetwork = false,
 }: DextopusCrossChainDepositProps = {}) {
   const { publicKey } = WalletItem();
   const walletAddress = publicKey?.toString() ?? "";
@@ -73,8 +86,15 @@ export default function DextopusCrossChainDeposit({
   const [savedAddresses, setSavedAddresses] = useState<DextopusDepositAddress[]>([]);
   const [recentDeposits, setRecentDeposits] = useState<DextopusDeposit[]>([]);
 
-  const [selectedChain, setSelectedChain] = useState<DextopusChain | null>(null);
-  const [selectedToken, setSelectedToken] = useState<DextopusToken | null>(null);
+  const [originChain, setOriginChain] = useState<DextopusChain | null>(null);
+  const [originToken, setOriginToken] = useState<DextopusToken | null>(null);
+  const [originTokens, setOriginTokens] = useState<DextopusToken[]>([]);
+
+  const [settlementChain, setSettlementChain] = useState<DextopusChain | null>(null);
+  const [settlementToken, setSettlementToken] = useState<DextopusToken | null>(null);
+  const [settlementTokens, setSettlementTokens] = useState<DextopusToken[]>([]);
+  const [settlementAddress, setSettlementAddress] = useState("");
+
   const [activeAddress, setActiveAddress] = useState<DextopusDepositAddress | null>(null);
   const [activePicker, setActivePicker] = useState<PickerKind | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
@@ -93,19 +113,67 @@ export default function DextopusCrossChainDeposit({
     [chains]
   );
 
-  const filteredChains = useMemo(() => {
-    const query = pickerSearch.trim().toLowerCase();
-    if (activePicker !== "network" || !query) return originChains;
-    return originChains.filter(
-      (chain) =>
-        chain.name.toLowerCase().includes(query) ||
-        String(chain.chainId).includes(query)
-    );
-  }, [activePicker, originChains, pickerSearch]);
+  const settlementChains = useMemo(() => chains, [chains]);
 
-  const openPicker = () => {
+  const isSolanaSettlement = settlementChain?.chainId === DEXTOPUS_SOLANA_CHAIN_ID;
+
+  const pickerTitle = useMemo(() => {
+    switch (activePicker) {
+      case "originNetwork":
+        return "Send from";
+      case "originToken":
+        return "Token to send";
+      case "settlementNetwork":
+        return "Settle to";
+      case "settlementToken":
+        return "Token to receive";
+      default:
+        return "";
+    }
+  }, [activePicker]);
+
+  const filteredPickerItems = useMemo(() => {
+    const query = pickerSearch.trim().toLowerCase();
+    if (activePicker === "originNetwork") {
+      const list = originChains;
+      if (!query) return list;
+      return list.filter(
+        (chain) =>
+          chain.name.toLowerCase().includes(query) || String(chain.chainId).includes(query)
+      );
+    }
+    if (activePicker === "settlementNetwork") {
+      const list = settlementChains;
+      if (!query) return list;
+      return list.filter(
+        (chain) =>
+          chain.name.toLowerCase().includes(query) || String(chain.chainId).includes(query)
+      );
+    }
+    if (activePicker === "originToken") {
+      const list = originTokens;
+      if (!query) return list;
+      return list.filter(
+        (token) =>
+          token.symbol.toLowerCase().includes(query) ||
+          token.name?.toLowerCase().includes(query)
+      );
+    }
+    if (activePicker === "settlementToken") {
+      const list = settlementTokens;
+      if (!query) return list;
+      return list.filter(
+        (token) =>
+          token.symbol.toLowerCase().includes(query) ||
+          token.name?.toLowerCase().includes(query)
+      );
+    }
+    return [];
+  }, [activePicker, originChains, originTokens, pickerSearch, settlementChains, settlementTokens]);
+
+  const openPicker = (kind: PickerKind) => {
     setPickerSearch("");
-    setActivePicker("network");
+    setActivePicker(kind);
   };
 
   const closePicker = () => {
@@ -138,14 +206,28 @@ export default function DextopusCrossChainDeposit({
   }, [loadBaseData]);
 
   useEffect(() => {
-    if (!initialChainId || selectedChain || chains.length === 0) return;
+    if (!initialChainId || originChain || chains.length === 0) return;
     const chain = chains.find((item) => item.chainId === initialChainId);
-    if (chain) setSelectedChain(chain);
-  }, [chains, initialChainId, selectedChain]);
+    if (chain && chain.chainId !== DEXTOPUS_SOLANA_CHAIN_ID) setOriginChain(chain);
+  }, [chains, initialChainId, originChain]);
 
   useEffect(() => {
-    if (!selectedChain) {
-      setSelectedToken(null);
+    if (!initialSettlementChainId || settlementChain || chains.length === 0) return;
+    const chain = chains.find((item) => item.chainId === initialSettlementChainId);
+    if (chain) setSettlementChain(chain);
+  }, [chains, initialSettlementChainId, settlementChain]);
+
+  useEffect(() => {
+    if (settlementChain || chains.length === 0) return;
+    if (initialSettlementChainId) return;
+    const solana = chains.find((item) => item.chainId === DEXTOPUS_SOLANA_CHAIN_ID);
+    if (solana) setSettlementChain(solana);
+  }, [chains, initialSettlementChainId, settlementChain]);
+
+  useEffect(() => {
+    if (!originChain) {
+      setOriginTokens([]);
+      setOriginToken(null);
       return;
     }
 
@@ -153,23 +235,39 @@ export default function DextopusCrossChainDeposit({
     (async () => {
       setError(null);
       try {
-        const tokenList = await getDextopusTokens(selectedChain.chainId, true);
+        const tokenList = await getDextopusTokens(originChain.chainId, true);
         if (cancelled) return;
 
         if (tokenList.length === 0) {
-          setError(`No tokens available for deposits on ${formatChainName(selectedChain.name)}.`);
-          setSelectedToken(null);
+          setError(`No tokens available to send from ${formatChainName(originChain.name)}.`);
+          setOriginTokens([]);
+          setOriginToken(null);
           return;
         }
 
-        const usdc = tokenList.find((t) => t.symbol.toUpperCase() === "USDC");
-        const usdt = tokenList.find((t) => t.symbol.toUpperCase() === "USDT");
-        const autoToken = usdc ?? usdt ?? tokenList[0];
-        setSelectedToken(autoToken);
+        setOriginTokens(tokenList);
+
+        if (initialOriginAsset && !initialSelectionApplied.current) {
+          const preset =
+            tokenList.find(
+              (token) =>
+                normalizeDextopusAsset(token.address) === normalizeDextopusAsset(initialOriginAsset)
+            ) ?? null;
+          setOriginToken(
+            preset ?? {
+              chainId: originChain.chainId,
+              address: initialOriginAsset,
+              symbol: initialOriginSymbol ?? "TOKEN",
+            }
+          );
+        } else {
+          setOriginToken(pickDefaultToken(tokenList));
+        }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load tokens");
-          setSelectedToken(null);
+          setError(err instanceof Error ? err.message : "Failed to load send-from tokens");
+          setOriginTokens([]);
+          setOriginToken(null);
         }
       }
     })();
@@ -177,51 +275,147 @@ export default function DextopusCrossChainDeposit({
     return () => {
       cancelled = true;
     };
-  }, [selectedChain]);
+  }, [initialOriginAsset, initialOriginSymbol, originChain]);
 
   useEffect(() => {
-    if (!initialSelectionApplied.current && initialOriginAsset && selectedChain) {
-      initialSelectionApplied.current = true;
-    } else if (selectedChain && selectedToken) {
-      initialSelectionApplied.current = true;
-    }
-  }, [initialOriginAsset, selectedChain, selectedToken]);
-
-  const resolveTokenForCreate = useCallback((): DextopusToken | null => {
-    if (initialOriginAsset && !initialSelectionApplied.current) {
-      return {
-        chainId: selectedChain?.chainId ?? 0,
-        address: initialOriginAsset,
-        symbol: initialOriginSymbol ?? "TOKEN",
-      };
-    }
-    return selectedToken;
-  }, [initialOriginAsset, initialOriginSymbol, selectedChain, selectedToken]);
-
-  const handleGenerate = async () => {
-    if (!walletAddress || !selectedChain) {
-      setError("Select the sender's network first.");
+    if (!settlementChain) {
+      setSettlementTokens([]);
+      setSettlementToken(null);
+      setSettlementAddress("");
       return;
     }
 
-    const token = resolveTokenForCreate();
-    if (!token) {
-      setError("No token available for this network.");
+    let cancelled = false;
+    (async () => {
+      try {
+        const tokenList = await getDextopusTokens(settlementChain.chainId, true);
+        if (cancelled) return;
+
+        if (tokenList.length === 0) {
+          setError(`No tokens available on ${formatChainName(settlementChain.name)}.`);
+          setSettlementTokens([]);
+          setSettlementToken(null);
+          return;
+        }
+
+        setSettlementTokens(tokenList);
+
+        if (initialSettlementAsset && !initialSelectionApplied.current) {
+          const preset =
+            tokenList.find(
+              (token) =>
+                normalizeDextopusAsset(token.address) ===
+                normalizeDextopusAsset(initialSettlementAsset)
+            ) ?? null;
+          setSettlementToken(
+            preset ?? {
+              chainId: settlementChain.chainId,
+              address: initialSettlementAsset,
+              symbol: initialSettlementSymbol ?? "TOKEN",
+            }
+          );
+        } else {
+          setSettlementToken(pickDefaultToken(tokenList));
+        }
+
+        if (settlementChain.chainId === DEXTOPUS_SOLANA_CHAIN_ID) {
+          setSettlementAddress(walletAddress);
+        } else {
+          setSettlementAddress("");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load settlement tokens");
+          setSettlementTokens([]);
+          setSettlementToken(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSettlementAsset, initialSettlementSymbol, settlementChain, walletAddress]);
+
+  useEffect(() => {
+    if (originChain && originToken && settlementChain && settlementToken) {
+      initialSelectionApplied.current = true;
+    }
+  }, [originChain, originToken, settlementChain, settlementToken]);
+
+  const resetGeneratedAddress = () => {
+    setActiveAddress(null);
+  };
+
+  const selectOriginChain = (chain: DextopusChain) => {
+    setOriginChain(chain);
+    setOriginToken(null);
+    resetGeneratedAddress();
+    closePicker();
+  };
+
+  const selectSettlementChain = (chain: DextopusChain) => {
+    setSettlementChain(chain);
+    setSettlementToken(null);
+    resetGeneratedAddress();
+    closePicker();
+  };
+
+  const selectOriginToken = (token: DextopusToken) => {
+    setOriginToken(token);
+    resetGeneratedAddress();
+    closePicker();
+  };
+
+  const selectSettlementToken = (token: DextopusToken) => {
+    setSettlementToken(token);
+    resetGeneratedAddress();
+    closePicker();
+  };
+
+  const handleGenerate = async () => {
+    if (!walletAddress) return;
+
+    if (!originChain) {
+      setError("Choose where the sender will send from.");
+      return;
+    }
+    if (!originToken) {
+      setError("Choose the token the sender will use.");
+      return;
+    }
+    if (!settlementChain) {
+      setError("Choose where you want to receive the funds.");
+      return;
+    }
+    if (!settlementToken) {
+      setError("Choose the token you want to receive.");
+      return;
+    }
+
+    const resolvedSettlementAddress = isSolanaSettlement
+      ? walletAddress
+      : settlementAddress.trim();
+
+    if (!isSolanaSettlement && !isEvmAddress(resolvedSettlementAddress)) {
+      setError(`Enter a valid ${formatChainName(settlementChain.name)} wallet address (0x…).`);
       return;
     }
 
     if (submitting) return;
 
-    const existing = matchDextopusDepositAddress(savedAddresses, {
+    const payload = {
       wallet_address: walletAddress,
-      origin_chain_id: selectedChain.chainId,
-      origin_asset: token.address,
-      origin_symbol: token.symbol,
-      settlement_asset: DEXTOPUS_USDC_MAINNET,
-      settlement_symbol: "USDC",
-      settlement_address: walletAddress,
-    });
+      origin_chain_id: originChain.chainId,
+      origin_asset: originToken.address,
+      origin_symbol: originToken.symbol,
+      settlement_chain_id: settlementChain.chainId,
+      settlement_asset: settlementToken.address,
+      settlement_symbol: settlementToken.symbol,
+      settlement_address: resolvedSettlementAddress,
+    };
 
+    const existing = matchDextopusDepositAddress(savedAddresses, payload);
     if (existing) {
       setActiveAddress(existing);
       setError(null);
@@ -231,25 +425,10 @@ export default function DextopusCrossChainDeposit({
     setSubmitting(true);
     setError(null);
     try {
-      const address = await findOrCreateDextopusDepositAddress({
-        wallet_address: walletAddress,
-        origin_chain_id: selectedChain.chainId,
-        origin_asset: token.address,
-        origin_symbol: token.symbol,
-        settlement_asset: DEXTOPUS_USDC_MAINNET,
-        settlement_symbol: "USDC",
-        settlement_address: walletAddress,
-      });
+      const address = await findOrCreateDextopusDepositAddress(payload);
       setActiveAddress(address);
       setSavedAddresses((prev) => {
-        const withoutDup = prev.filter(
-          (item) =>
-            !(
-              item.origin_chain_id === address.origin_chain_id &&
-              normalizeAsset(item.origin_asset) === normalizeAsset(address.origin_asset) &&
-              item.settlement_chain_id === address.settlement_chain_id
-            )
-        );
+        const withoutDup = prev.filter((item) => item.id !== address.id);
         return [address, ...withoutDup];
       });
     } catch (err) {
@@ -259,15 +438,41 @@ export default function DextopusCrossChainDeposit({
     }
   };
 
-  const selectChain = (chain: DextopusChain) => {
-    setSelectedChain(chain);
-    setSelectedToken(null);
-    setActiveAddress(null);
-    closePicker();
-  };
+  const originChainLabel = originChain ? formatChainName(originChain.name) : "Choose network";
+  const settlementChainLabel = settlementChain
+    ? formatChainName(settlementChain.name)
+    : "Choose network";
 
-  const chainLabel = selectedChain ? formatChainName(selectedChain.name) : "the selected network";
-  const tokenLabel = selectedToken ? selectedToken.symbol : "";
+  const routeSummary =
+    activeAddress && originChain && settlementChain && originToken && settlementToken
+      ? `Send ${originToken.symbol} on ${originChainLabel} to this address. Funds arrive as ${settlementToken.symbol} on ${settlementChainLabel}.`
+      : null;
+
+  const pickerRow = (
+    label: string,
+    value: string,
+    hint: string | undefined,
+    onPress: () => void,
+    disabled = false
+  ) => (
+    <TouchableOpacity
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      className="bg-white dark:bg-accent rounded-xl px-4 py-4 flex-row justify-between items-center"
+    >
+      <View className="flex-1 pr-4">
+        <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">{label}</CText>
+        <CText style={{ fontFamily: "bold" }} className="text-[1rem] mt-1">
+          {value}
+        </CText>
+        {hint ? (
+          <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem] mt-0.5">{hint}</CText>
+        ) : null}
+      </View>
+      {!disabled ? <IconLibrary.angle_right /> : null}
+    </TouchableOpacity>
+  );
 
   return (
     <View className="relative w-full flex-1 items-start justify-start gap-y-4 bg-transparent">
@@ -276,29 +481,90 @@ export default function DextopusCrossChainDeposit({
           <ActivityIndicator size="large" />
         </View>
       ) : (
-        <ScrollView className="w-full flex-1" showsVerticalScrollIndicator={false}>
-          <View className="gap-y-5 pb-10">
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Sender's network"
-              onPress={openPicker}
-              className="bg-white dark:bg-accent rounded-xl px-4 py-4 flex-row justify-between items-center"
-            >
-              <View className="flex-1 pr-4">
-                <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">
-                  Sender's network
-                </CText>
-                <CText style={{ fontFamily: "bold" }} className="text-[1rem] mt-1">
-                  {selectedChain ? formatChainName(selectedChain.name) : "Choose network"}
-                </CText>
-                {selectedToken ? (
-                  <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem] mt-0.5">
-                    Receiving {selectedToken.symbol} deposits
+        <ScrollView
+          className="w-full flex-1"
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View className="gap-y-4 pb-10">
+            <View className="gap-y-2">
+              <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
+                Send from
+              </CText>
+              <CText className="text-gray-500 dark:text-gray-400 text-[0.85rem]">
+                Which network and token will the sender use?
+              </CText>
+              {pickerRow(
+                "Network",
+                originChainLabel,
+                originToken ? `Sending ${originToken.symbol}` : undefined,
+                () => openPicker("originNetwork")
+              )}
+              {originChain
+                ? pickerRow(
+                    "Token",
+                    originToken?.symbol ?? "Choose token",
+                    originToken?.name,
+                    () => openPicker("originToken")
+                  )
+                : null}
+            </View>
+
+            <View className="gap-y-2">
+              <CText style={{ fontFamily: "bold" }} className="text-[0.95rem]">
+                Settle to
+              </CText>
+              <CText className="text-gray-500 dark:text-gray-400 text-[0.85rem]">
+                Where should the funds arrive after bridging?
+              </CText>
+              {pickerRow(
+                "Network",
+                settlementChainLabel,
+                settlementToken ? `Receiving ${settlementToken.symbol}` : undefined,
+                () => openPicker("settlementNetwork"),
+                lockSettlementNetwork
+              )}
+              {settlementChain
+                ? pickerRow(
+                    "Token",
+                    settlementToken?.symbol ?? "Choose token",
+                    settlementToken?.name,
+                    () => openPicker("settlementToken")
+                  )
+                : null}
+              {settlementChain && !isSolanaSettlement ? (
+                <View className="bg-white dark:bg-accent rounded-xl px-4 py-4">
+                  <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">
+                    Recipient wallet
                   </CText>
-                ) : null}
-              </View>
-              <IconLibrary.angle_right />
-            </TouchableOpacity>
+                  <TextInput
+                    className="h-[44px] mt-2 text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 px-3"
+                    value={settlementAddress}
+                    placeholder={`Enter ${settlementChainLabel} wallet address`}
+                    placeholderTextColor="grey"
+                    onChangeText={(value) => {
+                      setSettlementAddress(value);
+                      resetGeneratedAddress();
+                    }}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                  />
+                </View>
+              ) : settlementChain && isSolanaSettlement ? (
+                <View className="bg-white dark:bg-accent rounded-xl px-4 py-4">
+                  <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem]">
+                    Recipient wallet
+                  </CText>
+                  <CText style={{ fontFamily: "bold" }} className="text-[0.95rem] mt-2">
+                    Your HeySolana wallet
+                  </CText>
+                  <CText className="text-gray-500 dark:text-gray-400 text-[0.8rem] mt-1">
+                    {walletAddress}
+                  </CText>
+                </View>
+              ) : null}
+            </View>
 
             {error ? (
               <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
@@ -307,13 +573,7 @@ export default function DextopusCrossChainDeposit({
             ) : null}
 
             <Buttons
-              text={
-                submitting
-                  ? "Creating address..."
-                  : activeAddress
-                    ? "Show deposit address"
-                    : "Create deposit address"
-              }
+              text={submitting ? "Creating address..." : "Generate deposit QR"}
               onPress={handleGenerate}
               loading={submitting}
             />
@@ -321,11 +581,11 @@ export default function DextopusCrossChainDeposit({
             {activeAddress?.deposit_address ? (
               <View className="bg-white dark:bg-accent rounded-xl p-4 gap-y-4">
                 <CText style={{ fontFamily: "bold" }} className="text-[1.05rem]">
-                  Your deposit address
+                  Deposit address
                 </CText>
-                <CText className="text-gray-500 dark:text-gray-400">
-                  Send {tokenLabel || "tokens"} on {chainLabel} to this address. It will arrive in your HeySolana wallet as USDC on Solana.
-                </CText>
+                {routeSummary ? (
+                  <CText className="text-gray-500 dark:text-gray-400">{routeSummary}</CText>
+                ) : null}
 
                 <View className="items-center">
                   <View
@@ -347,7 +607,7 @@ export default function DextopusCrossChainDeposit({
               </View>
             ) : null}
 
-            {!hideSavedList && savedAddresses.length > 0 ? (
+            {!hideSavedList && !embedded && savedAddresses.length > 0 ? (
               <View className="gap-y-2">
                 <CText style={{ fontFamily: "bold" }}>Saved addresses</CText>
                 {savedAddresses.map((address) => (
@@ -360,14 +620,18 @@ export default function DextopusCrossChainDeposit({
                       )}
                     </CText>
                     <CText className="text-gray-500 dark:text-gray-400 mt-1">
-                      Arrives as USDC on Solana
+                      Arrives as {address.settlement_symbol || "TOKEN"} on{" "}
+                      {formatChainName(
+                        chains.find((c) => c.chainId === address.settlement_chain_id)?.name ??
+                          `Chain ${address.settlement_chain_id}`
+                      )}
                     </CText>
                   </View>
                 ))}
               </View>
             ) : null}
 
-            {recentDeposits.length > 0 ? (
+            {!embedded && recentDeposits.length > 0 ? (
               <View className="gap-y-2">
                 <CText style={{ fontFamily: "bold" }}>Recent deposits</CText>
                 {recentDeposits.map((deposit) => (
@@ -379,9 +643,6 @@ export default function DextopusCrossChainDeposit({
                       {deposit.origin_amount_formatted || deposit.origin_amount || "—"} →{" "}
                       {deposit.settlement_amount_formatted || deposit.settlement_amount || "pending"}
                     </CText>
-                    {deposit.settlement_amount_usd ? (
-                      <CText className="mt-1">${deposit.settlement_amount_usd}</CText>
-                    ) : null}
                   </View>
                 ))}
               </View>
@@ -398,32 +659,68 @@ export default function DextopusCrossChainDeposit({
           child={
             <View className="w-full flex-1 gap-y-3 pb-6">
               <CText style={{ fontFamily: "bold" }} className="text-[18px] text-center">
-                Sender's network
+                {pickerTitle}
               </CText>
               <SearchInput onSearch={setPickerSearch} value={pickerSearch} />
 
               <FlatList
-                data={filteredChains}
-                keyExtractor={(item) => String(item.chainId)}
+                data={filteredPickerItems as (DextopusChain | DextopusToken)[]}
+                keyExtractor={(item) => {
+                  if ("symbol" in item && "address" in item) {
+                    const token = item as DextopusToken;
+                    return `token-${token.chainId}-${token.address}`;
+                  }
+                  return `chain-${(item as DextopusChain).chainId}`;
+                }}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => {
-                  const selected = selectedChain?.chainId === item.chainId;
+                  if (activePicker === "originNetwork" || activePicker === "settlementNetwork") {
+                    const chain = item as DextopusChain;
+                    const selected =
+                      activePicker === "originNetwork"
+                        ? originChain?.chainId === chain.chainId
+                        : settlementChain?.chainId === chain.chainId;
+                    return (
+                      <TouchableOpacity
+                        onPress={() =>
+                          activePicker === "originNetwork"
+                            ? selectOriginChain(chain)
+                            : selectSettlementChain(chain)
+                        }
+                        className="py-4 border-b border-gray-100 dark:border-gray-800"
+                      >
+                        <CText style={{ fontFamily: selected ? "bold" : "regular" }}>
+                          {formatChainName(chain.name)}
+                        </CText>
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  const token = item as DextopusToken;
+                  const selected =
+                    activePicker === "originToken"
+                      ? originToken?.address === token.address
+                      : settlementToken?.address === token.address;
                   return (
                     <TouchableOpacity
-                      onPress={() => selectChain(item)}
+                      onPress={() =>
+                        activePicker === "originToken"
+                          ? selectOriginToken(token)
+                          : selectSettlementToken(token)
+                      }
                       className="py-4 border-b border-gray-100 dark:border-gray-800"
                     >
                       <CText style={{ fontFamily: selected ? "bold" : "regular" }}>
-                        {formatChainName(item.name)}
+                        {token.symbol}
                       </CText>
-                      <CText className="text-gray-500 dark:text-gray-400 mt-1">
-                        Chain ID {item.chainId}
-                      </CText>
+                      {token.name ? (
+                        <CText className="text-gray-500 dark:text-gray-400 mt-1">{token.name}</CText>
+                      ) : null}
                     </TouchableOpacity>
                   );
                 }}
                 ListEmptyComponent={
-                  <CText className="text-center text-gray-500 py-6">No networks found.</CText>
+                  <CText className="text-center text-gray-500 py-6">No options found.</CText>
                 }
               />
             </View>

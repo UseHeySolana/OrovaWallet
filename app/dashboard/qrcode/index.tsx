@@ -1,24 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { router, useFocusEffect } from "expo-router";
+import { useMemo, useState } from "react";
+import { FlatList, Pressable, ScrollView, View } from "react-native";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import { router } from "expo-router";
 
+import DextopusCrossChainDeposit from "@/components/DextopusCrossChainDeposit";
 import SolanaReceiveQr from "@/components/SolanaReceiveQr";
+import DragableSheet from "@/components/CustomItems/DragableSheet";
+import SearchInput from "@/components/SearchInput/SearchInput";
 import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
-import WalletItem from "@/utils/store/wallet.store";
-import {
-  findOrCreateDextopusDepositAddress,
-  DEXTOPUS_SOLANA_CHAIN_ID,
-  DEXTOPUS_USDC_MAINNET,
-  getDextopusChains,
-  getDextopusTokens,
-  listDextopusDepositAddresses,
-  type DextopusChain,
-  type DextopusDepositAddress,
-} from "@/services/dextopusApi";
+import { DEXTOPUS_SOLANA_CHAIN_ID, type DextopusChain } from "@/services/dextopusApi";
 
-const POPULAR_CHAINS = [8453, 42161, 1, 10, 137];
+const CROSS_CHAIN_RECEIVE = 0;
 
 function formatChainName(name: string) {
   return name
@@ -28,200 +21,140 @@ function formatChainName(name: string) {
     .join(" ");
 }
 
-function savedAddressLabel(
-  address: DextopusDepositAddress,
-  chainNameById: Map<number, string>
-) {
-  const token = address.origin_symbol || "Token";
-  const chain =
-    chainNameById.get(address.origin_chain_id) ||
-    `Chain ${address.origin_chain_id}`;
-  return `${token} from ${formatChainName(chain)}`;
-}
-
 export default function QrCode() {
-  const { publicKey } = WalletItem();
-  const walletAddress = publicKey?.toString() ?? "";
+  const [selectedNetworkId, setSelectedNetworkId] = useState(DEXTOPUS_SOLANA_CHAIN_ID);
+  const [networkPickerOpen, setNetworkPickerOpen] = useState(false);
+  const [networkSearch, setNetworkSearch] = useState("");
 
-  const [chains, setChains] = useState<DextopusChain[]>([]);
-  const [savedAddresses, setSavedAddresses] = useState<DextopusDepositAddress[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const networkOptions = useMemo(() => {
+    const solana: DextopusChain = {
+      chainId: DEXTOPUS_SOLANA_CHAIN_ID,
+      name: "Solana",
+    };
+    const crossChain: DextopusChain = {
+      chainId: CROSS_CHAIN_RECEIVE,
+      name: "Another network",
+    };
+    return [solana, crossChain];
+  }, []);
 
-  const chainNameById = useMemo(
-    () => new Map(chains.map((chain) => [chain.chainId, chain.name])),
-    [chains]
-  );
+  const isSolanaReceive = selectedNetworkId === DEXTOPUS_SOLANA_CHAIN_ID;
 
-  const loadData = useCallback(async () => {
-    if (!walletAddress) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [chainList, addresses] = await Promise.all([
-        getDextopusChains(),
-        listDextopusDepositAddresses(walletAddress),
-      ]);
-      setChains(chainList);
+  const filteredNetworks = useMemo(() => {
+    const query = networkSearch.trim().toLowerCase();
+    if (!query) return networkOptions;
+    return networkOptions.filter((chain) =>
+      formatChainName(chain.name).toLowerCase().includes(query)
+    );
+  }, [networkOptions, networkSearch]);
 
-      const missingChains = POPULAR_CHAINS.filter(
-        (chainId) =>
-          !addresses.some(
-            (row) =>
-              row.origin_chain_id === chainId && row.settlement_chain_id === DEXTOPUS_SOLANA_CHAIN_ID
-          )
-      );
+  const selectedNetworkName = useMemo(() => {
+    const found = networkOptions.find((chain) => chain.chainId === selectedNetworkId);
+    return found ? formatChainName(found.name) : "Solana";
+  }, [networkOptions, selectedNetworkId]);
 
-      if (missingChains.length > 0) {
-        const results = await Promise.allSettled(
-          missingChains.map(async (chainId) => {
-            const tokens = await getDextopusTokens(chainId, true);
-            const usdc = tokens.find((t) => t.symbol.toUpperCase() === "USDC");
-            if (!usdc) throw new Error(`No USDC on chain ${chainId}`);
-            return findOrCreateDextopusDepositAddress({
-              wallet_address: walletAddress,
-              origin_chain_id: chainId,
-              origin_asset: usdc.address,
-              origin_symbol: usdc.symbol,
-              settlement_asset: DEXTOPUS_USDC_MAINNET,
-              settlement_symbol: "USDC",
-              settlement_address: walletAddress,
-            });
-          })
-        );
-
-        const newAddresses = results
-          .filter((r): r is PromiseFulfilledResult<DextopusDepositAddress> => r.status === "fulfilled")
-          .map((r) => r.value);
-
-        if (newAddresses.length > 0) {
-          const merged = [...newAddresses, ...addresses];
-          setSavedAddresses(merged);
-          return;
-        }
-      }
-
-      setSavedAddresses(addresses);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load receive options");
-    } finally {
-      setLoading(false);
-    }
-  }, [walletAddress]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  const openSavedAddress = (address: DextopusDepositAddress) => {
-    router.push({
-      pathname: "/dashboard/qrcode/crosschain",
-      params: {
-        chainId: String(address.origin_chain_id),
-        chainName: chainNameById.get(address.origin_chain_id) || "",
-        originAsset: address.origin_asset,
-        originSymbol: address.origin_symbol || "",
-        settlementAsset: address.settlement_asset,
-        settlementSymbol: address.settlement_symbol || "USDC",
-      },
-    } as any);
+  const selectNetwork = (chainId: number) => {
+    setSelectedNetworkId(chainId);
+    setNetworkPickerOpen(false);
+    setNetworkSearch("");
   };
 
   return (
-    <View className="relative pt-3 px-4 bg-grey dark:bg-dark w-full flex-1 items-start justify-start gap-y-4">
-      <View className="w-full flex flex-row justify-start">
+    <View className="relative w-full bg-grey dark:bg-dark flex-1">
+      <View className="w-full px-4 pt-4 pb-3 flex flex-row justify-start items-center gap-x-4">
         <Pressable
           onPress={() => router.back()}
           className="p-3 rounded-full bg-white dark:bg-accent"
         >
           <IconLibrary.back />
         </Pressable>
-      </View>
-
-      <View className="w-full">
         <CText style={{ fontFamily: "bold" }} className="text-[1.35rem]">
           Receive crypto
         </CText>
-        <CText className="text-[0.95rem] text-gray-500 dark:text-gray-400 mt-1">
-          Share your Solana address, or get a deposit address for another network.
-        </CText>
       </View>
 
-      <ScrollView className="w-full flex-1" showsVerticalScrollIndicator={false}>
-        <View className="gap-y-5 pb-10">
-          <SolanaReceiveQr />
+      <ScrollView
+        className="flex-1 px-4"
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        <View className="gap-y-4 pb-6">
+          <CText className="text-[0.95rem] text-gray-500 dark:text-gray-400">
+            {isSolanaReceive
+              ? "Share your Solana address for SPL tokens and SOL."
+              : "Choose where the sender will send from and where you want to settle."}
+          </CText>
 
-          <View className="bg-white dark:bg-accent rounded-xl p-4 gap-y-3">
-            <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
-              Receiving from another network?
-            </CText>
-            <CText className="text-gray-500 dark:text-gray-400">
-              Generate a deposit address for Base, Ethereum, and more. Funds arrive in your HeySolana wallet on Solana.
-            </CText>
+          <Pressable
+            onPress={() => setNetworkPickerOpen(true)}
+            className="w-full flex-row items-center justify-between bg-white dark:bg-accent rounded-2xl px-4 py-4"
+          >
+            <View>
+              <CText className="text-[11px] tracking-widest text-gray-500 dark:text-gray-400 mb-1">
+                NETWORK
+              </CText>
+              <CText style={{ fontFamily: "bold" }} className="text-[1rem]">
+                {selectedNetworkName}
+              </CText>
+            </View>
+            <AntDesign name="down" size={12} color="#6B7280" />
+          </Pressable>
 
-            {loading ? (
-              <View className="py-4 items-center">
-                <ActivityIndicator />
-              </View>
-            ) : error ? (
-              <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
-                <CText className="text-red-600 dark:text-red-300">{error}</CText>
-              </View>
-            ) : (
-              <>
-                {savedAddresses.length > 0 ? (
-                  <View className="gap-y-2">
-                    {savedAddresses.map((address) => (
-                      <TouchableOpacity
-                        key={address.id}
-                        onPress={() => openSavedAddress(address)}
-                        className="bg-grey dark:bg-dark rounded-xl p-3 flex-row items-center"
-                      >
-                        <View className="w-10 h-10 rounded-full bg-purple/10 items-center justify-center mr-3">
-                          <MaterialCommunityIcons
-                            name="swap-horizontal"
-                            size={20}
-                            color="#971BB2"
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <CText style={{ fontFamily: "bold" }}>
-                            {savedAddressLabel(address, chainNameById)}
-                          </CText>
-                          <CText className="text-gray-500 dark:text-gray-400 mt-1">
-                            Arrives as {address.settlement_symbol || "USDC"} on Solana
-                          </CText>
-                        </View>
-                        <IconLibrary.angle_right />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : null}
-
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="Add another network"
-                  onPress={() => router.push("/dashboard/qrcode/crosschain")}
-                  className="bg-purple rounded-xl py-4 px-4"
-                >
-                  <CText
-                    className="text-white text-center"
-                    style={{ fontFamily: "bold" }}
-                  >
-                    {savedAddresses.length > 0 ? "Add another network" : "Set up cross-chain receive"}
-                  </CText>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+          {isSolanaReceive ? (
+            <SolanaReceiveQr />
+          ) : (
+            <DextopusCrossChainDeposit key="cross-chain-receive" embedded hideSavedList />
+          )}
         </View>
       </ScrollView>
+
+      {networkPickerOpen ? (
+        <DragableSheet
+          close={() => {
+            setNetworkPickerOpen(false);
+            setNetworkSearch("");
+          }}
+          panClose
+          snapPoints={["50%", "65%"]}
+          child={
+            <View className="w-full flex-1 gap-y-3 pb-6">
+              <CText style={{ fontFamily: "bold" }} className="text-[18px] text-center">
+                Select network
+              </CText>
+              <SearchInput onSearch={setNetworkSearch} value={networkSearch} />
+              <FlatList
+                data={filteredNetworks}
+                keyExtractor={(item) => String(item.chainId)}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => {
+                  const selected = selectedNetworkId === item.chainId;
+                  const isSolana = item.chainId === DEXTOPUS_SOLANA_CHAIN_ID;
+                  return (
+                    <Pressable
+                      onPress={() => selectNetwork(item.chainId)}
+                      className="py-4 border-b border-gray-100 dark:border-gray-800"
+                    >
+                      <CText style={{ fontFamily: selected ? "bold" : "regular" }}>
+                        {formatChainName(item.name)}
+                      </CText>
+                      <CText className="text-gray-500 dark:text-gray-400 mt-1 text-[0.85rem]">
+                        {isSolana
+                          ? "Direct Solana wallet address"
+                          : "Cross-chain — pick send-from and settle-to, then generate QR"}
+                      </CText>
+                    </Pressable>
+                  );
+                }}
+                ListEmptyComponent={
+                  <CText className="text-center text-gray-500 py-6">No networks found.</CText>
+                }
+              />
+            </View>
+          }
+        />
+      ) : null}
     </View>
   );
 }

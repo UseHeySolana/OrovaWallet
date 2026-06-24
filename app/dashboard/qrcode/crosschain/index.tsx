@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import DextopusCrossChainDeposit from "@/components/DextopusCrossChainDeposit";
 import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
+import { DEXTOPUS_SOLANA_CHAIN_ID } from "@/services/dextopusApi";
 
 function firstParam(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
@@ -26,33 +27,34 @@ export default function CrossChainReceivePage() {
   const settlementSymbol = firstParam(params.settlementSymbol);
 
   return (
-    <View className="relative pt-3 px-4 bg-grey dark:bg-dark w-full flex-1 items-start justify-start gap-y-4">
-      <View className="w-full flex flex-row justify-start">
+    <View className="relative w-full bg-grey dark:bg-dark flex-1">
+      <View className="w-full px-4 pt-4 pb-3 flex flex-row justify-start items-center gap-x-4">
         <Pressable
           onPress={() => router.back()}
           className="p-3 rounded-full bg-white dark:bg-accent"
         >
           <IconLibrary.back />
         </Pressable>
-      </View>
-
-      <View className="w-full">
         <CText style={{ fontFamily: "bold" }} className="text-[1.35rem]">
-          Receive from another network
-        </CText>
-        <CText className="text-[0.95rem] text-gray-500 dark:text-gray-400 mt-1">
-          Tell us what the sender will use. We will show the right deposit address for your HeySolana wallet.
+          Receive crypto
         </CText>
       </View>
 
-      <DextopusCrossChainDeposit
-        initialChainId={Number.isFinite(chainId) ? chainId : undefined}
-        initialOriginAsset={originAsset}
-        initialOriginSymbol={originSymbol}
-        initialSettlementAsset={settlementAsset}
-        initialSettlementSymbol={settlementSymbol}
-        hideSavedList
-      />
+      <View className="flex-1 px-4">
+        <CText className="text-[0.95rem] text-gray-500 dark:text-gray-400 mb-4">
+          Choose where the sender will send from and where you want the funds to settle.
+        </CText>
+
+        <DextopusCrossChainDeposit
+          initialChainId={Number.isFinite(chainId) ? chainId : undefined}
+          initialOriginAsset={originAsset}
+          initialOriginSymbol={originSymbol}
+          initialSettlementChainId={DEXTOPUS_SOLANA_CHAIN_ID}
+          initialSettlementAsset={settlementAsset}
+          initialSettlementSymbol={settlementSymbol}
+          hideSavedList
+        />
+      </View>
     </View>
   );
 }
