@@ -20,6 +20,15 @@ import {
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { getTokenBalance } from "@/libs/tools/transfer/transfers";
 import { recordAppTransactionAsync } from "@/services/appTransactions";
+import Convo from "@/utils/store/conversation.store";
+import {
+  CHAT_DATA_PLAN_CATEGORIES,
+  filterPlansByCategory,
+  parseDataPlan,
+  resolveChatDataPlanCategory,
+  sortParsedPlans,
+  toDataPlanPickerRow,
+} from "@/libs/tools/airbills/dataPlanDisplay";
 
 type ElectricityMeterType = "01" | "02";
 
@@ -49,7 +58,15 @@ type BuyDataBundleArgs = {
   networkId?: string;
   prodId?: string;
   planName?: string;
+  planCategory?: string;
   amount?: number;
+};
+
+const AIRTIME_NETWORK_NAMES: Record<string, string> = {
+  "01": "MTN",
+  "02": "Glo",
+  "03": "9mobile",
+  "04": "Airtel",
 };
 
 const ELECTRICITY_PROVIDERS: Record<string, string> = {
@@ -142,15 +159,91 @@ const AIRTIME_NETWORK_IDS: Record<string, string> = {
 const resolveAirtimeNetworkId = (value?: string) =>
   AIRTIME_NETWORK_IDS[normalizeLookupValue(value)] || "";
 
-const formatInternetPlanOptions = (plans: { prodName: string; prodAmount: number; prodId: string }[]) => {
-  const preview = plans.slice(0, 12);
-  const lines = preview.map(
-    (plan) => `${plan.prodName} — ₦${plan.prodAmount} (prodId: ${plan.prodId})`
-  );
-  if (plans.length > preview.length) {
-    lines.push(`…and ${plans.length - preview.length} more plans`);
+const attachDataPlanPicker = (
+  messageId: string,
+  picker: NonNullable<
+    import("@/utils/store/conversation.store").MessageType["dataPlanPicker"]
+  >
+) => {
+  const existing = Convo.getState().messages.find((m) => m.id === messageId);
+  Convo.getState().updateMessage({
+    messageId,
+    source: existing?.source ?? "voice",
+    content: {
+      messageType: "data_plan",
+      dataPlanPicker: picker,
+    },
+  });
+};
+
+const promptDataPlanSelection = async (
+  session: SessionManager,
+  options: {
+    mobileNumber: string;
+    networkId: string;
+    plans: { prodName: string; prodAmount: number; prodId: string }[];
+    planCategory?: ReturnType<typeof resolveChatDataPlanCategory>;
+    failedMatch?: boolean;
   }
-  return lines.join("\n");
+) => {
+  const messageId = session.functionMessageId;
+  if (!messageId) {
+    return "Please choose a data plan from the chat tool card.";
+  }
+
+  const networkName = AIRTIME_NETWORK_NAMES[options.networkId] || "your network";
+  const parsedPlans = sortParsedPlans(options.plans.map(parseDataPlan));
+
+  if (!options.planCategory) {
+    attachDataPlanPicker(messageId, {
+      phoneNumber: options.mobileNumber,
+      networkName,
+      stage: "category",
+      plans: [],
+    });
+    completeConversation(messageId, "complete");
+    return await convertSpeech(
+      `Which type of ${networkName} data plan do you want — daily, weekly, monthly, or 90 days? Tap one below.`
+    );
+  }
+
+  const filtered = filterPlansByCategory(parsedPlans, options.planCategory);
+  if (!filtered.length) {
+    attachDataPlanPicker(messageId, {
+      phoneNumber: options.mobileNumber,
+      networkName,
+      stage: "category",
+      plans: [],
+    });
+    completeConversation(messageId, "complete");
+    const label =
+      CHAT_DATA_PLAN_CATEGORIES.find((item) => item.id === options.planCategory)
+        ?.label ?? "that";
+    return await convertSpeech(
+      `No ${label.toLowerCase()} ${networkName} data plans are available right now. Pick another plan type below.`
+    );
+  }
+
+  attachDataPlanPicker(messageId, {
+    phoneNumber: options.mobileNumber,
+    networkName,
+    stage: "plans",
+    category: options.planCategory,
+    plans: filtered.map(toDataPlanPickerRow),
+  });
+  completeConversation(messageId, "complete");
+
+  const label =
+    CHAT_DATA_PLAN_CATEGORIES.find((item) => item.id === options.planCategory)
+      ?.label ?? "available";
+  if (options.failedMatch) {
+    return await convertSpeech(
+      `I couldn't match that plan. Here are the ${label.toLowerCase()} ${networkName} options — tap one below.`
+    );
+  }
+  return await convertSpeech(
+    `Here are the ${label.toLowerCase()} ${networkName} data plans. Tap the one you want below.`
+  );
 };
 
 const resolveAirbillsMobileNumber = async (
@@ -563,7 +656,7 @@ export class AirBills {
     return {
       name: "buy-data-bundle",
       description:
-        "Purchase a mobile data/internet bundle for the user's own phone number, another Hey Solana username, or a direct mobile phone number. Fetch plans from Airbills using the phone network, then match prodId or plan name. The amount must exactly match the plan price returned by Airbills.",
+        "Purchase a mobile data/internet bundle for the user's own phone number, another Hey Solana username, or a direct mobile phone number. Always collect phone number and network first. Before listing or buying a plan, ask which plan type the user wants (daily, weekly, monthly, or 90 days) and pass planCategory. Do not guess a plan from price alone — amount is the exact NGN price from Airbills, not data size in MB/GB. When browsing plans or the user asks for available plans, call this tool with phone/network and planCategory so the app shows plan widgets. Only pass prodId (and matching amount) when the user has picked a specific plan.",
       parameters: {
         type: "object",
         properties: {
@@ -589,10 +682,16 @@ export class AirBills {
             description:
               "Optional network name. Use only if the user provides the mobile network.",
           },
+          planCategory: {
+            type: "string",
+            enum: ["daily", "weekly", "monthly", "ninety_days"],
+            description:
+              "Plan validity window before showing plans: daily, weekly, monthly, or ninety_days (90-day plans). Required when listing plans or when the user has not picked a specific prodId.",
+          },
           prodId: {
             type: "string",
             description:
-              "The data plan ID from Airbills /list/internet. Prefer this when the user picks a specific plan.",
+              "The data plan ID from Airbills /list/internet. Prefer this when the user picks a specific plan from the widget.",
           },
           planName: {
             type: "string",
@@ -602,7 +701,7 @@ export class AirBills {
           amount: {
             type: "number",
             description:
-              "Exact plan price in NGN from the Airbills internet plan list. Required unless prodId uniquely identifies the plan.",
+              "Exact plan price in NGN from the Airbills internet plan list. Use only together with prodId for the chosen plan — not for data size like 200MB.",
           },
         },
         required: [],
@@ -665,17 +764,26 @@ export class AirBills {
         }
 
         const { batch, plans } = plansResponse.data;
-        const selectedPlan = findInternetPlan(plans, {
-          prodId: args.prodId,
-          planName: args.planName,
-          amount: args.amount,
-        });
+        const planCategory = resolveChatDataPlanCategory(args.planCategory);
+        const hasExplicitPlanPick = Boolean(
+          String(args.prodId || "").trim() || String(args.planName || "").trim()
+        );
+        const selectedPlan = hasExplicitPlanPick
+          ? findInternetPlan(plans, {
+              prodId: args.prodId,
+              planName: args.planName,
+              amount: args.amount,
+            })
+          : null;
 
         if (!selectedPlan) {
-          if (!args.prodId && !args.planName && args.amount == null) {
-            return `Please choose a data plan for this number:\n${formatInternetPlanOptions(plans)}`;
-          }
-          return `I couldn't match that data plan. Available plans:\n${formatInternetPlanOptions(plans)}`;
+          return promptDataPlanSelection(this.session, {
+            mobileNumber,
+            networkId,
+            plans,
+            planCategory: planCategory ?? undefined,
+            failedMatch: hasExplicitPlanPick,
+          });
         }
 
         const keyPair = WalletItem.getState().keypair || null;

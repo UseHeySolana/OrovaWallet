@@ -1,5 +1,10 @@
 import { request } from "@/utils/request/db";
-import { AIRBILLS } from "@/utils/constant";
+import { AIRBILLS, BASE_URL } from "@/utils/constant";
+import {
+  readCachedDataPlans,
+  readStaleCachedDataPlans,
+  writeCachedDataPlans,
+} from "@/libs/tools/airbills/dataPlanCache";
 
 const toErrorMessage = (result: any, fallback = "Request failed") => {
   if (typeof result === "string" && result.trim()) {
@@ -112,6 +117,69 @@ export const findInternetPlan = (
   }
 
   return null;
+};
+
+const fetchInternetPlansFromGateway = async (normalizedNetworkId: string) => {
+  const url = `${airBills.baseUrl}/list/internet?networkId=${encodeURIComponent(normalizedNetworkId)}`;
+  const response = await request.getRan(url, { secretkey: AIRBILLS });
+  const result = await parseGatewayResponse(response);
+  if (!response.ok || !isGatewaySuccess(result)) {
+    return {
+      status: false as const,
+      message: toErrorMessage(result),
+    };
+  }
+
+  const dataPlan = result?.data?.dataPlan ?? {};
+  const batch = String(result?.data?.batch ?? "01");
+  const plans = flattenInternetPlans(dataPlan, normalizedNetworkId);
+
+  return {
+    status: true as const,
+    data: { batch, plans, networkId: normalizedNetworkId },
+  };
+};
+
+const fetchInternetPlansFromBackend = async (normalizedNetworkId: string) => {
+  if (!BASE_URL?.trim()) {
+    return { status: false as const, message: "API URL is not configured" };
+  }
+
+  try {
+    const response = await request.get(
+      `/airbills/data-plans?network_id=${encodeURIComponent(normalizedNetworkId)}`
+    );
+    const result = await response.json();
+    if (!response.ok || result?.success !== true || !result?.data) {
+      return {
+        status: false as const,
+        message:
+          typeof result?.message === "string"
+            ? result.message
+            : "Could not load data plans",
+      };
+    }
+
+    const batch = String(result.data.batch ?? "01");
+    const plans = Array.isArray(result.data.plans) ? result.data.plans : [];
+
+    return {
+      status: true as const,
+      data: {
+        batch,
+        plans,
+        networkId: normalizedNetworkId,
+        cachedAt:
+          typeof result.cached_at === "string" ? result.cached_at : undefined,
+      },
+    };
+  } catch (error) {
+    return {
+      status: false as const,
+      message:
+        error instanceof Error ? error.message : "Could not load data plans",
+    };
+  }
 };
 
 const parseGatewayResponse = async (response: Response) => {
@@ -403,24 +471,71 @@ const airBills = {
         return { status: false, message: "Invalid network ID for data plans" };
       }
 
-      const url = `${airBills.baseUrl}/list/internet?networkId=${encodeURIComponent(normalizedNetworkId)}`;
+      const cached = await readCachedDataPlans(normalizedNetworkId);
+      if (cached) {
+        return {
+          status: true,
+          data: {
+            batch: cached.batch,
+            plans: cached.plans,
+            networkId: normalizedNetworkId,
+          },
+        };
+      }
+
       try {
-        const response = await request.getRan(url, { secretkey: AIRBILLS });
-        const result = await parseGatewayResponse(response);
-        if (!response.ok || !isGatewaySuccess(result)) {
-          return { status: false, message: toErrorMessage(result) };
+        const backendResponse =
+          await fetchInternetPlansFromBackend(normalizedNetworkId);
+        const resolved =
+          backendResponse.status === true
+            ? backendResponse
+            : await fetchInternetPlansFromGateway(normalizedNetworkId);
+
+        if (!resolved.status) {
+          const stale = await readStaleCachedDataPlans(normalizedNetworkId);
+          if (stale) {
+            return {
+              status: true,
+              data: {
+                batch: stale.batch,
+                plans: stale.plans,
+                networkId: normalizedNetworkId,
+              },
+            };
+          }
+          return {
+            status: false,
+            message: resolved.message || "Could not load data plans",
+          };
         }
 
-        const dataPlan = result?.data?.dataPlan ?? {};
-        const batch = String(result?.data?.batch ?? "01");
-        const plans = flattenInternetPlans(dataPlan, normalizedNetworkId);
+        await writeCachedDataPlans(normalizedNetworkId, {
+          batch: resolved.data.batch,
+          plans: resolved.data.plans,
+          cachedAt: resolved.data.cachedAt,
+        });
 
         return {
           status: true,
-          data: { batch, plans, networkId: normalizedNetworkId },
+          data: {
+            batch: resolved.data.batch,
+            plans: resolved.data.plans,
+            networkId: normalizedNetworkId,
+          },
         };
       } catch (error) {
         console.log(error);
+        const stale = await readStaleCachedDataPlans(normalizedNetworkId);
+        if (stale) {
+          return {
+            status: true,
+            data: {
+              batch: stale.batch,
+              plans: stale.plans,
+              networkId: normalizedNetworkId,
+            },
+          };
+        }
         return {
           status: false,
           message:
