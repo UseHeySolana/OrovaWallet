@@ -17,6 +17,7 @@ import ProductDetails from "./ProductDetails";
 import KalshiMarkets from "./KalshiMarkets";
 import MagicBlockTransfer from "./MagicBlockTransfer";
 import TokenSearchPicker from "./TokenSearchPicker";
+import DataPlanPicker from "./DataPlanPicker";
 
 interface ItemProps {
   item: any;
@@ -306,6 +307,16 @@ const ToolItem = (props: ItemProps) => {
             swapLeg={item.tokenSearchPicker.swapLeg}
           />
         )}
+
+      {item?.dataPlanPicker && (
+        <DataPlanPicker
+          phoneNumber={item.dataPlanPicker.phoneNumber}
+          networkName={item.dataPlanPicker.networkName}
+          stage={item.dataPlanPicker.stage}
+          category={item.dataPlanPicker.category}
+          plans={item.dataPlanPicker.plans}
+        />
+      )}
 
       {item?.messageType === "kalshi" && Array.isArray(item?.markets) && item.markets.length > 0 && (
         <KalshiMarkets markets={item.markets} sessionManager={sessionManager} />

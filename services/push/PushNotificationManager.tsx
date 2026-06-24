@@ -9,6 +9,7 @@ import {
   deactivatePushTokenOnBackend,
   registerPushTokenWithBackend,
 } from "@/services/push/pushNotifications";
+import { reportPushCampaignEvent } from "@/services/push/pushCampaignApi";
 
 /** Remote/local payloads differ by platform; `notification.request` may be missing on Android. */
 function getNotificationContent(
@@ -57,6 +58,19 @@ function routeFromNotificationData(data: Record<string, unknown> | undefined) {
     return;
   }
   if (type === "scheduled_campaign" || type === "inactive_user_reminder") {
+    const link = data.link;
+    if (typeof link === "string" && link.startsWith("/")) {
+      router.push(link as any);
+      return;
+    }
+    router.push("/dashboard");
+    return;
+  }
+  if (type === "push_campaign" || type === "admin_broadcast") {
+    const campaignKey = data.campaign_key;
+    if (typeof campaignKey === "string" && campaignKey.trim()) {
+      void reportPushCampaignEvent(campaignKey, "opened");
+    }
     const link = data.link;
     if (typeof link === "string" && link.startsWith("/")) {
       router.push(link as any);

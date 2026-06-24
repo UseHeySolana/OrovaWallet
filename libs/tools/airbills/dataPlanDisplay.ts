@@ -1,14 +1,41 @@
 import type { InternetPlan } from "@/libs/tools/airbills/airbills";
 
-export type DataPlanCategory = "all" | "daily" | "weekly" | "monthly" | "broadband";
+export type DataPlanCategory =
+  | "all"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "ninety_days"
+  | "broadband";
 
 export const DATA_PLAN_CATEGORIES: { id: DataPlanCategory; label: string }[] = [
   { id: "all", label: "All" },
   { id: "daily", label: "Daily" },
   { id: "weekly", label: "Weekly" },
   { id: "monthly", label: "Monthly" },
+  { id: "ninety_days", label: "90 Days" },
   { id: "broadband", label: "Broadband" },
 ];
+
+/** Categories shown in Orova chat before listing plan widgets. */
+export const CHAT_DATA_PLAN_CATEGORIES: {
+  id: Exclude<DataPlanCategory, "all" | "broadband">;
+  label: string;
+}[] = [
+  { id: "daily", label: "Daily" },
+  { id: "weekly", label: "Weekly" },
+  { id: "monthly", label: "Monthly" },
+  { id: "ninety_days", label: "90 Days" },
+];
+
+export type DataPlanPickerRow = {
+  prodId: string;
+  prodName: string;
+  prodAmount: number;
+  sizeLabel: string;
+  validityLabel: string;
+  footerLabel?: string;
+};
 
 export type ParsedDataPlan = {
   plan: InternetPlan;
@@ -97,7 +124,8 @@ export function categorizeDataPlan(plan: InternetPlan): DataPlanCategory {
   if (days != null) {
     if (days <= 3) return "daily";
     if (days <= 14) return "weekly";
-    if (days <= 45) return "monthly";
+    if (days <= 59) return "monthly";
+    if (days <= 120) return "ninety_days";
     return "broadband";
   }
 
@@ -134,4 +162,49 @@ export function sortParsedPlans(plans: ParsedDataPlan[]) {
     if (amountDiff !== 0) return amountDiff;
     return a.sizeLabel.localeCompare(b.sizeLabel);
   });
+}
+
+export function toDataPlanPickerRow(item: ParsedDataPlan): DataPlanPickerRow {
+  return {
+    prodId: item.plan.prodId,
+    prodName: item.plan.prodName,
+    prodAmount: Number(item.plan.prodAmount),
+    sizeLabel: item.sizeLabel,
+    validityLabel: item.validityLabel,
+    footerLabel: item.footerLabel,
+  };
+}
+
+const CHAT_CATEGORY_ALIASES: Record<string, DataPlanCategory> = {
+  daily: "daily",
+  day: "daily",
+  weekly: "weekly",
+  week: "weekly",
+  monthly: "monthly",
+  month: "monthly",
+  "90 days": "ninety_days",
+  "90 day": "ninety_days",
+  "90days": "ninety_days",
+  "90-day": "ninety_days",
+  ninety: "ninety_days",
+  "ninety days": "ninety_days",
+};
+
+export function resolveChatDataPlanCategory(
+  value?: string
+): Exclude<DataPlanCategory, "all" | "broadband"> | null {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return null;
+  const direct = CHAT_CATEGORY_ALIASES[normalized];
+  if (
+    direct === "daily" ||
+    direct === "weekly" ||
+    direct === "monthly" ||
+    direct === "ninety_days"
+  ) {
+    return direct;
+  }
+  return null;
 }

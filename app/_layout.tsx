@@ -21,6 +21,7 @@ import StackView from "./stack";
 import { useRouteTracking } from "@/components/hooks/navigation";
 import tracker from "@/utils/tracker";
 import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
+import WhatsAppCampaignTracker from "@/services/whatsapp/WhatsAppCampaignTracker";
 import { Brain } from "@/libs/brain";
 import { initWallet } from "@/utils/wallet/initWallet";
 import { bootstrapVerifiedTokensList } from "@/utils/functions";
@@ -126,6 +127,7 @@ export default function RootLayout() {
             <AiServiceProvider>
               <PIPManager>
                 <PIPDeepLinkHandler />
+                <WhatsAppCampaignTracker />
                 <PushNotificationManager>
                   <PajCashBeneficiariesManager>
                   <NotificationPermissionNudge />

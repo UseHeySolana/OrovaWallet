@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { DataPlanCategory, DataPlanPickerRow } from '@/libs/tools/airbills/dataPlanDisplay';
 
 /** Rows for Jupiter token search picker (verified sorted first in UI). */
 export interface TokenSearchPickRow {
@@ -12,6 +13,8 @@ export interface TokenSearchPickRow {
   isVerified: boolean;
   organicScore?: number;
 }
+
+export type { DataPlanPickerRow } from '@/libs/tools/airbills/dataPlanDisplay';
 
 export interface PrivateTransferMeta {
   visibility: "public" | "private";
@@ -75,6 +78,14 @@ export interface MessageType {
     hits: TokenSearchPickRow[];
     /** When shown under swap_tokens or check_price, which leg is being chosen. */
     swapLeg?: "from" | "to";
+  };
+  /** Airbills data bundle category + plan picker on buy-data-bundle tool card. */
+  dataPlanPicker?: {
+    phoneNumber: string;
+    networkName: string;
+    stage: "category" | "plans";
+    category?: DataPlanCategory;
+    plans: DataPlanPickerRow[];
   };
   source: string;
 }
