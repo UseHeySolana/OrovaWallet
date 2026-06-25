@@ -32,6 +32,7 @@ import TxQueue from "@/utils/store/txqueue.store";
 import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { Chain, Currency, pajcash, PAJCASH_REVALIDATE_MESSAGE } from "@/libs/tools/pajcash/pajcash";
+import { getPajCashFeeConfig } from "@/services/pajcashFeeConfig";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 
@@ -187,6 +188,7 @@ export default function SendToBank() {
     "otp" | "verify" | "banks" | "resolve" | "quote" | "order" | null
   >(null);
   const [quote, setQuote] = useState<any>(null);
+  const [platformUsdcFee, setPlatformUsdcFee] = useState(0);
 
   const isPajCashVerified = pajSession.isSessionValid();
   const isFiatMode = quoteMode === "fiat";
@@ -233,6 +235,12 @@ export default function SendToBank() {
       setSelectedToken(tokens[0]);
     }
   }, [routeToken, selectedMint, selectedToken, tokens]);
+
+  useEffect(() => {
+    void getPajCashFeeConfig().then((config) => {
+      setPlatformUsdcFee(config.offrampUsdcFee);
+    });
+  }, []);
 
   useEffect(() => {
     if (!isPajCashVerified || banks.length > 0 || loading === "banks") return;
@@ -811,6 +819,12 @@ export default function SendToBank() {
                   <CText>{formatDisplayAmount(quote.fee) || String(quote.fee)}</CText>
                 </View>
               ) : null}
+              {platformUsdcFee > 0 ? (
+                <View className="flex-row justify-between">
+                  <CText className="text-black/60 dark:text-grey/70">Platform fee</CText>
+                  <CText>{formatDisplayAmount(platformUsdcFee)} USDC</CText>
+                </View>
+              ) : null}
             </View>
 
             <View className="bg-white dark:bg-accent rounded-2xl px-4 py-4 gap-y-3">
@@ -1173,6 +1187,14 @@ export default function SendToBank() {
                     {formatDisplayAmount(order.fiatAmount ?? quote?.fiatAmount) || "0"} NGN
                   </CText>
                 </View>
+                {Number(order.fee) > 0 ? (
+                  <View className="flex-row justify-between gap-x-3">
+                    <CText className="text-black/60 dark:text-grey/70">Platform fee</CText>
+                    <CText className="flex-1 text-right text-black/70 dark:text-grey/80">
+                      {formatDisplayAmount(order.fee)} USDC
+                    </CText>
+                  </View>
+                ) : null}
                 <View className="flex-row justify-between gap-x-3">
                   <CText className="text-black/60 dark:text-grey/70">Order</CText>
                   <CText style={{ fontFamily: "bold" }} className="flex-1 text-right">

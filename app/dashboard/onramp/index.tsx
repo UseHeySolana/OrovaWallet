@@ -25,6 +25,7 @@ import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import PajCashSession from "@/utils/store/pajcashSession.store";
 import { pajcash, Chain, Currency, PAJCASH_REVALIDATE_MESSAGE } from "@/libs/tools/pajcash/pajcash";
+import { getPajCashFeeConfig } from "@/services/pajcashFeeConfig";
 import { copyItem, resolveTokenByQuery } from "@/utils/functions";
 import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
 import {
@@ -42,8 +43,10 @@ import {
 import {
   findOrCreateDextopusDepositAddress,
   DEXTOPUS_BRIDGE_FEE_RATE,
+  DEXTOPUS_NATIVE_SOL_ASSET,
   DEXTOPUS_SOLANA_CHAIN_ID,
   DEXTOPUS_USDC_MAINNET,
+  PAJCASH_SOL_MINT,
   grossUpForDextopusFee,
   isEvmAddress,
   getDextopusChains,
@@ -60,7 +63,10 @@ type OnrampBridgeRoute = {
   settlement_symbol: string;
   settlement_address: string;
   recipient_receive_amount: number;
-  usdc_send_amount: number;
+  /** USDC-equivalent value routed through Dextopus (for quotes and metadata). */
+  usdc_equivalent_amount: number;
+  /** Native SOL amount PajCash delivers to the Dextopus deposit address. */
+  sol_send_amount: number;
 };
 
 function isNigerianPhoneNumber(phone?: string | null): boolean {
@@ -128,7 +134,35 @@ function formatAmountWithCommas(value: unknown): string {
   return `${sign}${formattedInteger}${decimalPart != null ? `.${decimalPart}` : ""}`;
 }
 
-const SOL_MINT = "So11111111111111111111111111111111111111112";
+const SOL_MINT = PAJCASH_SOL_MINT;
+
+/** Convert a USDC-equivalent amount to SOL using PajCash rates (for bridged onramp funding). */
+async function resolveSolAmountForBridge(usdcEquivalent: number): Promise<number> {
+  if (!Number.isFinite(usdcEquivalent) || usdcEquivalent <= 0) {
+    throw new Error("Enter a valid amount before creating the order.");
+  }
+  const fiatRes = await pajcash.getFiatQuote(
+    usdcEquivalent,
+    DEXTOPUS_USDC_MAINNET,
+    Currency.NGN
+  );
+  if (!fiatRes.status) {
+    throw new Error(fiatRes.message || "Could not price SOL for this order.");
+  }
+  const solRes = await pajcash.getTokenQuote(
+    fiatRes.data.fiatAmount,
+    SOL_MINT,
+    Currency.NGN
+  );
+  if (!solRes.status) {
+    throw new Error(solRes.message || "Could not price SOL for this order.");
+  }
+  const amount = Number(solRes.data.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Could not compute SOL amount for this order.");
+  }
+  return amount;
+}
 
 const NATIVE_SOL_HIT: TokenSearchHit = {
   meta: {
@@ -306,6 +340,7 @@ export default function Onramp() {
   const [paymentCheckMessage, setPaymentCheckMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [lastError, setLastError] = useState("");
+  const [platformUsdcFee, setPlatformUsdcFee] = useState(0);
 
   const [selectedChainId, setSelectedChainId] = useState(DEXTOPUS_SOLANA_CHAIN_ID);
   const [chains, setChains] = useState<DextopusChain[]>([]);
@@ -316,11 +351,18 @@ export default function Onramp() {
   const [activeBridgeRoute, setActiveBridgeRoute] = useState<OnrampBridgeRoute | null>(null);
   const [dextopusTokens, setDextopusTokens] = useState<DextopusToken[]>([]);
   const [dexTokenSearchLoading, setDexTokenSearchLoading] = useState(false);
+  const [bridgedSolPreview, setBridgedSolPreview] = useState<number | null>(null);
 
   const isSolanaChain = selectedChainId === DEXTOPUS_SOLANA_CHAIN_ID;
 
   useEffect(() => {
     getDextopusChains().then((list) => setChains(list)).catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    void getPajCashFeeConfig().then((config) => {
+      setPlatformUsdcFee(config.onrampUsdcFee);
+    });
   }, []);
 
   useEffect(() => {
@@ -444,14 +486,17 @@ export default function Onramp() {
                 pajcash_recipient: bridgeRoute.deposit_address,
                 deposit_address: bridgeRoute.deposit_address,
                 origin_chain_id: DEXTOPUS_SOLANA_CHAIN_ID,
-                origin_asset: DEXTOPUS_USDC_MAINNET,
+                origin_asset: DEXTOPUS_NATIVE_SOL_ASSET,
+                origin_symbol: "SOL",
+                pajcash_mint: SOL_MINT,
                 settlement_chain_id: bridgeRoute.settlement_chain_id,
                 settlement_chain_name: bridgeRoute.settlement_chain_name,
                 settlement_asset: bridgeRoute.settlement_asset,
                 settlement_symbol: bridgeRoute.settlement_symbol,
                 settlement_address: bridgeRoute.settlement_address,
                 recipient_receive_amount: bridgeRoute.recipient_receive_amount,
-                usdc_send_amount: bridgeRoute.usdc_send_amount,
+                usdc_equivalent_amount: bridgeRoute.usdc_equivalent_amount,
+                sol_send_amount: bridgeRoute.sol_send_amount,
                 dextopus_fee_rate: DEXTOPUS_BRIDGE_FEE_RATE,
               },
             }
@@ -508,7 +553,7 @@ export default function Onramp() {
   const isPajCashVerified = pajSession.isSessionValid();
   const activeQuoteAmount = quoteMode === "fiat" ? fiatAmount : tokenAmount;
   const parsedRecipientAmount = parseAmount(tokenAmount);
-  const bridgedUsdcSendAmount =
+  const bridgedUsdcEquivalent =
     !isSolanaChain && Number.isFinite(parsedRecipientAmount) && parsedRecipientAmount > 0
       ? grossUpForDextopusFee(parsedRecipientAmount)
       : null;
@@ -522,6 +567,27 @@ export default function Onramp() {
       : fiatAmount;
   const formattedExpectedTokenAmount = formatAmountWithCommas(expectedTokenAmount);
   const formattedExpectedFiatAmount = formatAmountWithCommas(expectedFiatAmount);
+
+  useEffect(() => {
+    if (isSolanaChain || !bridgedUsdcEquivalent || !pajcash.getSessionToken()) {
+      setBridgedSolPreview(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void resolveSolAmountForBridge(bridgedUsdcEquivalent)
+        .then((solAmount) => {
+          if (!cancelled) setBridgedSolPreview(solAmount);
+        })
+        .catch(() => {
+          if (!cancelled) setBridgedSolPreview(null);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isSolanaChain, bridgedUsdcEquivalent]);
 
   useEffect(() => {
     if (!tokenPickerOpen) return;
@@ -755,14 +821,15 @@ export default function Onramp() {
           : `Rate ready: ${amount} ${tokenLabel} is about ${res.data.fiatAmount ?? "?"} NGN.`
       );
     }
+    const quoteData = res.data;
     logOnramp("Quote succeeded", {
       amount,
       quoteMode,
-      fiatAmount: res.data.fiatAmount,
-      tokenAmount: res.data.amount,
-      rate: res.data.rate,
-      tokenRate: res.data.tokenRate,
-      mint: res.data.mint,
+      fiatAmount: quoteData.fiatAmount,
+      tokenAmount: quoteData.amount,
+      rate: "rate" in quoteData ? quoteData.rate : undefined,
+      tokenRate: quoteData.tokenRate,
+      mint: quoteData.mint,
     });
   };
 
@@ -815,10 +882,6 @@ export default function Onramp() {
       quoteMode === "token" &&
       Number.isFinite(desiredTokenAmount) &&
       desiredTokenAmount > 0;
-    const pajcashTokenAmount =
-      orderByTokenAmount && !isSolanaChain
-        ? grossUpForDextopusFee(desiredTokenAmount)
-        : desiredTokenAmount;
 
     let fiatOrderAmount = parseAmount(fiatAmount);
 
@@ -848,8 +911,10 @@ export default function Onramp() {
     }
 
     let bridgeRoute: OnrampBridgeRoute | null = null;
+    let pajcashMint = mint;
+    let pajcashTokenAmount = orderByTokenAmount ? desiredTokenAmount : undefined;
 
-    // PajCash always settles USDC on Solana; Dextopus routes it to the recipient chain.
+    // Cross-chain: PajCash funds Dextopus with native SOL; Dextopus settles on the recipient chain.
     if (!isSolanaChain && selectedToken && destAddress.trim()) {
       setStatusMessage("Preparing bridge route...");
       setDextopusAddress(null);
@@ -858,8 +923,8 @@ export default function Onramp() {
         const dexAddr = await findOrCreateDextopusDepositAddress({
           wallet_address: publicKey.toBase58(),
           origin_chain_id: DEXTOPUS_SOLANA_CHAIN_ID,
-          origin_asset: DEXTOPUS_USDC_MAINNET,
-          origin_symbol: "USDC",
+          origin_asset: DEXTOPUS_NATIVE_SOL_ASSET,
+          origin_symbol: "SOL",
           settlement_chain_id: selectedChainId,
           settlement_asset: selectedToken.address,
           settlement_symbol: selectedToken.symbol,
@@ -869,10 +934,24 @@ export default function Onramp() {
           orderByTokenAmount && Number.isFinite(desiredTokenAmount) && desiredTokenAmount > 0
             ? desiredTokenAmount
             : parseAmount(formatQuoteAmount(quote?.amount) || "0");
-        const usdcSendAmount =
+        const usdcEquivalentAmount =
           recipientReceiveAmount > 0
             ? grossUpForDextopusFee(recipientReceiveAmount)
-            : pajcashTokenAmount;
+            : grossUpForDextopusFee(parseAmount(formatQuoteAmount(quote?.amount) || "0"));
+
+        let solSendAmount: number;
+        if (orderByTokenAmount) {
+          solSendAmount = await resolveSolAmountForBridge(usdcEquivalentAmount);
+        } else {
+          const solQuote = await pajcash.getTokenQuote(fiatOrderAmount, SOL_MINT, Currency.NGN);
+          if (!solQuote.status) {
+            throw new Error(solQuote.message || "Could not price SOL for this order.");
+          }
+          solSendAmount = Number(solQuote.data.amount);
+          if (!Number.isFinite(solSendAmount) || solSendAmount <= 0) {
+            throw new Error("Could not compute SOL amount for this order.");
+          }
+        }
 
         bridgeRoute = {
           deposit_address: dexAddr.deposit_address,
@@ -882,10 +961,13 @@ export default function Onramp() {
           settlement_symbol: selectedToken.symbol,
           settlement_address: destAddress.trim(),
           recipient_receive_amount: recipientReceiveAmount,
-          usdc_send_amount: usdcSendAmount,
+          usdc_equivalent_amount: usdcEquivalentAmount,
+          sol_send_amount: solSendAmount,
         };
         setDextopusAddress(dexAddr.deposit_address);
         setActiveBridgeRoute(bridgeRoute);
+        pajcashMint = SOL_MINT;
+        pajcashTokenAmount = solSendAmount;
       } catch (err) {
         const message =
           err instanceof Error
@@ -906,9 +988,10 @@ export default function Onramp() {
       tokenAmount: orderByTokenAmount ? pajcashTokenAmount : undefined,
       recipientReceiveAmount:
         orderByTokenAmount && !isSolanaChain ? desiredTokenAmount : undefined,
+      solSendAmount: bridgeRoute?.sol_send_amount,
       currency: Currency.NGN,
       recipient: pajcashRecipient,
-      mint,
+      mint: pajcashMint,
       chain: Chain.SOLANA,
       bridged: Boolean(bridgeRoute),
     });
@@ -919,7 +1002,7 @@ export default function Onramp() {
         : { fiatAmount: fiatOrderAmount }),
       currency: Currency.NGN,
       recipient: pajcashRecipient,
-      mint,
+      mint: pajcashMint,
       chain: Chain.SOLANA,
     });
     setLoading(null);
@@ -990,7 +1073,7 @@ export default function Onramp() {
         logOnramp("Order status polled", {
           orderId: order.id,
           attempt,
-          data: statusRes.data as Record<string, unknown>,
+          data: statusRes.data as unknown as Record<string, unknown>,
         });
         if (isOrderConfirmed(statusRes.data)) {
           recordPajCashOnrampOrder(order, "confirmed", statusRes.data, activeBridgeRoute);
@@ -1189,15 +1272,24 @@ export default function Onramp() {
               ? `Expected: ${formattedExpectedTokenAmount || "0"} ${tokenLabel || "token"}`
               : `About ${formattedExpectedTokenAmount || "0"} ${selectedToken?.symbol ?? tokenLabel} after delivery`}
           </CText>
-          {bridgedUsdcSendAmount ? (
+          {bridgedSolPreview ? (
             <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
-              Sends {formatAmountWithCommas(bridgedUsdcSendAmount)} USDC (0.5% Dextopus fee included)
+              Routes {formatAmountWithCommas(bridgedSolPreview)} SOL via Dextopus (0.5% fee included)
+            </CText>
+          ) : bridgedUsdcEquivalent ? (
+            <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
+              Pricing SOL route…
             </CText>
           ) : null}
           {expectedFiatAmount ? (
             <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
               Pay about {formattedExpectedFiatAmount} NGN
               {quoteMode === "token" ? " (fee included)" : ""}
+            </CText>
+          ) : null}
+          {platformUsdcFee > 0 ? (
+            <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
+              Platform fee: {formatAmountWithCommas(platformUsdcFee)} USDC
             </CText>
           ) : null}
           {quoteError ? (
@@ -1589,9 +1681,9 @@ export default function Onramp() {
                 </View>
                 {activeBridgeRoute ? (
                   <View className="flex-row justify-between gap-x-3">
-                    <CText className="text-black/60 dark:text-grey/70">USDC sent</CText>
+                    <CText className="text-black/60 dark:text-grey/70">SOL routed</CText>
                     <CText className="flex-1 text-right text-black/70 dark:text-grey/80">
-                      {formatAmountWithCommas(activeBridgeRoute.usdc_send_amount)} USDC
+                      {formatAmountWithCommas(activeBridgeRoute.sol_send_amount)} SOL
                     </CText>
                   </View>
                 ) : null}
@@ -1599,7 +1691,7 @@ export default function Onramp() {
                   <View className="flex-row justify-between gap-x-3">
                     <CText className="text-black/60 dark:text-grey/70">PajCash fee</CText>
                     <CText className="flex-1 text-right text-black/70 dark:text-grey/80">
-                      {formatAmountWithCommas(order.fee)} {tokenLabel}
+                      {formatAmountWithCommas(order.fee)} USDC
                     </CText>
                   </View>
                 ) : null}
@@ -1621,7 +1713,7 @@ export default function Onramp() {
                     Delivery to {selectedChainName}
                   </CText>
                   <CText className="text-[0.85rem] text-black/60 dark:text-grey/70">
-                    PajCash will deliver USDC directly to the delivery route. Funds will arrive as{" "}
+                    PajCash will deliver SOL to the delivery route. Dextopus will settle{" "}
                     {tokenLabel} at the recipient address on {selectedChainName}.
                   </CText>
                   <CText className="text-[0.75rem] text-black/40 dark:text-grey/50">

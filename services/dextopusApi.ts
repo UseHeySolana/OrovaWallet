@@ -4,7 +4,10 @@ export const DEXTOPUS_SOLANA_CHAIN_ID = 792703809;
 export const DEXTOPUS_NATIVE_SOL_ASSET = "11111111111111111111111111111111";
 export const DEXTOPUS_USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
-/** Dextopus bridge fee taken from the routed USDC amount. */
+/** Wrapped SOL mint used for PajCash onramp delivery. */
+export const PAJCASH_SOL_MINT = "So11111111111111111111111111111111111111112";
+
+/** Dextopus bridge fee taken from the routed amount (priced in USDC terms). */
 export const DEXTOPUS_BRIDGE_FEE_RATE = 0.005;
 
 /** Gross up a net receive amount so the recipient still gets `netAmount` after Dextopus fee. */

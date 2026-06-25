@@ -24,6 +24,7 @@ import {
   clearPajCashSession,
   savePajCashSession,
 } from "@/services/pajcashSessionApi";
+import { getPajCashBusinessUsdcFee } from "@/services/pajcashFeeConfig";
 
 let sdkInitialized = false;
 
@@ -254,23 +255,41 @@ const pajcash = {
     return wrap(() => resolveBankAccount(session.data, bankId, accountNumber));
   },
 
-  createOfframp: (order: Omit<CreateOfframpOrder, "webhookURL">) => {
+  createOfframp: async (
+    order: Omit<CreateOfframpOrder, "webhookURL" | "fee"> & { fee?: number }
+  ) => {
     const session = pajcash.requireSessionToken();
-    if (!session.status) return Promise.resolve(session);
+    if (!session.status) return session;
+    const businessFee =
+      order.fee ?? (await getPajCashBusinessUsdcFee("offramp"));
+    const { fee: _ignored, ...rest } = order;
     return wrap(() =>
       createOfframpOrder(
-        { ...order, webhookURL: getWebhookUrl() },
+        {
+          ...rest,
+          webhookURL: getWebhookUrl(),
+          ...(businessFee > 0 ? { fee: businessFee } : {}),
+        },
         session.data
       )
     );
   },
 
-  createOnramp: (order: Omit<CreateOnrampOrder, "webhookURL">) => {
+  createOnramp: async (
+    order: Omit<CreateOnrampOrder, "webhookURL" | "fee"> & { fee?: number }
+  ) => {
     const session = pajcash.requireSessionToken();
-    if (!session.status) return Promise.resolve(session);
+    if (!session.status) return session;
+    const businessFee =
+      order.fee ?? (await getPajCashBusinessUsdcFee("onramp"));
+    const { fee: _ignored, ...rest } = order;
     return wrap(() =>
       createOnrampOrder(
-        { ...order, webhookURL: getWebhookUrl() },
+        {
+          ...rest,
+          webhookURL: getWebhookUrl(),
+          ...(businessFee > 0 ? { fee: businessFee } : {}),
+        },
         session.data
       )
     );

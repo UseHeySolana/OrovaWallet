@@ -11,6 +11,10 @@ export interface PublicSettings {
   jupiter_referral_account: string;
   /** Swap fee in basis points (50–255). 0 = disabled. */
   jupiter_referral_fee_bps: number;
+  /** PajCash onramp integrator fee in USDC (businessUSDCFee). 0 = disabled. */
+  pajcash_onramp_usdc_fee: number;
+  /** PajCash offramp integrator fee in USDC (businessUSDCFee). 0 = disabled. */
+  pajcash_offramp_usdc_fee: number;
 }
 
 /**
@@ -32,6 +36,8 @@ export async function getPublicSettings(): Promise<PublicSettings> {
       delivery_fee_crossmint_usd?: number;
       jupiter_referral_account?: string;
       jupiter_referral_fee_bps?: number;
+      pajcash_onramp_usdc_fee?: number;
+      pajcash_offramp_usdc_fee?: number;
     };
   }).data;
   return {
@@ -40,5 +46,7 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     delivery_fee_crossmint_usd: Number(d?.delivery_fee_crossmint_usd ?? 0) || 0,
     jupiter_referral_account: (d?.jupiter_referral_account ?? "").trim(),
     jupiter_referral_fee_bps: Number(d?.jupiter_referral_fee_bps ?? 0) || 0,
+    pajcash_onramp_usdc_fee: Number(d?.pajcash_onramp_usdc_fee ?? 0) || 0,
+    pajcash_offramp_usdc_fee: Number(d?.pajcash_offramp_usdc_fee ?? 0) || 0,
   };
 }

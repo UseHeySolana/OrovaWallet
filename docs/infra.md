@@ -73,10 +73,10 @@ Backend:
 ```text
 1. User pays NGN
 2. Orova receives payment
-3. Orova buys USDC
-4. Orova creates Dextopus route
-5. Orova deposits USDC
-6. Dextopus settles PEPE
+3. Orova buys USDC (quoted in USD terms)
+4. Orova creates Dextopus route (Solana SOL origin)
+5. Orova funds the route with SOL from PajCash (no SPL ATA rent)
+6. Dextopus settles PEPE (or USDC, etc.) on the destination chain
 7. User receives PEPE
 ```
 
@@ -332,16 +332,16 @@ Everything between those two statements is Orova's job, with Dextopus acting as 
 
 **Status:** Deferred — decide later.
 
-**Context:** PajCash onramp settles USDC on Solana. For cross-chain buys, PajCash sends USDC to a Dextopus Solana deposit address; Dextopus bridges and settles on the destination chain.
+**Context:** PajCash onramp funds cross-chain buys with **native SOL** on Solana (not USDC), avoiding SPL ATA rent on the deposit leg. Amounts are still quoted in USDC-equivalent terms for the user; PajCash delivers SOL to a Dextopus deposit address, which bridges and settles on the destination chain.
 
 Dextopus static addresses (`POST /deposit/static/generate`) are **reusable**, but each address is bound to a **full route** at creation time:
 
-- Origin: Solana USDC (what PajCash sends)
+- Origin: Solana native SOL (`11111111111111111111111111111111`) — what PajCash sends
 - Settlement chain (e.g. Base)
 - Settlement token (e.g. USDC, WETH)
 - Settlement recipient (e.g. `0xRecipient`)
 
-Sending USDC to the same Solana address multiple times always follows that same route. It is **not** one universal inbox that can settle to different destinations per payment.
+Sending SOL to the same Solana address multiple times always follows that same route. It is **not** one universal inbox that can settle to different destinations per payment.
 
 **Current behavior:** Route-specific reuse. We return an existing address when wallet + origin + settlement chain + settlement token + settlement recipient all match. Otherwise we generate a new one.
 
