@@ -1,0 +1,74 @@
+import type { ConfigContext, ExpoConfig } from "expo/config";
+
+export type AppVariant = "play" | "solana-mobile";
+
+const PLAY_EAS_PROJECT_ID = "44e617dc-89eb-42b2-bcfc-79a78f074bd3";
+const SOLANA_MOBILE_EAS_PROJECT_ID = "aee792b8-12be-42be-aa93-d1dfa3b3d32d";
+
+function getAppVariant(): AppVariant {
+  return process.env.APP_VARIANT === "solana-mobile" ? "solana-mobile" : "play";
+}
+
+const variantIdentity: Record<
+  AppVariant,
+  Pick<ExpoConfig, "name" | "slug"> & {
+    ios: { bundleIdentifier: string };
+    android: { package: string };
+    easProjectId: string;
+  }
+> = {
+  play: {
+    name: "Orova",
+    slug: "heysolana",
+    ios: { bundleIdentifier: "com.maskyray.heysolana" },
+    android: { package: "com.maskyray.heysolana" },
+    easProjectId: PLAY_EAS_PROJECT_ID,
+  },
+  "solana-mobile": {
+    name: "Orova: AI Wallet",
+    slug: "heysolana-solana-mobile",
+    ios: { bundleIdentifier: "com.yraylabs.heysolana" },
+    android: { package: "com.yraylabs.heysolana" },
+    easProjectId: SOLANA_MOBILE_EAS_PROJECT_ID,
+  },
+};
+
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const variant = getAppVariant();
+  const identity = variantIdentity[variant];
+
+  const android = {
+    ...config.android,
+    package: identity.android.package,
+  };
+
+  if (variant === "play") {
+    android.googleServicesFile =
+      config.android?.googleServicesFile ?? "./google-services.json";
+  } else {
+    delete android.googleServicesFile;
+  }
+
+  return {
+    ...config,
+    name: identity.name,
+    slug: identity.slug,
+    ios: {
+      ...config.ios,
+      bundleIdentifier: identity.ios.bundleIdentifier,
+    },
+    android,
+    extra: {
+      ...config.extra,
+      appVariant: variant,
+      eas: {
+        ...config.extra?.eas,
+        projectId: identity.easProjectId,
+      },
+    },
+    updates: {
+      ...config.updates,
+      url: `https://u.expo.dev/${identity.easProjectId}`,
+    },
+  };
+};

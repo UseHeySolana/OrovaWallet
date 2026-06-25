@@ -1,6 +1,9 @@
 {
   "build": {
     "dapp-store": {
+      "env": {
+        "APP_VARIANT": "solana-mobile"
+      },
       "channel": "production",
       "android": {
         "buildType": "apk",
@@ -8,6 +11,9 @@
       }
     },
     "test": {
+      "env": {
+        "APP_VARIANT": "play"
+      },
       "developmentClient": true,
       "distribution": "internal",
       "android": {
@@ -16,6 +22,9 @@
       "channel": "test"
     },
     "production": {
+      "env": {
+        "APP_VARIANT": "play"
+      },
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease",

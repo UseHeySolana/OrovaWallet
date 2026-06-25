@@ -1,7 +1,5 @@
 {
   "expo": {
-    "name": "Orova",
-    "slug": "heysolana",
     "owner": "yraylabs",
     "version": "2.1.9",
     "orientation": "portrait",
@@ -11,7 +9,6 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.maskyray.heysolana",
       "bitcode": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -36,7 +33,6 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.maskyray.heysolana",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -126,14 +122,10 @@
     "extra": {
       "router": {
         "origin": false
-      },
-      "eas": {
-        "projectId": "44e617dc-89eb-42b2-bcfc-79a78f074bd3"
       }
     },
     "runtimeVersion": "2.1.9",
     "updates": {
-      "url": "https://u.expo.dev/44e617dc-89eb-42b2-bcfc-79a78f074bd3",
       "enabled": true,
       "checkAutomatically": "ON_LOAD"
     }
