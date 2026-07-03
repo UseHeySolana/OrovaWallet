@@ -1,7 +1,7 @@
 {
   "expo": {
     "owner": "yraylabs",
-    "version": "2.1.9",
+    "version": "2.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heysolana",
@@ -28,7 +28,7 @@
       }
     },
     "android": {
-      "versionCode": 29,
+      "versionCode": 30,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -125,7 +125,7 @@
         "origin": false
       }
     },
-    "runtimeVersion": "2.1.9",
+    "runtimeVersion": "2.2.0",
     "updates": {
       "enabled": true,
       "checkAutomatically": "ON_LOAD"
