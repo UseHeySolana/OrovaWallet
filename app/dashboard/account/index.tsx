@@ -370,6 +370,7 @@ export default function Account() {
                   value={phoneInput}
                   onChangeText={setPhoneInput}
                   placeholder="Phone number"
+                  variant="phone"
                   selectedValue={selectedCountry}
                   onCountryChange={setSelectedCountry}
                 />

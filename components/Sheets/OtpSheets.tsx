@@ -4,6 +4,7 @@ import CText from "../TextComp";
 import { OtpInput } from "react-native-otp-entry";
 import { useThemeContext } from "@/context/ThemeContext";
 import Buttons from "../ButtonComp";
+import { compactOtpInputTheme } from "@/components/otpInputTheme";
 
 interface OTPSheet {
     open: boolean
@@ -27,9 +28,10 @@ const Otpsheet = ({ open, verifyOtp, setOtpValue, hint }: OTPSheet) => {
                     <View className="flex-1">
 
                         <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 px-4 py-5">
-                            <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl" >
+                            <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl items-center" >
                                 <OtpInput
                                     focusColor={'purple'}
+                                    theme={compactOtpInputTheme}
                                     textProps={{
                                         style: {
                                             fontFamily: "bold",

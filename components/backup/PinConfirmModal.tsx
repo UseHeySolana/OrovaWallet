@@ -6,6 +6,7 @@ import CText from "@/components/TextComp";
 import Buttons from "@/components/ButtonComp";
 import DragableSheet from "@/components/CustomItems/DragableSheet";
 import { useThemeContext } from "@/context/ThemeContext";
+import { compactOtpInputTheme } from "@/components/otpInputTheme";
 
 type PinConfirmModalProps = {
   visible: boolean;
@@ -72,13 +73,14 @@ export default function PinConfirmModal({
 
           <View className="flex-1">
             <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 px-4 py-5">
-              <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
+              <View className="bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl items-center">
                 <OtpInput
                   ref={otpRef}
                   secureTextEntry
                   focusColor="purple"
                   numberOfDigits={4}
                   blurOnFilled
+                  theme={compactOtpInputTheme}
                   textProps={{
                     style: {
                       fontFamily: "bold",

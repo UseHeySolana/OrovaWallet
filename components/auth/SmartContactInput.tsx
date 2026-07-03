@@ -24,6 +24,8 @@ interface SmartContactInputProps {
   placeholder?: string;
   selectedValue?: CountrySelection;
   onCountryChange?: (country: CountrySelection) => void;
+  /** Force phone UI (country code + phone icon) instead of smart email/phone detection. */
+  variant?: "smart" | "phone";
 }
 
 export default function SmartContactInput({
@@ -32,6 +34,7 @@ export default function SmartContactInput({
   placeholder = "Email or phone number",
   selectedValue: selectedValueProp,
   onCountryChange,
+  variant = "smart",
 }: SmartContactInputProps) {
   const { isDarkMode } = useThemeContext();
   const [isVisible, setIsVisible] = useState(false);
@@ -40,7 +43,8 @@ export default function SmartContactInput({
 
   const selectedValue = selectedValueProp ?? internalCountry;
   const contactMode = useMemo(() => detectSmartContactMode(value), [value]);
-  const showCountryCode = contactMode === "phone";
+  const displayMode = variant === "phone" ? "phone" : contactMode;
+  const showCountryCode = displayMode === "phone";
   const iconColor = isDarkMode ? "#9ca3af" : "#6b7280";
 
   const handleCountrySelect = (country: CountrySelection) => {
@@ -58,7 +62,7 @@ export default function SmartContactInput({
           className={`flex-row items-center ${authUi.inputPadding} ${authUi.inputMinHeight}`}
         >
           <View className="pr-3">
-            {contactMode === "phone" ? (
+            {displayMode === "phone" ? (
               <IconLibrary.phone size={20} color={iconColor} />
             ) : (
               <IconLibrary.mail size={20} color={iconColor} />
@@ -81,9 +85,9 @@ export default function SmartContactInput({
             className="flex-1 text-dark dark:text-white"
             value={value}
             keyboardType={
-              contactMode === "phone"
+              displayMode === "phone"
                 ? "phone-pad"
-                : contactMode === "email"
+                : displayMode === "email"
                   ? "email-address"
                   : "default"
             }
