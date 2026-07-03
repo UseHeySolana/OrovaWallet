@@ -10,8 +10,12 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
 import Buttons from "@/components/ButtonComp";
-import { getCode, verifyCode } from "@/utils/request/db";
-import WalletItem from "@/utils/store/wallet.store";
+import { getCode, loginWithGoogle, loginWithGoogleBackup, verifyCode } from "@/utils/request/db";
+import {
+  clearStaleWalletPublicKey,
+  hydrateWalletFromSecret,
+  isWalletUnlockedForUser,
+} from "@/utils/wallet/walletUnlock";
 import { TouchableOpacity } from "react-native";
 import { useThemeContext } from "@/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
@@ -23,20 +27,35 @@ import AuthFlowScreen from "@/components/auth/AuthFlowScreen";
 import AuthFlowHeader from "@/components/auth/AuthFlowHeader";
 import AuthFlowFooter from "@/components/auth/AuthFlowFooter";
 import AuthCard from "@/components/auth/AuthCard";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import PinConfirmModal from "@/components/backup/PinConfirmModal";
 import { authUi } from "@/components/auth/authUi";
 import {
   CountrySelection,
   parseSmartContact,
 } from "@/utils/contact/smartContact";
 import { toPhoneE164 } from "@/utils/phone/phoneE164";
-import { delay } from "@/utils/functions";
 import { BiometricAuth } from "@/utils/dashboard";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
+import {
+  getGoogleSignInErrorMessage,
+  refreshGoogleAuthSession,
+  signInWithGoogleForAuth,
+  type GoogleAuthSession,
+} from "@/services/google/googleAuth";
+import { isGoogleSignInConfigured } from "@/utils/google/googleConfig";
+import {
+  peekGoogleDriveWalletBackup,
+  restoreWalletFromGoogleDrive,
+} from "@/services/backup/walletBackupManager";
+import { userNeedsLegacyWalletRestore, accountMissingServerWallet } from "@/utils/backup/backupStatus";
+import { createWalletForUser } from "@/utils/wallet/createWalletForUser";
 
-/**
-  * What should be done here
- Login Page
-  */
+import {
+  buildSessionUserFromServer,
+  type ServerAuthUser,
+} from "@/utils/account/userContact";
+
 export default function Login() {
   const [contactInput, setContactInput] = useState("");
   const [userDetails, setUserDetails] = useState({
@@ -47,9 +66,8 @@ export default function Login() {
   });
 
   const [otpValue, setOtpValue] = useState("");
-  const { setUser, user, session, clearData } = UserItem();
-  const { keypair, updateKeypair, publicKey } = WalletItem();
-  const { setLoading, isLoading, setToast, openWithAuth, pin } = AppSettings();
+  const { setUser, user, clearData } = UserItem();
+  const { setLoading, isLoading, setToast, openWithAuth, pin, setPin } = AppSettings();
   const [currentState, setCurrentState] = useState<
     "verify-phrase" | "start-wallet" | "sign-up" | "set-pin" | ""
   >("");
@@ -58,33 +76,262 @@ export default function Login() {
     useState<CountrySelection>(DEFAULT_COUNTRY);
   const [fingerPrintSigning, setFingerPrintSigning] = useState(false);
   const [pinSignin, setPinSignin] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleRestoreOpen, setGoogleRestoreOpen] = useState(false);
+  const [googleRestoreLoading, setGoogleRestoreLoading] = useState(false);
+  const [googleRestoreSession, setGoogleRestoreSession] =
+    useState<GoogleAuthSession | null>(null);
+  const [googleRestorePreview, setGoogleRestorePreview] = useState<{
+    username: string;
+    walletAddress: string;
+  } | null>(null);
+  const [pendingServerLogin, setPendingServerLogin] =
+    useState<ServerAuthUser | null>(null);
   const { isDarkMode } = useThemeContext();
   const otpRef = useRef<OtpInputRef>(null);
   const [attempts, setAttempts] = useState(0);
 
   const [pinValue, setPinValue] = useState("");
+  const [showLegacyWalletOptions, setShowLegacyWalletOptions] = useState(false);
+  const googleEnabled = isGoogleSignInConfigured();
+
+  const refreshLegacyWalletSheet = async (
+    sessionUser: ReturnType<typeof buildSessionUserFromServer>
+  ) => {
+    const needsLegacy = await userNeedsLegacyWalletRestore({
+      username: sessionUser.username,
+      mobileNumber: sessionUser.mobileNumber,
+      phoneE164: sessionUser.phoneE164,
+      email: sessionUser.email,
+      wallet_address: sessionUser.wallet_address,
+      pin: "",
+    });
+    setShowLegacyWalletOptions(needsLegacy);
+  };
+
+  const silentProvisionWallet = async (
+    sessionUser: ReturnType<typeof buildSessionUserFromServer>
+  ): Promise<boolean> => {
+    setLoading(true);
+    try {
+      setUser({
+        ...sessionUser,
+        wallet_address: "",
+      });
+
+      const result = await createWalletForUser(sessionUser.username);
+      if (!result.success) {
+        setToast(result.message, "error");
+        return false;
+      }
+
+      setUser({
+        ...sessionUser,
+        wallet_address: result.walletAddress,
+      });
+      setCurrentState("");
+      setShowLegacyWalletOptions(false);
+      setToast("Wallet ready — set a PIN and back up when prompted", "success");
+      router.replace("/dashboard");
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const promptWalletRestoreOrProvision = async (
+    sessionUser: ReturnType<typeof buildSessionUserFromServer>
+  ) => {
+    if (accountMissingServerWallet(sessionUser.wallet_address)) {
+      await silentProvisionWallet(sessionUser);
+      return;
+    }
+
+    await refreshLegacyWalletSheet(sessionUser);
+    setCurrentState("start-wallet");
+  };
+
   useEffect(() => {
+    if (!user || googleRestoreOpen) return;
+
+    let cancelled = false;
+
     (async () => {
-      if (user) {
-        setUserDetails({
-          ...userDetails,
-          mobileNumber: user.mobileNumber,
-        });
+      const unlocked = await isWalletUnlockedForUser(user.wallet_address);
+      if (cancelled) return;
+
+      if (unlocked) {
+        await hydrateWalletFromSecret();
+        if (cancelled) return;
+        setCurrentState("");
         if (openWithAuth) {
           setFingerPrintSigning(true);
           setTimeout(() => {
             BiometricAuth();
           }, 1000);
-        } else if (pin.length > 0) {
-          setPinSignin(true);
         } else {
-          setCurrentState("start-wallet");
+          router.replace("/dashboard");
         }
+        return;
+      }
+
+      clearStaleWalletPublicKey(user.wallet_address);
+
+      setUserDetails((prev) => ({
+        ...prev,
+        mobileNumber: user.mobileNumber,
+      }));
+
+      if (openWithAuth) {
+        setFingerPrintSigning(true);
+        setTimeout(() => {
+          BiometricAuth();
+        }, 1000);
+      } else if (pin.length > 0) {
+        setPinSignin(true);
+      } else {
+        await promptWalletRestoreOrProvision({
+          username: user.username,
+          mobileNumber: user.mobileNumber,
+          phoneE164: user.phoneE164,
+          email: user.email,
+          wallet_address: user.wallet_address || "",
+          pin: user.pin || "",
+        });
       }
     })();
-  }, [user]);
 
-  const Login = async () => {
+    return () => {
+      cancelled = true;
+    };
+  }, [user, openWithAuth, pin.length, googleRestoreOpen]);
+
+  const offerGoogleRestoreIfAvailable = async (
+    session: GoogleAuthSession,
+    expectedWalletAddress?: string,
+    serverUser?: ServerAuthUser
+  ): Promise<boolean> => {
+    try {
+      const backup = await peekGoogleDriveWalletBackup({
+        accessToken: session.accessToken,
+      });
+      if (!backup) return false;
+
+      const expected = expectedWalletAddress?.trim();
+      const backedUp = backup.walletAddress?.trim();
+      if (expected && backedUp && expected !== backedUp) {
+        return false;
+      }
+
+      if (serverUser) {
+        setPendingServerLogin(serverUser);
+      }
+      setGoogleRestoreSession(session);
+      setGoogleRestorePreview(backup);
+      setGoogleRestoreOpen(true);
+      setToast(`Backup found for @${backup.username}`, "success");
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const finishLoginFromServerUser = async (
+    data: ServerAuthUser,
+    googleEmail?: string,
+    googleSession?: GoogleAuthSession,
+    options?: { skipRestoreOffer?: boolean; clearGlobalLoading?: boolean }
+  ) => {
+    const clearGlobalLoading = options?.clearGlobalLoading !== false;
+    const sessionUser = buildSessionUserFromServer(data, googleEmail);
+    const walletAddress = data.wallet_address || sessionUser.wallet_address;
+
+    const unlocked = await isWalletUnlockedForUser(walletAddress);
+    if (unlocked) {
+      setUser({
+        ...sessionUser,
+        wallet_address: walletAddress,
+      });
+      await hydrateWalletFromSecret();
+      setCurrentState("");
+      setPinSignin(false);
+      setFingerPrintSigning(false);
+      setPendingServerLogin(null);
+      setToast("Welcome back!", "success");
+      router.replace("/dashboard");
+      if (clearGlobalLoading) setLoading(false);
+      return;
+    }
+
+    clearStaleWalletPublicKey(walletAddress);
+
+    if (googleSession && !options?.skipRestoreOffer) {
+      const offered = await offerGoogleRestoreIfAvailable(
+        googleSession,
+        walletAddress,
+        data
+      );
+      if (offered) {
+        if (clearGlobalLoading) setLoading(false);
+        return;
+      }
+    }
+
+    setPendingServerLogin(null);
+
+    if (accountMissingServerWallet(walletAddress)) {
+      const provisioned = await silentProvisionWallet({
+        ...sessionUser,
+        wallet_address: "",
+      });
+      if (clearGlobalLoading) setLoading(false);
+      if (provisioned) return;
+    }
+
+    setUser({
+      ...sessionUser,
+      wallet_address: walletAddress,
+    });
+    await promptWalletRestoreOrProvision({
+      ...sessionUser,
+      wallet_address: walletAddress,
+    });
+    if (clearGlobalLoading) setLoading(false);
+  };
+
+  const handleLegacyCreateWallet = async () => {
+    const username = user?.username || userDetails.username;
+    if (!username) {
+      setToast("Sign in again to continue", "error");
+      return;
+    }
+
+    setCurrentState("");
+    setLoading(true);
+    try {
+      const result = await createWalletForUser(username);
+      if (!result.success) {
+        setToast(result.message, "error");
+        setCurrentState("start-wallet");
+        return;
+      }
+
+      const currentUser = UserItem.getState().user;
+      if (currentUser) {
+        setUser({
+          ...currentUser,
+          wallet_address: result.walletAddress,
+        });
+      }
+      setShowLegacyWalletOptions(false);
+      setToast("Wallet created", "success");
+      router.replace("/dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithContact = async () => {
     const parsed = parseSmartContact(contactInput, selectedValue);
     if (parsed.mode === "invalid") {
       setToast(parsed.message, "error");
@@ -92,29 +339,168 @@ export default function Login() {
     }
 
     setLoading(true);
-    delay(1000);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const response = await getCode(
-      parsed.mode === "email"
-        ? { email: parsed.email }
-        : {
-            phone_number: parsed.phoneE164,
-            country: parsed.country,
-          }
-    );
+      const response = await getCode(
+        parsed.mode === "email"
+          ? { email: parsed.email }
+          : {
+              phone_number: parsed.phoneE164,
+              country: parsed.country,
+            }
+      );
 
-    if (response.status !== false) {
-      setUserDetails({
-        ...userDetails,
-        username: response.data.username,
-        wallet_address: response.data.wallet_address,
-        email: response.data.email || (parsed.mode === "email" ? parsed.email : ""),
-        mobileNumber: parsed.mode === "phone" ? parsed.mobileNumber : "",
-      });
-      setCurrentState("set-pin");
+      if (response.status !== false) {
+        setUserDetails({
+          ...userDetails,
+          username: response.data.username,
+          wallet_address: response.data.wallet_address,
+          email: response.data.email || (parsed.mode === "email" ? parsed.email : ""),
+          mobileNumber: parsed.mode === "phone" ? parsed.mobileNumber : "",
+        });
+        setCurrentState("set-pin");
+      } else {
+        setToast(response.message || "Something went wrong", "error");
+      }
+    } finally {
       setLoading(false);
-    } else {
-      setToast(response.message || "Something went wrong", "error");
+    }
+  };
+
+  const loginWithGoogleAccount = async () => {
+    setGoogleLoading(true);
+    let ownsGlobalLoading = false;
+    try {
+      const session = await signInWithGoogleForAuth();
+      setLoading(true);
+      ownsGlobalLoading = true;
+
+      const response = await loginWithGoogle({
+        google_id_token: session.idToken,
+        google_id: session.id,
+      });
+
+      if (response.status !== false) {
+        setToast("Signed in with Google", "success");
+        await finishLoginFromServerUser(response.data, session.email, session);
+        ownsGlobalLoading = false;
+        return;
+      }
+
+      if (response.notFound) {
+        const offered = await offerGoogleRestoreIfAvailable(session);
+        if (offered) {
+          setLoading(false);
+          ownsGlobalLoading = false;
+          return;
+        }
+
+        setToast("No account yet — pick a username to get started", "success");
+        router.replace({
+          pathname: "/auth/username",
+          params: {
+            contactMethod: "google",
+            email: session.email,
+          },
+        });
+        return;
+      }
+
+      setToast(response.message || "Google sign-in failed", "error");
+    } catch (error) {
+      setToast(getGoogleSignInErrorMessage(error), "error");
+    } finally {
+      setGoogleLoading(false);
+      if (ownsGlobalLoading) setLoading(false);
+    }
+  };
+
+  const startWalletSheetGoogleRestore = async () => {
+    setCurrentState("");
+    setGoogleLoading(true);
+    try {
+      const session = await signInWithGoogleForAuth();
+      const backup = await peekGoogleDriveWalletBackup({
+        accessToken: session.accessToken,
+      });
+      if (!backup) {
+        setToast("No Google Drive backup found for this account", "error");
+        setCurrentState("start-wallet");
+        return;
+      }
+      setGoogleRestoreSession(session);
+      setGoogleRestorePreview(backup);
+      setGoogleRestoreOpen(true);
+    } catch (error) {
+      setToast(getGoogleSignInErrorMessage(error), "error");
+      setCurrentState("start-wallet");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const confirmGoogleRestoreLogin = async (enteredPin: string) => {
+    if (!googleRestoreSession || !googleRestorePreview) {
+      return;
+    }
+
+    setGoogleRestoreLoading(true);
+    setLoading(true);
+    try {
+      const restored = await restoreWalletFromGoogleDrive(enteredPin, {
+        accessToken: googleRestoreSession.accessToken,
+        googleEmail: googleRestoreSession.email,
+      });
+      setPin(enteredPin);
+
+      const unlocked = await isWalletUnlockedForUser(restored.walletAddress);
+      if (!unlocked) {
+        throw new Error("Wallet secret was not saved on this device");
+      }
+      await hydrateWalletFromSecret();
+
+      const authSession = await refreshGoogleAuthSession(googleRestoreSession);
+      const googleEmail = googleRestoreSession.email;
+      const response = await loginWithGoogleBackup({
+        google_id_token: authSession.idToken,
+        google_id: authSession.id,
+        username: restored.username,
+        wallet_address: restored.walletAddress,
+      });
+
+      const serverUser: ServerAuthUser =
+        response.status !== false
+          ? response.data
+          : pendingServerLogin ?? {
+              username: restored.username,
+              wallet_address: restored.walletAddress,
+              email: googleEmail,
+            };
+
+      setGoogleRestoreOpen(false);
+      setGoogleRestoreSession(null);
+      setGoogleRestorePreview(null);
+      setPendingServerLogin(null);
+
+      if (response.status === false) {
+        setToast(
+          response.message ||
+            "Signed in locally — account link will sync on next login",
+          "success"
+        );
+      }
+
+      await finishLoginFromServerUser(
+        serverUser,
+        googleEmail,
+        authSession,
+        { skipRestoreOffer: true, clearGlobalLoading: false }
+      );
+    } catch (error) {
+      setToast(getGoogleSignInErrorMessage(error), "error");
+    } finally {
+      setGoogleRestoreLoading(false);
       setLoading(false);
     }
   };
@@ -126,6 +512,35 @@ export default function Login() {
       return;
     }
     if (pinValue === pin) {
+      const unlocked = await isWalletUnlockedForUser(user?.wallet_address);
+      if (!unlocked) {
+        setToast("Restore your wallet to continue", "error");
+        setPinSignin(false);
+        if (user) {
+          if (accountMissingServerWallet(user.wallet_address)) {
+            await silentProvisionWallet({
+              username: user.username,
+              mobileNumber: user.mobileNumber,
+              phoneE164: user.phoneE164,
+              email: user.email,
+              wallet_address: user.wallet_address || "",
+              pin: user.pin || "",
+            });
+            return;
+          }
+          await refreshLegacyWalletSheet({
+            username: user.username,
+            mobileNumber: user.mobileNumber,
+            phoneE164: user.phoneE164,
+            email: user.email,
+            wallet_address: user.wallet_address || "",
+            pin: user.pin || "",
+          });
+        }
+        setCurrentState("start-wallet");
+        return;
+      }
+      await hydrateWalletFromSecret();
       setToast("Pin Verified", "success");
       router.replace("/dashboard");
     } else {
@@ -161,44 +576,14 @@ export default function Login() {
     const response = await verifyCode(otpValue, userDetails.username);
     if (response.status !== false) {
       setToast("Verification Successfull", "success");
-      //check if the publick key stored is the same as the address coming, route to dashboard
-      if (
-        publicKey !== null &&
-        publicKey.toString() === userDetails.wallet_address
-      ) {
-        setUser({
-          username: userDetails.username,
-          mobileNumber: userDetails.mobileNumber,
-          phoneE164: userDetails.mobileNumber
-            ? toPhoneE164(
-                userDetails.mobileNumber,
-                selectedValue.callingCode
-              )
-            : undefined,
-          email: userDetails.email || undefined,
-          wallet_address: userDetails.wallet_address,
-          pin: "",
-        });
-        router.replace("/dashboard");
-        return;
-      } else {
-        setUser({
-          username: userDetails.username,
-          mobileNumber: userDetails.mobileNumber,
-          phoneE164: userDetails.mobileNumber
-            ? toPhoneE164(
-                userDetails.mobileNumber,
-                selectedValue.callingCode
-              )
-            : undefined,
-          email: userDetails.email || undefined,
-          wallet_address: userDetails.wallet_address,
-          pin: "",
-        });
-        setCurrentState("start-wallet");
-        setLoading(false);
-        return;
-      }
+      await finishLoginFromServerUser({
+        username: userDetails.username,
+        wallet_address: userDetails.wallet_address,
+        email: userDetails.email,
+        phone_number: userDetails.mobileNumber
+          ? toPhoneE164(userDetails.mobileNumber, selectedValue.callingCode)
+          : undefined,
+      });
     } else {
       setToast(response.message || "Something went wrong", "error");
       setLoading(false);
@@ -255,7 +640,7 @@ export default function Login() {
                   textColor="text-purple"
                   className="text-[1rem] text-center"
                 >
-                  or login with mobile number or email
+                  or sign in with Google, email, or phone
                 </CText>
               </TouchableOpacity>
             </View>
@@ -307,7 +692,7 @@ export default function Login() {
               <AuthFlowHeader
                 showLogo
                 title="Welcome back!"
-                subtitle="Let's make handsfreee transactions"
+                subtitle="Use your email or mobile number to sign in."
               />
 
               <SmartContactInput
@@ -319,11 +704,19 @@ export default function Login() {
 
               <Buttons
                 buttonType="pressable"
-                onPress={() => Login()}
+                onPress={() => loginWithContact()}
                 text="Login"
-                loading={isLoading}
+                loading={isLoading && !googleLoading}
                 type="primary"
               />
+
+              {googleEnabled ? (
+                <GoogleSignInButton
+                  loading={googleLoading}
+                  onPress={loginWithGoogleAccount}
+                  accessibilityLabel="Sign in with Google"
+                />
+              ) : null}
             </>
           )}
         </AuthFlowScreen>
@@ -335,8 +728,50 @@ export default function Login() {
         setOtpValue={(text) => setOtpValue(text)}
       />
 
-      <WalletSheet open={currentState === "start-wallet"} />
+      <WalletSheet
+        open={currentState === "start-wallet"}
+        showLegacyOptions={showLegacyWalletOptions}
+        onCreateWallet={handleLegacyCreateWallet}
+        onRestoreFromGoogle={
+          googleEnabled ? startWalletSheetGoogleRestore : undefined
+        }
+      />
+
+      <PinConfirmModal
+        visible={googleRestoreOpen}
+        title="Restore from Google Drive"
+        subtitle={
+          googleRestorePreview
+            ? `Enter your app PIN to restore @${googleRestorePreview.username} from your Google backup.`
+            : "Enter your app PIN to restore your wallet."
+        }
+        confirmLabel="Restore & sign in"
+        loading={googleRestoreLoading}
+        onClose={() => {
+          setGoogleRestoreOpen(false);
+          if (pendingServerLogin) {
+            const sessionUser = buildSessionUserFromServer(
+              pendingServerLogin,
+              googleRestoreSession?.email
+            );
+            setUser({
+              ...sessionUser,
+              wallet_address:
+                pendingServerLogin.wallet_address || sessionUser.wallet_address,
+            });
+            setPendingServerLogin(null);
+            void refreshLegacyWalletSheet({
+              ...sessionUser,
+              wallet_address:
+                pendingServerLogin.wallet_address || sessionUser.wallet_address,
+            });
+            setCurrentState("start-wallet");
+          }
+          setGoogleRestoreSession(null);
+          setGoogleRestorePreview(null);
+        }}
+        onConfirm={confirmGoogleRestoreLogin}
+      />
     </>
   );
 }
-

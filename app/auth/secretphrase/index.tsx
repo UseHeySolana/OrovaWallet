@@ -1,289 +1,52 @@
-import { useEffect, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
-import CText from "@/components/TextComp";
-import { Image } from "expo-image";
-import Buttons from "@/components/ButtonComp";
-import { generateMnemonic, getKeypairFromMnemonic } from "@/utils/wallet";
-
-import * as Clipboard from "expo-clipboard";
-import AppSettings from "@/utils/store/settingsstore.store";
-// import { Connection, Keypair } from "@solana/web3.js";
-import WalletItem from "@/utils/store/wallet.store";
-import { saveWalletAddress } from "@/utils/request/db";
-
-import UserItem from "@/utils/store/userstore.store";
+import { useEffect } from "react";
+import { View } from "react-native";
 import { router } from "expo-router";
-import IconLibrary from "@/utils/icons";
-import ConfirmPhraseSheet, {
-  PhraseVerificationChallenge,
-} from "@/components/Sheets/ConfirmKeyWordsSheet";
-import { setWalletSecret } from "@/utils/storage/secureStore";
 
+import AppSettings from "@/utils/store/settingsstore.store";
+import UserItem from "@/utils/store/userstore.store";
+import { createWalletForUser } from "@/utils/wallet/createWalletForUser";
 
+/** Legacy route — wallets are created silently during sign-up. */
+export default function SecretPhrase() {
+  const { user } = UserItem();
+  const { setLoading, setToast } = AppSettings();
 
-const actions = [
-  "Hey Solana does not keep a copy of your secret phrase.",
-  "Saving it digitally in text is NOT advisable. Examples include screenshots, text files or emailing yourself.",
-  "Write down your secret phrase and store in a secure offline location"
-]
+  useEffect(() => {
+    let cancelled = false;
 
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
+    (async () => {
+      if (!user?.username) {
+        router.replace("/auth/register");
+        return;
+      }
 
-function buildPhraseVerificationChallenges(mnemonic: string): PhraseVerificationChallenge[] {
-  const words = mnemonic.split(' ');
-  const positions = shuffleArray(words.map((_, index) => index + 1)).slice(0, 3).sort((a, b) => a - b);
+      if (user.wallet_address?.trim()) {
+        router.replace("/dashboard");
+        return;
+      }
 
-  return positions.map((position) => {
-    const correctWord = words[position - 1];
-    const decoys = shuffleArray(
-      words.filter((_, index) => index !== position - 1)
-    ).slice(0, 2);
-
-    return {
-      position,
-      correctWord,
-      options: shuffleArray([correctWord, ...decoys]),
-    };
-  });
-}
-export default function SecretPhrase({ navigation }: any) {
-  const [currentState, setCurrentState] = useState<'verify-phrase' | "start-wallet" | "sign-up" | "set-pin" | "">('')
-  const [startWalletCreation, setStartWalletCreation] = useState(false);
-  const [verifyPhrase, setVerifyPhrase] = useState(false);
-  // const { showToast } =
-  const [mnemonic, setMnemonic] = useState("");
-  const [challenges, setChallenges] = useState<PhraseVerificationChallenge[]>([]);
-  const [userWords, setUserWords] = useState(
-    [
-      { position: 0, word: "" },
-      { position: 0, word: "" },
-      { position: 0, word: "" },
-    ]
-  )
-
-  const { keypair, updateKeypair, publicKey, updatePassphrase } = WalletItem();
-  const { user, setUser } = UserItem();
-  const { setLoading, isLoading, setToast } = AppSettings()
-
-
-  const generateKeyPhrase = async () => {
-    setLoading(true)
-    const phrase = await generateMnemonic();
-    if (phrase) {
-
-      setMnemonic(phrase);
-      setStartWalletCreation(true)
-      setLoading(false)
-
-    } else {
-      setLoading(false)
-    }
-  }
-
-  const copyKeyPhrase = async () => {
-    setLoading(true)
-    await Clipboard.setStringAsync(mnemonic);
-    const nextChallenges = buildPhraseVerificationChallenges(mnemonic);
-    setChallenges(nextChallenges);
-    setUserWords(nextChallenges.map((challenge) => ({
-      position: challenge.position,
-      word: "",
-    })));
-    setTimeout(() => {
-      setCurrentState("verify-phrase");
-    }, 500);
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000)
-  }
-  const validatePhrase = async () => {
-
-    if (userWords.some(word => !word.word.trim())) {
-      setToast("Please fill in all the words", "error");
-      return;
-    }
-    setLoading(true)
-    // Check if each entered word matches the corresponding verified word
-    const isCorrect = challenges.every((challenge, index) => {
-      const userWord = userWords[index];
-      return (
-        userWord.position === challenge.position &&
-        userWord.word.toLowerCase().trim() === challenge.correctWord.toLowerCase()
-      );
-    });
-
-
-
-    if (!isCorrect) {
-      setToast("Some words don't match. Please check and try again.", "error");
-      setLoading(false)
-      return;
-    } else {
-
+      setLoading(true);
       try {
-        setCurrentState('set-pin');
-        const keyPair = await getKeypairFromMnemonic(mnemonic);
-        try {
-          await setWalletSecret(mnemonic);
-        } catch (e) {
-          setLoading(false);
-          setToast("Could not save your phrase securely on this device.", "error");
-          console.error("setWalletSecret failed:", e);
+        const result = await createWalletForUser(user.username);
+        if (cancelled) return;
+
+        if (!result.success) {
+          setToast(result.message, "error");
+          router.replace("/auth/username");
           return;
         }
-        updateKeypair(keyPair);
-        updatePassphrase(mnemonic);
 
-        if (!user) {
-          router.replace('/auth/register')
-          return
-        }
-        const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
-        if (response.status !== false) {
-          setUser({
-            ...user,
-            wallet_address: keyPair.publicKey.toBase58(),
-          });
-          setToast("Wallet Created", 'success')
-          router.replace('/dashboard')
-          setLoading(false)
-        }
-        setLoading(false)
-      } catch (error) {
-        setLoading(false)
-        console.error("Error generating keypair:", error);
+        setToast("Wallet ready", "success");
+        router.replace("/dashboard");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    }
-  }
-  /**
-   * sudo port install php82-cgi php82-gd php82-curl php82-intl php82-iconv php82-gettext php82-mbstring php82-imap php82-mcrypt php82-xmlrpc php82-mysql php82-openssl php82-sockets php82-zip php82-tidy php82-opcache php82-xsl php82-sqlite
-   */
+    })();
 
-  return (
-    <View className="py-10 relative bg-grey dark:bg-dark  h-[100%]">
-      {!startWalletCreation ? (
-        <ScrollView
-          className="gap-y-5"
-          contentContainerStyle={{ paddingBottom: 100, gap: 10 }}
-        >
-          <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl p-10">
-            <View className="gap-x-5">
-              <CText
-                style={{ fontFamily: "bold" }}
-                className="text-[24px] text-center"
-              >
-                Your secret phrase is the master key to your wallet
-              </CText>
-              <CText className="text-[16px] text-center">
-                Read the context below carefully in order to be able to properly
-                safeguard your wallet.
-              </CText>
-            </View>
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.username, user?.wallet_address, setLoading, setToast]);
 
-            <View className="w-100 m-auto">
-              <Image
-                source={require("@/assets/items/secret.png")}
-                alt="Security image"
-                style={{ height: 221, width: 221 }}
-                contentFit="contain"
-              />
-            </View>
-          </View>
-
-          <View className="w-11/12 m-auto bg-white dark:bg-accent gap-y-3 rounded-3xl p-3">
-            {actions.map((action, index) => {
-              return (
-                <View
-                  key={index}
-                  className="bg-grey dark:bg-accent2 rounded-3xl p-4 flex flex-row  gap-x-2 justify-start items-start"
-                >
-                  <View className="h-5 w-5 border-4 border-purple rounded-full"></View>
-                  <View className="w-[288px] ">
-                    <CText className="text-[16px] text-start text-wrap">
-                      {action}
-                    </CText>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </ScrollView>
-      ) : (
-        <View className="gap-y-5">
-          <View className="w-11/12 m-auto bg-white dark:bg-accent rounded-3xl gap-y-4 px-4 py-3">
-            <View className="gap-y-4 mb-2">
-              <CText
-                style={{ fontFamily: "bold" }}
-                className="text-[24px] text-start"
-              >
-                Secret Phrase
-              </CText>
-              <CText className="text-[16px] text-start">Write this down</CText>
-            </View>
-            <View className="w-full m-auto bg-grey dark:bg-accent2 rounded-3xl">
-              <View className="p-7 flex flex-row flex-wrap gap-2 justify-between items-center">
-                {mnemonic.split(" ").map((word, index) => {
-                  return (
-                    <CText
-                      key={index}
-                      style={{ fontFamily: "bold" }}
-                      className="text-[16px] basis-1/4 "
-                    >
-                      {challenges.length > 0
-                        ? "*****"
-                        : `${index + 1}. ${word}`}
-                    </CText>
-                  );
-                })}
-              </View>
-            </View>
-            <Buttons
-              buttonType="feedback"
-              onPress={() => copyKeyPhrase()}
-              className=""
-              icon={<IconLibrary.copy />}
-              text="Copy secret phrase"
-              type="secondary"
-            />
-          </View>
-        </View>
-      )}
-      <View className="w-full px-4 m-auto p-2 gap-y-3 bottom-10 absolute">
-        {!startWalletCreation && (
-          <Buttons
-            onPress={() => {
-              generateKeyPhrase();
-            }}
-            text="Continue"
-          />
-        )}
-      </View>
-
-      <ConfirmPhraseSheet
-        open={currentState === "verify-phrase"}
-        challenges={challenges}
-        userWords={userWords}
-        setUserWords={(words) => setUserWords(words)}
-        validatePhrase={validatePhrase}
-        onBack={() => {
-          setCurrentState("");
-          setChallenges([]);
-          setUserWords([
-            { position: 0, word: "" },
-            { position: 0, word: "" },
-            { position: 0, word: "" },
-          ]);
-        }}
-      />
-    </View>
-  );
+  return <View className="flex-1 bg-grey dark:bg-dark" />;
 }
-
-

@@ -20,6 +20,26 @@
             "package_name": "com.maskyray.heysolana",
             "certificate_hash": "e1b9922e0122a1c29f54194684abb62386e6f33c"
           }
+        },
+        {
+          "client_id": "830472884588-2tal7fhsvbbd08gdjhprf445o9689k26.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.maskyray.heysolana",
+            "certificate_hash": "efdbdd28824647a5e1bedf6ededf7517454227fa"
+          }
+        },
+        {
+          "client_id": "830472884588-gh36f8c072l42r1jnj4hq74864cv5pff.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.maskyray.heysolana",
+            "certificate_hash": "8474969f760c3f97a162a9e126e5d392d1fd2a5b"
+          }
+        },
+        {
+          "client_id": "830472884588-kb9ehbn1jdh9qa90ohlfm1kv3uvsc783.apps.googleusercontent.com",
+          "client_type": 3
         }
       ],
       "api_key": [
@@ -29,7 +49,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "830472884588-kb9ehbn1jdh9qa90ohlfm1kv3uvsc783.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

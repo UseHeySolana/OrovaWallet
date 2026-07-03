@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.yraylabs.heysolana'
+    namespace 'com.maskyray.heysolana'
     defaultConfig {
-        applicationId 'com.yraylabs.heysolana'
+        applicationId 'com.maskyray.heysolana'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 29
@@ -185,3 +185,5 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+apply plugin: 'com.google.gms.google-services'

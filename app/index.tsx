@@ -48,12 +48,12 @@ const screens = [
 const { width, height } = Dimensions.get("window");
 
 /** Read stores after `initWallet()` — avoids stale hook values in the same tick as hydration. */
-function getPostWalletInitDestination(): string | null {
+function getPostWalletInitDestination(walletHydrated: boolean): string | null {
   const { openWithAuth, pin, alreadyOpened } = AppSettings.getState();
   const { publicKey } = WalletItem.getState();
   const { session } = UserItem.getState();
 
-  if (!openWithAuth && publicKey !== null) {
+  if (!openWithAuth && walletHydrated && publicKey !== null) {
     return "/dashboard";
   }
 
@@ -116,16 +116,21 @@ export default function Index() {
       }
 
       try {
-        await Promise.all([initWallet(), runComboUpdateFlow()]);
+        const [{ hydrated }] = await Promise.all([
+          initWallet(),
+          runComboUpdateFlow(),
+        ]);
+        if (!cancelled) {
+          const destination = getPostWalletInitDestination(hydrated);
+          if (destination) {
+            router.replace(destination as any);
+          } else {
+            setIsBootstrapping(false);
+          }
+        }
       } catch {
         // ignore
-      }
-
-      if (!cancelled) {
-        const destination = getPostWalletInitDestination();
-        if (destination) {
-          router.replace(destination as any);
-        } else {
+        if (!cancelled) {
           setIsBootstrapping(false);
         }
       }

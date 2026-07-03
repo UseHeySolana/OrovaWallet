@@ -10,10 +10,16 @@ import LegalConsentNotice from "@/components/auth/LegalConsentNotice";
 import AuthFlowScreen from "@/components/auth/AuthFlowScreen";
 import AuthFlowFooter from "@/components/auth/AuthFlowFooter";
 import AuthFlowHeader from "@/components/auth/AuthFlowHeader";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import {
   CountrySelection,
   parseSmartContact,
 } from "@/utils/contact/smartContact";
+import {
+  getGoogleSignInErrorMessage,
+  signInWithGoogleForAuth,
+} from "@/services/google/googleAuth";
+import { isGoogleSignInConfigured } from "@/utils/google/googleConfig";
 
 export default function RegisterContact() {
   const { setToast } = AppSettings();
@@ -21,6 +27,9 @@ export default function RegisterContact() {
   const [contactInput, setContactInput] = useState("");
   const [selectedValue, setSelectedValue] =
     useState<CountrySelection>(DEFAULT_COUNTRY);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const googleEnabled = isGoogleSignInConfigured();
 
   const continueToUsername = () => {
     const parsed = parseSmartContact(contactInput, selectedValue);
@@ -51,6 +60,24 @@ export default function RegisterContact() {
     });
   };
 
+  const continueWithGoogle = async () => {
+    setGoogleLoading(true);
+    try {
+      const session = await signInWithGoogleForAuth();
+      router.push({
+        pathname: "/auth/username",
+        params: {
+          contactMethod: "google",
+          email: session.email,
+        },
+      });
+    } catch (error) {
+      setToast(getGoogleSignInErrorMessage(error), "error");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <AuthFlowScreen footer={<AuthFlowFooter />}>
       <AuthFlowHeader
@@ -75,6 +102,14 @@ export default function RegisterContact() {
         />
         <LegalConsentNotice />
       </View>
+
+      {googleEnabled ? (
+        <GoogleSignInButton
+          loading={googleLoading}
+          onPress={continueWithGoogle}
+          accessibilityLabel="Sign up with Google"
+        />
+      ) : null}
     </AuthFlowScreen>
   );
 }

@@ -5,9 +5,7 @@ import UserItem from "@/utils/store/userstore.store";
 import Buttons from "@/components/ButtonComp";
 import { registerUser, verifyCode } from "@/utils/request/db";
 import Otpsheet from "@/components/Sheets/OtpSheets";
-import WalletSheet from "@/components/Sheets/WalletOptions";
 import { toPhoneE164 } from "@/utils/phone/phoneE164";
-import { delay } from "@/utils/functions";
 import AuthFlowScreen from "@/components/auth/AuthFlowScreen";
 import AuthFlowFooter from "@/components/auth/AuthFlowFooter";
 import AuthFlowHeader from "@/components/auth/AuthFlowHeader";
@@ -15,9 +13,16 @@ import UsernameField, {
   UsernameAvailabilityStatus,
 } from "@/components/auth/UsernameField";
 import AppSettings from "@/utils/store/settingsstore.store";
+import CText from "@/components/TextComp";
+import { authUi } from "@/components/auth/authUi";
+import {
+  consumePendingGoogleAuth,
+  peekPendingGoogleAuth,
+} from "@/services/google/googleAuth";
+import { createWalletForUser } from "@/utils/wallet/createWalletForUser";
 
 type RegisterParams = {
-  contactMethod?: "phone" | "email";
+  contactMethod?: "phone" | "email" | "google";
   email?: string;
   mobileNumber?: string;
   callingCode?: string;
@@ -27,7 +32,12 @@ type RegisterParams = {
 export default function Username() {
   const params = useLocalSearchParams<RegisterParams>();
 
-  const contactMethod = params.contactMethod === "email" ? "email" : "phone";
+  const contactMethod =
+    params.contactMethod === "email"
+      ? "email"
+      : params.contactMethod === "google"
+        ? "google"
+        : "phone";
   const email = typeof params.email === "string" ? params.email : "";
   const mobileNumber =
     typeof params.mobileNumber === "string" ? params.mobileNumber : "";
@@ -41,27 +51,54 @@ export default function Username() {
   const [otpValue, setOtpValue] = useState("");
   const { setUser, user } = UserItem();
   const { setLoading, isLoading, setToast } = AppSettings();
-  const [currentState, setCurrentState] = useState<
-    "verify-phrase" | "start-wallet" | "sign-up" | "set-pin" | ""
-  >("");
+  const [currentState, setCurrentState] = useState<"set-pin" | "">("");
 
   const hasContact =
-    contactMethod === "email"
-      ? email.length > 0
-      : mobileNumber.length > 0;
+    contactMethod === "google"
+      ? email.length > 0 && Boolean(peekPendingGoogleAuth()?.idToken)
+      : contactMethod === "email"
+        ? email.length > 0
+        : mobileNumber.length > 0;
 
   const canSignUp = usernameStatus === "available";
+  const isGoogleSignup = contactMethod === "google";
 
   useEffect(() => {
-    if (user) {
-      setUsername(user.username);
-      setCurrentState("start-wallet");
+    if (user?.wallet_address?.trim()) {
+      router.replace("/dashboard");
       return;
     }
     if (!hasContact) {
       router.replace("/auth/register");
     }
-  }, [user, hasContact]);
+  }, [user?.wallet_address, hasContact]);
+
+  const finishSignupWithWallet = async (sessionUser: {
+    username: string;
+    mobileNumber: string;
+    phoneE164?: string;
+    email?: string;
+  }) => {
+    setUser({
+      ...sessionUser,
+      pin: "",
+      wallet_address: "",
+    });
+
+    setLoading(true);
+    try {
+      const result = await createWalletForUser(sessionUser.username);
+      if (!result.success) {
+        setToast(result.message, "error");
+        return;
+      }
+
+      setToast("Account created — set a PIN and back up your wallet", "success");
+      router.replace("/dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const saveUserToDB = async () => {
     if (!username.trim()) {
@@ -77,23 +114,45 @@ export default function Username() {
     }
 
     setLoading(true);
-    delay(1000);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const response = await registerUser({
-      username: username.trim(),
-      phone_number:
-        contactMethod === "phone"
-          ? `+${callingCode}${mobileNumber}`
-          : undefined,
-      email: contactMethod === "email" ? email : undefined,
-      country: contactMethod === "phone" ? country : undefined,
-    });
+      const googleSession = isGoogleSignup ? consumePendingGoogleAuth() : null;
+      if (isGoogleSignup && !googleSession?.idToken) {
+        setToast("Google sign-in expired. Please try again.", "error");
+        router.replace("/auth/register");
+        return;
+      }
 
-    if (response.status !== false) {
-      setCurrentState("set-pin");
-      setLoading(false);
-    } else {
-      setToast(response.message, "error");
+      const response = await registerUser({
+        username: username.trim(),
+        phone_number:
+          contactMethod === "phone"
+            ? `+${callingCode}${mobileNumber}`
+            : undefined,
+        email:
+          contactMethod === "email" || contactMethod === "google"
+            ? email
+            : undefined,
+        country: contactMethod === "phone" ? country : undefined,
+        google_id_token: googleSession?.idToken,
+        google_id: googleSession?.id,
+      });
+
+      if (response.status !== false) {
+        if (isGoogleSignup) {
+          await finishSignupWithWallet({
+            username: username.trim(),
+            mobileNumber: "",
+            email,
+          });
+          return;
+        }
+        setCurrentState("set-pin");
+      } else {
+        setToast(response.message, "error");
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -104,24 +163,23 @@ export default function Username() {
       return;
     }
     setLoading(true);
-    const response = await verifyCode(otpValue, username.trim());
-    if (response.status !== false) {
-      setToast("Verification Successfull", "success");
-      setUser({
-        username: username.trim(),
-        mobileNumber:
-          contactMethod === "phone" ? mobileNumber : "",
-        phoneE164:
-          contactMethod === "phone"
-            ? toPhoneE164(mobileNumber, [callingCode])
-            : undefined,
-        email: contactMethod === "email" ? email : undefined,
-        pin: "",
-      });
-      setCurrentState("start-wallet");
-      setLoading(false);
-    } else {
-      setToast(response.message || "Something went wrong", "error");
+    try {
+      const response = await verifyCode(otpValue, username.trim());
+      if (response.status !== false) {
+        setToast("Verification Successfull", "success");
+        await finishSignupWithWallet({
+          username: username.trim(),
+          mobileNumber: contactMethod === "phone" ? mobileNumber : "",
+          phoneE164:
+            contactMethod === "phone"
+              ? toPhoneE164(mobileNumber, [callingCode])
+              : undefined,
+          email: contactMethod === "email" ? email : undefined,
+        });
+      } else {
+        setToast(response.message || "Something went wrong", "error");
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -132,8 +190,23 @@ export default function Username() {
         <AuthFlowHeader
           showLogo
           title="Pick a username"
-          subtitle="Your username will be unique and can be used to make transactions."
+          subtitle={
+            isGoogleSignup
+              ? "Choose a unique username — we'll create your wallet automatically."
+              : "Your username will be unique and can be used to make transactions."
+          }
         />
+
+        {isGoogleSignup ? (
+          <View className={`${authUi.headerContentWidth} self-center`}>
+            <CText className={`${authUi.caption} text-center`}>
+              Signed in with Google as{" "}
+              <CText style={{ fontFamily: "bold" }} className={authUi.caption}>
+                {email}
+              </CText>
+            </CText>
+          </View>
+        ) : null}
 
         <UsernameField
           value={username}
@@ -147,7 +220,7 @@ export default function Username() {
             onPress={() => {
               if (canSignUp) saveUserToDB();
             }}
-            text="Sign up"
+            text={isGoogleSignup ? "Create account & wallet" : "Sign up"}
             loading={isLoading}
             type="primary"
           />
@@ -159,8 +232,6 @@ export default function Username() {
         verifyOtp={verifyOtp}
         setOtpValue={(text) => setOtpValue(text)}
       />
-
-      <WalletSheet open={currentState === "start-wallet"} />
     </>
   );
 }

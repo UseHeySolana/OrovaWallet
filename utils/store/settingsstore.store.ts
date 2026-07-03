@@ -29,6 +29,8 @@ interface Settings {
     skippedAiSettings: boolean,
     createdWallet: boolean,
     updateNotifications: (newNotifications: boolean) => void;
+    promptWalletBackup: boolean,
+    setPromptWalletBackup: (value: boolean) => void,
     updateAiVoice: (newAiVoice: string) => void;
     setDefault: () => void;
 
@@ -94,6 +96,8 @@ const AppSettings = create(
             alreadyOpened: false,
             skippedAiSettings: false,
             createdWallet: false,
+            promptWalletBackup: false,
+            setPromptWalletBackup: (value: boolean) => set({ promptWalletBackup: value }),
             setEk: (value: string, expiry: number) => set({ ek: { value, expiry } }),
             updateTheme: (newTheme: string) => set({ theme: newTheme }),
             markOpened: () => set({ alreadyOpened: true }),
@@ -117,6 +121,7 @@ const AppSettings = create(
                         alreadyOpened: false,
                         skippedAiSettings: false,
                         createdWallet: false,
+                        promptWalletBackup: false,
                     })
             },
             setToast: (message: string, type: "success" | "error" | "info") => {
@@ -126,22 +131,21 @@ const AppSettings = create(
 
             setOpenWithAuth: (val: boolean) => set({ openWithAuth: val }),
             setLoading: (state: boolean) => {
-                const LOADING_TIMEOUT_MS = 10000;
+                const LOADING_TIMEOUT_MS = 90_000;
                 const prev = get();
                 const prevTimeout = prev.loadingTimeout;
                 const prevCount = prev.loadingCount;
 
                 if (state) {
                     const newCount = prevCount + 1;
-                    set({ loadingCount: newCount, isLoading: true });
-                    if (newCount === 1) {
-                        if (prevTimeout) clearTimeout(prevTimeout);
-                        const timeoutId = setTimeout(() => {
-                            get().setToast("Something took too long. Please try again.", "error");
-                            set({ loadingCount: 0, isLoading: false, loadingTimeout: null });
-                        }, LOADING_TIMEOUT_MS);
-                        set({ loadingTimeout: timeoutId });
-                    }
+                    if (prevTimeout) clearTimeout(prevTimeout);
+                    const timeoutId = setTimeout(() => {
+                        const current = get();
+                        if (current.loadingCount <= 0) return;
+                        get().setToast("Something took too long. Please try again.", "error");
+                        set({ loadingCount: 0, isLoading: false, loadingTimeout: null });
+                    }, LOADING_TIMEOUT_MS);
+                    set({ loadingCount: newCount, isLoading: true, loadingTimeout: timeoutId });
                 } else {
                     const newCount = Math.max(0, prevCount - 1);
                     if (newCount === 0 && prevTimeout) {
@@ -150,7 +154,7 @@ const AppSettings = create(
                     set({
                         loadingCount: newCount,
                         isLoading: newCount > 0,
-                        ...(newCount === 0 ? { loadingTimeout: null } : {}),
+                        loadingTimeout: newCount === 0 ? null : prevTimeout,
                     });
                 }
             },
@@ -160,7 +164,7 @@ const AppSettings = create(
             name: 'settings', // Storage key
             storage: createJSONStorage(() => AsyncStorage), // Use AsyncStorage for React Native
             partialize: (state) => {
-                const { isLoading, loadingCount, loadingTimeout, ...rest } = state;
+                const { isLoading, loadingCount, loadingTimeout, promptWalletBackup, ...rest } = state;
                 return rest;
             },
             onRehydrateStorage: () => (state) => {

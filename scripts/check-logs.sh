@@ -38,6 +38,9 @@ case $FILTER in
     "react"|"rn"|"js")
         adb logcat | grep -E "ReactNativeJS|console" --color=always
         ;;
+    "backup"|"drive"|"google")
+        adb logcat | grep -E "ReactNativeJS|GoogleDriveBackup" --color=always
+        ;;
     "app"|"package")
         adb logcat | grep "$PACKAGE_NAME" --color=always
         ;;

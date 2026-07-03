@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -17,8 +17,21 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import * as ImagePicker from "expo-image-picker";
 import { Directory, File, Paths } from "expo-file-system";
 import Otpsheet from "@/components/Sheets/OtpSheets";
-import { addEmail, verifyCode } from "@/utils/request/db";
+import { addEmail, addPhone, verifyCode } from "@/utils/request/db";
 import { userMissingBackupEmail } from "@/utils/account/emailSetup";
+import { userHasMobileNumber } from "@/utils/account/userContact";
+import SmartContactInput, {
+  DEFAULT_COUNTRY,
+} from "@/components/auth/SmartContactInput";
+import {
+  CountrySelection,
+  parseSmartContact,
+} from "@/utils/contact/smartContact";
+import { useGoogleDriveBackupActions } from "@/hooks/useGoogleDriveBackupActions";
+import PinConfirmModal from "@/components/backup/PinConfirmModal";
+import { isGoogleSignInConfigured } from "@/utils/google/googleConfig";
+import { logBackup } from "@/services/backup/backupLogger";
+import { useFocusEffect } from "expo-router";
 
 const PROFILE_IMAGE_DIR = new Directory(Paths.document, "profile-images");
 
@@ -50,19 +63,50 @@ export default function Account() {
   const { isDarkMode } = useThemeContext();
   const { setToast, setLoading, isLoading } = AppSettings();
 
-  const [username, setUsername] = useState(user?.username ?? "");
   const [profileImageUri, setProfileImageUri] = useState(
     user?.profileImageUri ?? ""
   );
   const [email, setEmail] = useState(user?.email ?? "");
   const [pendingEmail, setPendingEmail] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [selectedCountry, setSelectedCountry] =
+    useState<CountrySelection>(DEFAULT_COUNTRY);
+  const [pendingPhoneE164, setPendingPhoneE164] = useState("");
+  const [pendingMobileNumber, setPendingMobileNumber] = useState("");
   const [otpValue, setOtpValue] = useState("");
   const [otpOpen, setOtpOpen] = useState(false);
+  const [otpMode, setOtpMode] = useState<"email" | "phone">("email");
   const needsEmail = userMissingBackupEmail(user);
+  const hasEmail = Boolean(user?.email?.trim());
+  const hasPhone = userHasMobileNumber(user);
+  const {
+    refreshBackupMeta,
+    startBackup,
+    closePinModal,
+    confirmPin,
+    pinModalMode,
+    loadingAction,
+    isBackedUp,
+  } = useGoogleDriveBackupActions();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshBackupMeta().then((meta) => {
+        const currentUser = UserItem.getState().user;
+        if (currentUser && !currentUser.email?.trim() && meta?.googleEmail) {
+          setUser({ ...currentUser, email: meta.googleEmail });
+        }
+      });
+      logBackup("Account screen opened", {
+        googleConfigured: isGoogleSignInConfigured(),
+        hasWallet: Boolean(user?.wallet_address),
+        hasEmail: Boolean(user?.email),
+      });
+    }, [refreshBackupMeta, setUser, user?.email, user?.wallet_address])
+  );
 
   useEffect(() => {
     if (user) {
-      setUsername(user.username);
       setProfileImageUri(user.profileImageUri ?? "");
       setEmail(user.email ?? "");
     }
@@ -98,22 +142,6 @@ export default function Account() {
     }
   };
 
-  const saveUsername = () => {
-    const trimmed = username.trim();
-    if (!trimmed) {
-      setToast("Username cannot be empty", "error");
-      return;
-    }
-    if (!user) return;
-    const currentUser = UserItem.getState().user;
-    if (!currentUser) return;
-    setUser({
-      ...currentUser,
-      username: trimmed,
-    });
-    setToast("Username updated", "success");
-  };
-
   const saveEmail = async () => {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) {
@@ -126,17 +154,6 @@ export default function Account() {
     }
     if (!user?.username) return;
 
-    if (user.email?.trim()) {
-      const currentUser = UserItem.getState().user;
-      if (!currentUser) return;
-      setUser({
-        ...currentUser,
-        email: trimmed,
-      });
-      setToast("Email updated", "success");
-      return;
-    }
-
     setLoading(true);
     const response = await addEmail(user.username, trimmed);
     setLoading(false);
@@ -147,8 +164,39 @@ export default function Account() {
     }
 
     setPendingEmail(trimmed);
+    setOtpMode("email");
     setOtpOpen(true);
     setToast("Verification code sent to your email", "success");
+  };
+
+  const savePhone = async () => {
+    const parsed = parseSmartContact(phoneInput, selectedCountry);
+    if (parsed.mode !== "phone") {
+      setToast("Enter a valid phone number", "error");
+      return;
+    }
+    if (!user?.username) return;
+
+    setLoading(true);
+    try {
+      const response = await addPhone({
+        username: user.username,
+        phone_number: parsed.phoneE164,
+        country: parsed.country,
+      });
+      if (response.status === false) {
+        setToast(response.message || "Could not add mobile number", "error");
+        return;
+      }
+
+      setPendingPhoneE164(parsed.phoneE164);
+      setPendingMobileNumber(parsed.mobileNumber);
+      setOtpMode("phone");
+      setOtpOpen(true);
+      setToast("Verification code sent to your WhatsApp number", "success");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const verifyEmailOtp = async () => {
@@ -177,6 +225,53 @@ export default function Account() {
     setOtpValue("");
     setPendingEmail("");
     setToast("Email verified and saved", "success");
+  };
+
+  const verifyPhoneOtp = async () => {
+    if (otpValue.length < 6) {
+      setToast("Enter the 6-digit code", "error");
+      return;
+    }
+    if (!user?.username || !pendingPhoneE164) return;
+
+    setLoading(true);
+    try {
+      const response = await verifyCode(otpValue, user.username);
+      if (response.status === false) {
+        setToast(response.message || "Invalid verification code", "error");
+        return;
+      }
+
+      const currentUser = UserItem.getState().user;
+      if (!currentUser) return;
+      setUser({
+        ...currentUser,
+        phoneE164: pendingPhoneE164,
+        mobileNumber: pendingMobileNumber,
+      });
+      setPhoneInput("");
+      setOtpOpen(false);
+      setOtpValue("");
+      setPendingPhoneE164("");
+      setPendingMobileNumber("");
+      setToast("Mobile number verified and saved", "success");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyAccountOtp = async () => {
+    if (otpMode === "phone") {
+      await verifyPhoneOtp();
+      return;
+    }
+    await verifyEmailOtp();
+  };
+
+  const formatDisplayPhone = (phone?: string, local?: string) => {
+    if (phone?.trim()) return phone;
+    if (local?.trim()) return local;
+    return "—";
   };
 
   return (
@@ -247,24 +342,49 @@ export default function Account() {
             >
               Username
             </CText>
-            <TextInput
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Your username"
-              placeholderTextColor={isDarkMode ? "#9ca3af" : "#6b7280"}
-              className="bg-grey dark:bg-accent2 rounded-xl px-4 py-3 text-dark dark:text-white text-[16px]"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View className="mt-3">
-              <Buttons
-                text="Update username"
-                onPress={saveUsername}
-                type="secondary"
-                buttonType="feedback"
-                className="rounded-full py-3"
-              />
-            </View>
+            <CText className="text-dark dark:text-white text-[16px]">
+              @{user?.username ?? "—"}
+            </CText>
+          </View>
+
+          {/* Mobile number */}
+          <View className="bg-white dark:bg-accent rounded-2xl p-4 shadow-sm">
+            <CText
+              style={{ fontFamily: "bold" }}
+              className="text-base text-dark dark:text-white mb-1"
+            >
+              Mobile number
+            </CText>
+            <CText className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+              {hasPhone
+                ? "Your verified mobile number for payments, airtime, and account recovery."
+                : "Add and verify your mobile number. You can skip this during Google sign-up and add it here later."}
+            </CText>
+            {hasPhone ? (
+              <CText className="text-dark dark:text-white text-[16px]">
+                {formatDisplayPhone(user?.phoneE164, user?.mobileNumber)}
+              </CText>
+            ) : (
+              <>
+                <SmartContactInput
+                  value={phoneInput}
+                  onChangeText={setPhoneInput}
+                  placeholder="Phone number"
+                  selectedValue={selectedCountry}
+                  onCountryChange={setSelectedCountry}
+                />
+                <View className="mt-3">
+                  <Buttons
+                    text="Verify mobile number"
+                    onPress={savePhone}
+                    type="secondary"
+                    buttonType="feedback"
+                    loading={isLoading}
+                    className="rounded-full py-3"
+                  />
+                </View>
+              </>
+            )}
           </View>
 
           {/* Email for backup / keyphrase security */}
@@ -276,38 +396,74 @@ export default function Account() {
               Backup email
             </CText>
             <CText className="text-gray-500 dark:text-gray-400 text-sm mb-2">
-              Add an email to secure your keyphrase and backup data. Used only for recovery.
+              {hasEmail
+                ? "Your backup email for account recovery and important updates."
+                : "Add an email to secure your keyphrase and backup data. Used only for recovery."}
             </CText>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="your@email.com"
-              placeholderTextColor={isDarkMode ? "#9ca3af" : "#6b7280"}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              className="bg-grey dark:bg-accent2 rounded-xl px-4 py-3 text-dark dark:text-white text-[16px]"
-            />
-            <View className="mt-3">
-              <Buttons
-                text={needsEmail ? "Verify email" : email ? "Save email" : "Add email"}
-                onPress={saveEmail}
-                type="secondary"
-                buttonType="feedback"
-                loading={isLoading}
-                className="rounded-full py-3"
-              />
-            </View>
+            {hasEmail ? (
+              <CText className="text-dark dark:text-white text-[16px]">
+                {user?.email}
+              </CText>
+            ) : (
+              <>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="your@email.com"
+                  placeholderTextColor={isDarkMode ? "#9ca3af" : "#6b7280"}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  className="bg-grey dark:bg-accent2 rounded-xl px-4 py-3 text-dark dark:text-white text-[16px]"
+                />
+                <View className="mt-3">
+                  <Buttons
+                    text="Verify email"
+                    onPress={saveEmail}
+                    type="secondary"
+                    buttonType="feedback"
+                    loading={isLoading}
+                    className="rounded-full py-3"
+                  />
+                </View>
+              </>
+            )}
           </View>
+
+          {isGoogleSignInConfigured() ? (
+            <Buttons
+              text={isBackedUp ? "Back up again" : "Back up to Google Drive"}
+              onPress={startBackup}
+              type="primary"
+              buttonType="feedback"
+              loading={loadingAction && pinModalMode === "backup"}
+              className="rounded-full py-3"
+            />
+          ) : null}
         </View>
       </ScrollView>
 
       <Otpsheet
         open={otpOpen}
-        verifyOtp={verifyEmailOtp}
+        verifyOtp={verifyAccountOtp}
         setOtpValue={setOtpValue}
-        hint="Your verification code has been sent to your email"
+        hint={
+          otpMode === "phone"
+            ? "Your verification code has been sent to your WhatsApp number"
+            : "Your verification code has been sent to your email"
+        }
       />
+
+      <PinConfirmModal
+        visible={pinModalMode === "backup"}
+        title="Confirm your PIN"
+        subtitle="Enter your app PIN to encrypt the backup before uploading to Google Drive."
+        confirmLabel="Back up now"
+        loading={loadingAction}
+        onClose={closePinModal}
+        onConfirm={confirmPin}
+      />
+
     </View>
   );
 }

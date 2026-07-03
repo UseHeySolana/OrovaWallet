@@ -105,6 +105,19 @@ export async function initWallet() {
   ]);
   await tryMigrateLegacyWalletSecretFromAsyncStorage();
   const hydrated = await hydrateWalletFromSecureStore();
+  if (!hydrated) {
+    const { publicKey } = WalletItem.getState();
+    if (publicKey) {
+      WalletItem.getState().updateKeypair(null);
+      WalletItem.getState().updatePassphrase(null);
+      if (typeof __DEV__ !== "undefined" && __DEV__) {
+        console.log(
+          "[WalletSecret]",
+          "cleared stale persisted public key — no secret in secure storage"
+        );
+      }
+    }
+  }
   if (typeof __DEV__ !== "undefined" && __DEV__) {
     console.log("[WalletSecret]", "initWallet finished", { hydrated });
   }

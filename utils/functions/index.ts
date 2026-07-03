@@ -31,11 +31,12 @@ const pasteItem = async () => {
   }
 };
 
-const delay = async (delay: number) => {
+const delay = async (delayMs: number) => {
+  /** @deprecated Prefer explicit setLoading + sleep; this toggles the global loader independently. */
   AppSettings.getState().setLoading(true);
   setTimeout(() => {
     AppSettings.getState().setLoading(false);
-  }, delay);
+  }, delayMs);
 };
 
 const delayPromise = (ms: number): Promise<void> => {

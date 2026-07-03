@@ -172,6 +172,8 @@ const registerUser = async (payload: {
   phone_number?: string;
   email?: string;
   country?: string;
+  google_id_token?: string;
+  google_id?: string;
 }) => {
   const item: Record<string, string> = {
     username: payload.username,
@@ -179,6 +181,8 @@ const registerUser = async (payload: {
   if (payload.phone_number) item.phone_number = payload.phone_number;
   if (payload.email) item.email = payload.email;
   if (payload.country) item.country = payload.country;
+  if (payload.google_id_token) item.google_id_token = payload.google_id_token;
+  if (payload.google_id) item.google_id = payload.google_id;
 
   const response = await request.postJson(item, "/v2/register-users");
   if (!response.ok) {
@@ -283,6 +287,43 @@ const addEmail = async (username: string, email: string) => {
     const response = await request.postJson(item, url);
     if (!response.ok) {
       let message = response.statusText || "Could not add email";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response
+      }
+      return { status: false, message };
+    }
+    const data = await response.json();
+    return { status: true, data };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check your connection."
+        : err instanceof Error
+          ? err.message
+          : "Request failed";
+    return { status: false, message };
+  }
+};
+
+const addPhone = async (payload: {
+  username: string;
+  phone_number: string;
+  country?: string;
+}) => {
+  const item: Record<string, string> = {
+    username: payload.username.trim(),
+    phone_number: payload.phone_number.trim(),
+  };
+  if (payload.country) item.country = payload.country;
+
+  const url = "/v2/add-phone";
+  try {
+    const response = await request.postJson(item, url);
+    if (!response.ok) {
+      let message = response.statusText || "Could not add mobile number";
       try {
         const result = await response.json();
         if (result?.message) message = result.message;
@@ -434,13 +475,96 @@ const updateContact = async (
   return { status: true, data: await response.json() };
 };
 
+const loginWithGoogle = async (payload: {
+  google_id_token: string;
+  google_id?: string;
+}) => {
+  const item: Record<string, string> = {
+    google_id_token: payload.google_id_token,
+  };
+  if (payload.google_id) item.google_id = payload.google_id;
+
+  const url = "/v2/google-login";
+  try {
+    const response = await request.postJson(item, url);
+    if (!response.ok) {
+      let message = response.statusText || "Google sign-in failed";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response
+      }
+      console.warn("[loginWithGoogle] failed", BASE_URL + url, response.status, message);
+      return {
+        status: false,
+        message,
+        notFound: response.status === 404,
+      };
+    }
+    return { status: true, data: await response.json() };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check EXPO_PUBLIC_API_URL and that the backend is running."
+        : err instanceof Error
+          ? err.message
+          : "Request failed";
+    console.warn("[loginWithGoogle] error", BASE_URL + url, err);
+    return { status: false, message };
+  }
+};
+
+const loginWithGoogleBackup = async (payload: {
+  google_id_token: string;
+  google_id?: string;
+  username: string;
+  wallet_address: string;
+}) => {
+  const item: Record<string, string> = {
+    google_id_token: payload.google_id_token,
+    username: payload.username,
+    wallet_address: payload.wallet_address,
+  };
+  if (payload.google_id) item.google_id = payload.google_id;
+
+  const url = "/v2/google-restore-login";
+  try {
+    const response = await request.postJson(item, url);
+    if (!response.ok) {
+      let message = response.statusText || "Could not sign in with backup";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response
+      }
+      console.warn("[loginWithGoogleBackup] failed", BASE_URL + url, response.status, message);
+      return { status: false, message };
+    }
+    return { status: true, data: await response.json() };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check EXPO_PUBLIC_API_URL and that the backend is running."
+        : err instanceof Error
+          ? err.message
+          : "Request failed";
+    console.warn("[loginWithGoogleBackup] error", BASE_URL + url, err);
+    return { status: false, message };
+  }
+};
+
 export {
   addContact,
   addEmail,
+  addPhone,
   deletePersonalContact,
   getContacts,
   verifyCode,
   getCode,
+  loginWithGoogle,
+  loginWithGoogleBackup,
   saveWalletAddress,
   getTransactionHistory,
   registerUser,
