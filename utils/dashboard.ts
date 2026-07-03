@@ -7,6 +7,11 @@ import { UserType } from "@/utils/types/user.types";
 import { Connection, PublicKey } from "@solana/web3.js";
 import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
+import UserItem from "@/utils/store/userstore.store";
+import {
+  hydrateWalletFromSecret,
+  isWalletUnlockedForUser,
+} from "@/utils/wallet/walletUnlock";
 
 export const api_key = process.env.EXPO_PUBLIC_HELIUS_API || "";
 
@@ -81,11 +86,16 @@ const setUserItems = async (
 
 export const BiometricAuth = async () => {
   const res = await LocalAuthentication.hasHardwareAsync();
-  if (res) {
-    const result = await LocalAuthentication.authenticateAsync();
-    if (result.success) {
-      router.replace("/dashboard");
-    }
+  if (!res) return;
+
+  const user = UserItem.getState().user;
+  const unlocked = await isWalletUnlockedForUser(user?.wallet_address);
+  if (!unlocked) return;
+
+  const result = await LocalAuthentication.authenticateAsync();
+  if (result.success) {
+    await hydrateWalletFromSecret();
+    router.replace("/dashboard");
   }
 };
 

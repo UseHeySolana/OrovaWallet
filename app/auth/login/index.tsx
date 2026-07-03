@@ -175,21 +175,16 @@ export default function Login() {
         return;
       }
 
-      clearStaleWalletPublicKey(user.wallet_address);
+      if (!unlocked) {
+        clearStaleWalletPublicKey(user.wallet_address);
 
-      setUserDetails((prev) => ({
-        ...prev,
-        mobileNumber: user.mobileNumber,
-      }));
+        setUserDetails((prev) => ({
+          ...prev,
+          mobileNumber: user.mobileNumber,
+        }));
 
-      if (openWithAuth) {
-        setFingerPrintSigning(true);
-        setTimeout(() => {
-          BiometricAuth();
-        }, 1000);
-      } else if (pin.length > 0) {
-        setPinSignin(true);
-      } else {
+        setFingerPrintSigning(false);
+        setPinSignin(false);
         await promptWalletRestoreOrProvision({
           username: user.username,
           mobileNumber: user.mobileNumber,
@@ -198,6 +193,7 @@ export default function Login() {
           wallet_address: user.wallet_address || "",
           pin: user.pin || "",
         });
+        return;
       }
     })();
 
