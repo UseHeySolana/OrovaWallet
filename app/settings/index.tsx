@@ -22,6 +22,7 @@ import {
   registerPushTokenWithBackend,
 } from "@/services/push/pushNotifications";
 import { PushNotificationDevTools } from "@/services/push/PushNotificationDevTools";
+import { userMissingBackupEmail } from "@/utils/account/emailSetup";
 
 type SettingsMenu2Item = {
   title: string;
@@ -195,6 +196,21 @@ export default function Settings() {
           gap: 10,
         }}
       >
+        {userMissingBackupEmail(user) ? (
+          <TouchableOpacity
+            onPress={() => router.push("/dashboard/account")}
+            activeOpacity={0.85}
+            className="w-11/12 m-auto mb-3 rounded-2xl border border-purple/30 bg-purple/10 dark:bg-purple/20 px-4 py-4"
+          >
+            <CText style={{ fontFamily: "bold" }} className="text-dark dark:text-white mb-1">
+              Add a backup email
+            </CText>
+            <CText className="text-gray-600 dark:text-gray-300 text-sm">
+              Secure your account and enable email recovery.
+            </CText>
+          </TouchableOpacity>
+        ) : null}
+
         <TouchableOpacity
           onPress={() => router.push("/dashboard/account")}
           activeOpacity={0.8}

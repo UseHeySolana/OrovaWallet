@@ -16,7 +16,7 @@
     "lint": "expo lint",
     "submit-android": "eas submit --platform android",
     "auto-submit": "eas build --platform android --auto-submit",
-    "dapp-store": "eas build --local -p android --profile dapp-store",
+    "dapp-store": "APP_VARIANT=solana-mobile npx expo prebuild --platform android --clean && eas build --local -p android --profile dapp-store",
     "build:test": "eas build  -p android --profile test",
     "build:test-local": "eas build --local -p android --profile test",
     "build:iostest": "npx expo run:ios --device",

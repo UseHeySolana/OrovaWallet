@@ -16,6 +16,7 @@ import { PushNotificationManager } from "@/services/push/PushNotificationManager
 import { PajCashBeneficiariesManager } from "@/services/pajcash/PajCashBeneficiariesManager";
 import { PajCashSessionManager } from "@/services/pajcash/PajCashSessionManager";
 import { NotificationPermissionNudge } from "@/services/push/NotificationPermissionNudge";
+import { EmailSetupNudge } from "@/services/account/EmailSetupNudge";
 
 import { ThemeProvider } from "@/context/ThemeContext";
 import StackView from "./stack";
@@ -133,6 +134,7 @@ export default function RootLayout() {
                   <PajCashBeneficiariesManager>
                   <PajCashSessionManager>
                   <NotificationPermissionNudge />
+                  <EmailSetupNudge />
                   <WidgetManager>
                     <StackView />
                   </WidgetManager>

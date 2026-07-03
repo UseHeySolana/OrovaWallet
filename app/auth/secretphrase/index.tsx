@@ -14,7 +14,9 @@ import { saveWalletAddress } from "@/utils/request/db";
 import UserItem from "@/utils/store/userstore.store";
 import { router } from "expo-router";
 import IconLibrary from "@/utils/icons";
-import ConfirmPhraseSheet from "@/components/Sheets/ConfirmKeyWordsSheet";
+import ConfirmPhraseSheet, {
+  PhraseVerificationChallenge,
+} from "@/components/Sheets/ConfirmKeyWordsSheet";
 import { setWalletSecret } from "@/utils/storage/secureStore";
 
 
@@ -25,33 +27,31 @@ const actions = [
   "Write down your secret phrase and store in a secure offline location"
 ]
 
-const positionVal = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seven', 'eight', 'ninth', 'tenth', 'eleventh', 'twelveth'];
-
-
-/**
-  * What should be done here
-  * 1. Notify what the secret phrase is for.
-  * 2. Generate Secre Phrase
-  * 3. Verify that they have saved phrase
-  */
-function getThreeRandomStrings(array: string[]) {
-  // Make a copy to avoid modifying the original array
+function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
-
-  // Shuffle array using Fisher-Yates algorithm
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
+  return shuffled;
+}
 
-  // Return first three elements
-  return shuffled.slice(0, 3).map((i, index) => {
+function buildPhraseVerificationChallenges(mnemonic: string): PhraseVerificationChallenge[] {
+  const words = mnemonic.split(' ');
+  const positions = shuffleArray(words.map((_, index) => index + 1)).slice(0, 3).sort((a, b) => a - b);
+
+  return positions.map((position) => {
+    const correctWord = words[position - 1];
+    const decoys = shuffleArray(
+      words.filter((_, index) => index !== position - 1)
+    ).slice(0, 2);
+
     return {
-      position: array.indexOf(i) + 1,
-      word: i
-    }
+      position,
+      correctWord,
+      options: shuffleArray([correctWord, ...decoys]),
+    };
   });
-
 }
 export default function SecretPhrase({ navigation }: any) {
   const [currentState, setCurrentState] = useState<'verify-phrase' | "start-wallet" | "sign-up" | "set-pin" | "">('')
@@ -59,21 +59,12 @@ export default function SecretPhrase({ navigation }: any) {
   const [verifyPhrase, setVerifyPhrase] = useState(false);
   // const { showToast } =
   const [mnemonic, setMnemonic] = useState("");
-  const [verifiedWords, setVerifiedWords] = useState<{ position: number, word: string }[]>([]);
+  const [challenges, setChallenges] = useState<PhraseVerificationChallenge[]>([]);
   const [userWords, setUserWords] = useState(
     [
-      {
-        position: 0,
-        word: "",
-      },
-      {
-        position: 0,
-        word: "",
-      },
-      {
-        position: 0,
-        word: "",
-      }
+      { position: 0, word: "" },
+      { position: 0, word: "" },
+      { position: 0, word: "" },
     ]
   )
 
@@ -99,7 +90,12 @@ export default function SecretPhrase({ navigation }: any) {
   const copyKeyPhrase = async () => {
     setLoading(true)
     await Clipboard.setStringAsync(mnemonic);
-    setVerifiedWords(getThreeRandomStrings(mnemonic.split(' ') as string[]))
+    const nextChallenges = buildPhraseVerificationChallenges(mnemonic);
+    setChallenges(nextChallenges);
+    setUserWords(nextChallenges.map((challenge) => ({
+      position: challenge.position,
+      word: "",
+    })));
     setTimeout(() => {
       setCurrentState("verify-phrase");
     }, 500);
@@ -115,10 +111,12 @@ export default function SecretPhrase({ navigation }: any) {
     }
     setLoading(true)
     // Check if each entered word matches the corresponding verified word
-    const isCorrect = userWords.every((userWord, index) => {
-      const verifiedWord = verifiedWords[index];
-      // Compare the words case-insensitively
-      return userWord.word.toLowerCase().trim() === verifiedWord.word.toLowerCase();
+    const isCorrect = challenges.every((challenge, index) => {
+      const userWord = userWords[index];
+      return (
+        userWord.position === challenge.position &&
+        userWord.word.toLowerCase().trim() === challenge.correctWord.toLowerCase()
+      );
     });
 
 
@@ -144,7 +142,7 @@ export default function SecretPhrase({ navigation }: any) {
         updatePassphrase(mnemonic);
 
         if (!user) {
-          router.replace('/auth/username')
+          router.replace('/auth/register')
           return
         }
         const response = await saveWalletAddress(keyPair.publicKey.toBase58(), user.username)
@@ -238,7 +236,7 @@ export default function SecretPhrase({ navigation }: any) {
                       style={{ fontFamily: "bold" }}
                       className="text-[16px] basis-1/4 "
                     >
-                      {verifiedWords.length > 0
+                      {challenges.length > 0
                         ? "*****"
                         : `${index + 1}. ${word}`}
                     </CText>
@@ -270,13 +268,19 @@ export default function SecretPhrase({ navigation }: any) {
 
       <ConfirmPhraseSheet
         open={currentState === "verify-phrase"}
-        verifiedWords={verifiedWords}
+        challenges={challenges}
         userWords={userWords}
-        copyKeyPhrase={copyKeyPhrase}
-        positionVal={positionVal}
         setUserWords={(words) => setUserWords(words)}
-        currentState={currentState}
         validatePhrase={validatePhrase}
+        onBack={() => {
+          setCurrentState("");
+          setChallenges([]);
+          setUserWords([
+            { position: 0, word: "" },
+            { position: 0, word: "" },
+            { position: 0, word: "" },
+          ]);
+        }}
       />
     </View>
   );

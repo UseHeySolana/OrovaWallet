@@ -167,17 +167,18 @@ const handleSearch = (query: string, searchedItem: any[]) => {
  * @returns
  */
 
-const registerUser = async (
-  username: string,
-  phone_number: string,
-  country?: string
-) => {
+const registerUser = async (payload: {
+  username: string;
+  phone_number?: string;
+  email?: string;
+  country?: string;
+}) => {
   const item: Record<string, string> = {
-    username,
-    phone_number,
+    username: payload.username,
   };
-  if (country) item.country = country;
-  console.log(item);
+  if (payload.phone_number) item.phone_number = payload.phone_number;
+  if (payload.email) item.email = payload.email;
+  if (payload.country) item.country = payload.country;
 
   const response = await request.postJson(item, "/v2/register-users");
   if (!response.ok) {
@@ -188,6 +189,33 @@ const registerUser = async (
     };
   }
   return { status: true, data: await response.json() };
+};
+
+const checkUsernameAvailability = async (username: string) => {
+  const url = "/v2/check-username";
+  try {
+    const response = await request.postJson({ username: username.trim() }, url);
+    if (!response.ok) {
+      let message = response.statusText || "Could not check username";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response
+      }
+      return { status: false, message };
+    }
+    const data = await response.json();
+    return { status: true, available: Boolean(data.available) };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check your connection."
+        : err instanceof Error
+          ? err.message
+          : "Request failed";
+    return { status: false, message };
+  }
 };
 
 const verifyCode = async (otp: string, username: string) => {
@@ -245,14 +273,51 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
   return { status: true, data: await response.json() };
 };
 
+const addEmail = async (username: string, email: string) => {
+  const item = {
+    username: username.trim(),
+    email: email.trim().toLowerCase(),
+  };
+  const url = "/v2/add-email";
+  try {
+    const response = await request.postJson(item, url);
+    if (!response.ok) {
+      let message = response.statusText || "Could not add email";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response
+      }
+      return { status: false, message };
+    }
+    const data = await response.json();
+    return { status: true, data };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check your connection."
+        : err instanceof Error
+          ? err.message
+          : "Request failed";
+    return { status: false, message };
+  }
+};
+
 /**
  *
  * @param phone_number
  * @returns
  */
-const getCode = async (phone_number: string, country?: string) => {
-  const item: Record<string, string> = { phone_number };
-  if (country) item.country = country;
+const getCode = async (payload: {
+  phone_number?: string;
+  email?: string;
+  country?: string;
+}) => {
+  const item: Record<string, string> = {};
+  if (payload.phone_number) item.phone_number = payload.phone_number;
+  if (payload.email) item.email = payload.email;
+  if (payload.country) item.country = payload.country;
   const url = "/v2/get-code";
   try {
     const response = await request.postJson(item, url);
@@ -371,6 +436,7 @@ const updateContact = async (
 
 export {
   addContact,
+  addEmail,
   deletePersonalContact,
   getContacts,
   verifyCode,
@@ -378,6 +444,7 @@ export {
   saveWalletAddress,
   getTransactionHistory,
   registerUser,
+  checkUsernameAvailability,
   fetchData,
   addDataToFirestore,
   handleSearch,

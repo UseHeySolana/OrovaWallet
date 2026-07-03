@@ -1,92 +1,161 @@
-import { KeyboardAvoidingView, Pressable, TextInput, View } from "react-native";
-import DragableSheet from "../CustomItems/DragableSheet";
+import { Pressable, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import CText from "../TextComp";
-import { useThemeContext } from "@/context/ThemeContext";
-import { router } from "expo-router";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import { Image } from "expo-image";
 import IconLibrary from "@/utils/icons";
 import Buttons from "../ButtonComp";
 
+export interface PhraseVerificationChallenge {
+    position: number;
+    correctWord: string;
+    options: string[];
+}
+
 interface ConfirmSheet {
     open: boolean;
-    verifiedWords: { position: number, word: string }[];
-    userWords: { position: number, word: string }[];
-    setUserWords: (words: any) => void;
-    currentState: string;
+    challenges: PhraseVerificationChallenge[];
+    userWords: { position: number; word: string }[];
+    setUserWords: (words: { position: number; word: string }[]) => void;
     validatePhrase: () => void;
-    positionVal: string[]
-    copyKeyPhrase: () => void;
-
-
+    onBack: () => void;
 }
+
+function getOrdinal(n: number): string {
+    const suffixes = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return `${n}${suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]}`;
+}
+
 const ConfirmPhraseSheet = ({
     open,
-    verifiedWords,
+    challenges,
     userWords,
     setUserWords,
-    currentState,
     validatePhrase,
-    positionVal,
-    copyKeyPhrase
+    onBack,
 }: ConfirmSheet) => {
-    const { isDarkMode } = useThemeContext();
     if (!open) return null;
 
+    const allSelected = challenges.every((challenge) =>
+        userWords.some(
+            (entry) =>
+                entry.position === challenge.position &&
+                entry.word.trim().length > 0
+        )
+    );
+
+    const handleSelectWord = (position: number, word: string) => {
+        const next = [...userWords];
+        const index = challenges.findIndex((c) => c.position === position);
+        if (index === -1) return;
+        next[index] = { position, word };
+        setUserWords(next);
+    };
+
+    const getSelectedWord = (position: number) =>
+        userWords.find((entry) => entry.position === position)?.word ?? "";
+
     return (
-        <DragableSheet
-            // close={() => setVerifyPhrase(false)}
-            snapPoints={["70%", "100%"]}
-            child={
-                <View className=" py-1 w-full px-4 gap-y-5 flex flex-col justify-between ">
-                    <View className="w-8/12 m-auto">
-                        <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Confirm secret phrase</CText>
-                        <CText className="text-[16px] text-center">Please enter the correct answer below from your secret phrase</CText>
+        <View className="absolute inset-0 z-50 bg-grey dark:bg-dark">
+            <SafeAreaView className="flex-1">
+                <View className="flex-1 px-4">
+                    <View className="flex-row items-center gap-x-4 py-3">
+                        <Pressable
+                            onPress={onBack}
+                            className="p-3 rounded-full bg-white dark:bg-accent"
+                        >
+                            <IconLibrary.back />
+                        </Pressable>
+                        <CText className="text-[14px] opacity-60">
+                            Recovery Phrase verification
+                        </CText>
                     </View>
 
-                    <View className="bg-grey dark:bg-accent rounded-3xl gap-y-3 p-2">
+                    <ScrollView
+                        className="flex-1"
+                        contentContainerStyle={{ paddingBottom: 24 }}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        <View className="gap-y-2 mt-4 mb-8">
+                            <CText
+                                style={{ fontFamily: "bold" }}
+                                className="text-[28px]"
+                            >
+                                Confirm your Recovery Phrase
+                            </CText>
+                            <CText className="text-[16px] opacity-60">
+                                Please select the right words in the correct order
+                            </CText>
+                        </View>
 
-                        {verifiedWords.length > 0 && verifiedWords.map((word, index) => (
+                        <View className="gap-y-8">
+                            {challenges.map((challenge) => {
+                                const selectedWord = getSelectedWord(
+                                    challenge.position
+                                );
 
-                            <View key={index} className="bg-white dark:bg-accent2 p-3 rounded-2xl">
+                                return (
+                                    <View key={challenge.position} className="gap-y-3">
+                                        <CText className="text-[14px] opacity-60">
+                                            {getOrdinal(challenge.position)} word
+                                        </CText>
 
-                                <View className="py-4">
-                                    <CText className="text-[16px]" style={{ fontFamily: "bold" }} >Word #{word.position}</CText>
-                                </View>
-                                <View className="border-b border-gray-200 dark:border-dark">
-                                </View>
+                                        <View className="flex-row gap-x-2">
+                                            {challenge.options.map((option) => {
+                                                const isSelected =
+                                                    selectedWord === option;
 
-                                <KeyboardAvoidingView
-                                    behavior="height"
-                                >
-                                    <TextInput
-                                        style={{ fontFamily: "bold" }}
-                                        className="py-5"
-                                        placeholderTextColor={isDarkMode ? "white" : "black"}
-                                        onChangeText={(text) => {
-                                            const newUserWords = [...userWords];
-                                            newUserWords[index].word = text;
-                                            newUserWords[index].position = word.position;
-                                            setUserWords(newUserWords);
-                                        }}
-                                        placeholder={`enter ${positionVal[word.position - 1]} word...`}
-                                    />
-                                </KeyboardAvoidingView>
+                                                return (
+                                                    <Pressable
+                                                        key={`${challenge.position}-${option}`}
+                                                        onPress={() =>
+                                                            handleSelectWord(
+                                                                challenge.position,
+                                                                option
+                                                            )
+                                                        }
+                                                        className={`flex-1 py-4 px-2 rounded-full items-center justify-center ${
+                                                            isSelected
+                                                                ? "bg-purple"
+                                                                : "bg-white dark:bg-accent2"
+                                                        }`}
+                                                    >
+                                                        <CText
+                                                            style={{
+                                                                fontFamily: "bold",
+                                                            }}
+                                                            className={`text-[15px] text-center ${
+                                                                isSelected
+                                                                    ? "text-white"
+                                                                    : "text-dark dark:text-white"
+                                                            }`}
+                                                        >
+                                                            {option}
+                                                        </CText>
+                                                    </Pressable>
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    </ScrollView>
 
-
-
-                            </View>
-                        ))}
-
-
-
+                    <View className="py-4" style={{ opacity: allSelected ? 1 : 0.4 }}>
+                        <Buttons
+                            buttonType="pressable"
+                            onPress={() => {
+                                if (allSelected) validatePhrase();
+                            }}
+                            className=""
+                            text="Confirm"
+                            type="primary"
+                        />
                     </View>
-
-                    <Buttons buttonType="pressable" onPress={() => currentState === 'verify-phrase' ? validatePhrase() : copyKeyPhrase()} className="" text="Confirm" type="primary" />
                 </View>
-            }
-        />
-    )
-}
+            </SafeAreaView>
+        </View>
+    );
+};
 
 export default ConfirmPhraseSheet;

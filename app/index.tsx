@@ -62,7 +62,7 @@ function getPostWalletInitDestination(): string | null {
   }
 
   if (alreadyOpened) {
-    return "/auth/username";
+    return "/auth/register";
   }
 
   return null;
@@ -199,7 +199,7 @@ export default function Index() {
                 onPress={() => {
                   if (currentIndex >= 2) {
                     markOpened();
-                    router.replace("/auth/username");
+                    router.replace("/auth/register");
                   }
                   scrollRef.current?.scrollTo({
                     x: width * (currentIndex + 1),

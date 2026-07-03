@@ -357,6 +357,50 @@ const IconLibrary = {
             />
         );
     },
+    mail: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Feather
+                name="mail"
+                size={props.size || 20}
+                color={props.color || (isDarkMode ? "#9ca3af" : "#6b7280")}
+            />
+        );
+    },
+    phone: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Feather
+                name="phone"
+                size={props.size || 20}
+                color={props.color || (isDarkMode ? "#9ca3af" : "#6b7280")}
+            />
+        );
+    },
+    user: (props: IconProps = {}) => {
+        const { isDarkMode } = useThemeContext();
+        return (
+            <Feather
+                name="user"
+                size={props.size || 20}
+                color={props.color || (isDarkMode ? "#9ca3af" : "#6b7280")}
+            />
+        );
+    },
+    verifiedCheck: (props: IconProps = {}) => (
+        <MaterialCommunityIcons
+            name="check-decagram-outline"
+            size={props.size || 24}
+            color={props.color || "#16A34A"}
+        />
+    ),
+    verifiedAlert: (props: IconProps = {}) => (
+        <MaterialCommunityIcons
+            name="alert-decagram-outline"
+            size={props.size || 24}
+            color={props.color || "#EF4444"}
+        />
+    ),
 };
 
 export default IconLibrary;

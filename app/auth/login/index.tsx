@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   BackHandler,
-  KeyboardAvoidingView,
   Platform,
   View,
 } from "react-native";
@@ -10,16 +9,25 @@ import { Image } from "expo-image";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
-import { TextInput } from "react-native";
 import Buttons from "@/components/ButtonComp";
 import { getCode, verifyCode } from "@/utils/request/db";
 import WalletItem from "@/utils/store/wallet.store";
-import { CountryPickerModal } from "react-native-country-code-select";
 import { TouchableOpacity } from "react-native";
 import { useThemeContext } from "@/context/ThemeContext";
 import Otpsheet from "@/components/Sheets/OtpSheets";
 import WalletSheet from "@/components/Sheets/WalletOptions";
-import { cleanNumber } from "@/utils/functions/extrafunctions";
+import SmartContactInput, {
+  DEFAULT_COUNTRY,
+} from "@/components/auth/SmartContactInput";
+import AuthFlowScreen from "@/components/auth/AuthFlowScreen";
+import AuthFlowHeader from "@/components/auth/AuthFlowHeader";
+import AuthFlowFooter from "@/components/auth/AuthFlowFooter";
+import AuthCard from "@/components/auth/AuthCard";
+import { authUi } from "@/components/auth/authUi";
+import {
+  CountrySelection,
+  parseSmartContact,
+} from "@/utils/contact/smartContact";
 import { toPhoneE164 } from "@/utils/phone/phoneE164";
 import { delay } from "@/utils/functions";
 import { BiometricAuth } from "@/utils/dashboard";
@@ -30,10 +38,12 @@ import { OtpInput, OtpInputRef } from "react-native-otp-entry";
  Login Page
   */
 export default function Login() {
+  const [contactInput, setContactInput] = useState("");
   const [userDetails, setUserDetails] = useState({
     username: "",
     mobileNumber: "",
     wallet_address: "",
+    email: "",
   });
 
   const [otpValue, setOtpValue] = useState("");
@@ -44,16 +54,10 @@ export default function Login() {
     "verify-phrase" | "start-wallet" | "sign-up" | "set-pin" | ""
   >("");
 
-  const [selectedValue, setSelectedValue] = useState({
-    callingCode: ["234"],
-    countryInitials: "NG",
-    name: "Nigeria",
-    region: "Africa",
-    subregion: "Western Africa",
-  });
+  const [selectedValue, setSelectedValue] =
+    useState<CountrySelection>(DEFAULT_COUNTRY);
   const [fingerPrintSigning, setFingerPrintSigning] = useState(false);
   const [pinSignin, setPinSignin] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const { isDarkMode } = useThemeContext();
   const otpRef = useRef<OtpInputRef>(null);
   const [attempts, setAttempts] = useState(0);
@@ -81,28 +85,31 @@ export default function Login() {
   }, [user]);
 
   const Login = async () => {
-
-    const fields = [];
-    if (userDetails.mobileNumber === "") {
-      fields.push("Mobile Number");
-    }
-    if (fields.length > 0) {
-      setToast(`${fields.join(",")} required`, "error");
+    const parsed = parseSmartContact(contactInput, selectedValue);
+    if (parsed.mode === "invalid") {
+      setToast(parsed.message, "error");
       return;
     }
+
     setLoading(true);
     delay(1000);
-    const data = {
-      phone_number:
-        "+" + selectedValue.callingCode + cleanNumber(userDetails.mobileNumber),
-    };
-    const response = await getCode(data.phone_number, selectedValue.name);
-    console.log(response);
+
+    const response = await getCode(
+      parsed.mode === "email"
+        ? { email: parsed.email }
+        : {
+            phone_number: parsed.phoneE164,
+            country: parsed.country,
+          }
+    );
+
     if (response.status !== false) {
       setUserDetails({
         ...userDetails,
         username: response.data.username,
         wallet_address: response.data.wallet_address,
+        email: response.data.email || (parsed.mode === "email" ? parsed.email : ""),
+        mobileNumber: parsed.mode === "phone" ? parsed.mobileNumber : "",
       });
       setCurrentState("set-pin");
       setLoading(false);
@@ -162,10 +169,13 @@ export default function Login() {
         setUser({
           username: userDetails.username,
           mobileNumber: userDetails.mobileNumber,
-          phoneE164: toPhoneE164(
-            userDetails.mobileNumber,
-            selectedValue.callingCode
-          ),
+          phoneE164: userDetails.mobileNumber
+            ? toPhoneE164(
+                userDetails.mobileNumber,
+                selectedValue.callingCode
+              )
+            : undefined,
+          email: userDetails.email || undefined,
           wallet_address: userDetails.wallet_address,
           pin: "",
         });
@@ -175,10 +185,13 @@ export default function Login() {
         setUser({
           username: userDetails.username,
           mobileNumber: userDetails.mobileNumber,
-          phoneE164: toPhoneE164(
-            userDetails.mobileNumber,
-            selectedValue.callingCode
-          ),
+          phoneE164: userDetails.mobileNumber
+            ? toPhoneE164(
+                userDetails.mobileNumber,
+                selectedValue.callingCode
+              )
+            : undefined,
+          email: userDetails.email || undefined,
           wallet_address: userDetails.wallet_address,
           pin: "",
         });
@@ -192,216 +205,129 @@ export default function Login() {
     }
   };
 
+  const signUpFooter = (
+    <AuthFlowFooter
+      prompt="Don't have an Account?"
+      actionLabel="Sign up"
+      onPress={() => router.replace("/auth/register")}
+    />
+  );
+
   return (
-    <View className="relative bg-grey dark:bg-dark h-full w-100 flex justify-center items-center">
-      <View className=" py-5 w-full px-4 gap-y-10 flex-col justify-center ">
-        {!fingerPrintSigning && !pinSignin ? (
-          <>
-            <View className="flex flex-col justify-center items-center gap-y-2">
-              <View className="w-full flex justify-center items-center">
-                <View className="h-[3.125em] w-[3.125em]  rounded-full">
-                  <Image
-                    source={require("@/assets/images/ballicon.png")}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="contain"
-                  />
-                </View>
-              </View>
-              <View className="w-8/12 m-auto">
-                <CText
-                  style={{ fontFamily: "bold" }}
-                  className="text-[1.25em] text-center"
-                >
-                  Welcome back!
-                </CText>
-                <CText className="text-[1em] text-center">
-                  Let's make handsfreee transactions
-                </CText>
-              </View>
-            </View>
-
-            <KeyboardAvoidingView className="bg-grey dark:bg-accent  rounded-3xl gap-y-3">
-              <View className="bg-white  dark:bg-accent h-fit py-3 rounded-2xl">
-                <View className="flex flex-row px-4 justify-between items-center">
-                  <TouchableOpacity
-                    onPress={() => {
-                      setIsVisible(true);
-                    }}
-                  >
-                    <CText style={{ fontFamily: "bold" }}>
-                      +{selectedValue.callingCode}
-                    </CText>
-                  </TouchableOpacity>
-                  <TextInput
-                    style={{ fontFamily: "bold" }}
-                    className="p-4 py-5 flex-1 text-dark dark:text-white"
-                    value={userDetails.mobileNumber}
-                    keyboardType="phone-pad"
-                    placeholderTextColor={isDarkMode ? "white" : "black"}
-                    onChangeText={(text) => {
-                      setUserDetails({ ...userDetails, mobileNumber: text });
-                    }}
-                    placeholder={`enter a phone number`}
-                  />
-                </View>
-              </View>
-            </KeyboardAvoidingView>
-
-            <View>
-              <Buttons
-                buttonType="pressable"
-                onPress={
-                  () => {
-                    Login();
-                  }}
-                className=""
-                text="Login"
-                loading={isLoading}
-                type="primary"
+    <>
+      {fingerPrintSigning ? (
+        <View className="relative bg-grey dark:bg-dark flex-1 w-full justify-center items-center px-4">
+          <View className="w-full max-w-md flex justify-center gap-y-10 items-center">
+            <View className="h-40 w-40 rounded-full">
+              <Image
+                source={require("@/assets/images/icon.png")}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
               />
-              <View className="py-2 flex flex-row justify-center items-center gap-x-2">
-                <CText className="text-center">Don't have an Account?</CText>
-                <TouchableOpacity
-                  onPress={() => router.replace("/auth/username")}
-                >
-                  <CText style={{ fontFamily: "bold" }} textColor="text-purple">
-                    Sign up
-                  </CText>
-                </TouchableOpacity>
-              </View>
             </View>
-          </>
-        ) : pinSignin ? (
-          <>
-            <View className="flex flex-col justify-center items-center gap-y-2">
-              <View className="w-full flex justify-center items-center">
-                <View className="h-[3.125em] w-[3.125em]  rounded-full">
-                  <Image
-                    source={require("@/assets/images/ballicon.png")}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="contain"
-                  />
-                </View>
+
+            <TouchableOpacity
+              onPress={BiometricAuth}
+              className="bg-purple py-5 flex flex-row justify-center items-center gap-x-3 rounded-full overflow-hidden w-full"
+            >
+              <View className="h-6 w-6 rounded-full">
+                <Image
+                  source={require("@/assets/images/biometric2.png")}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="contain"
+                />
               </View>
-              <View className="w-8/12 m-auto">
+
+              <CText className="text-white text-[1.5rem] font-bold">
+                Unlock with Biometric
+              </CText>
+            </TouchableOpacity>
+
+            <View className={authUi.headerGap}>
+              <CText
+                style={{ fontFamily: "bold" }}
+                className="text-[1rem] text-center"
+              >
+                Tap to login with your biometrics
+              </CText>
+              <TouchableOpacity onPress={() => setFingerPrintSigning(false)}>
                 <CText
-                  style={{ fontFamily: "bold" }}
-                  className="text-[1.25em] text-center"
+                  textColor="text-purple"
+                  className="text-[1rem] text-center"
                 >
-                  Welcome back!
+                  or login with mobile number or email
                 </CText>
-                <CText className="text-[1em] text-center">
-                  Let's make handsfreee transactions
-                </CText>
-              </View>
+              </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      ) : (
+        <AuthFlowScreen footer={signUpFooter}>
+          {pinSignin ? (
+            <>
+              <AuthFlowHeader
+                showLogo
+                title="Welcome back!"
+                subtitle="Let's make handsfreee transactions"
+              />
 
-            <View className="w-full flex flex-col justify-center items-center gap-y-2">
-              <CText>Enter your pin</CText>
-            </View>
+              <CText className={`${authUi.subtitle} text-center`}>
+                Enter your pin
+              </CText>
 
-            <KeyboardAvoidingView className="bg-grey dark:bg-accent  rounded-3xl ">
-              <View className="h-fit py-3  rounded-2xl">
-                <View className="flex flex-row w-8/12 bg-white p-2 rounded-2xl  dark:bg-accent  m-auto px-4 justify-center items-center">
-                  <OtpInput
-                    ref={otpRef}
-                    secureTextEntry={true}
-                    focusColor={"purple"}
-                    textProps={{
-                      style: {
-                        fontFamily: "bold",
-                        color: isDarkMode ? "white" : "black",
-                      },
-                    }}
-                    blurOnFilled={true}
-                    numberOfDigits={4}
-                    onFilled={(text) => {
-                      setPinValue(text);
-                    }}
-                  />
-                </View>
-              </View>
-            </KeyboardAvoidingView>
+              <AuthCard className="items-center">
+                <OtpInput
+                  ref={otpRef}
+                  secureTextEntry={true}
+                  focusColor={"purple"}
+                  textProps={{
+                    style: {
+                      fontFamily: "bold",
+                      color: isDarkMode ? "white" : "black",
+                    },
+                  }}
+                  blurOnFilled={true}
+                  numberOfDigits={4}
+                  onFilled={(text) => {
+                    setPinValue(text);
+                  }}
+                />
+              </AuthCard>
 
-            <View>
               <Buttons
                 buttonType="pressable"
                 onPress={() => verifyPin()}
-                className=""
                 text="Login"
                 loading={isLoading}
                 type="primary"
               />
-              <View className="py-2 flex flex-row justify-center items-center gap-x-2">
-                <CText className="text-center">Don't have an Account?</CText>
-                <TouchableOpacity
-                  onPress={() => router.replace("/auth/username")}
-                >
-                  <CText style={{ fontFamily: "bold" }} textColor="text-purple">
-                    Sign up
-                  </CText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>
-        ) : (
-          <>
-            <View className="flex flex-col justify-center items-center gap-y-2">
-              <View className="w-full flex justify-center items-center">
-                <View className="h-[10.125rem] w-[10.125rem]  rounded-full">
-                  <Image
-                    source={require("@/assets/images/icon.png")}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="contain"
-                  />
-                </View>
-              </View>
-            </View>
+            </>
+          ) : (
+            <>
+              <AuthFlowHeader
+                showLogo
+                title="Welcome back!"
+                subtitle="Let's make handsfreee transactions"
+              />
 
-            <View className="w-10/12 m-auto  flex justify-center gap-y-10 items-center">
-              <TouchableOpacity
-                onPress={BiometricAuth}
-                className="bg-purple py-5 flex flex-row justify-center items-center gap-x-3  rounded-full overflow-hidden w-full"
-              >
-                <View className="h-[1.5rem] w-[1.5rem]  rounded-full">
-                  <Image
-                    source={require("@/assets/images/biometric2.png")}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="contain"
-                  />
-                </View>
+              <SmartContactInput
+                value={contactInput}
+                onChangeText={setContactInput}
+                selectedValue={selectedValue}
+                onCountryChange={setSelectedValue}
+              />
 
-                <CText className="text-white text-[1.5em] font-bold">
-                  Unlock with Biometric
-                </CText>
-              </TouchableOpacity>
-              <View className="">
-                <CText
-                  style={{ fontFamily: "bold" }}
-                  className="text-[1em] text-center"
-                >
-                  Tap to login with your biometrics
-                </CText>
-                <TouchableOpacity onPress={() => setFingerPrintSigning(false)}>
-                  <CText
-                    textColor="text-purple"
-                    className="text-[1em] text-center"
-                  >
-                    or login with mobile number
-                  </CText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>
-        )}
-      </View>
-
-      <CountryPickerModal
-        isVisible={isVisible}
-        onClose={() => setIsVisible(false)}
-        //@ts-ignore
-        onSelect={(e) => setSelectedValue(e)}
-      />
+              <Buttons
+                buttonType="pressable"
+                onPress={() => Login()}
+                text="Login"
+                loading={isLoading}
+                type="primary"
+              />
+            </>
+          )}
+        </AuthFlowScreen>
+      )}
 
       <Otpsheet
         open={currentState === "set-pin"}
@@ -410,7 +336,7 @@ export default function Login() {
       />
 
       <WalletSheet open={currentState === "start-wallet"} />
-    </View>
+    </>
   );
 }
 

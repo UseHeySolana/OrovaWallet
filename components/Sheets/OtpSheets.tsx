@@ -9,8 +9,9 @@ interface OTPSheet {
     open: boolean
     verifyOtp: () => void;
     setOtpValue: (text: string) => void;
+    hint?: string;
 }
-const Otpsheet = ({ open, verifyOtp, setOtpValue, }: OTPSheet) => {
+const Otpsheet = ({ open, verifyOtp, setOtpValue, hint }: OTPSheet) => {
     const { isDarkMode } = useThemeContext();
     if (!open) return null;
     return (
@@ -21,7 +22,7 @@ const Otpsheet = ({ open, verifyOtp, setOtpValue, }: OTPSheet) => {
                 <View className=" py-4 w-full h-fit gap-y-10 flex-1 flex-col justify-between ">
                     <View className="w-8/12 m-auto">
                         <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Enter Verification Code</CText>
-                        <CText style={{ fontFamily: "md" }} textColor="text-purple" className="text-[12px] text-center">Your one time password has been sent to your whatsapp number</CText>
+                        <CText style={{ fontFamily: "md" }} textColor="text-purple" className="text-[12px] text-center">{hint ?? "Your one time password has been sent to your whatsapp number"}</CText>
                     </View>
                     <View className="flex-1">
 
