@@ -46,9 +46,24 @@ export async function ensurePushPermissions(): Promise<boolean> {
   return false;
 }
 
-export async function resolveExpoPushToken(): Promise<string | null> {
+async function readStoredPushToken(): Promise<string | null> {
+  if (cachedPushToken) return cachedPushToken;
+  const stored = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
+  if (stored) {
+    cachedPushToken = stored;
+    return stored;
+  }
+  return null;
+}
+
+export async function resolveExpoPushToken(forceRefresh = false): Promise<string | null> {
   const granted = await ensurePushPermissions();
   if (!granted) return null;
+
+  if (!forceRefresh) {
+    const existing = await readStoredPushToken();
+    if (existing) return existing;
+  }
 
   const projectId = getEasProjectId();
   if (!projectId) {
@@ -63,6 +78,9 @@ export async function resolveExpoPushToken(): Promise<string | null> {
     await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, data);
     return data;
   } catch (err) {
+    if (err instanceof Error && err.message === "Aborted") {
+      return readStoredPushToken();
+    }
     console.warn("[push] Could not get Expo push token (dev/simulator?)", err);
     return null;
   }

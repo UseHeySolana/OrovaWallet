@@ -57,6 +57,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:830472884588:android:b34e0532188ee9206e2349",
+        "android_client_info": {
+          "package_name": "com.yraylabs.heysolana"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "830472884588-fq5948fp780muf71ck66hq2538dv5ng9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yraylabs.heysolana",
+            "certificate_hash": "406f9203cb383a7deff3e6cfb633267233b507fc"
+          }
+        },
+        {
+          "client_id": "830472884588-kb9ehbn1jdh9qa90ohlfm1kv3uvsc783.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdJrBUy0UrIGbBCHoVCaYidKDj9aCQbyE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "830472884588-kb9ehbn1jdh9qa90ohlfm1kv3uvsc783.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

@@ -30,8 +30,16 @@ function sanitizeUrl(rawUrl: string): string {
   }
 }
 
-function shouldSkipFetchReport(url: string): boolean {
-  return url.includes("/bug-reports");
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.message === "Aborted";
+}
+
+/** SDK / infra requests that often abort harmlessly and are not app bugs. */
+function shouldSkipFetchReport(url: string, error?: unknown): boolean {
+  if (url.includes("/bug-reports")) return true;
+  if (url.includes("exp.host")) return true;
+  if (error && isAbortError(error)) return true;
+  return false;
 }
 
 function initFetchReporting(): void {
@@ -43,10 +51,9 @@ function initFetchReporting(): void {
     const rawUrl = getRequestUrl(input);
     const url = sanitizeUrl(rawUrl);
     const method = getRequestMethod(input, init);
-    const skipReport = shouldSkipFetchReport(rawUrl);
-
     try {
       const response = await originalFetch(input, init);
+      const skipReport = shouldSkipFetchReport(rawUrl);
 
       if (!skipReport && !response.ok) {
         reportBug({
@@ -74,7 +81,7 @@ function initFetchReporting(): void {
 
       return response;
     } catch (error) {
-      if (!skipReport) {
+      if (!shouldSkipFetchReport(rawUrl, error)) {
         reportBug({
           title: `Network failed ${method} ${url}`.slice(0, 200),
           summary: error instanceof Error ? error.message : "Fetch request failed",

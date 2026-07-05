@@ -42,12 +42,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     package: identity.android.package,
   };
 
-  if (variant === "play") {
-    android.googleServicesFile =
-      config.android?.googleServicesFile ?? "./google-services.json";
-  } else {
-    delete android.googleServicesFile;
-  }
+  android.googleServicesFile =
+    config.android?.googleServicesFile ?? "./google-services.json";
 
   return {
     ...config,
