@@ -117,6 +117,22 @@ export function resolveInputAmountUsd(params: {
   return estimateUsdFromWalletToken(params.mint, params.amount);
 }
 
+function resolveMobileNumber(
+  payload: RecordAppTransactionPayload,
+  user: ReturnType<typeof UserItem.getState>["user"]
+): string | undefined {
+  const fromPayload = payload.mobile_number?.trim();
+  if (fromPayload) return fromPayload;
+
+  const fromUser = user?.mobileNumber?.trim();
+  if (fromUser && !fromUser.includes("@")) return fromUser;
+
+  const fromE164 = user?.phoneE164?.trim();
+  if (fromE164) return fromE164;
+
+  return undefined;
+}
+
 function enrichPayload(
   payload: RecordAppTransactionPayload
 ): RecordAppTransactionPayload {
@@ -124,24 +140,23 @@ function enrichPayload(
     payload.wallet_address ?? WalletItem.getState().publicKey?.toString() ?? "";
   const user = UserItem.getState().user;
 
-  const enriched: RecordAppTransactionPayload = {
-    cluster: currentCluster(),
+  return {
+    ...payload,
+    cluster: payload.cluster ?? currentCluster(),
     wallet_address: wallet,
     username: payload.username ?? user?.username,
-    mobile_number: payload.mobile_number ?? user?.mobileNumber,
+    mobile_number: resolveMobileNumber(payload, user),
     status: payload.status ?? "confirmed",
-    ...payload,
+    ...(payload.input_amount_usd == null && payload.input_amount != null
+      ? {
+          input_amount_usd: resolveInputAmountUsd({
+            amount: payload.input_amount,
+            token: payload.input_token_symbol ?? payload.token,
+            mint: payload.input_token_mint,
+          }),
+        }
+      : {}),
   };
-
-  if (enriched.input_amount_usd == null && enriched.input_amount != null) {
-    enriched.input_amount_usd = resolveInputAmountUsd({
-      amount: enriched.input_amount,
-      token: enriched.input_token_symbol ?? enriched.token,
-      mint: enriched.input_token_mint,
-    });
-  }
-
-  return enriched;
 }
 
 function transactionSortTime(tx: AppTransaction): number {
@@ -346,6 +361,30 @@ export function getLocalAppTransaction(
   return entry ? localOutboxEntryToAppTransaction(entry) : null;
 }
 
+function findLocalAppTransaction(id: string): AppTransaction | null {
+  if (id.startsWith("local:")) {
+    return getLocalAppTransaction(id.slice("local:".length));
+  }
+
+  const wallet = WalletItem.getState().publicKey?.toString() ?? "";
+  if (!wallet) return null;
+
+  const cluster = currentCluster();
+  const entries = AppTransactionOutbox.getState().getForWallet(wallet, cluster);
+
+  for (const entry of entries) {
+    const payload = entry.payload;
+    if (payload.signature === id || payload.client_reference === id) {
+      return localOutboxEntryToAppTransaction(entry);
+    }
+    if (entry.remote_id != null && String(entry.remote_id) === id) {
+      return localOutboxEntryToAppTransaction(entry);
+    }
+  }
+
+  return null;
+}
+
 export function appTransactionRouteId(tx: AppTransaction): string {
   if (tx.is_local && tx.local_id) {
     return `local:${tx.local_id}`;
@@ -431,40 +470,52 @@ export async function getAppTransactions(options?: {
 }
 
 export async function getAppTransaction(
-  id: string | number
+  id: string | number,
+  options?: { syncFirst?: boolean }
 ): Promise<AppTransactionResponse<AppTransaction>> {
   const idStr = String(id);
-  if (idStr.startsWith("local:")) {
-    const local = getLocalAppTransaction(idStr.slice("local:".length));
-    if (local) {
-      return { status: true, data: local };
-    }
-    return { status: false, message: "Transaction not found" };
+
+  if (options?.syncFirst !== false && BASE_URL) {
+    await syncPendingAppTransactions();
   }
 
+  const local = findLocalAppTransaction(idStr);
+
   if (!BASE_URL) {
-    return { status: false, message: "API URL is not configured" };
+    return local
+      ? { status: true, data: local }
+      : { status: false, message: "Transaction not found" };
   }
 
   const { wallet, query } = appTransactionQuery();
   if (!wallet) {
-    return { status: false, message: "Wallet not connected" };
+    return local
+      ? { status: true, data: local }
+      : { status: false, message: "Wallet not connected" };
   }
 
   try {
     const res = await fetch(
-      `${BASE_URL}/v2/app-transactions/${id}?${query.toString()}`
+      `${BASE_URL}/v2/app-transactions/${encodeURIComponent(idStr)}?${query.toString()}`
     );
     const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body?.success || !body?.data) {
-      return {
-        status: false,
-        message: body?.message ?? "Unable to load transaction",
-      };
+    if (res.ok && body?.success && body?.data) {
+      return { status: true, data: body.data };
     }
 
-    return { status: true, data: body.data };
+    if (local) {
+      return { status: true, data: local };
+    }
+
+    return {
+      status: false,
+      message: body?.message ?? "Unable to load transaction",
+    };
   } catch (e) {
+    if (local) {
+      return { status: true, data: local };
+    }
+
     return {
       status: false,
       message: e instanceof Error ? e.message : "Unable to load transaction",
