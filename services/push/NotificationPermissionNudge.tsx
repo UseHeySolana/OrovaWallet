@@ -66,11 +66,15 @@ export function NotificationPermissionNudge() {
 
   const evaluate = useCallback(async () => {
     if (!mountedRef.current) return;
-    if (!(await shouldShowNudge())) {
+    if (await getNotificationPermissionGranted()) {
       setVisible(false);
+      const user = UserItem.getState().user;
+      if (user && AppSettings.getState().notifications) {
+        void registerPushTokenWithBackend({ user });
+      }
       return;
     }
-    if (await getNotificationPermissionGranted()) {
+    if (!(await shouldShowNudge())) {
       setVisible(false);
       return;
     }
@@ -92,6 +96,10 @@ export function NotificationPermissionNudge() {
         void (async () => {
           if (await getNotificationPermissionGranted()) {
             setVisible(false);
+            const user = UserItem.getState().user;
+            if (user && AppSettings.getState().notifications) {
+              void registerPushTokenWithBackend({ user });
+            }
             return;
           }
           scheduleShow();
@@ -124,9 +132,9 @@ export function NotificationPermissionNudge() {
     const granted = await requestNotificationPermissionFromUser();
     if (granted) {
       AppSettings.getState().updateNotifications(true);
-      const phone = UserItem.getState().user?.mobileNumber?.trim();
-      if (phone) {
-        void registerPushTokenWithBackend({ phone_number: phone });
+      const user = UserItem.getState().user;
+      if (user) {
+        void registerPushTokenWithBackend({ user });
       }
       await markNudgeShown();
       close();

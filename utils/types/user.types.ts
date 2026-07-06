@@ -1,4 +1,5 @@
 interface UserType {
+    id?: number
     username: string
     mobileNumber: string,
     /** Full international number used for push/API (e.g. +2348012345678) */

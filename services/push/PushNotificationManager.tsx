@@ -1,15 +1,19 @@
 import React, { useEffect, useRef } from "react";
+import { AppState } from "react-native";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 
 import UserItem from "@/utils/store/userstore.store";
 import type { UserType } from "@/utils/types/user.types";
 import AppSettings from "@/utils/store/settingsstore.store";
+import { waitForPersistStore } from "@/utils/store/waitForPersist";
+import type { StoreWithPersist } from "@/utils/store/waitForPersist";
 import {
   attachPushTokenRefreshListener,
+  canRegisterPushForUser,
   deactivatePushTokenOnBackend,
+  pushRegistrationIdentityKey,
   registerPushTokenWithBackend,
-  resolvePhoneForPushRegistration,
 } from "@/services/push/pushNotifications";
 import { reportPushCampaignEvent } from "@/services/push/pushCampaignApi";
 import {
@@ -114,47 +118,71 @@ type Props = {
  * deactivates on logout, and routes notification taps.
  */
 export const PushNotificationManager: React.FC<Props> = ({ children }) => {
-  const lastPhoneRef = useRef<string | null>(null);
+  const lastIdentityRef = useRef<string | null>(null);
   const registeringRef = useRef(false);
 
-  const syncTokenForUser = async (user: UserType | null | undefined) => {
-    const phone = resolvePhoneForPushRegistration({ user });
-    if (!phone || registeringRef.current) return;
+  const syncTokenForUser = async (
+    user: UserType | null | undefined,
+    options?: { force?: boolean }
+  ) => {
+    if (!user || !canRegisterPushForUser(user) || registeringRef.current) return;
     if (!AppSettings.getState().notifications) return;
+
+    const identity = pushRegistrationIdentityKey({ user });
+    if (!options?.force && identity === lastIdentityRef.current) return;
+
     registeringRef.current = true;
     try {
-      await registerPushTokenWithBackend({ user });
-      lastPhoneRef.current = phone;
+      const ok = await registerPushTokenWithBackend({ user });
+      if (ok && identity) {
+        lastIdentityRef.current = identity;
+      }
     } finally {
       registeringRef.current = false;
     }
   };
 
-  useEffect(() => {
+  const bootstrapPushRegistration = () => {
     const user = UserItem.getState().user;
-    if (user) {
-      void syncTokenForUser(user);
-    }
+    if (!user || !AppSettings.getState().notifications) return;
+    void syncTokenForUser(user, { force: true });
+  };
+
+  useEffect(() => {
+    void (async () => {
+      await Promise.all([
+        waitForPersistStore(UserItem as unknown as StoreWithPersist),
+        waitForPersistStore(AppSettings as unknown as StoreWithPersist),
+      ]);
+      bootstrapPushRegistration();
+    })();
+
+    const appStateSub = AppState.addEventListener("change", (next) => {
+      if (next === "active") {
+        bootstrapPushRegistration();
+      }
+    });
 
     const unsubUser = UserItem.subscribe((state, prev) => {
-      const phone = resolvePhoneForPushRegistration({ user: state.user });
-      const prevPhone = resolvePhoneForPushRegistration({ user: prev.user });
-
       if (!state.user && prev.user) {
-        lastPhoneRef.current = null;
+        lastIdentityRef.current = null;
         void deactivatePushTokenOnBackend();
         return;
       }
 
-      if (phone && phone !== prevPhone && phone !== lastPhoneRef.current) {
-        void syncTokenForUser(state.user);
+      if (!state.user || !AppSettings.getState().notifications) return;
+
+      const identity = pushRegistrationIdentityKey({ user: state.user });
+      const prevIdentity = pushRegistrationIdentityKey({ user: prev.user });
+      if (!prev.user || identity !== prevIdentity) {
+        void syncTokenForUser(state.user, { force: true });
       }
     });
 
     const unsubToken = attachPushTokenRefreshListener(() => {
       if (!AppSettings.getState().notifications) return;
       const user = UserItem.getState().user;
-      if (user) void syncTokenForUser(user);
+      if (user) void syncTokenForUser(user, { force: true });
     });
 
     const receivedSub = Notifications.addNotificationReceivedListener((event) => {
@@ -195,13 +223,15 @@ export const PushNotificationManager: React.FC<Props> = ({ children }) => {
       if (state.notifications === prev.notifications) return;
       const user = UserItem.getState().user;
       if (!state.notifications) {
+        lastIdentityRef.current = null;
         void deactivatePushTokenOnBackend();
       } else if (user) {
-        void syncTokenForUser(user);
+        void syncTokenForUser(user, { force: true });
       }
     });
 
     return () => {
+      appStateSub.remove();
       unsubUser();
       unsubSettings();
       unsubToken();

@@ -1,4 +1,5 @@
 export type ServerAuthUser = {
+  id?: number;
   username: string;
   wallet_address?: string;
   email?: string;
@@ -39,6 +40,7 @@ export function buildSessionUserFromServer(
     : "";
 
   return {
+    id: data.id,
     username: data.username,
     mobileNumber,
     phoneE164,

@@ -98,11 +98,41 @@ export function resolvePhoneForPushRegistration(
   return params.phone_number?.trim() || phoneForPushApi(params.user ?? null);
 }
 
+/** Stable identity key so push registration works for phone, wallet, email, or user id. */
+export function pushRegistrationIdentityKey(
+  params: RegisterPushTokenParams
+): string | null {
+  const phone = resolvePhoneForPushRegistration(params);
+  if (phone) return `phone:${phone}`;
+
+  const userId = params.user_id ?? params.user?.id;
+  if (userId != null) return `user:${userId}`;
+
+  const wallet = params.user?.wallet_address?.trim();
+  if (wallet) return `wallet:${wallet}`;
+
+  const email = params.user?.email?.trim().toLowerCase();
+  if (email) return `email:${email}`;
+
+  return null;
+}
+
+export function canRegisterPushForUser(
+  user: UserType | null | undefined
+): boolean {
+  return pushRegistrationIdentityKey({ user }) != null;
+}
+
 export async function registerPushTokenWithBackend(
   params: RegisterPushTokenParams = {}
 ): Promise<boolean> {
   if (!BASE_URL) {
     console.warn("[push] EXPO_PUBLIC_API_URL not set; skipping token registration");
+    return false;
+  }
+
+  if (!pushRegistrationIdentityKey(params)) {
+    console.warn("[push] No user identity for token registration");
     return false;
   }
 
@@ -116,9 +146,12 @@ export async function registerPushTokenWithBackend(
   };
   const phone = resolvePhoneForPushRegistration(params);
   if (phone) body.phone_number = phone;
-  if (params.user_id != null) body.user_id = params.user_id;
+  const userId = params.user_id ?? params.user?.id;
+  if (userId != null) body.user_id = userId;
   const wallet = params.user?.wallet_address?.trim();
   if (wallet) body.wallet_address = wallet;
+  const email = params.user?.email?.trim().toLowerCase();
+  if (email) body.email = email;
 
   try {
     const response = await request.postJson(body, "/notifications/register-token");
