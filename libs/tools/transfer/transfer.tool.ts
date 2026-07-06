@@ -6,7 +6,7 @@ import { convertSpeech } from "@/utils/functions/extrafunctions";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { completeConversation, getUserDetails, resolveTokenByQuery } from "@/utils/functions";
 import WalletItem from "@/utils/store/wallet.store";
-import { getBalance } from "@/utils/wallet";
+import { solTransferFitsBalance } from "@/utils/wallet/solTransferFees";
 import { recordTransferTransaction } from "@/services/appTransactions";
 
 const getWalletAddressFromInput = (input: string): string | null => {
@@ -72,9 +72,18 @@ const aiTransfer = async (connection: Connection, args: { amount: number, token:
     }
 
     if (token.toLowerCase() === "sol") {
-        const balance = await getBalance(sender, connection);
-        if (balance < amount) {
-            const response = await convertSpeech("You do not have sufficient SOL to perform this transaction!")
+        const fit = await solTransferFitsBalance(
+            connection,
+            sender,
+            new PublicKey(recipientDetails.walletAddress),
+            amount
+        );
+        if (!fit.ok) {
+            const response = await convertSpeech(
+                fit.maxSol > 0
+                    ? `You do not have enough SOL after network fees. The maximum you can send is about ${fit.maxSol.toFixed(6)} SOL.`
+                    : "You do not have sufficient SOL to perform this transaction!"
+            );
             const data = {
                 status: false,
                 txId: '',

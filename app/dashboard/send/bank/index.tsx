@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { Connection, PublicKey } from "@solana/web3.js";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Image } from "expo-image";
@@ -33,8 +34,15 @@ import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { Chain, Currency, pajcash, PAJCASH_REVALIDATE_MESSAGE } from "@/libs/tools/pajcash/pajcash";
 import { getPajCashFeeConfig } from "@/services/pajcashFeeConfig";
-
-const SOL_MINT = "So11111111111111111111111111111111111111112";
+import { api_key } from "@/utils/dashboard";
+import WalletItem from "@/utils/store/wallet.store";
+import {
+  SOL_MINT,
+  formatSolAmount,
+  formatSolFee,
+  getMaxSendableSol,
+  solTransferFitsBalance,
+} from "@/utils/wallet/solTransferFees";
 
 type Bank = {
   id: string;
@@ -141,6 +149,7 @@ export default function SendToBank() {
     };
   }, [params.balance, params.decimals, params.image, params.name, params.symbol, selectedMint]);
   const { user, userWallet } = UserItem();
+  const { publicKey } = WalletItem();
   const { setToast } = AppSettings();
   const pajSession = PajCashSession();
   const { beneficiaries, upsertBeneficiary, removeBeneficiary } =
@@ -189,6 +198,16 @@ export default function SendToBank() {
   >(null);
   const [quote, setQuote] = useState<any>(null);
   const [platformUsdcFee, setPlatformUsdcFee] = useState(0);
+  const [connection, setConnection] = useState<Connection | null>(null);
+  const [solMaxSendable, setSolMaxSendable] = useState<number | null>(null);
+  const [solFeeLamports, setSolFeeLamports] = useState<number | null>(null);
+  const [maxLoading, setMaxLoading] = useState(false);
+
+  const isSolToken = selectedToken?.mint === SOL_MINT;
+  const spendableTokenBalance =
+    isSolToken && solMaxSendable != null
+      ? solMaxSendable
+      : Number(selectedToken?.balance ?? 0);
 
   const isPajCashVerified = pajSession.isSessionValid();
   const isFiatMode = quoteMode === "fiat";
@@ -237,10 +256,39 @@ export default function SendToBank() {
   }, [routeToken, selectedMint, selectedToken, tokens]);
 
   useEffect(() => {
+    const network = AppSettings.getState().network;
+    setConnection(new Connection(`${network}${api_key}`));
+  }, []);
+
+  useEffect(() => {
     void getPajCashFeeConfig().then((config) => {
       setPlatformUsdcFee(config.offrampUsdcFee);
     });
   }, []);
+
+  useEffect(() => {
+    if (!connection || !publicKey || !isSolToken) {
+      setSolMaxSendable(null);
+      setSolFeeLamports(null);
+      return;
+    }
+
+    void (async () => {
+      try {
+        const { maxSol, feeLamports } = await getMaxSendableSol(
+          connection,
+          publicKey,
+          publicKey
+        );
+        setSolMaxSendable(maxSol);
+        setSolFeeLamports(feeLamports);
+      } catch (error) {
+        console.error("Failed to estimate SOL offramp limits:", error);
+        setSolMaxSendable(Number(selectedToken?.balance ?? 0));
+        setSolFeeLamports(null);
+      }
+    })();
+  }, [connection, publicKey, isSolToken, selectedToken?.balance]);
 
   useEffect(() => {
     if (!isPajCashVerified || banks.length > 0 || loading === "banks") return;
@@ -477,11 +525,42 @@ export default function SendToBank() {
     if (
       Number.isFinite(estimatedTokenAmount) &&
       estimatedTokenAmount > 0 &&
-      estimatedTokenAmount > Number(selectedToken.balance ?? 0)
+      estimatedTokenAmount > spendableTokenBalance
     ) {
-      setLastError(`Insufficient ${selectedToken.symbol} balance`);
-      setToast("Insufficient balance", "error");
+      setLastError(
+        isSolToken
+          ? `Insufficient SOL after network fees. Max sendable: ${formatSolAmount(spendableTokenBalance)} SOL`
+          : `Insufficient ${selectedToken.symbol} balance`
+      );
+      setToast(
+        isSolToken ? "Insufficient balance after network fees" : "Insufficient balance",
+        "error"
+      );
       return;
+    }
+    if (
+      isSolToken &&
+      connection &&
+      publicKey &&
+      Number.isFinite(estimatedTokenAmount) &&
+      estimatedTokenAmount > 0
+    ) {
+      const fit = await solTransferFitsBalance(
+        connection,
+        publicKey,
+        publicKey,
+        estimatedTokenAmount
+      );
+      if (!fit.ok) {
+        setSolMaxSendable(fit.maxSol);
+        setSolFeeLamports(fit.feeLamports);
+        setLastError(
+          `Insufficient SOL after network fees. Max sendable: ${formatSolAmount(fit.maxSol)} SOL`
+        );
+        setToast("Insufficient balance after network fees", "error");
+        return;
+      }
+      setSolFeeLamports(fit.feeLamports);
     }
     if (!selectedBank || accountNumber.trim().length < 10) {
       setLastError("Select a bank and enter an account number");
@@ -520,12 +599,17 @@ export default function SendToBank() {
 
     const nextOrder = res.data as any;
     const requiredAmount = Number(nextOrder.amount ?? tokenAmount);
-    if (requiredAmount > Number(selectedToken.balance ?? 0)) {
+    if (requiredAmount > spendableTokenBalance) {
       setLastError(
-        `PajCash requires ${formatDisplayAmount(requiredAmount)} ${selectedToken.symbol}, but your balance is lower.`
+        isSolToken
+          ? `PajCash requires ${formatDisplayAmount(requiredAmount)} ${selectedToken.symbol}, but your sendable balance after fees is ${formatSolAmount(spendableTokenBalance)} SOL.`
+          : `PajCash requires ${formatDisplayAmount(requiredAmount)} ${selectedToken.symbol}, but your balance is lower.`
       );
       setStatusMessage("");
-      setToast("Insufficient balance", "error");
+      setToast(
+        isSolToken ? "Insufficient balance after network fees" : "Insufficient balance",
+        "error"
+      );
       return;
     }
 
@@ -535,9 +619,26 @@ export default function SendToBank() {
     setToast("Offramp order created", "success");
   };
 
-  const sendOrderTokens = () => {
+  const sendOrderTokens = async () => {
     if (!order || !selectedToken) return;
     const isSol = selectedToken.mint === SOL_MINT;
+
+    if (isSol && connection && publicKey) {
+      const fit = await solTransferFitsBalance(
+        connection,
+        publicKey,
+        new PublicKey(String(order.address)),
+        orderAmount
+      );
+      if (!fit.ok) {
+        setToast("Insufficient balance after network fees", "error");
+        setLastError(
+          `Cannot send ${formatDisplayAmount(orderAmount)} SOL. Max sendable after fees: ${formatSolAmount(fit.maxSol)} SOL`
+        );
+        return;
+      }
+    }
+
     const id = TxQueue.getState().enqueue(
       isSol
         ? {
@@ -574,10 +675,39 @@ export default function SendToBank() {
     });
   };
 
-  const setMaxAmount = () => {
-    if (selectedToken?.balance != null) {
-      setAmount(formatRawAmount(selectedToken.balance));
+  const setMaxAmount = async () => {
+    if (selectedToken?.balance == null) return;
+
+    if (isSolToken) {
+      setMaxLoading(true);
+      try {
+        if (!connection || !publicKey) {
+          setToast("Unable to calculate max amount", "error");
+          return;
+        }
+        const { maxSol, feeLamports } = await getMaxSendableSol(
+          connection,
+          publicKey,
+          publicKey
+        );
+        if (maxSol <= 0) {
+          setToast("Balance is too low to cover network fees", "error");
+          return;
+        }
+        setSolMaxSendable(maxSol);
+        setSolFeeLamports(feeLamports);
+        setAmount(formatSolAmount(maxSol));
+        setQuote(null);
+      } catch (error) {
+        console.error("Failed to set max SOL offramp amount:", error);
+        setToast("Failed to calculate max amount", "error");
+      } finally {
+        setMaxLoading(false);
+      }
+      return;
     }
+
+    setAmount(formatRawAmount(selectedToken.balance));
   };
 
   const selectToken = (token: any) => {
@@ -758,6 +888,12 @@ export default function SendToBank() {
                   {!isFiatMode ? (
                     <CText className="text-[15px] text-gray-500 dark:text-gray-400 mt-1">
                       Balance: {formatDisplayAmount(selectedToken?.balance) || "0"} {selectedToken?.symbol ?? ""}
+                      {isSolToken && solMaxSendable != null ? (
+                        ` · Max ${formatSolAmount(solMaxSendable)}`
+                      ) : ""}
+                      {isSolToken && solFeeLamports != null ? (
+                        ` (fee ~${formatSolFee(solFeeLamports)} SOL)`
+                      ) : ""}
                     </CText>
                   ) : null}
                   {loading === "quote" ? (
@@ -802,11 +938,12 @@ export default function SendToBank() {
                         <AntDesign name="down" size={12} color="#6B7280" />
                       </Pressable>
                       <TouchableOpacity
-                        onPress={setMaxAmount}
+                        onPress={() => void setMaxAmount()}
+                        disabled={maxLoading}
                         className="bg-[#971BB2] px-3 py-1.5 rounded-lg"
                       >
                         <CText className="text-white text-[12px]" style={{ fontFamily: "bold" }}>
-                          MAX
+                          {maxLoading ? "..." : "MAX"}
                         </CText>
                       </TouchableOpacity>
                     </>
@@ -1207,7 +1344,7 @@ export default function SendToBank() {
                 type="primary"
                 className="w-full py-4 px-4 rounded-3xl"
                 text={`Send ${formatDisplayAmount(orderAmount) || "0"} ${selectedToken?.symbol}`}
-                onPress={sendOrderTokens}
+                onPress={() => void sendOrderTokens()}
               />
               <Buttons
                 type="secondary"

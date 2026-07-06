@@ -1,5 +1,6 @@
 import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
@@ -191,8 +192,8 @@ export default function TransactionDetail() {
   };
 
   return (
-    <View className="relative w-full flex-1 bg-grey dark:bg-dark py-4">
-      <View className="w-full px-4 flex-row items-center gap-x-5 mb-5">
+    <View style={styles.screen} className="bg-grey dark:bg-dark">
+      <View className="w-full px-4 pt-4 pb-3 flex-row items-center gap-x-5">
         <Pressable
           onPress={() => router.back()}
           className="p-3 rounded-full bg-white dark:bg-accent"
@@ -205,14 +206,14 @@ export default function TransactionDetail() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
+        <View style={styles.centered}>
           <ActivityIndicator color="#971BB2" />
           <CText className="mt-3 text-black/60 dark:text-grey/70">
             Loading transaction...
           </CText>
         </View>
       ) : error ? (
-        <View className="flex-1 px-4 items-center justify-center">
+        <View style={styles.centered} className="px-4">
           <CText className="text-center text-red-500">{error}</CText>
           <TouchableOpacity
             onPress={() => void loadTransaction()}
@@ -225,18 +226,19 @@ export default function TransactionDetail() {
         </View>
       ) : tx ? (
         <ScrollView
-          className="flex-1 px-4 py-2"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 32 }}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
         >
           <View
             ref={receiptRef as Ref<View>}
             collapsable={false}
-            className="rounded-3xl py-5"
           >
 
-            <View className="rounded-3xl bg-white dark:bg-accent p-5 mb-4">
-              <View className="top-[-30px] items-center justify-center">
+            <View className="rounded-3xl bg-white dark:bg-accent p-5 mb-4 pt-8">
+              <View className="items-center justify-center mb-2">
                 <View className="h-12 w-12">
                   <Image
                     source={require("@/assets/images/ballicon.png")}
@@ -339,3 +341,24 @@ export default function TransactionDetail() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 48,
+  },
+  centered: {
+    flex: 1,
+    minHeight: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

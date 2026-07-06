@@ -1,7 +1,10 @@
-import { Connection, Keypair, ParsedAccountData, PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
-import { getAssociatedTokenAddress, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, TokenAccountNotFoundError } from "@solana/spl-token";
-import WalletItem from "@/utils/store/wallet.store";
+import { Connection, ParsedAccountData, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { getAssociatedTokenAddress, createTransferInstruction, getAccount, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, TokenAccountNotFoundError } from "@solana/spl-token";
 import { keypairSign, signTransactions } from "@/utils/functions/extrafunctions";
+import {
+    estimateSolTransferFeeLamports,
+    solToLamports,
+} from "@/utils/wallet/solTransferFees";
 
 
 
@@ -13,16 +16,29 @@ export const transferSol = async (
     try {
         let fromWallet = await keypairSign();
         if (!fromWallet) throw Error;
-        // Create the transaction
 
-        const tokenAmount = amount * Math.pow(10, 9);
+        const toPubkey = new PublicKey(toAddress);
+        const lamports = solToLamports(amount);
+        if (lamports <= 0) {
+            return { status: false, message: "Invalid transfer amount" };
+        }
 
+        const balanceLamports = await connection.getBalance(fromWallet.publicKey);
+        const feeLamports = await estimateSolTransferFeeLamports(
+            connection,
+            fromWallet.publicKey,
+            toPubkey,
+            lamports
+        );
+        if (balanceLamports < lamports + feeLamports) {
+            return { status: false, message: "Insufficient funds for Fees" };
+        }
 
         const transaction = new Transaction().add(
             SystemProgram.transfer({
                 fromPubkey: fromWallet.publicKey,
-                toPubkey: new PublicKey(toAddress),
-                lamports: tokenAmount, // Convert SOL to lamports
+                toPubkey,
+                lamports,
             })
         );
 

@@ -1,6 +1,6 @@
 // KeyboardContext.tsx
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Keyboard, Pressable, View } from "react-native";
+import { Keyboard, View } from "react-native";
 
 interface ColorScheme {
     isKeyboardVisible: boolean,
@@ -31,13 +31,9 @@ export const KeyboardProvider = ({ children }: { children: ReactNode }) => {
 
     return (
         <KeyboardContext.Provider value={{ isKeyboardVisible }}>
-            <Pressable
-                style={{ flex: 1 }}
-                onPress={Keyboard.dismiss}
-                accessible={false}
-            >
-                <View style={{ flex: 1 }}>{children}</View>
-            </Pressable>
+            <View style={{ flex: 1 }} pointerEvents="box-none">
+                {children}
+            </View>
         </KeyboardContext.Provider>
     );
 };

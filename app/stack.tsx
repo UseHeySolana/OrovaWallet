@@ -97,6 +97,7 @@ export default function StackView() {
         <Stack
           screenOptions={{
             headerShown: false,
+            contentStyle: { flex: 1 },
           }}
         />
         {toast.show && <ToastModal type={toast.type} message={toast.message} />}

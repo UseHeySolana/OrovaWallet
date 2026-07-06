@@ -1,38 +1,43 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View, TextInput, TouchableOpacity } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import UserItem from "@/utils/store/userstore.store";
-import { Image } from "expo-image";
+import WalletItem from "@/utils/store/wallet.store";
 import { useThemeContext } from "@/context/ThemeContext";
-import { Connection } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { api_key } from "@/utils/dashboard";
-import Buttons from "@/components/ButtonComp";
 import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import ButtonComp from "@/components/ButtonComp";
 import TxQueue from "@/utils/store/txqueue.store";
 import { SendFlowScreenSkeleton } from "@/components/skeletons";
+import {
+  SOL_MINT,
+  formatSolAmount,
+  formatSolFee,
+  getMaxSendableSol,
+  solTransferFitsBalance,
+} from "@/utils/wallet/solTransferFees";
 
-/**
- * What should be done here
- * Show token info
- * Show amount input
- * Handle send transaction
- */
 export default function TokenAmount() {
   const { mint, recipient, displayName } = useLocalSearchParams();
   const [token, setToken] = useState<any>(null);
   const [amount, setAmount] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [connection, setConnection] = useState<Connection | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [maxSendable, setMaxSendable] = useState<number | null>(null);
+  const [estimatedFeeLamports, setEstimatedFeeLamports] = useState<number | null>(null);
+  const [maxLoading, setMaxLoading] = useState(false);
 
   const { setToast } = AppSettings();
-
+  const { publicKey } = WalletItem();
   const { userWallet } = UserItem();
   const { isDarkMode } = useThemeContext();
+
+  const isSol = token?.mint === SOL_MINT;
+  const spendableBalance = isSol && maxSendable != null ? maxSendable : token?.balance ?? 0;
 
   useEffect(() => {
     if (mint) {
@@ -42,30 +47,77 @@ export default function TokenAmount() {
       setToken(tokens[0]);
     }
 
-    // Initialize Solana connection
     const network = AppSettings.getState().network;
     const conn = new Connection(`${network}${api_key}`);
     setConnection(conn);
-  }, [mint]);
+  }, [mint, userWallet.tokenAccounts]);
+
+  const refreshSolLimits = useCallback(async () => {
+    if (!connection || !publicKey || !recipient || token?.mint !== SOL_MINT) {
+      setMaxSendable(null);
+      setEstimatedFeeLamports(null);
+      return;
+    }
+
+    try {
+      const { maxSol, feeLamports } = await getMaxSendableSol(
+        connection,
+        publicKey,
+        new PublicKey(recipient as string)
+      );
+      setMaxSendable(maxSol);
+      setEstimatedFeeLamports(feeLamports);
+    } catch (error) {
+      console.error("Failed to estimate SOL transfer limits:", error);
+      setMaxSendable(token?.balance ?? 0);
+      setEstimatedFeeLamports(null);
+    }
+  }, [connection, publicKey, recipient, token?.balance, token?.mint]);
+
+  useEffect(() => {
+    void refreshSolLimits();
+  }, [refreshSolLimits]);
 
   const handleAmountChange = (text: string) => {
-    // Only allow numbers and decimal points
     const numericValue = text.replace(/[^0-9.]/g, "");
-
-    // Ensure only one decimal point
     const parts = numericValue.split(".");
     if (parts.length > 2) return;
-
-    // Limit decimal places based on token decimals
     if (parts.length === 2 && parts[1].length > token?.decimals) return;
-
     setAmount(numericValue);
   };
 
-  const setMaxAmount = () => {
-    if (token) {
-      setAmount(token.balance.toString());
+  const setMaxAmount = async () => {
+    if (!token) return;
+
+    if (isSol) {
+      setMaxLoading(true);
+      try {
+        if (!connection || !publicKey || !recipient) {
+          setToast("Unable to calculate max amount", "error");
+          return;
+        }
+        const { maxSol, feeLamports } = await getMaxSendableSol(
+          connection,
+          publicKey,
+          new PublicKey(recipient as string)
+        );
+        if (maxSol <= 0) {
+          setToast("Balance is too low to cover network fees", "error");
+          return;
+        }
+        setMaxSendable(maxSol);
+        setEstimatedFeeLamports(feeLamports);
+        setAmount(formatSolAmount(maxSol));
+      } catch (error) {
+        console.error("Failed to set max SOL amount:", error);
+        setToast("Failed to calculate max amount", "error");
+      } finally {
+        setMaxLoading(false);
+      }
+      return;
     }
+
+    setAmount(token.balance.toString());
   };
 
   const getUsdValue = () => {
@@ -89,29 +141,36 @@ export default function TokenAmount() {
       return;
     }
 
-    if (numAmount > token.balance) {
-      setToast("Insufficient balance", "error");
+    if (numAmount > spendableBalance) {
+      setToast(
+        isSol ? "Insufficient balance after network fees" : "Insufficient balance",
+        "error"
+      );
       return;
     }
 
-    // Additional validation to prevent disabled button clicks
-    if (
-      !amount ||
-      parseFloat(amount) <= 0 ||
-      parseFloat(amount) > token.balance
-    ) {
-      return;
+    if (isSol && publicKey) {
+      const fit = await solTransferFitsBalance(
+        connection,
+        publicKey,
+        new PublicKey(recipient as string),
+        numAmount
+      );
+      if (!fit.ok) {
+        setEstimatedFeeLamports(fit.feeLamports);
+        setMaxSendable(fit.maxSol);
+        setToast("Insufficient balance after network fees", "error");
+        return;
+      }
+      setEstimatedFeeLamports(fit.feeLamports);
     }
 
-    // Show confirmation sheet
     setShowConfirmation(true);
   };
 
   const executeTransaction = () => {
     try {
       const numAmount = parseFloat(amount);
-      const isSol =
-        token.mint === "So11111111111111111111111111111111111111112";
       const id = TxQueue.getState().enqueue(
         isSol
           ? {
@@ -146,13 +205,21 @@ export default function TokenAmount() {
     }
   };
 
+  const confirmationSubtitle = (() => {
+    const feeLine =
+      isSol && estimatedFeeLamports != null
+        ? `\nNetwork fee: ~${formatSolFee(estimatedFeeLamports)} SOL`
+        : "";
+    return `Send ${amount} ${token?.symbol} to ${displayName || (recipient as string).substring(0, 20) + "..."
+      }\n\nAmount: ${amount} ${token?.symbol}\nUSD Value: ${getUsdValue()}${feeLine}`;
+  })();
+
   if (!token) {
     return <SendFlowScreenSkeleton />;
   }
 
   return (
     <View className="relative w-full bg-grey dark:bg-dark flex-1 py-4">
-      {/* Header */}
       <View className="w-full px-4 flex flex-row justify-start items-center gap-x-5 mb-6">
         <Pressable
           onPress={() => router.back()}
@@ -164,7 +231,6 @@ export default function TokenAmount() {
       </View>
 
       <View className="px-4 flex-1">
-        {/* Recipient Display */}
         <View className="bg-white dark:bg-accent rounded-xl p-4 mb-6">
           <CText className="text-[14px] text-gray-600 dark:text-gray-300 mb-2">
             Recipient
@@ -188,7 +254,6 @@ export default function TokenAmount() {
         </View>
 
         <View className="p-2 rounded-xl bg-white dark:bg-accent2">
-          {/* Amount Input */}
           <View className="mb-6">
             <View className="p-2">
               <TextInput
@@ -206,9 +271,8 @@ export default function TokenAmount() {
             </View>
           </View>
 
-          {/* Available Balance */}
           <View className="bg-white dark:bg-accent rounded-xl p-4 mb-6 flex-row items-center justify-between">
-            <View>
+            <View className="flex-1 pr-3">
               <CText className="text-[20px] ">
                 {token?.balance < 1
                   ? token?.balance?.toFixed(Math.min(token?.decimals, 5))
@@ -216,46 +280,51 @@ export default function TokenAmount() {
                 {token.symbol}
               </CText>
               <CText className="text-[14px] text-gray-600 dark:text-gray-300">
-                Available Balance
+                {isSol ? "Wallet balance" : "Available Balance"}
               </CText>
+              {isSol && maxSendable != null ? (
+                <CText className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
+                  Max sendable: {formatSolAmount(maxSendable)} SOL
+                  {estimatedFeeLamports != null
+                    ? ` (fee ~${formatSolFee(estimatedFeeLamports)} SOL)`
+                    : ""}
+                </CText>
+              ) : null}
             </View>
             <TouchableOpacity
-              onPress={setMaxAmount}
+              onPress={() => void setMaxAmount()}
+              disabled={maxLoading}
               className="bg-[#971BB2] px-4 py-2 rounded-lg"
             >
               <CText
                 className="text-white text-[14px]"
                 style={{ fontFamily: "bold" }}
               >
-                MAX
+                {maxLoading ? "..." : "MAX"}
               </CText>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Send Button */}
         <View className="mt-auto pb-6">
           <ButtonComp
-            text={`Send ${amount} ${token?.symbol}`}
-            onPress={handleSend}
+            text={`Send ${amount || "0"} ${token?.symbol}`}
+            onPress={() => void handleSend()}
             type="primary"
-            loading={isLoading}
             disabled={
               !amount ||
               parseFloat(amount) <= 0 ||
-              parseFloat(amount) > token.balance
+              parseFloat(amount) > spendableBalance
             }
           />
         </View>
       </View>
 
-      {/* Confirmation Sheet */}
       <ConfirmActionSheet
         open={showConfirmation}
         close={setShowConfirmation}
         title="Confirm Transaction"
-        subtitle={`Send ${amount} ${token?.symbol} to ${displayName || (recipient as string).substring(0, 20) + "..."
-          }\n\nAmount: ${amount} ${token?.symbol}\nUSD Value: ${getUsdValue()}`}
+        subtitle={confirmationSubtitle}
         actionNo={() => setShowConfirmation(false)}
         actionYes={() => {
           setShowConfirmation(false);
