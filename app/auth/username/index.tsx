@@ -52,6 +52,7 @@ export default function Username() {
   const { setUser, user } = UserItem();
   const { setLoading, isLoading, setToast } = AppSettings();
   const [currentState, setCurrentState] = useState<"set-pin" | "">("");
+  const [registeredUserId, setRegisteredUserId] = useState<number | undefined>();
 
   const hasContact =
     contactMethod === "google"
@@ -74,6 +75,7 @@ export default function Username() {
   }, [user?.wallet_address, hasContact]);
 
   const finishSignupWithWallet = async (sessionUser: {
+    id?: number;
     username: string;
     mobileNumber: string;
     phoneE164?: string;
@@ -81,6 +83,7 @@ export default function Username() {
   }) => {
     setUser({
       ...sessionUser,
+      id: sessionUser.id ?? registeredUserId,
       pin: "",
       wallet_address: "",
     });
@@ -140,8 +143,15 @@ export default function Username() {
       });
 
       if (response.status !== false) {
+        const serverUserId =
+          typeof response.data?.id === "number" ? response.data.id : undefined;
+        if (serverUserId != null) {
+          setRegisteredUserId(serverUserId);
+        }
+
         if (isGoogleSignup) {
           await finishSignupWithWallet({
+            id: serverUserId,
             username: username.trim(),
             mobileNumber: "",
             email,
@@ -168,6 +178,7 @@ export default function Username() {
       if (response.status !== false) {
         setToast("Verification Successfull", "success");
         await finishSignupWithWallet({
+          id: registeredUserId,
           username: username.trim(),
           mobileNumber: contactMethod === "phone" ? mobileNumber : "",
           phoneE164:
