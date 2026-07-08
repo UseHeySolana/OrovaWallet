@@ -144,6 +144,8 @@ export async function registerPushTokenWithBackend(
     push_token: pushToken,
     device_type: deviceType,
   };
+  const projectId = getEasProjectId();
+  if (projectId) body.eas_project_id = projectId;
   const phone = resolvePhoneForPushRegistration(params);
   if (phone) body.phone_number = phone;
   const userId = params.user_id ?? params.user?.id;
