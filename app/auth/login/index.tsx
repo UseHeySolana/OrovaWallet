@@ -465,14 +465,24 @@ export default function Login() {
         wallet_address: restored.walletAddress,
       });
 
-      const serverUser: ServerAuthUser =
-        response.status !== false
+      // Prefer the restored Drive wallet when DB wallet is empty so we never
+      // fall through to silentProvisionWallet and overwrite the real key.
+      const serverUser: ServerAuthUser = {
+        ...(response.status !== false
           ? response.data
           : pendingServerLogin ?? {
               username: restored.username,
-              wallet_address: restored.walletAddress,
               email: googleEmail,
-            };
+            }),
+        wallet_address:
+          (response.status !== false
+            ? response.data.wallet_address
+            : pendingServerLogin?.wallet_address) || restored.walletAddress,
+        username:
+          (response.status !== false
+            ? response.data.username
+            : pendingServerLogin?.username) || restored.username,
+      };
 
       setGoogleRestoreOpen(false);
       setGoogleRestoreSession(null);

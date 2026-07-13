@@ -467,8 +467,9 @@ export default function AirbillsAirtimeScreen() {
   }, [pointsBalance, pointsConfig, setToast, walletAddress]);
 
   const pickContactNumber = useCallback(async () => {
-    if (user?.mobileNumber) {
-      setPhoneNumber(normalizeAirbillsPhoneNumber(user.mobileNumber));
+    const localPhone = user?.mobileNumber || user?.phoneE164;
+    if (localPhone) {
+      setPhoneNumber(normalizeAirbillsPhoneNumber(localPhone));
       return;
     }
 

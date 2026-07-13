@@ -1,3 +1,8 @@
+import {
+  nationalNumberFromPhone,
+  splitPhoneE164,
+} from "@/utils/phone/phoneE164";
+
 export type ServerAuthUser = {
   id?: number;
   username: string;
@@ -34,9 +39,12 @@ export function buildSessionUserFromServer(
     Boolean(data.phone_number?.trim()) &&
     !isLegacyEmailPhonePlaceholder(data.phone_number);
 
-  const phoneE164 = hasPhone ? data.phone_number!.trim() : undefined;
+  const rawPhone = hasPhone ? data.phone_number!.trim() : "";
+  const split = hasPhone ? splitPhoneE164(rawPhone) : null;
+  const phoneE164 = split?.e164 ?? (rawPhone || undefined);
+  // Never use `/^\+\d+/` — that clears the entire E.164 string.
   const mobileNumber = hasPhone
-    ? data.phone_number!.replace(/^\+\d+/, "")
+    ? split?.nationalNumber || nationalNumberFromPhone(rawPhone)
     : "";
 
   return {

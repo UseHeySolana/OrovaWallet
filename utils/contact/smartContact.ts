@@ -1,4 +1,8 @@
-import { cleanNumber } from "@/utils/functions/extrafunctions";
+import {
+  isValidNationalMobileNumber,
+  normalizeNationalMobileInput,
+  toPhoneE164,
+} from "@/utils/phone/phoneE164";
 
 export type SmartContactMode = "neutral" | "email" | "phone";
 
@@ -64,16 +68,22 @@ export function parseSmartContact(
 
   if (mode === "phone" || isPhoneLikeValue(trimmed)) {
     const callingCode = getCallingCode(selectedValue);
-    const mobileNumber = cleanNumber(trimmed);
+    const mobileNumber = normalizeNationalMobileInput(trimmed, callingCode);
     if (!mobileNumber) {
       return { mode: "invalid", message: "Enter a valid phone number" };
+    }
+    if (!isValidNationalMobileNumber(mobileNumber, callingCode)) {
+      return {
+        mode: "invalid",
+        message: `Enter a valid ${selectedValue.name} phone number`,
+      };
     }
     return {
       mode: "phone",
       mobileNumber,
       callingCode,
       country: selectedValue.name,
-      phoneE164: `+${callingCode}${mobileNumber}`,
+      phoneE164: toPhoneE164(mobileNumber, callingCode),
     };
   }
 

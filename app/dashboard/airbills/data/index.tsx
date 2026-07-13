@@ -349,8 +349,9 @@ export default function AirbillsDataScreen() {
   );
 
   const pickContactNumber = useCallback(async () => {
-    if (user?.mobileNumber) {
-      setPhoneNumber(normalizeAirbillsPhoneNumber(user.mobileNumber));
+    const localPhone = user?.mobileNumber || user?.phoneE164;
+    if (localPhone) {
+      setPhoneNumber(normalizeAirbillsPhoneNumber(localPhone));
       return;
     }
 
