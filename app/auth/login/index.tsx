@@ -204,7 +204,7 @@ export default function Login() {
 
   const offerGoogleRestoreIfAvailable = async (
     session: GoogleAuthSession,
-    expectedWalletAddress?: string,
+    _expectedWalletAddress?: string,
     serverUser?: ServerAuthUser
   ): Promise<boolean> => {
     try {
@@ -213,11 +213,8 @@ export default function Login() {
       });
       if (!backup) return false;
 
-      const expected = expectedWalletAddress?.trim();
-      const backedUp = backup.walletAddress?.trim();
-      if (expected && backedUp && expected !== backedUp) {
-        return false;
-      }
+      // Always offer Drive restore when a backup exists. On confirm, the backup
+      // wallet replaces whatever is in the DB (including a mismatched empty/new one).
 
       if (serverUser) {
         setPendingServerLogin(serverUser);
@@ -465,8 +462,7 @@ export default function Login() {
         wallet_address: restored.walletAddress,
       });
 
-      // Prefer the restored Drive wallet when DB wallet is empty so we never
-      // fall through to silentProvisionWallet and overwrite the real key.
+      // Backup wallet always wins over DB (even if DB already had an address).
       const serverUser: ServerAuthUser = {
         ...(response.status !== false
           ? response.data
@@ -474,10 +470,7 @@ export default function Login() {
               username: restored.username,
               email: googleEmail,
             }),
-        wallet_address:
-          (response.status !== false
-            ? response.data.wallet_address
-            : pendingServerLogin?.wallet_address) || restored.walletAddress,
+        wallet_address: restored.walletAddress,
         username:
           (response.status !== false
             ? response.data.username
