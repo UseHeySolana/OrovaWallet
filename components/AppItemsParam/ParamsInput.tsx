@@ -14,16 +14,18 @@ const ParamsInput = ({ param, appData, item }: ParamsInputProps) => {
   const [inputValue, setInputValue] = useState<string>("");
   const { updateToolParameter } = ToolsItem();
 
+  const storeKey = appData?.slug || appData?.name;
+
   useEffect(() => {
     const saved =
-      ToolsItem.getState().getParameterValue(appData?.name, item?.name, param?.name) ?? "";
+      ToolsItem.getState().getParameterValue(storeKey, item?.name, param?.name) ?? "";
     setInputValue(saved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appData?.name, item?.name, param?.name]);
+  }, [storeKey, item?.name, param?.name]);
 
   const handleChangeText = (text: string) => {
     setInputValue(text);
-    updateToolParameter(appData?.name, item?.name, {
+    updateToolParameter(storeKey, item?.name, {
       type: param?.name,
       value: text,
     });

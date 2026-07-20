@@ -14,16 +14,14 @@ import { transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers"
 import { JUMIA_USDC_TREASURY } from "@/utils/constant";
 import { recordCommercePaymentTransaction } from "@/services/appTransactions";
 
-const JUMIA_APP_NAME = "Jumia Online Shopping";
+const JUMIA_APP_NAME = "jumia";
 const JUMIA_CONFIG_TYPE = "ecommerce";
 /** USDC mint (mainnet/devnet) */
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDC_DECIMALS = 6;
 
 function isJumiaActivated(): boolean {
-  const tools = ToolsItem.getState().tools;
-  const jumia = tools.find((t: any) => t.name === JUMIA_APP_NAME && t.value === "active");
-  return !!jumia;
+  return ToolsItem.getState().isToolActive(JUMIA_APP_NAME);
 }
 
 function getJumiaDeliveryAddress(): JumiaInlineAddress | null {

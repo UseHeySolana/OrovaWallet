@@ -342,34 +342,34 @@ export class AirBills {
       handler: async (args: BuyElectricityArgs) => {
         const savedMeterNumber =
           ToolsItem.getState().getParameterValue(
-            "Airbills",
+            "airbills",
             "electricity",
             "meter_number"
           ) ||
           ToolsItem.getState().getParameterValue(
-            "Airbills",
+            "airbills",
             "electricty",
             "meter_number"
           );
         const savedElectId =
           ToolsItem.getState().getParameterValue(
-            "Airbills",
+            "airbills",
             "electricity",
             "elect_id"
           ) ||
           ToolsItem.getState().getParameterValue(
-            "Airbills",
+            "airbills",
             "electricty",
             "elect_id"
           );
         const savedMeterType =
           ToolsItem.getState().getParameterValue(
-            "Airbills",
+            "airbills",
             "electricity",
             "meter_type"
           ) ||
           ToolsItem.getState().getParameterValue(
-            "Airbills",
+            "airbills",
             "electricty",
             "meter_type"
           );

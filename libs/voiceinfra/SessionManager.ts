@@ -511,7 +511,7 @@ class SessionManager {
       return {
         type: "function" as const,
         name: fn.name,
-        description: fn.description,
+        description: typeof fn.getDescription === "function" ? fn.getDescription() : fn.description,
         parameters: fn.parameters,
       };
     });

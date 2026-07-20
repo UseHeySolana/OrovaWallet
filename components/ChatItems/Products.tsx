@@ -54,10 +54,9 @@ const Products = (props: ProductProps) => {
                       className="text-[10px]"
                       style={{ fontFamily: "bold" }}
                     >
-                      {product.currency}
-                      <CText style={{ fontFamily: "bold" }}>
-                        {product.price}
-                      </CText>
+                      {source === "chowdeck" || product.currency === "₦" || product.currency === "NGN"
+                        ? `₦${product.price}`
+                        : `${product.currency}${product.price}`}
                     </CText>
 
                     <View className="flex flex-row justify-start items-center ">
@@ -85,10 +84,32 @@ const Products = (props: ProductProps) => {
                     </View>
                   </View>
 
+                  {source === "chowdeck" && product?.is_vendor_open === false && (
+                    <CText className="text-[10px] text-red-600 dark:text-red-400" style={{ fontFamily: "bold" }}>
+                      Restaurant closed
+                    </CText>
+                  )}
+
                   <Buttons
-                    text="Select"
+                    text={
+                      source === "chowdeck" && product?.is_vendor_open === false
+                        ? "Closed"
+                        : "Select"
+                    }
                     onPress={() => {
-                      console.log("SOURCE", source);
+                      if (source === "chowdeck") {
+                        if (product?.is_vendor_open === false) return;
+                        const menuId = product?.menu_id ?? product?.asin;
+                        const vendorId = product?.vendor_id;
+                        const vendorName = product?.vendor_name ?? "";
+                        const delivery = product?.delivery_fee ?? 0;
+                        sessionManager?.sendTextMessage(
+                          `Get Chowdeck menu item ${menuId} from vendor ${vendorId}${
+                            vendorName ? ` (${vendorName})` : ""
+                          } with delivery fee ${delivery} NGN.`
+                        );
+                        return;
+                      }
                       sessionManager?.sendTextMessage(
                         `Select product ${product?.asin} and fetch the details from ${source}`
                       );

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { DISPLAY_NAME_TO_SLUG, resolveAppSlug } from '@/libs/app/capabilities';
 
 interface ToolParameters {
     type: string;
@@ -13,6 +14,7 @@ interface ToolConfig {
 }
 
 interface Tool {
+    /** Stable app slug (preferred) or legacy display name before migration. */
     name: string;
     value: 'active' | 'inactive';
     config?: ToolConfig[];
@@ -32,6 +34,49 @@ interface ToolsStore {
     getToolConfig: (toolName: string) => ToolConfig[];
     getToolParameters: (toolName: string, configType: string) => ToolParameters[];
     getParameterValue: (toolName: string, configType: string, paramType: string) => string;
+    isToolActive: (toolName: string) => boolean;
+    migrateToolsToSlugs: () => void;
+}
+
+function toolKeyMatches(storedName: string, query: string): boolean {
+    if (storedName === query) return true;
+    const storedSlug = resolveAppSlug(storedName);
+    const querySlug = resolveAppSlug(query);
+    return !!storedSlug && !!querySlug && storedSlug === querySlug;
+}
+
+function normalizeToolName(name: string): string {
+    return resolveAppSlug(name) || DISPLAY_NAME_TO_SLUG[name] || name;
+}
+
+function findToolIndex(tools: Tool[], toolName: string): number {
+    return tools.findIndex((t) => toolKeyMatches(t.name, toolName));
+}
+
+function migrateTools(tools: Tool[]): Tool[] {
+    const bySlug = new Map<string, Tool>();
+    for (const tool of tools) {
+        const slug = normalizeToolName(tool.name);
+        const existing = bySlug.get(slug);
+        if (!existing) {
+            bySlug.set(slug, { ...tool, name: slug });
+            continue;
+        }
+        // Merge configs if both legacy + slug entries exist.
+        const mergedConfig = [...(existing.config || [])];
+        for (const config of tool.config || []) {
+            if (!mergedConfig.some((c) => c.type === config.type)) {
+                mergedConfig.push(config);
+            }
+        }
+        bySlug.set(slug, {
+            ...existing,
+            name: slug,
+            value: existing.value === 'active' || tool.value === 'active' ? 'active' : tool.value,
+            config: mergedConfig,
+        });
+    }
+    return Array.from(bySlug.values());
 }
 
 const ToolsItem = create<ToolsStore>()(
@@ -43,40 +88,47 @@ const ToolsItem = create<ToolsStore>()(
                 set({ tools: [] });
             },
 
+            migrateToolsToSlugs: () => {
+                set((state) => ({ tools: migrateTools(state.tools) }));
+            },
+
             addTool: (tool) => {
-                const exists = get().tools.some((t) => t.name === tool.name);
-                if (exists) {
+                const name = normalizeToolName(tool.name);
+                const normalized = { ...tool, name };
+                const idx = findToolIndex(get().tools, name);
+                if (idx >= 0) {
                     set((state) => ({
-                        tools: state.tools.map((t) => t.name === tool.name ? tool : t),
+                        tools: state.tools.map((t, i) => (i === idx ? { ...t, ...normalized, name } : t)),
                     }));
                 } else {
-                    set((state) => ({ tools: [...state.tools, tool] }));
+                    set((state) => ({ tools: [...state.tools, normalized] }));
                 }
             },
 
             removeTool: (toolName) => {
                 set((state) => ({
-                    tools: state.tools.filter((t) => t.name !== toolName),
+                    tools: state.tools.filter((t) => !toolKeyMatches(t.name, toolName)),
                 }));
             },
 
             updateToolStatus: (toolName, status) => {
                 set((state) => ({
                     tools: state.tools.map((t) =>
-                        t.name === toolName ? { ...t, value: status } : t
+                        toolKeyMatches(t.name, toolName) ? { ...t, value: status } : t
                     ),
                 }));
             },
 
             addToolConfig: (toolName, config) => {
-                //check if config already exists
-                const exists = get().tools.some((t) => t.name === toolName && t.config?.some((c) => c.type === config.type));
+                const exists = get().tools.some(
+                    (t) => toolKeyMatches(t.name, toolName) && t.config?.some((c) => c.type === config.type)
+                );
                 if (exists) {
                     return;
                 }
                 set((state) => ({
                     tools: state.tools.map((t) =>
-                        t.name === toolName
+                        toolKeyMatches(t.name, toolName)
                             ? { ...t, config: [...(t.config || []), config] }
                             : t
                     ),
@@ -86,7 +138,7 @@ const ToolsItem = create<ToolsStore>()(
             updateToolConfig: (toolName, configType, newConfig) => {
                 set((state) => ({
                     tools: state.tools.map((t) =>
-                        t.name === toolName
+                        toolKeyMatches(t.name, toolName)
                             ? {
                                 ...t,
                                 config: (t.config || []).map((c) =>
@@ -101,7 +153,7 @@ const ToolsItem = create<ToolsStore>()(
             removeToolConfig: (toolName, configType) => {
                 set((state) => ({
                     tools: state.tools.map((t) =>
-                        t.name === toolName
+                        toolKeyMatches(t.name, toolName)
                             ? {
                                 ...t,
                                 config: (t.config || []).filter(
@@ -115,9 +167,8 @@ const ToolsItem = create<ToolsStore>()(
 
             updateToolParameter: (toolName, configType, paramUpdate) => {
                 set((state) => {
-
                     const updatedTools = state.tools.map((tool) => {
-                        if (tool.name !== toolName) return tool;
+                        if (!toolKeyMatches(tool.name, toolName)) return tool;
 
                         const configList = tool.config ?? [];
 
@@ -148,20 +199,36 @@ const ToolsItem = create<ToolsStore>()(
                 });
             },
             getToolConfig: (toolName: string) => {
-                return get().tools.find((tool: any) => tool?.name === toolName)?.config || [];
+                return get().tools.find((tool) => toolKeyMatches(tool.name, toolName))?.config || [];
             },
-            getToolParameters: (toolName:string, configType:string) => {
-                return get().tools.find((tool: any) => tool?.name === toolName)?.config?.find((config: any) => config?.type === configType)?.parameters || [];
+            getToolParameters: (toolName: string, configType: string) => {
+                return get().tools.find((tool) => toolKeyMatches(tool.name, toolName))?.config?.find((config) => config?.type === configType)?.parameters || [];
             },
             getParameterValue: (toolName: string, configType: string, paramType: string) => {
-                return get().tools.find((tool: any) => tool?.name === toolName)?.config?.find((config: any) => config?.type === configType)?.parameters?.find((param: any) => param?.type === paramType)?.value || "";
-            }
+                return get().tools.find((tool) => toolKeyMatches(tool.name, toolName))?.config?.find((config) => config?.type === configType)?.parameters?.find((param) => param?.type === paramType)?.value || "";
+            },
+            isToolActive: (toolName: string) => {
+                return !!get().tools.find(
+                    (tool) => toolKeyMatches(tool.name, toolName) && tool.value === 'active'
+                );
+            },
         }),
 
 
         {
             name: 'tools',
             storage: createJSONStorage(() => AsyncStorage),
+            onRehydrateStorage: () => (state) => {
+                state?.migrateToolsToSlugs();
+            },
+            version: 2,
+            migrate: (persisted: any) => {
+                if (!persisted) return persisted;
+                return {
+                    ...persisted,
+                    tools: migrateTools(persisted.tools || []),
+                };
+            },
         }
     )
 );

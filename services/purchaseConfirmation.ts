@@ -7,7 +7,7 @@ export interface PurchaseConfirmationProductDetails {
 
 export interface PurchaseConfirmationOptions {
   productDetails: PurchaseConfirmationProductDetails;
-  source: "jumia" | "crossmint";
+  source: "jumia" | "crossmint" | "chowdeck";
 }
 
 let purchaseConfirmFn: ((options: PurchaseConfirmationOptions) => Promise<boolean>) | null = null;

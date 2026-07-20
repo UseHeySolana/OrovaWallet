@@ -46,7 +46,7 @@ import {
 } from "./magicblock";
 import { getMagicBlockToken } from "./magicblock.auth";
 
-const APP_NAME = "MagicBlock Private Payments";
+const APP_NAME = "magicblock";
 const PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 const cluster = (): MbCluster => {

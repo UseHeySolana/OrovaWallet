@@ -18,22 +18,60 @@ import KalshiMarkets from "./KalshiMarkets";
 import MagicBlockTransfer from "./MagicBlockTransfer";
 import TokenSearchPicker from "./TokenSearchPicker";
 import DataPlanPicker from "./DataPlanPicker";
-
+import ChowdeckAddressPicker from "./ChowdeckAddressPicker";
 interface ItemProps {
   item: any;
   isSystem: boolean;
   aiName: string;
 }
+
+/** Tool arguments can be objects/arrays (e.g. Chowdeck modifiers); render them as readable text. */
+const formatParamValue = (value: any): string => {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) =>
+        entry && typeof entry === "object"
+          ? entry.option_name ?? entry.name ?? entry.label ?? JSON.stringify(entry)
+          : String(entry)
+      )
+      .join(", ");
+  }
+  if (typeof value === "object") {
+    return value.option_name ?? value.name ?? value.label ?? JSON.stringify(value);
+  }
+  return String(value);
+};
+
+/** Hide internal Chowdeck IDs/prices on the human-facing tool card. */
+const CHOWDECK_HIDDEN_PARAMS = new Set([
+  "vendor_id",
+  "menu_id",
+  "unit_price_ngn",
+  "delivery_price_ngn",
+  "minimum_order_ngn",
+  "modifiers",
+  "image",
+  "place_id",
+  "choice_number",
+]);
+
 const ToolItem = (props: ItemProps) => {
   const { item, isSystem, aiName } = props;
   const { sessionManager } = useAi();
   const { setToast } = AppSettings();
-  const params =
+  const rawParams =
     (item?.tool?.arguments?.parameter &&
       Object.keys(item.tool?.arguments?.parameter)) ||
     (item.tool?.arguments && Object.keys(item.tool?.arguments)) ||
     [];
-
+  const isChowdeckTool = item?.tool?.action?.includes("chowdeck");
+  const params = isChowdeckTool
+    ? rawParams.filter((p: string) => !CHOWDECK_HIDDEN_PARAMS.has(p))
+    : rawParams;
+  const chowdeckCartSummary = item?.chowdeckCartSummary;
   const iconSource =
     item.tool?.status === "pending"
       ? require("@/assets/toolstatus/pending.png")
@@ -151,6 +189,8 @@ const ToolItem = (props: ItemProps) => {
               <CText className="text-[1.23rem]" style={{ fontFamily: "bold" }}>
                 {item?.tool?.action?.includes("jumia")
                   ? "Jumia"
+                  : item?.tool?.action?.includes("chowdeck")
+                    ? "Chowdeck"
                   : item?.tool?.action?.includes("amazon")
                     ? "Crossmint"
                     : item?.tool?.action?.includes("airtime") ||
@@ -227,9 +267,11 @@ const ToolItem = (props: ItemProps) => {
                     minWidth: 0
                   }}
                   className="text-[1rem]">
-                  {item?.tool?.arguments.parameter
-                    ? item.tool.arguments?.parameter[param]
-                    : item.tool.arguments[param]}
+                  {formatParamValue(
+                    item?.tool?.arguments?.parameter
+                      ? item.tool.arguments?.parameter[param]
+                      : item.tool.arguments?.[param]
+                  )}
                 </CText>
               </View>
             ))}
@@ -248,6 +290,49 @@ const ToolItem = (props: ItemProps) => {
           )}
         </View>
       </View>
+
+      {chowdeckCartSummary && (
+        <View className="w-full bg-[#F6ECFA] dark:bg-accent2 border border-[#971BB2]/20 rounded-2xl p-4 gap-y-2">
+          <CText className="text-[0.85rem] uppercase text-[#971BB2]" style={{ fontFamily: "bold" }}>
+            Cart total
+          </CText>
+          <CText className="text-[1rem]" style={{ fontFamily: "bold" }}>
+            {chowdeckCartSummary.product_name}
+            {chowdeckCartSummary.quantity > 1 ? ` × ${chowdeckCartSummary.quantity}` : ""}
+          </CText>
+          <CText className="text-[0.9rem] text-black/70 dark:text-grey/80">
+            {chowdeckCartSummary.vendor_name}
+            {chowdeckCartSummary.options_label
+              ? ` · ${chowdeckCartSummary.options_label}`
+              : ""}
+          </CText>
+          <View className="gap-y-1 mt-1">
+            <CText className="text-[0.95rem]">
+              Subtotal: ₦{Number(chowdeckCartSummary.subtotal_ngn).toFixed(0)}
+            </CText>
+            <CText className="text-[0.95rem]">
+              Delivery: ₦{Number(chowdeckCartSummary.delivery_fee_ngn).toFixed(0)}
+            </CText>
+            <CText className="text-[1.05rem]" style={{ fontFamily: "bold" }}>
+              Total: ₦{Number(chowdeckCartSummary.total_ngn).toFixed(0)} (Naira)
+            </CText>
+          </View>
+          <View className="mt-2 bg-white dark:bg-accent rounded-xl px-3 py-2 gap-y-1">
+            <CText className="text-[0.85rem] uppercase text-gray-500">Pay with</CText>
+            <CText className="text-[1.1rem]" style={{ fontFamily: "bold" }}>
+              {chowdeckCartSummary.amount_usdc != null
+                ? `${chowdeckCartSummary.amount_usdc} USDC`
+                : "USDC (rate unavailable)"}
+              {chowdeckCartSummary.payment_token === "USDC" ? " · default" : ""}
+            </CText>
+            {chowdeckCartSummary.amount_sol != null && (
+              <CText className="text-[0.9rem] text-black/70 dark:text-grey/80">
+                Or about {chowdeckCartSummary.amount_sol} SOL if you prefer
+              </CText>
+            )}
+          </View>
+        </View>
+      )}
 
       {item?.messageType === "pajcash_onramp" && pajcashPayment && (
         <View className="w-full bg-[#F6ECFA] dark:bg-accent2 border border-[#971BB2]/20 rounded-2xl p-4 gap-y-3">
@@ -318,6 +403,15 @@ const ToolItem = (props: ItemProps) => {
         />
       )}
 
+      {item?.chowdeckAddressPicker &&
+        Array.isArray(item.chowdeckAddressPicker.options) &&
+        item.chowdeckAddressPicker.options.length > 0 && (
+          <ChowdeckAddressPicker
+            query={item.chowdeckAddressPicker.query}
+            options={item.chowdeckAddressPicker.options}
+          />
+        )}
+
       {item?.messageType === "kalshi" && Array.isArray(item?.markets) && item.markets.length > 0 && (
         <KalshiMarkets markets={item.markets} sessionManager={sessionManager} />
       )}
@@ -330,7 +424,14 @@ const ToolItem = (props: ItemProps) => {
         <ProductDetails
           productDetails={item?.product_details}
           sessionManager={sessionManager}
-          source={item?.source ?? (item?.tool?.action?.includes("jumia") ? "jumia" : "crossmint")}
+          source={
+            item?.source ??
+            (item?.tool?.action?.includes("chowdeck")
+              ? "chowdeck"
+              : item?.tool?.action?.includes("jumia")
+                ? "jumia"
+                : "crossmint")
+          }
         />
       )}
     </View>

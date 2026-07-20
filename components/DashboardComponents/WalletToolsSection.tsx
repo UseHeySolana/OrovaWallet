@@ -1,25 +1,32 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Pressable, ScrollView, TouchableOpacity, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 
 import { CText } from "@/components/TextComp";
 import type { App } from "@/libs/app/apps";
-import { getFeaturedApps } from "@/utils/integrations";
-
-function imageSource(source: string | App["icon"]) {
-  return typeof source === "string" ? { uri: source } : source;
-}
+import { toImageSource } from "@/libs/app/apps";
+import AppCatalog from "@/utils/store/appCatalog.store";
 
 function openApp(app: App) {
   router.push({
-    pathname: app.dashboardRoute || "/settings/apps/appitem",
-    params: app.dashboardRoute ? undefined : { app: app.name },
+    pathname: (app.dashboardRoute || "/settings/apps/appitem") as any,
+    params: app.dashboardRoute ? undefined : { app: app.slug || app.name },
   });
 }
 
 export default function WalletToolsSection() {
-  const featuredApps = useMemo(() => getFeaturedApps(), []);
+  const apps = AppCatalog((s) => s.apps);
+  const refreshCatalog = AppCatalog((s) => s.refreshCatalog);
+
+  useEffect(() => {
+    void refreshCatalog();
+  }, [refreshCatalog]);
+
+  const featuredApps = useMemo(
+    () => apps.filter((a) => a.is_active && a.is_featured).slice(0, 6),
+    [apps]
+  );
 
   return (
     <View className="w-full gap-y-3">
@@ -39,19 +46,19 @@ export default function WalletToolsSection() {
       >
         {featuredApps.map((item) => (
           <Pressable
-            key={item.name}
+            key={item.slug || item.name}
             onPress={() => openApp(item)}
             className="h-[9rem] min-w-[15rem] max-w-[18rem] shadow-sm relative rounded-3xl overflow-hidden bg-white dark:bg-accent"
           >
             <Image
-              source={imageSource(item.banner)}
+              source={toImageSource(item.banner)}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
             />
             <View className="absolute bottom-0 w-full px-3 py-2 bg-white/90 dark:bg-accent/90 flex-row items-center gap-x-2">
               <View className="h-10 w-10 overflow-hidden rounded-xl bg-white dark:bg-accent2">
                 <Image
-                  source={imageSource(item.icon)}
+                  source={toImageSource(item.icon)}
                   style={{ width: "100%", height: "100%" }}
                   contentFit="cover"
                 />

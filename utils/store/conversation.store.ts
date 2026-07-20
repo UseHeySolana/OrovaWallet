@@ -16,6 +16,11 @@ export interface TokenSearchPickRow {
 
 export type { DataPlanPickerRow } from '@/libs/tools/airbills/dataPlanDisplay';
 
+export interface ChowdeckAddressPickRow {
+  place_id: string;
+  label: string;
+  description: string;
+}
 export interface PrivateTransferMeta {
   visibility: "public" | "private";
   fromBalance: "base" | "ephemeral";
@@ -67,6 +72,12 @@ export interface MessageType {
     image: string;
     link: string;
     rating: number;
+    menu_id?: number;
+    vendor_id?: number;
+    vendor_name?: string;
+    base_price?: number;
+    delivery_fee?: number;
+    is_vendor_open?: boolean;
   }[];
   markets?: any[];
   product_details?: any;
@@ -86,6 +97,24 @@ export interface MessageType {
     stage: "category" | "plans";
     category?: DataPlanCategory;
     plans: DataPlanPickerRow[];
+  };
+  /** Chowdeck delivery address autocomplete picker (tap to save). */
+  chowdeckAddressPicker?: {
+    query: string;
+    options: ChowdeckAddressPickRow[];
+  };
+  /** Human-friendly Chowdeck cart payment summary (hide raw tool IDs). */
+  chowdeckCartSummary?: {
+    product_name: string;
+    vendor_name: string;
+    quantity: number;
+    options_label?: string;
+    subtotal_ngn: number;
+    delivery_fee_ngn: number;
+    total_ngn: number;
+    amount_usdc: number | null;
+    amount_sol: number | null;
+    payment_token: "USDC" | "SOL";
   };
   source: string;
 }

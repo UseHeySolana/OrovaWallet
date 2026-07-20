@@ -258,7 +258,7 @@ class GeminiSessionManager {
                 tools: this.availableFunctions.map(fn => ({
                     functionDeclarations: [{
                         name: fn.name,
-                        description: fn.description,
+                        description: typeof fn.getDescription === "function" ? fn.getDescription() : fn.description,
                         parameters: fn.parameters
                     }]
                 }))
@@ -561,7 +561,7 @@ class GeminiSessionManager {
                     tools: functions.map(fn => ({
                         functionDeclarations: [{
                             name: fn.name,
-                            description: fn.description,
+                            description: typeof fn.getDescription === "function" ? fn.getDescription() : fn.description,
                             parameters: fn.parameters
                         }]
                     }))

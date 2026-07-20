@@ -15,7 +15,7 @@ import {
   searchBayseEvents,
 } from "@/services/bayseApi";
 
-const BAYSE_APP_NAME = "Bayse Prediction Markets";
+const BAYSE_APP_NAME = "bayse";
 const BAYSE_CONFIG = "credentials";
 
 function getWalletAddress(): string {
