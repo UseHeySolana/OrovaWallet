@@ -37,7 +37,8 @@ const PurchaseConfirmationSheet = () => {
   const deliveryFee = Number(productDetails.delivery_fee) || 0;
   const displayPrice = basePrice + deliveryFee;
   const displayCurrency =
-    productDetails.currency ?? (source === "jumia" ? "NGN" : "USD");
+    productDetails.currency ??
+    (source === "jumia" || source === "chowdeck" ? "NGN" : "USD");
   const hasPriceBreakdown = basePrice > 0 || deliveryFee > 0;
   const productName = productDetails.name ?? "Product";
 

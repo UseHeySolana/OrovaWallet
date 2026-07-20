@@ -30,6 +30,8 @@ import { initWallet } from "@/utils/wallet/initWallet";
 import { bootstrapVerifiedTokensList } from "@/utils/functions";
 import { initBugReporting } from "@/services/bugReport/initBugReporting";
 import { syncPendingAppTransactions } from "@/services/appTransactions";
+import AppCatalog from "@/utils/store/appCatalog.store";
+import ToolsItem from "@/utils/store/toolsitems.store";
 
 SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
 
@@ -95,9 +97,12 @@ export default function RootLayout() {
     }
 
     void syncPendingAppTransactions();
+    ToolsItem.getState().migrateToolsToSlugs();
+    void AppCatalog.getState().refreshCatalog();
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         void syncPendingAppTransactions();
+        void AppCatalog.getState().refreshCatalog();
       }
     });
     return () => subscription.remove();

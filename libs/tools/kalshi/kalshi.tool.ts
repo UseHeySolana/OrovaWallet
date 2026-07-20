@@ -23,8 +23,8 @@ import {
 
 // NOTE: The app store entry is named "Kalshi", but earlier versions used
 // "Kalshi Prediction Markets". We support both to avoid missing locally-saved creds.
-const KALSHI_APP_NAME = "Kalshi Prediction Markets";
-const KALSHI_APP_NAME_ALT = "Kalshi";
+const KALSHI_APP_NAME = "kalshi";
+const KALSHI_APP_NAME_ALT = "Kalshi Prediction Markets";
 const KALSHI_CONFIG = "credentials";
 
 function getWalletAddress(): string {

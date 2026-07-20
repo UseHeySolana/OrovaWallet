@@ -18,7 +18,7 @@ import { pajcash, Chain, Currency } from "@/libs/tools/pajcash/pajcash";
 import PajCashSession from "@/utils/store/pajcashSession.store";
 import Convo from "@/utils/store/conversation.store";
 
-const PAJ_APP = "Pajcash";
+const PAJ_APP = "pajcash";
 const PAJ_OFFRAMP = "offramp";
 const PAJ_CREDENTIALS = "credentials";
 

@@ -4,6 +4,7 @@ import { SwapFunction } from "@/libs/tools/swap/swap.tool";
 import { PajCash } from "@/libs/tools/pajcash/pajcash.tool";
 import { Crossmint } from "@/libs/tools/crossmint/crossmint.tool";
 import { JumiaTool } from "@/libs/tools/jumia/jumia.tool";
+import { ChowdeckTool } from "@/libs/tools/chowdeck/chowdeck.tool";
 import { KalshiTool } from "@/libs/tools/kalshi/kalshi.tool";
 import { BayseTool } from "@/libs/tools/bayse/bayse.tool";
 import { MagicBlockTool } from "@/libs/tools/magicblock/magicblock.tool";
@@ -11,13 +12,14 @@ import { DextopusTool } from "@/libs/tools/dextopus/dextopus.tool";
 import { WalletBalanceTool } from "@/libs/tools/wallet/wallet.tool";
 import { TokenSearchTool } from "@/libs/tools/tokens/tokenSearch.tool";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
+import { filterToolsByActivation } from "@/libs/app/enabledTools";
 
 const toolRouter = (SessionManager: SessionManager) => {
   const magicblock = new MagicBlockTool(SessionManager);
   const dextopus = new DextopusTool(SessionManager);
   const walletBalance = new WalletBalanceTool(SessionManager);
   const tokenSearch = new TokenSearchTool(SessionManager);
-  return [
+  const allTools = [
     walletBalance.checkWalletBalance,
     tokenSearch.searchSplTokens,
     new TransferFunction(SessionManager).transferFunction,
@@ -53,6 +55,16 @@ const toolRouter = (SessionManager: SessionManager) => {
     new JumiaTool(SessionManager).getJumiaProductDetails,
     new JumiaTool(SessionManager).placeJumiaOrder,
 
+    // Chowdeck food delivery
+    new ChowdeckTool(SessionManager).setChowdeckLocation,
+    new ChowdeckTool(SessionManager).searchChowdeckFood,
+    new ChowdeckTool(SessionManager).getChowdeckMenuCategories,
+    new ChowdeckTool(SessionManager).getChowdeckMenuItem,
+    new ChowdeckTool(SessionManager).addChowdeckToCart,
+    new ChowdeckTool(SessionManager).viewChowdeckCart,
+    new ChowdeckTool(SessionManager).clearChowdeckCart,
+    new ChowdeckTool(SessionManager).placeChowdeckOrder,
+
     // // Kalshi
     // new KalshiTool(SessionManager).activateKalshi,
     // new KalshiTool(SessionManager).backupApiKey,
@@ -77,6 +89,8 @@ const toolRouter = (SessionManager: SessionManager) => {
     // new BayseTool(SessionManager).getPortfolio,
     // new BayseTool(SessionManager).getActivities,
   ];
+
+  return filterToolsByActivation(allTools);
 };
 
 export { toolRouter };

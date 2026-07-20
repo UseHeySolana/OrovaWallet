@@ -10,7 +10,7 @@ import DragableSheetModal from "@/components/CustomItems/DragableSheetModal";
 interface ProductDetailsProps {
   productDetails: any;
   sessionManager: any;
-  /** "jumia" | "crossmint" - used to send the correct order command */
+  /** "jumia" | "crossmint" | "chowdeck" - used to send the correct order command */
   source?: string;
 }
 const ProductDetails = (props: ProductDetailsProps) => {
@@ -18,6 +18,8 @@ const ProductDetails = (props: ProductDetailsProps) => {
   const [showModal, setShowModal] = useState(false);
   const [summarySheetOpen, setSummarySheetOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const isChowdeck = source === "chowdeck";
+  const isNgn = source === "jumia" || isChowdeck;
 
   // Price: support object { current }, or numeric total; ensure item price is never 0 when we have a total
   const priceObj = productDetails?.price;
@@ -35,12 +37,15 @@ const ProductDetails = (props: ProductDetailsProps) => {
       : numericTotal >= deliveryFee
         ? numericTotal - deliveryFee
         : numericTotal;
-  const displayPrice = basePrice + deliveryFee;
+  const displayPrice = isChowdeck ? basePrice : basePrice + deliveryFee;
   const displayCurrency =
     typeof priceObj === "object" && priceObj?.currency
       ? priceObj.currency
-      : productDetails?.currency ?? (source === "jumia" ? "NGN" : "USD");
+      : productDetails?.currency ?? (isNgn ? "NGN" : "USD");
   const rating = Number(productDetails?.rating) || 0;
+  const modifierGroups = Array.isArray(productDetails?.modifiers)
+    ? productDetails.modifiers
+    : [];
 
   return (
     <>
@@ -90,7 +95,8 @@ const ProductDetails = (props: ProductDetailsProps) => {
               </CText>
               <View className="flex flex-row justify-between items-center">
                 <CText className="text-[10px]" style={{ fontFamily: "bold" }}>
-                  {displayCurrency} {displayPrice}
+                  {isNgn ? `₦${displayPrice}` : `${displayCurrency} ${displayPrice}`}
+                  {isChowdeck ? " (Naira)" : ""}
                 </CText>
 
                 <View className="flex flex-row justify-start items-center ">
@@ -114,8 +120,27 @@ const ProductDetails = (props: ProductDetailsProps) => {
                 </View>
               </View>
 
+              {modifierGroups.length > 0 && (
+                <View className="gap-y-1 mt-1">
+                  <CText className="text-[11px]" style={{ fontFamily: "bold" }}>
+                    Options
+                  </CText>
+                  {modifierGroups.slice(0, 3).map((group: any) => (
+                    <CText key={String(group?.id)} className="text-[10px] text-gray-600 dark:text-gray-400">
+                      {group?.name}
+                      {group?.minimum_selection > 0 ? " (required)" : ""}:{" "}
+                      {(group?.items ?? [])
+                        .slice(0, 4)
+                        .map((opt: any) => opt?.name)
+                        .filter(Boolean)
+                        .join(", ")}
+                    </CText>
+                  ))}
+                </View>
+              )}
+
               <Buttons
-                text="Purchase"
+                text={isChowdeck ? "Add to cart" : "Purchase"}
                 onPress={() => setSummarySheetOpen(true)}
               />
             </View>
@@ -127,14 +152,16 @@ const ProductDetails = (props: ProductDetailsProps) => {
         <DragableSheetModal
           close={() => setSummarySheetOpen(false)}
           panClose
-          snapPoints={["45%", "55%"]}
+          snapPoints={isChowdeck ? ["50%", "65%"] : ["45%", "55%"]}
           child={
             <View className="py-2 w-full gap-y-4">
               <CText style={{ fontFamily: "bold" }} className="text-lg">
-                Confirm payment
+                {isChowdeck ? "Add to cart" : "Confirm payment"}
               </CText>
               <CText className="text-sm text-gray-600 dark:text-gray-400">
-                Do you want to proceed with this payment?
+                {isChowdeck
+                  ? "Tell the assistant any required options, then add this item to your cart."
+                  : "Do you want to proceed with this payment?"}
               </CText>
               <CText className="text-sm" numberOfLines={2}>
                 {productDetails?.name?.slice(0, 60)}
@@ -145,25 +172,35 @@ const ProductDetails = (props: ProductDetailsProps) => {
                   <CText className="text-sm">Item price</CText>
                   <CText className="text-sm">{displayCurrency} {basePrice.toLocaleString()}</CText>
                 </View>
-                <View className="flex-row justify-between mb-2">
-                  <CText className="text-sm">Delivery fee</CText>
-                  <CText className="text-sm">{displayCurrency} {deliveryFee.toLocaleString()}</CText>
-                </View>
+                {!isChowdeck && (
+                  <View className="flex-row justify-between mb-2">
+                    <CText className="text-sm">Delivery fee</CText>
+                    <CText className="text-sm">{displayCurrency} {deliveryFee.toLocaleString()}</CText>
+                  </View>
+                )}
+                {isChowdeck && deliveryFee > 0 && (
+                  <View className="flex-row justify-between mb-2">
+                    <CText className="text-sm">Est. delivery (cart)</CText>
+                    <CText className="text-sm">{displayCurrency} {deliveryFee.toLocaleString()}</CText>
+                  </View>
+                )}
                 <View className="flex-row justify-between pt-2 border-t border-grey/20 dark:border-white/10">
-                  <CText className="text-sm" style={{ fontFamily: "bold" }}>Total</CText>
-                  <CText className="text-sm" style={{ fontFamily: "bold" }}>{displayCurrency} {displayPrice.toLocaleString()}</CText>
+                  <CText className="text-sm" style={{ fontFamily: "bold" }}>
+                    {isChowdeck ? "Item" : "Total"}
+                  </CText>
+                  <CText className="text-sm" style={{ fontFamily: "bold" }}>
+                    {displayCurrency} {displayPrice.toLocaleString()}
+                  </CText>
                 </View>
               </View>
               <View className="flex-row gap-2 mt-2">
                 <Buttons
-                  // type="secondary"
                   text="Cancel"
                   onPress={() => setSummarySheetOpen(false)}
                   className="flex-1 py-3 rounded-full"
                 />
                 <Buttons
-                  text="Proceed with payment"
-                  // type="primary"
+                  text={isChowdeck ? "Add with assistant" : "Proceed with payment"}
                   className="flex-grow py-3 rounded-full"
                   onPress={() => {
                     setSummarySheetOpen(false);
@@ -172,6 +209,21 @@ const ProductDetails = (props: ProductDetailsProps) => {
                       const name = productDetails?.name ?? "Product";
                       sessionManager?.sendTextMessage(
                         `Place Jumia order for this product: link ${link}, name ${name}, quantity 1, unit price ${basePrice} NGN.`
+                      );
+                    } else if (isChowdeck) {
+                      const menuId = productDetails?.menu_id ?? productDetails?.link ?? productDetails?.url;
+                      const vendorId = productDetails?.vendor_id;
+                      const name = productDetails?.name ?? "Item";
+                      const required = modifierGroups
+                        .filter((g: any) => Number(g?.minimum_selection) > 0)
+                        .map((g: any) => g?.name)
+                        .filter(Boolean);
+                      const requiredHint =
+                        required.length > 0
+                          ? ` Required options: ${required.join(", ")}.`
+                          : "";
+                      sessionManager?.sendTextMessage(
+                        `Add Chowdeck menu item ${menuId} from vendor ${vendorId} named ${name} at ${basePrice} NGN to my cart.${requiredHint}`
                       );
                     } else {
                       sessionManager?.sendTextMessage(

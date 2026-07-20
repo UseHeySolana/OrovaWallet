@@ -4,11 +4,12 @@ import { Pressable, ScrollView, View } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
-import { apps, reviews } from "@/libs/app/apps";
+import { getCapability, reviews, toImageSource } from "@/libs/app/apps";
 import Buttons from "@/components/ButtonComp";
 import { InlinePillSkeleton } from "@/components/skeletons";
 import { useThemeContext } from "@/context/ThemeContext";
 import ToolsItem from "@/utils/store/toolsitems.store";
+import AppCatalog from "@/utils/store/appCatalog.store";
 import { delay, delayPromise } from "@/utils/functions";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { confirm } from "@/services/confirmation";
@@ -62,19 +63,32 @@ export default function AppItems() {
     return v;
   };
 
+  const catalogApps = AppCatalog((s) => s.apps);
+
   useEffect(() => {
     if (app) {
-      const data = apps.find((item: any) => item.name === app);
+      const key = Array.isArray(app) ? app[0] : String(app);
+      const data = AppCatalog.getState().getAppBySlugOrName(key);
       setAppData(data);
 
-      const appRatings = reviews.filter((item: any) => item.app_name === app);
+      const appRatings = reviews.filter(
+        (item: any) =>
+          item.app_name === data?.name ||
+          item.app_slug === data?.slug ||
+          item.app_name === key ||
+          item.app_slug === key
+      );
       setRatings(appRatings);
     }
-  }, [app]);
+  }, [app, catalogApps]);
+
+  const appStoreKey = appData?.slug || appData?.name;
 
   useEffect(() => {
     const tool = tools.find(
-      (tool: any) => tool.name === appData?.name && tool.value === "active"
+      (tool: any) =>
+        (tool.name === appStoreKey || tool.name === appData?.name) &&
+        tool.value === "active"
     );
     const configs = tool?.config || [];
     setToolConfig(configs.map((item: any) => item.parameters).flat());
@@ -107,7 +121,16 @@ export default function AppItems() {
         const matchingParam = config?.parameters?.find(
           (p: any) => p?.type === param.name
         );
-        return matchingParam && matchingParam.value?.trim();
+        if (!(matchingParam && matchingParam.value?.trim())) return false;
+        // Chowdeck address must be resolved via autocomplete (place_id saved under the hood)
+        if (
+          (appData?.slug === "chowdeck" || appData?.name === "Chowdeck") &&
+          (param?.type === "chowdeck_address" || param?.name === "delivery_address")
+        ) {
+          const placeId = config?.parameters?.find((p: any) => p?.type === "place_id")?.value?.trim();
+          return !!placeId;
+        }
+        return true;
       });
     });
 
@@ -150,20 +173,20 @@ export default function AppItems() {
       if (result) {
         setSetUpParams(true);
         addTool({
-          name: appData?.name,
+          name: appStoreKey,
           value: "active",
         });
 
         appData?.tools?.forEach((tool: any) => {
-          addToolConfig(appData?.name, {
+          addToolConfig(appStoreKey, {
             type: tool.name,
           });
         });
 
-        if ((appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && (walletAddress || phoneNumber)) {
+        if ((appData?.slug === "kalshi" || appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && (walletAddress || phoneNumber)) {
           setToast("Paste your Kalshi private key and key id to complete setup", "info");
         }
-        if (appData?.name === "Bayse Prediction Markets" && (walletAddress || phoneNumber)) {
+        if ((appData?.slug === "bayse" || appData?.name === "Bayse Prediction Markets") && (walletAddress || phoneNumber)) {
           setToast("Paste your Bayse public and secret keys to complete setup", "info");
         }
       }
@@ -172,7 +195,7 @@ export default function AppItems() {
     } else {
       await delayPromise(2000);
       addTool({
-        name: appData?.name,
+        name: appStoreKey,
         value: "active",
       });
       setToast("Tool installed successfully", "success");
@@ -180,7 +203,8 @@ export default function AppItems() {
   };
 
   const deactivateTool = async () => {
-    if (appData.name === "HeySolana" || appData.name === "Jupiter" || appData.name === "Orova") {
+    const capability = getCapability(appStoreKey);
+    if (capability?.core || appData.name === "HeySolana" || appData.name === "Jupiter" || appData.name === "Orova") {
       setToast(
         `You cannot uninstall ${appData.name} it is a core tool`,
         "error"
@@ -194,7 +218,7 @@ export default function AppItems() {
 
     if (result) {
       await delayPromise(2000);
-      removeTool(appData?.name);
+      removeTool(appStoreKey);
       setToast("Tool uninstalled successfully", "success");
     } else {
       setToast("Tool uninstallation cancelled", "error");
@@ -214,18 +238,19 @@ export default function AppItems() {
       value: text,
     });
     setParam(param);
-    updateToolParameter(appData?.name, item.name, {
+    const storeKey = appData?.slug || appData?.name || appStoreKey;
+    updateToolParameter(storeKey, item.name, {
       type: paramItem.name,
       value: text,
     });
 
-    if ((appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && item?.name === "credentials" && (walletAddress || phoneNumber)) {
+    if ((appData?.slug === "kalshi" || appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && item?.name === "credentials" && (walletAddress || phoneNumber)) {
       const currentPrivateKey =
-        (paramItem?.name === "private_key" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "private_key"))?.trim?.() || "";
+        (paramItem?.name === "private_key" ? text : ToolsItem.getState().getParameterValue(storeKey, "credentials", "private_key"))?.trim?.() || "";
       const currentKeyId =
-        (paramItem?.name === "kalshi_access_key_id" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "kalshi_access_key_id"))?.trim?.() || "";
-      const currentKeyLabel = ToolsItem.getState().getParameterValue(appData?.name, "credentials", "key_label") || appData?.name;
-      const currentEnv = (ToolsItem.getState().getParameterValue(appData?.name, "credentials", "environment") || "production") as "production" | "staging";
+        (paramItem?.name === "kalshi_access_key_id" ? text : ToolsItem.getState().getParameterValue(storeKey, "credentials", "kalshi_access_key_id"))?.trim?.() || "";
+      const currentKeyLabel = ToolsItem.getState().getParameterValue(storeKey, "credentials", "key_label") || appData?.name;
+      const currentEnv = (ToolsItem.getState().getParameterValue(storeKey, "credentials", "environment") || "production") as "production" | "staging";
 
       if (currentPrivateKey && currentKeyId) {
         activateKalshiWallet({
@@ -243,14 +268,14 @@ export default function AppItems() {
         });
       }
     }
-    if (appData?.name === "Bayse Prediction Markets" && item?.name === "credentials" && (walletAddress || phoneNumber)) {
+    if ((appData?.slug === "bayse" || appData?.name === "Bayse Prediction Markets") && item?.name === "credentials" && (walletAddress || phoneNumber)) {
       const currentPublicKey =
-        (paramItem?.name === "public_key" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "public_key"))?.trim?.() || "";
+        (paramItem?.name === "public_key" ? text : ToolsItem.getState().getParameterValue(appStoreKey, "credentials", "public_key"))?.trim?.() || "";
       const currentSecretKey =
-        (paramItem?.name === "secret_key" ? text : ToolsItem.getState().getParameterValue(appData?.name, "credentials", "secret_key"))?.trim?.() || "";
-      const currentKeyLabel = ToolsItem.getState().getParameterValue(appData?.name, "credentials", "key_label") || appData?.name;
+        (paramItem?.name === "secret_key" ? text : ToolsItem.getState().getParameterValue(appStoreKey, "credentials", "secret_key"))?.trim?.() || "";
+      const currentKeyLabel = ToolsItem.getState().getParameterValue(appStoreKey, "credentials", "key_label") || appData?.name;
       const currentCurrency =
-        (ToolsItem.getState().getParameterValue(appData?.name, "credentials", "default_currency") || "NGN") as "USD" | "NGN";
+        (ToolsItem.getState().getParameterValue(appStoreKey, "credentials", "default_currency") || "NGN") as "USD" | "NGN";
 
       if (currentPublicKey && currentSecretKey) {
         activateBayseWallet({
@@ -286,11 +311,7 @@ export default function AppItems() {
       <View className="absolute rounded-b-3xl  top-0 left-0 w-full">
         {appData?.is_active ? (
           <Image
-            source={
-              appData?.banner instanceof String
-                ? { uri: appData?.banner }
-                : appData?.banner
-            }
+            source={toImageSource(appData?.banner)}
             style={{ width: "100%", height: 200 }}
             contentFit="cover"
           />
@@ -312,11 +333,7 @@ export default function AppItems() {
           <View className="flex-1 gap-x-2 flex-row justify-start items-center">
             <View className="flex flex-row justify-start items-center gap-x-2 bg-white dark:bg-dark  rounded-3xl w-[75px] h-[75px] overflow-hidden">
               <Image
-                source={
-                  appData?.icon instanceof String
-                    ? { uri: appData?.icon }
-                    : appData?.icon
-                }
+                source={toImageSource(appData?.icon)}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="cover"
               />
@@ -409,15 +426,16 @@ export default function AppItems() {
                                   (item: any) => item?.type === param?.name
                                 )?.value
                             )?.name ||
-                              toolConfig?.find(
+                              (toolConfig?.find(
                                 (item: any) => item?.type === param?.name
                               )?.value
-                              ? maskSensitiveValue(
-                                param?.name,
-                                toolConfig?.find((item: any) => item?.type === param?.name)?.value
-                              )
-                              : "" ||
-                              "Not set"}
+                                ? maskSensitiveValue(
+                                    param?.name,
+                                    toolConfig?.find(
+                                      (item: any) => item?.type === param?.name
+                                    )?.value
+                                  )
+                                : "Not set")}
                           </CText>
                         );
                       })}

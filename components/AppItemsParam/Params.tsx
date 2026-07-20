@@ -3,6 +3,7 @@ import { View, ScrollView, Pressable, TextInput } from "react-native";
 import CText from "../TextComp";
 import IconLibrary from "@/utils/icons";
 import ParamsInput from "./ParamsInput";
+import ChowdeckAddressParam from "./ChowdeckAddressParam";
 import Buttons from "../ButtonComp";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { TouchableNativeFeedback } from "react-native";
@@ -39,9 +40,11 @@ const ParamsComponent = ({
   const pajSession = PajCashSession();
   const [pajOtp, setPajOtp] = useState("");
 
+  const storeKey = appData?.slug || appData?.name;
+
   const getPajRecipient = (itemName = "credentials") =>
     ToolsItem.getState()
-      .getParameterValue(appData?.name, itemName, "email_or_phone")
+      .getParameterValue(storeKey, itemName, "email_or_phone")
       ?.trim() || "";
 
   const sendPajOtp = async (itemName = "credentials") => {
@@ -57,7 +60,7 @@ const ParamsComponent = ({
       setToast(res.message, "error");
       return;
     }
-    updateToolParameter(appData?.name, itemName, {
+    updateToolParameter(storeKey, itemName, {
       type: "email_or_phone",
       value: recipient,
     });
@@ -139,7 +142,7 @@ const ParamsComponent = ({
                     {item.name.toUpperCase()}
                   </CText>
 
-                {appData?.name === "Pajcash" && item?.name === "credentials" && (
+                {(appData?.slug === "pajcash" || appData?.name === "Pajcash") && item?.name === "credentials" && (
                   <View className="w-full mb-4 p-3 rounded-2xl bg-grey/30 dark:bg-black/30">
                     <CText style={{ fontFamily: "bold" }} className="text-[1.1rem] mb-2">
                       Verify PajCash session
@@ -185,7 +188,7 @@ const ParamsComponent = ({
                   </View>
                 )}
 
-                {(appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && item?.name === "credentials" && (
+                {(appData?.slug === "kalshi" || appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && item?.name === "credentials" && (
                   <View className="w-full mb-4 p-3 rounded-2xl bg-grey/30 dark:bg-black/30">
                     <CText style={{ fontFamily: "bold" }} className="text-[1.1rem] mb-2">
                       Connect your Kalshi account
@@ -207,7 +210,7 @@ const ParamsComponent = ({
                     </Pressable>
                   </View>
                 )}
-                {appData?.name === "Bayse Prediction Markets" && item?.name === "credentials" && (
+                {(appData?.slug === "bayse" || appData?.name === "Bayse Prediction Markets") && item?.name === "credentials" && (
                   <View className="w-full mb-4 p-3 rounded-2xl bg-grey/30 dark:bg-black/30">
                     <CText style={{ fontFamily: "bold" }} className="text-[1.1rem] mb-2">
                       Connect your Bayse account
@@ -286,7 +289,7 @@ const ParamsComponent = ({
                                                   key={index}
                                                   onPress={() => {
                                                     updateToolParameter(
-                                                      appData?.name,
+                                                      storeKey,
                                                       item.name,
                                                       {
                                                         type: param.name,
@@ -312,6 +315,15 @@ const ParamsComponent = ({
                                   </ScrollView>
                                 )}
                             </View>
+                          ) : param?.type === "chowdeck_address" ||
+                            ((appData?.slug === "chowdeck" ||
+                              appData?.name === "Chowdeck") &&
+                              param?.name === "delivery_address") ? (
+                            <ChowdeckAddressParam
+                              param={param}
+                              appData={appData}
+                              item={item}
+                            />
                           ) : (
                             <ParamsInput
                               param={param}
@@ -358,7 +370,18 @@ const ParamsComponent = ({
                           });
                           setLoading(true);
 
-                          const result = await item.action.url(...params);
+                          const actionFn =
+                            typeof item.action.url === "function"
+                              ? item.action.url
+                              : null;
+                          if (!actionFn) {
+                            setToast("This action is unavailable on this client", "error");
+                            setLoading(false);
+                            setSetUpParams(null);
+                            return;
+                          }
+
+                          const result = await actionFn(...params);
                           const res = result.data;
 
                           if (res.status) {
