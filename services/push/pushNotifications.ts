@@ -29,7 +29,7 @@ export async function ensurePushPermissions(): Promise<boolean> {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
       name: "HeySolana",
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.HIGH,
       sound: "default",
     });
   }
