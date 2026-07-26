@@ -23,11 +23,11 @@ export {
 } from "./capabilities";
 export { FALLBACK_APPS, categories, reviews };
 
-/** Sync snapshot: catalog store if hydrated, otherwise bundled fallback. */
+/** Sync snapshot: catalog store if hydrated, otherwise bundled public fallback. */
 export function getApps(): App[] {
   const fromStore = AppCatalog.getState().apps;
   if (fromStore?.length) return fromStore;
-  return FALLBACK_APPS.map(enhanceLocalApp);
+  return FALLBACK_APPS.filter((app) => app.visibility !== "beta").map(enhanceLocalApp);
 }
 
 export function getAppBySlugOrName(slugOrName?: string | null): App | undefined {
@@ -39,7 +39,9 @@ export function getAppBySlugOrName(slugOrName?: string | null): App | undefined 
  * Note: this is a live getter snapshot at import-time for array methods that
  * close over the module binding; prefer getApps()/AppCatalog in new code.
  */
-const apps: App[] = FALLBACK_APPS.map(enhanceLocalApp);
+const apps: App[] = FALLBACK_APPS.filter((app) => app.visibility !== "beta").map(
+  enhanceLocalApp
+);
 
 // Keep module-level `apps` roughly in sync when the catalog refreshes.
 AppCatalog.subscribe((state) => {

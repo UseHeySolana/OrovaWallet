@@ -63,6 +63,8 @@ export interface AppManifest {
   icon_url?: string | null;
   banner_url?: string | null;
   sort_order?: number;
+  /** Bundled fallback only: beta apps stay hidden until remote catalog grants access. */
+  visibility?: "public" | "beta";
 }
 
 /** Resolved app used by the wallet UI (manifest + local assets/actions). */
@@ -98,6 +100,7 @@ export interface RemoteAppRegistration {
   review_count?: number;
   minimum_client_version?: string | null;
   platforms?: string[];
+  visibility?: "public" | "beta";
 }
 
 /** Alias kept for older imports. */

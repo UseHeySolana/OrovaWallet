@@ -10,13 +10,18 @@ import {
 import { resolveAppSlug } from "@/libs/app/capabilities";
 import type { App, RemoteAppRegistration } from "@/libs/app/types";
 import { fetchPublishedApps } from "@/services/appCatalogApi";
+import ToolsItem from "@/utils/store/toolsitems.store";
+import UserItem from "@/utils/store/userstore.store";
+import WalletItem from "@/utils/store/wallet.store";
 
 interface AppCatalogStore {
   apps: App[];
   source: "fallback" | "remote" | "cache";
   lastFetchedAt: number | null;
+  lastIdentityKey: string | null;
   loading: boolean;
   error: string | null;
+  hiddenSlugs: string[];
   hydrateFromFallback: () => void;
   refreshCatalog: (opts?: { force?: boolean }) => Promise<App[]>;
   getAppBySlugOrName: (slugOrName?: string | null) => App | undefined;
@@ -24,27 +29,82 @@ interface AppCatalogStore {
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+function viewerIdentity() {
+  const wallet =
+    WalletItem.getState().publicKeyBase58 ||
+    WalletItem.getState().publicKey?.toBase58() ||
+    "";
+  const user = UserItem.getState().user;
+  const phone =
+    user?.phoneE164?.trim() || user?.mobileNumber?.trim() || "";
+  const email = user?.email?.trim() || "";
+
+  return {
+    wallet_address: wallet || undefined,
+    phone_number: phone || undefined,
+    email: email || undefined,
+  };
+}
+
+function identityKeyFrom(identity: {
+  wallet_address?: string;
+  phone_number?: string;
+  email?: string;
+}): string {
+  return [
+    identity.wallet_address?.toLowerCase() || "",
+    identity.phone_number || "",
+    identity.email?.toLowerCase() || "",
+  ].join("|");
+}
+
+/** Deactivate tools for apps the viewer is no longer allowed to see. */
+function revokeHiddenActivations(hiddenSlugs: string[]) {
+  if (!hiddenSlugs.length) return;
+  const hidden = new Set(hiddenSlugs);
+  const { tools, updateToolStatus } = ToolsItem.getState();
+  for (const tool of tools) {
+    if (tool.value !== "active") continue;
+    const slug = resolveAppSlug(tool.name) || tool.name;
+    if (hidden.has(slug)) {
+      updateToolStatus(tool.name, "inactive");
+    }
+  }
+}
+
+const publicFallbackApps = (): App[] =>
+  FALLBACK_APPS.filter((app) => app.visibility !== "beta").map(enhanceLocalApp);
+
 const AppCatalog = create<AppCatalogStore>()(
   persist(
     (set, get) => ({
-      apps: FALLBACK_APPS.map(enhanceLocalApp),
+      apps: publicFallbackApps(),
       source: "fallback",
       lastFetchedAt: null,
+      lastIdentityKey: null,
       loading: false,
       error: null,
+      hiddenSlugs: [],
 
       hydrateFromFallback: () => {
         set({
-          apps: FALLBACK_APPS.map(enhanceLocalApp),
+          apps: publicFallbackApps(),
           source: "fallback",
+          hiddenSlugs: [],
         });
       },
 
       refreshCatalog: async (opts) => {
-        const { lastFetchedAt, apps, loading } = get();
+        const { lastFetchedAt, lastIdentityKey, apps, loading } = get();
         if (loading) return apps;
+
+        const identity = viewerIdentity();
+        const identityKey = identityKeyFrom(identity);
+        const identityChanged = lastIdentityKey !== identityKey;
+
         if (
           !opts?.force &&
+          !identityChanged &&
           lastFetchedAt &&
           Date.now() - lastFetchedAt < CACHE_TTL_MS &&
           apps.length > 0
@@ -54,17 +114,22 @@ const AppCatalog = create<AppCatalogStore>()(
 
         set({ loading: true, error: null });
         try {
-          const remotePayload = await fetchPublishedApps();
+          const { apps: remotePayload, hiddenSlugs } = await fetchPublishedApps(
+            identity
+          );
           const remoteApps = remotePayload
             .map((item: RemoteAppRegistration) => remoteToPartialApp(item))
             .filter((item): item is App => !!item);
-          const merged = mergeCatalog(remoteApps, FALLBACK_APPS);
+          const merged = mergeCatalog(remoteApps, FALLBACK_APPS, { hiddenSlugs });
+          revokeHiddenActivations(hiddenSlugs);
           set({
             apps: merged,
             source: "remote",
             lastFetchedAt: Date.now(),
+            lastIdentityKey: identityKey,
             loading: false,
             error: null,
+            hiddenSlugs,
           });
           return merged;
         } catch (error) {
@@ -75,8 +140,8 @@ const AppCatalog = create<AppCatalogStore>()(
           }
           const fallback =
             get().apps.length > 0
-              ? get().apps
-              : FALLBACK_APPS.map(enhanceLocalApp);
+              ? get().apps.filter((app) => !get().hiddenSlugs.includes(app.slug))
+              : publicFallbackApps();
           set({
             apps: fallback,
             source: get().lastFetchedAt ? "cache" : "fallback",
@@ -99,12 +164,14 @@ const AppCatalog = create<AppCatalogStore>()(
       },
     }),
     {
-      name: "app-catalog-v1",
+      name: "app-catalog-v2",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         apps: state.apps,
         source: state.source,
         lastFetchedAt: state.lastFetchedAt,
+        lastIdentityKey: state.lastIdentityKey,
+        hiddenSlugs: state.hiddenSlugs,
       }),
     }
   )
