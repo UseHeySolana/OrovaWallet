@@ -36,15 +36,15 @@ export const ACTION_HANDLERS: Record<string, (...args: any[]) => any> = {
 export const APP_CAPABILITIES: Record<string, AppCapability> = {
   crossmint: {
     slug: "crossmint",
-    legacyNames: ["Crossmint"],
+    legacyNames: ["Crossmint", "Amazon"],
     capabilityIds: ["crossmint"],
     toolFunctionNames: [
       "search-products-amazon",
       "create-order",
       "product-details",
     ],
-    localIcon: require("@/assets/apps/crossmint/logo.png"),
-    localBanner: require("@/assets/apps/crossmint/banner.png"),
+    localIcon: require("@/assets/apps/amazon/logo.png"),
+    localBanner: require("@/assets/apps/amazon/banner.png"),
   },
   airbills: {
     slug: "airbills",

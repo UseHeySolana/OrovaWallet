@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#232F3E"/>
+      <stop offset="100%" stop-color="#131A22"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="600" fill="url(#bg)"/>
+  <text x="600" y="300" text-anchor="middle" font-family="Arial Black, Helvetica, Arial, sans-serif" font-size="160" font-weight="900" fill="#FFFFFF">amazon</text>
+  <path d="M320 340 C520 430, 760 430, 940 320" fill="none" stroke="#FF9900" stroke-width="24" stroke-linecap="round"/>
+  <path d="M900 310 L945 328 L890 365" fill="none" stroke="#FF9900" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="600" y="470" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="36" fill="#D5DBDB">Shop with USDC on Solana</text>
+</svg>

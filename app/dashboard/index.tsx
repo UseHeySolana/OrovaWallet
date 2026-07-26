@@ -97,7 +97,7 @@ export default function Dashboard() {
   useEffect(() => {
     console.log(
       ToolsItem.getState()
-        .getToolParameters("Crossmint", "tracking email")[0]
+        .getToolParameters("Amazon", "tracking email")[0]
         ?.value.toLowerCase()
     );
   }, []);

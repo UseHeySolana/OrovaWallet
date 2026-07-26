@@ -118,7 +118,7 @@ const ToolItem = (props: ItemProps) => {
             item?.tool?.action?.includes("product-details") ? (
             <View className="w-10 h-10 rounded-full overflow-hidden">
               <Image
-                source={require("@/assets/apps/crossmint/logo.png")}
+                source={require("@/assets/apps/amazon/logo.png")}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="contain"
                 className={`rounded-full ${isSystem ? "ml-2" : "mr-2"}`}
@@ -192,7 +192,7 @@ const ToolItem = (props: ItemProps) => {
                   : item?.tool?.action?.includes("chowdeck")
                     ? "Chowdeck"
                   : item?.tool?.action?.includes("amazon")
-                    ? "Crossmint"
+                    ? "Amazon"
                     : item?.tool?.action?.includes("airtime") ||
                         item?.tool?.action?.includes("data") ||
                         item?.tool?.action?.includes("electricity")

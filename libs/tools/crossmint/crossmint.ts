@@ -64,7 +64,7 @@ const crossmint = {
 
       // --- Validate user details before proceeding ---
       const emailParam = ToolsItem.getState().getToolParameters(
-        "Crossmint",
+        "Amazon",
         "tracking email"
       )[0];
       const email = emailParam?.value?.trim()?.toLowerCase();
@@ -72,12 +72,12 @@ const crossmint = {
         return {
           status: false,
           message:
-            "Your tracking email is not set. Please set it in the app settings (Crossmint → tracking email) before placing an order.",
+            "Your tracking email is not set. Please set it in the app settings (Amazon → tracking email) before placing an order.",
         };
       }
 
       const params = ToolsItem.getState().getToolParameters(
-        "Crossmint",
+        "Amazon",
         "Agentic Commerce"
       );
       const requiredAddressFields = ["name", "line1", "city", "state", "postalCode", "country"];
@@ -85,7 +85,7 @@ const crossmint = {
         return {
           status: false,
           message:
-            "Your delivery address is not set. Please set it in the app settings (Crossmint → Agentic Commerce) before placing an order.",
+            "Your delivery address is not set. Please set it in the app settings (Amazon → Agentic Commerce) before placing an order.",
         };
       }
 
@@ -102,7 +102,7 @@ const crossmint = {
         if (param.value === "" || !String(param.value).trim()) {
           return {
             status: false,
-            message: `Your ${param.type} for your delivery address is not set. Please complete your delivery address in the app settings (Crossmint → Agentic Commerce) before placing an order.`,
+            message: `Your ${param.type} for your delivery address is not set. Please complete your delivery address in the app settings (Amazon → Agentic Commerce) before placing an order.`,
           };
         }
         address[param.type as keyof typeof address] = param.value;
@@ -114,7 +114,7 @@ const crossmint = {
       if (missingAddressFields.length > 0) {
         return {
           status: false,
-          message: `Your delivery address is incomplete. Please set ${missingAddressFields.join(", ")} in the app settings (Crossmint → Agentic Commerce) before placing an order.`,
+          message: `Your delivery address is incomplete. Please set ${missingAddressFields.join(", ")} in the app settings (Amazon → Agentic Commerce) before placing an order.`,
         };
       }
 

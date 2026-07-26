@@ -20,17 +20,17 @@ import { recordCommercePaymentTransaction } from "@/services/appTransactions";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDC_DECIMALS = 6;
 
-/** Build recipient from Crossmint app settings; returns null and message if invalid. */
+/** Build recipient from Amazon app settings; returns null and message if invalid. */
 function getCrossmintRecipient(): { recipient: { email: string; physicalAddress: Record<string, string> }; error?: string } {
-  const emailParam = ToolsItem.getState().getToolParameters("Crossmint", "tracking email")[0];
+  const emailParam = ToolsItem.getState().getToolParameters("Amazon", "tracking email")[0];
   const email = emailParam?.value?.trim()?.toLowerCase();
   if (!email) {
-    return { recipient: null as any, error: "Your tracking email is not set. Please set it in the app settings (Crossmint → tracking email) before placing an order." };
+    return { recipient: null as any, error: "Your tracking email is not set. Please set it in the app settings (Amazon → tracking email) before placing an order." };
   }
-  const params = ToolsItem.getState().getToolParameters("Crossmint", "Agentic Commerce");
+  const params = ToolsItem.getState().getToolParameters("Amazon", "Agentic Commerce");
   const requiredAddressFields = ["name", "line1", "city", "state", "postalCode", "country"];
   if (!params?.length) {
-    return { recipient: null as any, error: "Your delivery address is not set. Please set it in the app settings (Crossmint → Agentic Commerce) before placing an order." };
+    return { recipient: null as any, error: "Your delivery address is not set. Please set it in the app settings (Amazon → Agentic Commerce) before placing an order." };
   }
   const address: Record<string, string> = {
     name: "",
@@ -42,13 +42,13 @@ function getCrossmintRecipient(): { recipient: { email: string; physicalAddress:
   };
   for (const param of params) {
     if (param.value === "" || !String(param.value).trim()) {
-      return { recipient: null as any, error: `Your ${param.type} for your delivery address is not set. Please complete your delivery address in the app settings (Crossmint → Agentic Commerce) before placing an order.` };
+      return { recipient: null as any, error: `Your ${param.type} for your delivery address is not set. Please complete your delivery address in the app settings (Amazon → Agentic Commerce) before placing an order.` };
     }
     address[param.type as keyof typeof address] = param.value;
   }
   const missing = requiredAddressFields.filter((f) => !address[f]?.trim());
   if (missing.length > 0) {
-    return { recipient: null as any, error: `Your delivery address is incomplete. Please set ${missing.join(", ")} in the app settings (Crossmint → Agentic Commerce) before placing an order.` };
+    return { recipient: null as any, error: `Your delivery address is incomplete. Please set ${missing.join(", ")} in the app settings (Amazon → Agentic Commerce) before placing an order.` };
   }
   return {
     recipient: { email, physicalAddress: address },
@@ -185,7 +185,7 @@ export class Crossmint {
               recordCommercePaymentTransaction({
                 signature: txId,
                 provider: "crossmint",
-                app_called: "Crossmint",
+                app_called: "Amazon",
                 amount: amountUsd,
                 token: "USDC",
                 mint: USDC_MINT,
