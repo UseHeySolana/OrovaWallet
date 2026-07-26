@@ -1,23 +1,33 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
 import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
-import { getCapability, reviews, toImageSource } from "@/libs/app/apps";
+import { getCapability, toImageSource } from "@/libs/app/apps";
 import Buttons from "@/components/ButtonComp";
 import { InlinePillSkeleton } from "@/components/skeletons";
 import { useThemeContext } from "@/context/ThemeContext";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import AppCatalog from "@/utils/store/appCatalog.store";
-import { delay, delayPromise } from "@/utils/functions";
+import { delayPromise } from "@/utils/functions";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { confirm } from "@/services/confirmation";
 import UserItem from "@/utils/store/userstore.store";
 import ParamsComponent from "@/components/AppItemsParam/Params";
 import WalletItem from "@/utils/store/wallet.store";
-import { activateKalshiWallet, backupKalshiApiKey } from "@/services/kalshiApi";
+import { activateKalshiWallet } from "@/services/kalshiApi";
 import { activateBayseWallet } from "@/services/bayseApi";
+import {
+  fetchAppReviews,
+  formatRating,
+  formatUserCount,
+  recordAppInstall,
+  recordAppUninstall,
+  submitAppReview,
+  type AppEngagementStats,
+  type AppReviewItem,
+} from "@/services/appEngagementApi";
 
 /**
  * What should be done here
@@ -28,20 +38,24 @@ export default function AppItems() {
   const { app } = useLocalSearchParams();
   const { user } = UserItem();
   const walletAddress = WalletItem((state) => state.publicKey?.toString() || "");
-  const phoneNumber = user?.mobileNumber?.trim() || "";
+  const phoneNumber =
+    user?.phoneE164?.trim() || user?.mobileNumber?.trim() || "";
   const [appData, setAppData] = useState<any>(null);
-  const [ratings, setRatings] = useState<any>(null);
+  const [ratings, setRatings] = useState<AppReviewItem[]>([]);
+  const [myReview, setMyReview] = useState<AppReviewItem | null>(null);
+  const [engagement, setEngagement] = useState<AppEngagementStats | null>(null);
+  const [draftRating, setDraftRating] = useState(0);
+  const [draftReview, setDraftReview] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
   const {
     tools,
     addTool,
     removeTool,
     addToolConfig,
-    removeToolConfig,
-    clearTools,
     updateToolParameter,
   } = ToolsItem();
   const [activated, setActivated] = useState(false);
-  const { isLoading, setToast, setLoading } = AppSettings();
+  const { isLoading, setToast } = AppSettings();
   const [activeParams, setActiveParams] = useState<any>(null);
   const [setUpParams, setSetUpParams] = useState<boolean | null>(null);
 
@@ -50,6 +64,50 @@ export default function AppItems() {
   const [result, setResult] = useState<any>(null);
   const [inputValue, setInputValue] = useState<any>({});
   const [param, setParam] = useState<any>(null);
+
+  const buildIdentity = useCallback(
+    () => ({
+      wallet_address: walletAddress || undefined,
+      phone_number: phoneNumber || undefined,
+      user_name: user?.username || undefined,
+      user_image: user?.profileImageUri || undefined,
+    }),
+    [walletAddress, phoneNumber, user?.username, user?.profileImageUri]
+  );
+
+  const applyEngagement = useCallback((stats: AppEngagementStats | null) => {
+    if (!stats) return;
+    setEngagement(stats);
+    setAppData((prev: any) =>
+      prev
+        ? {
+            ...prev,
+            ratings: stats.ratings,
+            user_count: stats.user_count,
+            review_count: stats.review_count,
+          }
+        : prev
+    );
+  }, []);
+
+  const loadReviews = useCallback(
+    async (slug: string) => {
+      const identity = buildIdentity();
+      const hasIdentity = !!(identity.wallet_address || identity.phone_number);
+      const result = await fetchAppReviews(
+        slug,
+        hasIdentity ? identity : undefined
+      );
+      setRatings(result.reviews);
+      setMyReview(result.mine);
+      if (result.mine) {
+        setDraftRating(result.mine.rating || 0);
+        setDraftReview(result.mine.review || "");
+      }
+      applyEngagement(result.engagement);
+    },
+    [buildIdentity, applyEngagement]
+  );
 
   const maskSensitiveValue = (paramName: string, value: string) => {
     const v = String(value || "");
@@ -70,17 +128,19 @@ export default function AppItems() {
       const key = Array.isArray(app) ? app[0] : String(app);
       const data = AppCatalog.getState().getAppBySlugOrName(key);
       setAppData(data);
-
-      const appRatings = reviews.filter(
-        (item: any) =>
-          item.app_name === data?.name ||
-          item.app_slug === data?.slug ||
-          item.app_name === key ||
-          item.app_slug === key
-      );
-      setRatings(appRatings);
+      if (data?.slug) {
+        setEngagement({
+          ratings: Number(data.ratings ?? 0),
+          user_count: Number(data.user_count ?? 0),
+          review_count: Number(data.review_count ?? 0),
+        });
+        void loadReviews(data.slug);
+      } else {
+        setRatings([]);
+        setMyReview(null);
+      }
     }
-  }, [app, catalogApps]);
+  }, [app, catalogApps, loadReviews]);
 
   const appStoreKey = appData?.slug || appData?.name;
 
@@ -149,11 +209,28 @@ export default function AppItems() {
     }
   }, [tools, appData]);
 
+  // Backfill install for apps already activated locally before engagement tracking existed
+  useEffect(() => {
+    if (!activated || !appData?.slug) return;
+    const identity = buildIdentity();
+    if (!identity.wallet_address && !identity.phone_number) return;
+    void recordAppInstall(appData.slug, identity).then(applyEngagement);
+  }, [activated, appData?.slug, buildIdentity, applyEngagement]);
+
   useEffect(() => {
     const configValue =
       toolConfig?.find((item: any) => item?.type === param?.name)?.value || "";
     setInputValue(configValue);
   }, [toolConfig, param]);
+
+  const syncInstallRemote = async () => {
+    const identity = buildIdentity();
+    if (!appData?.slug || (!identity.wallet_address && !identity.phone_number)) {
+      return;
+    }
+    const stats = await recordAppInstall(appData.slug, identity);
+    applyEngagement(stats);
+  };
 
   const activateTool = async () => {
     if (appData?.tools?.length > 0) {
@@ -183,6 +260,8 @@ export default function AppItems() {
           });
         });
 
+        void syncInstallRemote();
+
         if ((appData?.slug === "kalshi" || appData?.name === "Kalshi Prediction Markets" || appData?.name === "Kalshi") && (walletAddress || phoneNumber)) {
           setToast("Paste your Kalshi private key and key id to complete setup", "info");
         }
@@ -198,6 +277,7 @@ export default function AppItems() {
         name: appStoreKey,
         value: "active",
       });
+      void syncInstallRemote();
       setToast("Tool installed successfully", "success");
     }
   };
@@ -219,10 +299,55 @@ export default function AppItems() {
     if (result) {
       await delayPromise(2000);
       removeTool(appStoreKey);
+      const identity = buildIdentity();
+      if (appData?.slug && (identity.wallet_address || identity.phone_number)) {
+        const stats = await recordAppUninstall(appData.slug, identity);
+        applyEngagement(stats);
+      }
       setToast("Tool uninstalled successfully", "success");
     } else {
       setToast("Tool uninstallation cancelled", "error");
     }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!activated) {
+      setToast("Install the app before leaving a rating", "error");
+      return;
+    }
+    if (!draftRating || draftRating < 1) {
+      setToast("Pick a star rating first", "error");
+      return;
+    }
+    const identity = buildIdentity();
+    if (!identity.wallet_address && !identity.phone_number) {
+      setToast("Connect a wallet or phone number to leave a review", "error");
+      return;
+    }
+    if (!appData?.slug) return;
+
+    setSubmittingReview(true);
+    const result = await submitAppReview(appData.slug, {
+      ...identity,
+      rating: draftRating,
+      review: draftReview.trim() || undefined,
+    });
+    setSubmittingReview(false);
+
+    if (result.error) {
+      setToast(result.error, "error");
+      return;
+    }
+
+    if (result.review) {
+      setMyReview(result.review);
+      setRatings((prev) => {
+        const withoutMine = prev.filter((r) => r.id !== result.review!.id);
+        return [result.review!, ...withoutMine];
+      });
+    }
+    applyEngagement(result.engagement);
+    setToast(myReview ? "Review updated" : "Thanks for your rating!", "success");
   };
 
   const handleChangeText = (
@@ -456,7 +581,9 @@ export default function AppItems() {
                 contentFit="contain"
               />
               <CText style={{ fontFamily: "reg" }} className="text-[1.3rem]">
-                100+ users
+                {formatUserCount(
+                  engagement?.user_count ?? appData?.user_count ?? 0
+                )}
               </CText>
             </View>
           </View>
@@ -469,7 +596,7 @@ export default function AppItems() {
                 contentFit="contain"
               />
               <CText style={{ fontFamily: "reg" }} className="text-[1.3rem]">
-                4.5 rating
+                {formatRating(engagement?.ratings ?? appData?.ratings ?? 0)}
               </CText>
             </View>
           </View>
@@ -511,19 +638,71 @@ export default function AppItems() {
         </View>
 
         <View className="w-full flex flex-col justify-start items-start gap-y-4 mt-4 bg-white dark:bg-accent p-3 py-4 rounded-2xl">
-          <CText style={{ fontFamily: "bold" }} className="text-[1.8rem]">
-            Ratings & Reviews
-          </CText>
+          <View className="w-full flex-row justify-between items-center">
+            <CText style={{ fontFamily: "bold" }} className="text-[1.8rem]">
+              Ratings & Reviews
+            </CText>
+            {(engagement?.review_count ?? appData?.review_count ?? 0) > 0 && (
+              <CText style={{ fontFamily: "reg" }} className="text-[1rem]">
+                {engagement?.review_count ?? appData?.review_count} reviews
+              </CText>
+            )}
+          </View>
+
+          {activated && (
+            <View className="w-full gap-y-3 border-b border-grey/30 dark:border-white/10 pb-4">
+              <CText style={{ fontFamily: "bold" }} className="text-[1.2rem]">
+                {myReview ? "Update your rating" : "Rate this app"}
+              </CText>
+              <View className="flex flex-row items-center gap-x-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Pressable key={star} onPress={() => setDraftRating(star)}>
+                    <IconLibrary.star
+                      color={star <= draftRating ? "#FFD700" : "grey"}
+                      size={28}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+              <TextInput
+                value={draftReview}
+                onChangeText={setDraftReview}
+                placeholder="Write a review (optional)"
+                placeholderTextColor={isDarkMode ? "#888" : "#999"}
+                multiline
+                className="w-full min-h-[80px] p-3 rounded-2xl bg-grey dark:bg-dark text-[1.1rem] text-black dark:text-white"
+                style={{ fontFamily: "reg", textAlignVertical: "top" }}
+              />
+              <Buttons
+                type="primary"
+                className="py-3 px-5 rounded-3xl self-start"
+                text={
+                  submittingReview
+                    ? "Submitting…"
+                    : myReview
+                      ? "Update review"
+                      : "Submit rating"
+                }
+                onPress={handleSubmitReview}
+              />
+            </View>
+          )}
+
           {ratings?.length > 0 ? (
-            ratings?.map((item: any, index: number) => {
+            ratings?.map((item: AppReviewItem, index: number) => {
+              const stars = Math.max(0, Math.min(5, Math.round(item.rating || 0)));
+              const avatarSource =
+                typeof item.user_image === "string" && item.user_image
+                  ? { uri: item.user_image }
+                  : require("@/assets/users.png");
               return (
                 <View
-                  key={`${item.user_name}-${index}`}
+                  key={`${item.id ?? item.user_name}-${index}`}
                   className="w-full flex flex-row justify-start items-center gap-x-4"
                 >
-                  <View className="w-10 h-10 rounded-full bg-white dark:bg-accent2 flex items-center justify-center">
+                  <View className="w-10 h-10 rounded-full bg-white dark:bg-accent2 flex items-center justify-center overflow-hidden">
                     <Image
-                      source={item.user_image}
+                      source={avatarSource}
                       style={{ width: "100%", height: "100%" }}
                       contentFit="cover"
                     />
@@ -535,37 +714,35 @@ export default function AppItems() {
                     >
                       {item.user_name}
                     </CText>
-                    <CText
-                      style={{ fontFamily: "reg" }}
-                      className="text-[1.2rem]"
-                    >
-                      {item.review}
-                    </CText>
+                    {!!item.review && (
+                      <CText
+                        style={{ fontFamily: "reg" }}
+                        className="text-[1.2rem]"
+                      >
+                        {item.review}
+                      </CText>
+                    )}
                     <View className="flex flex-row justify-start items-center gap-x-2">
-                      {Array.from({ length: item.rating.toFixed(0) }).map(
-                        (_, index) => (
-                          <IconLibrary.star
-                            color="#FFD700"
-                            size={12}
-                            key={index}
-                          />
-                        )
-                      )}
-                      {Array.from({ length: 5 - item.rating.toFixed(0) }).map(
-                        (_, index) => (
-                          <IconLibrary.star
-                            color="grey"
-                            size={12}
-                            key={index}
-                          />
-                        )
-                      )}
+                      {Array.from({ length: stars }).map((_, i) => (
+                        <IconLibrary.star
+                          color="#FFD700"
+                          size={12}
+                          key={`filled-${i}`}
+                        />
+                      ))}
+                      {Array.from({ length: 5 - stars }).map((_, i) => (
+                        <IconLibrary.star
+                          color="grey"
+                          size={12}
+                          key={`empty-${i}`}
+                        />
+                      ))}
 
                       <CText
                         style={{ fontFamily: "reg" }}
                         className="text-[1.2rem]"
                       >
-                        {item.rating.toFixed(1)}
+                        {Number(item.rating).toFixed(1)}
                       </CText>
                     </View>
                   </View>
@@ -574,7 +751,9 @@ export default function AppItems() {
             })
           ) : (
             <CText style={{ fontFamily: "reg" }} className="text-[1.2rem]">
-              No ratings yet
+              {activated
+                ? "No reviews yet — be the first to rate this app"
+                : "No ratings yet"}
             </CText>
           )}
         </View>

@@ -187,7 +187,7 @@ export class ChowdeckTool {
     return {
       name: "set-chowdeck-location",
       description:
-        "Set or change the user's saved Chowdeck delivery address. Call only when no address is saved yet, or the user wants to change it. Pass the address text they typed; the app shows tappable autocomplete suggestions — do not list options aloud or ask for place_id/coordinates.",
+        "Set or change the user's saved Chowdeck delivery address. Call only when no address is saved yet, or the user wants to change it. Pass the address text they typed; prefer street + area (not just a neighborhood name). The app shows tappable autocomplete suggestions — do not list options aloud or ask for place_id/coordinates.",
       parameters: {
         type: "object",
         properties: {
@@ -304,16 +304,16 @@ export class ChowdeckTool {
           }
 
           // Multiple matches → show tappable picker on the tool card.
+          // Prefer full description; Chowdeck main_text is often just the area name.
           const options = predictions.slice(0, 8).map((p) => ({
             place_id: p.place_id,
-            label:
-              p.structured_formatting?.main_text ||
-              p.description ||
-              "Address",
+            label: p.description || p.structured_formatting?.main_text || "Address",
             description:
-              p.structured_formatting?.secondary_text ||
-              (p.description !== p.structured_formatting?.main_text ? p.description : "") ||
-              "",
+              p.description &&
+              p.structured_formatting?.secondary_text &&
+              !p.description.includes(p.structured_formatting.secondary_text)
+                ? p.structured_formatting.secondary_text
+                : "",
           }));
           if (messageId) {
             Convo.getState().updateMessage({

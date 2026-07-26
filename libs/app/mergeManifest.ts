@@ -89,6 +89,8 @@ export function remoteToPartialApp(remote: RemoteAppRegistration): App | null {
     is_featured: !!remote.is_featured,
     is_new: !!remote.is_new,
     ratings: Number(remote.ratings ?? 0),
+    user_count: Number(remote.user_count ?? 0),
+    review_count: Number(remote.review_count ?? 0),
     dashboardRoute: remote.dashboard_route || undefined,
     brand_colors: remote.brand_colors?.primary
       ? {

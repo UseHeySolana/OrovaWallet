@@ -49,6 +49,8 @@ export interface AppManifest {
   is_featured: boolean;
   is_new: boolean;
   ratings: number;
+  user_count?: number;
+  review_count?: number;
   dashboardRoute?: string;
   brand_colors?: {
     primary: string;
@@ -92,6 +94,8 @@ export interface RemoteAppRegistration {
   is_new?: boolean;
   sort_order?: number;
   ratings?: number;
+  user_count?: number;
+  review_count?: number;
   minimum_client_version?: string | null;
   platforms?: string[];
 }

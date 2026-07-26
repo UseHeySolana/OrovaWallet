@@ -178,9 +178,34 @@ async function postJson(path: string, body: object) {
   return data;
 }
 
+/** Chowdeck often returns many rows with the same label but different place_ids. */
+export function dedupeChowdeckPredictions(
+  predictions: ChowdeckPlacePrediction[]
+): ChowdeckPlacePrediction[] {
+  const seen = new Set<string>();
+  const out: ChowdeckPlacePrediction[] = [];
+  for (const p of predictions) {
+    if (!p?.place_id) continue;
+    const label = (
+      p.description ||
+      [p.structured_formatting?.main_text, p.structured_formatting?.secondary_text]
+        .filter(Boolean)
+        .join(", ") ||
+      p.place_id
+    )
+      .trim()
+      .toLowerCase();
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push(p);
+  }
+  return out;
+}
+
 export async function autocompleteChowdeckPlace(input: string): Promise<ChowdeckPlacePrediction[]> {
   const data = await getJson(`/chowdeck/place/autocomplete?input=${encodeURIComponent(input)}`);
-  return ((data as { data?: ChowdeckPlacePrediction[] }).data ?? []) as ChowdeckPlacePrediction[];
+  const raw = ((data as { data?: ChowdeckPlacePrediction[] }).data ?? []) as ChowdeckPlacePrediction[];
+  return dedupeChowdeckPredictions(raw);
 }
 
 export async function getChowdeckPlaceDetails(placeId: string): Promise<ChowdeckPlaceDetails> {
