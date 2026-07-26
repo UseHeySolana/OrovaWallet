@@ -132,15 +132,25 @@ export function enhanceLocalApp(app: App): App {
 /**
  * Prefer remote published manifests; fill gaps with bundled fallbacks.
  * Unknown remote slugs are still shown as metadata-only apps.
+ * Beta-bundled fallbacks only appear when the remote catalog grants them.
  */
-export function mergeCatalog(remoteApps: App[], fallbackApps: App[]): App[] {
+export function mergeCatalog(
+  remoteApps: App[],
+  fallbackApps: App[],
+  opts?: { hiddenSlugs?: string[] }
+): App[] {
+  const hidden = new Set((opts?.hiddenSlugs ?? []).filter(Boolean));
   const bySlug = new Map<string, App>();
 
   for (const fallback of fallbackApps) {
+    if (hidden.has(fallback.slug)) continue;
+    // Keep beta fallbacks out of the store until remote allows the viewer.
+    if (fallback.visibility === "beta") continue;
     bySlug.set(fallback.slug, enhanceLocalApp(fallback));
   }
 
   for (const remote of remoteApps) {
+    if (hidden.has(remote.slug)) continue;
     const local = bySlug.get(remote.slug);
     if (!local) {
       bySlug.set(remote.slug, enhanceLocalApp(remote));

@@ -291,6 +291,7 @@ Talk, ask, command, and get things done with just your voice. From managing your
     is_new: true,
     ratings: 4.6,
     sort_order: 60,
+    visibility: "beta",
     capability_ids: ["chowdeck"],
     tools: [
       {

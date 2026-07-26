@@ -69,10 +69,11 @@ export default function AppItems() {
     () => ({
       wallet_address: walletAddress || undefined,
       phone_number: phoneNumber || undefined,
+      email: user?.email?.trim() || undefined,
       user_name: user?.username || undefined,
       user_image: user?.profileImageUri || undefined,
     }),
-    [walletAddress, phoneNumber, user?.username, user?.profileImageUri]
+    [walletAddress, phoneNumber, user?.email, user?.username, user?.profileImageUri]
   );
 
   const applyEngagement = useCallback((stats: AppEngagementStats | null) => {
@@ -430,9 +431,26 @@ export default function AppItems() {
           <IconLibrary.back />
         </Pressable>
         <CText textColor={"text-white"} className="text-[1.4rem]">
-          {appData?.name}
+          {appData?.name || "App"}
         </CText>
       </View>
+      {!appData ? (
+        <View className="flex-1 w-full px-6 justify-center items-center gap-y-3">
+          <CText style={{ fontFamily: "bold" }} className="text-[1.4rem] text-center">
+            App unavailable
+          </CText>
+          <CText style={{ fontFamily: "reg" }} className="text-[1rem] text-center opacity-70">
+            This app is in private beta or not published for your account.
+          </CText>
+          <Buttons
+            type="secondary"
+            className="py-3 px-6 rounded-3xl mt-2"
+            text="Back to apps"
+            onPress={() => router.back()}
+          />
+        </View>
+      ) : (
+      <>
       <View className="absolute rounded-b-3xl  top-0 left-0 w-full">
         {appData?.is_active ? (
           <Image
@@ -770,6 +788,8 @@ export default function AppItems() {
           setSetUpParams={setSetUpParams}
           tutorial={appData?.tutorial}
         />
+      )}
+      </>
       )}
     </View>
   );

@@ -21,6 +21,7 @@ export interface AppReviewItem {
 export interface AppIdentityPayload {
   wallet_address?: string;
   phone_number?: string;
+  email?: string;
   user_name?: string;
   user_image?: string;
 }
@@ -29,6 +30,7 @@ function identityQuery(identity: AppIdentityPayload): string {
   const params = new URLSearchParams();
   if (identity.wallet_address) params.set("wallet_address", identity.wallet_address);
   if (identity.phone_number) params.set("phone_number", identity.phone_number);
+  if (identity.email) params.set("email", identity.email);
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
