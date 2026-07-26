@@ -300,7 +300,9 @@ Talk, ask, command, and get things done with just your voice. From managing your
             name: "delivery_address",
             type: "chowdeck_address",
             label: "Delivery address",
-            placeholder: "Type your area or street (e.g. Mpape)",
+            placeholder: "Street + area (e.g. 12 Ademola Cres, Mpape)",
+            helper:
+              "Include a street or landmark — short area names often return one generic match.",
           },
         ],
       },

@@ -6,14 +6,14 @@ import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { Stack } from "expo-router";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppLoadingOverlay } from "@/components/skeletons";
 
 export default function StackView() {
   const { isDarkMode } = useThemeContext();
-  const { isLoading, toast } = AppSettings();
+  const { isLoading, toast, clearToast } = AppSettings();
 
   const ToastModal = ({
     type,
@@ -49,7 +49,8 @@ export default function StackView() {
     const ToastIcon = toastStyles.icon;
 
     return (
-      <View
+      <Pressable
+        onPress={clearToast}
         className="top-20 absolute w-full px-4 z-50"
         style={{
           shadowColor: "#000",
@@ -84,7 +85,7 @@ export default function StackView() {
             </View>
           </View>
         </View>
-      </View>
+      </Pressable>
     );
   };
 

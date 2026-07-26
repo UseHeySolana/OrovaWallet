@@ -158,7 +158,11 @@ const ChowdeckAddressParam = ({ appData, item, param }: ChowdeckAddressParamProp
   };
 
   const label = param?.label || "Delivery address";
-  const placeholder = param?.placeholder || "Type your area or street (e.g. Mpape)";
+  const placeholder =
+    param?.placeholder || "Street + area (e.g. 12 Ademola Cres, Mpape)";
+  const helper =
+    param?.helper ||
+    "Include a street or landmark — short area names often return one generic match.";
 
   return (
     <View className="w-full">
@@ -166,7 +170,7 @@ const ChowdeckAddressParam = ({ appData, item, param }: ChowdeckAddressParamProp
         {label}
       </CText>
       <CText className="text-[0.85rem] mb-2 text-black/70 dark:text-grey/70" style={{ fontFamily: "reg" }}>
-        Type your address, then tap a suggestion to save it.
+        {helper} Tap a suggestion to save it.
       </CText>
       <View className="w-full relative">
         <TextInput
@@ -194,10 +198,18 @@ const ChowdeckAddressParam = ({ appData, item, param }: ChowdeckAddressParamProp
       {predictions.length > 0 && (
         <View className="w-full mt-2 rounded-xl border border-grey dark:border-accent2 overflow-hidden bg-white dark:bg-black">
           {predictions.map((p) => {
-            const main = p.structured_formatting?.main_text || p.description;
+            // Prefer full description — Chowdeck main_text is often just the area name.
+            const main =
+              p.description ||
+              p.structured_formatting?.main_text ||
+              "Address";
             const secondary =
-              p.structured_formatting?.secondary_text ||
-              (p.description !== main ? p.description : "");
+              p.description && p.structured_formatting?.main_text
+                ? p.structured_formatting?.secondary_text &&
+                  !p.description.includes(p.structured_formatting.secondary_text)
+                  ? p.structured_formatting.secondary_text
+                  : ""
+                : p.structured_formatting?.secondary_text || "";
             return (
               <Pressable
                 key={p.place_id}

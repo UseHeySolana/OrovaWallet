@@ -44,7 +44,9 @@ interface Settings {
         message: string,
         type: "success" | "error" | "info",
     },
+    toastTimeout: ReturnType<typeof setTimeout> | null,
     setToast: (message: string, type: "success" | "error" | "info") => void
+    clearToast: () => void
     setOpenWithAuth: (val: boolean) => void,
     refresher: number,
     setRefresher: (refresher: number) => void
@@ -75,6 +77,7 @@ const AppSettings = create(
                 message: "",
                 type: "success"
             },
+            toastTimeout: null,
             loadingTimeout: null,
             notifications: true,
             aiVoice: "alloy",
@@ -109,12 +112,15 @@ const AppSettings = create(
                 // reset the default settings
                 const prev = get();
                 if (prev.loadingTimeout) clearTimeout(prev.loadingTimeout);
+                if (prev.toastTimeout) clearTimeout(prev.toastTimeout);
                 set(
                     {
                         theme: "light",
                         isLoading: false,
                         loadingCount: 0,
                         loadingTimeout: null,
+                        toast: { show: false, message: "", type: "success" },
+                        toastTimeout: null,
                         notifications: true,
                         aiVoice: "alloy",
                         network: "https://mainnet.helius-rpc.com/?api-key=",
@@ -124,9 +130,28 @@ const AppSettings = create(
                         promptWalletBackup: false,
                     })
             },
+            clearToast: () => {
+                const prev = get().toastTimeout;
+                if (prev) clearTimeout(prev);
+                set({
+                    toast: { show: false, message: "", type: "success" },
+                    toastTimeout: null,
+                });
+            },
             setToast: (message: string, type: "success" | "error" | "info") => {
-                set({ toast: { message, type, show: true } })
-                setTimeout(() => set({ toast: { show: false, message: "", type: "success" } }), 2000);
+                const prev = get().toastTimeout;
+                if (prev) clearTimeout(prev);
+
+                // Errors stay a bit longer so users can read them.
+                const durationMs = type === "error" ? 4000 : type === "info" ? 3000 : 2500;
+                const timeoutId = setTimeout(() => {
+                    get().clearToast();
+                }, durationMs);
+
+                set({
+                    toast: { message, type, show: true },
+                    toastTimeout: timeoutId,
+                });
             },
 
             setOpenWithAuth: (val: boolean) => set({ openWithAuth: val }),
@@ -164,10 +189,23 @@ const AppSettings = create(
             name: 'settings', // Storage key
             storage: createJSONStorage(() => AsyncStorage), // Use AsyncStorage for React Native
             partialize: (state) => {
-                const { isLoading, loadingCount, loadingTimeout, promptWalletBackup, ...rest } = state;
+                const {
+                    isLoading,
+                    loadingCount,
+                    loadingTimeout,
+                    promptWalletBackup,
+                    toast,
+                    toastTimeout,
+                    ...rest
+                } = state;
                 return rest;
             },
             onRehydrateStorage: () => (state) => {
+                // Never restore a sticky toast from disk.
+                if (state) {
+                    state.toast = { show: false, message: "", type: "success" };
+                    state.toastTimeout = null;
+                }
             }
         }
     )
