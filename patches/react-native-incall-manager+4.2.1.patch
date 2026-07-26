@@ -103,7 +103,11 @@ index 7c54f6e..570b455 100644
  
 +- (AVAudioSessionCategoryOptions)incallAudioCategoryOptions
 +{
-+    AVAudioSessionCategoryOptions options = AVAudioSessionCategoryOptionAllowBluetooth;
++    // DefaultToSpeaker: PlayAndRecord/VoiceChat otherwise routes to the earpiece.
++    // Wired / Bluetooth still take priority when connected.
++    AVAudioSessionCategoryOptions options =
++        AVAudioSessionCategoryOptionAllowBluetooth |
++        AVAudioSessionCategoryOptionDefaultToSpeaker;
 +    if (@available(iOS 10.0, *)) {
 +        options = options | AVAudioSessionCategoryOptionAllowBluetoothA2DP;
 +    }

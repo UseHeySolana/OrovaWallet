@@ -26,7 +26,7 @@ import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 import { reportBug } from "@/services/bugReport/reportBug";
 
 import InCallManager from "react-native-incall-manager";
-import AudioManager from "./AudioManager";
+import AudioManager, { AudioChannel } from "./AudioManager";
 
 class SessionManager {
   private static readonly REALTIME_MODEL = "gpt-realtime-mini";
@@ -267,6 +267,10 @@ class SessionManager {
           direction: "recvonly",
         });
       }
+
+      // getUserMedia / WebRTC often reset iOS to the earpiece — force loudspeaker
+      // (or BT/wired if connected) as soon as the session media path is live.
+      void this.audioManager.setAudioChannel(AudioChannel.AUTO);
 
       // Setup connection state tracking
       //@ts-ignore
@@ -1064,8 +1068,8 @@ class SessionManager {
       this.isSessionActive = true;
       this.events = [];
 
-      // Match the mobile app's default routing while verification is disabled.
-      this.toggleSpeaker(true);
+      // Loudspeaker by default; wired/Bluetooth take over when connected.
+      void this.audioManager.setAudioChannel(AudioChannel.AUTO);
       // Sequential initialization with delays
       this.initializeSession(sessionGeneration);
     });
