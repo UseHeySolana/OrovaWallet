@@ -96,6 +96,23 @@ export interface ChowdeckMenuCategory {
   rank?: number | null;
 }
 
+export interface ChowdeckVendorMenuItem {
+  id: number;
+  menu_id: number;
+  vendor_id: number;
+  name: string;
+  description?: string | null;
+  in_stock: boolean;
+  price_kobo: number;
+  price_ngn: number;
+  currency: string;
+  price_description?: string | null;
+  category?: { id: number; name: string } | null;
+  category_name?: string;
+  image?: string | null;
+  average_rating?: string | number | null;
+}
+
 export interface ChowdeckOrderModifier {
   group_id: number;
   group_name?: string;
@@ -190,6 +207,39 @@ export async function getChowdeckMenuCategories(vendorId: number): Promise<Chowd
   return ((data as { data?: ChowdeckMenuCategory[] }).data ?? []) as ChowdeckMenuCategory[];
 }
 
+export async function getChowdeckVendorMenu(
+  vendorId: number,
+  options?: { query?: string; category?: string; returnOutOfStock?: boolean }
+): Promise<{
+  vendor_id: number;
+  items: ChowdeckVendorMenuItem[];
+  categories: { id: number; name: string; food_count: number }[];
+  total: number;
+}> {
+  const params = new URLSearchParams();
+  if (options?.query?.trim()) params.set("query", options.query.trim());
+  if (options?.category?.trim()) params.set("category", options.category.trim());
+  if (options?.returnOutOfStock === false) params.set("return_out_of_stock", "0");
+  const qs = params.toString();
+  const data = await getJson(
+    `/chowdeck/vendors/${vendorId}/menu${qs ? `?${qs}` : ""}`
+  );
+  const nested = (data as {
+    data?: {
+      vendor_id?: number;
+      items?: ChowdeckVendorMenuItem[];
+      categories?: { id: number; name: string; food_count: number }[];
+      total?: number;
+    };
+  }).data;
+  return {
+    vendor_id: nested?.vendor_id ?? vendorId,
+    items: nested?.items ?? [],
+    categories: nested?.categories ?? [],
+    total: nested?.total ?? (nested?.items?.length ?? 0),
+  };
+}
+
 export async function getChowdeckMenuItem(vendorId: number, menuId: number): Promise<ChowdeckMenuItem> {
   const data = await getJson(`/chowdeck/vendors/${vendorId}/menus/${menuId}`);
   return (data as { data: ChowdeckMenuItem }).data;
@@ -221,4 +271,23 @@ export async function placeChowdeckOrder(
     total_amount_ngn: order?.total_amount_ngn,
     amount_usd: order?.amount_usd ?? null,
   };
+}
+
+export async function markChowdeckOrderPaid(
+  walletAddress: string,
+  payload: {
+    order_number: string;
+    transaction_signature?: string;
+    payment_method?: string;
+  }
+): Promise<boolean> {
+  try {
+    await postJson("/chowdeck/wallet/orders/mark-paid", {
+      wallet_address: walletAddress,
+      ...payload,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

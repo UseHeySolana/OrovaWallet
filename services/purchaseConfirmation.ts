@@ -3,6 +3,10 @@ export interface PurchaseConfirmationProductDetails {
   base_price: number;
   delivery_fee: number;
   currency?: string;
+  /** Payable crypto amount shown before confirm (Chowdeck). */
+  amount_usdc?: number | null;
+  amount_sol?: number | null;
+  payment_token?: "USDC" | "SOL";
 }
 
 export interface PurchaseConfirmationOptions {
