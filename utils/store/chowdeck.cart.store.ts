@@ -57,8 +57,8 @@ const ChowdeckCart = create<ChowdeckCartStore>((set, get) => ({
 
   setVendor: (vendor) => {
     const current = get().vendor;
+    // Chowdeck carts are single-restaurant. Never silently wipe lines when switching.
     if (current && vendor && current.id !== vendor.id && get().lines.length > 0) {
-      set({ vendor, lines: [] });
       return;
     }
     set({ vendor });

@@ -123,6 +123,32 @@ const tracker = {
     }
     return { status: true, data: await readJson(response) };
   },
+
+  /** Generic habit / funnel event (search, select, cart, etc.). */
+  activity: async (
+    event_type: string,
+    event_name?: string,
+    metadata?: Record<string, unknown>
+  ) => {
+    try {
+      const response = await request.postJson(
+        {
+          user_key: await getTrackingUserKey(),
+          event_type,
+          event_name,
+          metadata,
+        },
+        `/track/user-activity`
+      );
+      if (!response.ok) {
+        const result = await readJson(response);
+        return { status: false, message: result.message };
+      }
+      return { status: true, data: await readJson(response) };
+    } catch {
+      return { status: false, message: "Activity tracking failed" };
+    }
+  },
 };
 
 export default tracker;

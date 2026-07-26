@@ -2,10 +2,13 @@ import { Image } from "expo-image";
 import React, { useState } from "react";
 import { Modal, ScrollView } from "react-native";
 import { Pressable, View } from "react-native";
+import { v4 as uuidv4 } from "uuid";
 import CText from "../TextComp";
 import IconLibrary from "@/utils/icons";
 import Buttons from "../ButtonComp";
 import DragableSheetModal from "@/components/CustomItems/DragableSheetModal";
+import { useAi } from "@/context/AiContext";
+import Convo from "@/utils/store/conversation.store";
 
 interface ProductDetailsProps {
   productDetails: any;
@@ -15,6 +18,7 @@ interface ProductDetailsProps {
 }
 const ProductDetails = (props: ProductDetailsProps) => {
   const { productDetails, sessionManager, source = "crossmint" } = props;
+  const { sendChatMessage, conversationId } = useAi();
   const [showModal, setShowModal] = useState(false);
   const [summarySheetOpen, setSummarySheetOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -60,7 +64,9 @@ const ProductDetails = (props: ProductDetailsProps) => {
                 {productDetails?.images?.map((image: any, index: number) => (
                   <Pressable
                     key={index}
-                    className="w-[100px]  h-[100px] p-3 bg-white rounded-xl overflow-hidden"
+                    className={`w-[100px] h-[100px] rounded-xl overflow-hidden ${
+                      isChowdeck ? "bg-black/5" : "p-3 bg-white"
+                    }`}
                     onPress={() => {
                       setSelectedImage(image);
                       setShowModal(true);
@@ -69,14 +75,16 @@ const ProductDetails = (props: ProductDetailsProps) => {
                     <Image
                       source={{ uri: image }}
                       style={{ width: "100%", height: "100%" }}
-                      contentFit="contain"
+                      contentFit={isChowdeck ? "cover" : "contain"}
                     />
                   </Pressable>
                 ))}
               </ScrollView>
             ) : (
               <Pressable
-                className="w-[100px]  h-[100px] p-3 bg-white rounded-xl overflow-hidden"
+                className={`w-[100px] h-[100px] rounded-xl overflow-hidden ${
+                  isChowdeck ? "bg-black/5" : "p-3 bg-white"
+                }`}
                 onPress={() => {
                   setSelectedImage(productDetails?.images?.[0]);
                   setShowModal(true);
@@ -85,7 +93,7 @@ const ProductDetails = (props: ProductDetailsProps) => {
                 <Image
                   source={{ uri: productDetails?.images?.[0] }}
                   style={{ width: "100%", height: "100%" }}
-                  contentFit="contain"
+                  contentFit={isChowdeck ? "cover" : "contain"}
                 />
               </Pressable>
             )}
@@ -123,17 +131,22 @@ const ProductDetails = (props: ProductDetailsProps) => {
               {modifierGroups.length > 0 && (
                 <View className="gap-y-1 mt-1">
                   <CText className="text-[11px]" style={{ fontFamily: "bold" }}>
-                    Options
+                    Sides & options
                   </CText>
-                  {modifierGroups.slice(0, 3).map((group: any) => (
+                  {modifierGroups.slice(0, 5).map((group: any) => (
                     <CText key={String(group?.id)} className="text-[10px] text-gray-600 dark:text-gray-400">
                       {group?.name}
-                      {group?.minimum_selection > 0 ? " (required)" : ""}:{" "}
+                      {Number(group?.minimum_selection) > 0 ? " (required)" : " (optional)"}:{" "}
                       {(group?.items ?? [])
-                        .slice(0, 4)
-                        .map((opt: any) => opt?.name)
+                        .slice(0, 5)
+                        .map((opt: any) =>
+                          opt?.price_ngn > 0
+                            ? `${opt?.name} (+₦${opt.price_ngn})`
+                            : opt?.name
+                        )
                         .filter(Boolean)
                         .join(", ")}
+                      {(group?.items?.length ?? 0) > 5 ? "…" : ""}
                     </CText>
                   ))}
                 </View>
@@ -205,28 +218,45 @@ const ProductDetails = (props: ProductDetailsProps) => {
                   onPress={() => {
                     setSummarySheetOpen(false);
                     if (source === "jumia") {
-                      const link = productDetails?.link ?? productDetails?.asin ?? productDetails?.url;
                       const name = productDetails?.name ?? "Product";
-                      sessionManager?.sendTextMessage(
-                        `Place Jumia order for this product: link ${link}, name ${name}, quantity 1, unit price ${basePrice} NGN.`
+                      sendChatMessage(
+                        `Please place my Jumia order for ${name}, quantity 1.`
                       );
                     } else if (isChowdeck) {
+                      const name = productDetails?.name ?? "Item";
+                      const vendorName = productDetails?.vendor_name || productDetails?.brand || "";
                       const menuId = productDetails?.menu_id ?? productDetails?.link ?? productDetails?.url;
                       const vendorId = productDetails?.vendor_id;
-                      const name = productDetails?.name ?? "Item";
                       const required = modifierGroups
                         .filter((g: any) => Number(g?.minimum_selection) > 0)
                         .map((g: any) => g?.name)
                         .filter(Boolean);
-                      const requiredHint =
-                        required.length > 0
-                          ? ` Required options: ${required.join(", ")}.`
-                          : "";
-                      sessionManager?.sendTextMessage(
-                        `Add Chowdeck menu item ${menuId} from vendor ${vendorId} named ${name} at ${basePrice} NGN to my cart.${requiredHint}`
-                      );
+                      const friendly = `Please add ${name}${vendorName ? ` from ${vendorName}` : ""} to my cart.`;
+                      const activeId = conversationId || "";
+                      if (activeId) {
+                        Convo.getState().setMessages({
+                          id: uuidv4(),
+                          role: "user",
+                          content: friendly,
+                          timestamp: Date.now(),
+                          conversation_id: activeId,
+                          source: "chat",
+                        });
+                      }
+                      const modelHint = `vendor_id=${vendorId}, menu_id=${menuId}, unit_price_ngn=${basePrice}, delivery_price_ngn=${deliveryFee}, product_name=${JSON.stringify(name)}, vendor_name=${JSON.stringify(vendorName)}${
+                        required.length
+                          ? `. Ask for: ${required.join(", ")}, then add-chowdeck-to-cart.`
+                          : `. Call add-chowdeck-to-cart.`
+                      } Never mention ids.`;
+                      if (sessionManager?.sendTextMessage) {
+                        sessionManager.sendTextMessage(
+                          `${friendly}\n\n(For tools only — never read aloud: ${modelHint})`
+                        );
+                      } else {
+                        sendChatMessage(friendly);
+                      }
                     } else {
-                      sessionManager?.sendTextMessage(
+                      sessionManager?.sendTextMessage?.(
                         `Create Amazon order for product ${productDetails?.asin}`
                       );
                     }

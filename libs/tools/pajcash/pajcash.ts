@@ -3,7 +3,7 @@ import {
   Environment,
   initiate,
   verify,
-  getRateByAmount,
+  getAllRate,
   getFiatValue,
   getTokenValue,
   getBanks,
@@ -25,6 +25,8 @@ import {
   savePajCashSession,
 } from "@/services/pajcashSessionApi";
 import { getPajCashBusinessUsdcFee } from "@/services/pajcashFeeConfig";
+
+const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 let sdkInitialized = false;
 
@@ -165,6 +167,68 @@ async function wrap<T>(fn: () => Promise<T>): Promise<ApiResult<T>> {
   }
 }
 
+export type PajUsdNgnRates = {
+  /** 1 USD = X NGN (on-ramp / buy crypto with Naira). */
+  on_ramp_ngn_per_usd: number;
+  /** 1 USD = X NGN (off-ramp / sell crypto to Naira). */
+  off_ramp_ngn_per_usd: number;
+};
+
+/**
+ * PajCash `/pub/rate/{amount}` is currently broken (404 "No active rate found").
+ * Use `/pub/rate` which still returns live onRamp/offRamp USD→NGN rates.
+ */
+async function fetchUsdNgnRates(): Promise<PajUsdNgnRates> {
+  ensureSdkInitialized();
+  const all = await getAllRate();
+  const onRamp = Number(all?.onRampRate?.rate) || 0;
+  const offRamp = Number(all?.offRampRate?.rate) || 0;
+  if (onRamp <= 0 && offRamp <= 0) {
+    throw new Error("PajCash USD/NGN rates unavailable");
+  }
+  return {
+    on_ramp_ngn_per_usd: onRamp > 0 ? onRamp : offRamp,
+    off_ramp_ngn_per_usd: offRamp > 0 ? offRamp : onRamp,
+  };
+}
+
+async function fetchSolUsdPrice(): Promise<number> {
+  const res = await fetch(`https://lite-api.jup.ag/price/v3?ids=${SOL_MINT}`);
+  if (!res.ok) throw new Error("Could not fetch SOL price");
+  const json = (await res.json()) as Record<string, { usdPrice?: unknown }>;
+  const price = Number(json?.[SOL_MINT]?.usdPrice);
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error("Invalid SOL price");
+  }
+  return price;
+}
+
+/**
+ * Quote NGN (+ USD) for a SOL amount using PajCash USD/NGN + Jupiter SOL/USD.
+ * Replaces broken getRateByAmount(amount) while keeping the same response shape.
+ */
+async function quoteSolAmountInNaira(amountSol: number) {
+  const rates = await fetchUsdNgnRates();
+  const solUsd = await fetchSolUsdPrice();
+  const amountUSD = Number((amountSol * solUsd).toFixed(6));
+  // Off-ramp style: what Naira you get when converting crypto → NGN.
+  const ngnPerUsd = rates.off_ramp_ngn_per_usd;
+  const userAmountFiat = Number((amountUSD * ngnPerUsd).toFixed(2));
+  return {
+    rate: {
+      baseCurrency: "USD",
+      targetCurrency: "NGN",
+      rate: ngnPerUsd,
+    },
+    amounts: {
+      userTax: 0,
+      merchantTax: 0,
+      amountUSD,
+      userAmountFiat,
+    },
+  };
+}
+
 const pajcash = {
   getApiKey,
   getWebhookUrl,
@@ -217,7 +281,13 @@ const pajcash = {
     return { status: true, data: token };
   },
 
-  getNairaRate: (amount: number) => wrap(() => getRateByAmount(amount)),
+  /** Live USD↔NGN rates from PajCash `/pub/rate` (not the broken `/pub/rate/{amount}`). */
+  getUsdNgnRates: () => wrap(() => fetchUsdNgnRates()),
+
+  /**
+   * Quote NGN for a SOL amount. Uses `/pub/rate` + Jupiter (avoids broken `/pub/rate/{amount}`).
+   */
+  getNairaRate: (amount: number) => wrap(() => quoteSolAmountInNaira(amount)),
 
   getFiatQuote: (
     tokenAmount: number,

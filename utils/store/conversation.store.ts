@@ -77,6 +77,7 @@ export interface MessageType {
     vendor_name?: string;
     base_price?: number;
     delivery_fee?: number;
+    minimum_order_ngn?: number;
     is_vendor_open?: boolean;
   }[];
   markets?: any[];

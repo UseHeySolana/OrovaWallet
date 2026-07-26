@@ -41,6 +41,15 @@ const PurchaseConfirmationSheet = () => {
     (source === "jumia" || source === "chowdeck" ? "NGN" : "USD");
   const hasPriceBreakdown = basePrice > 0 || deliveryFee > 0;
   const productName = productDetails.name ?? "Product";
+  const paymentToken = productDetails.payment_token ?? "USDC";
+  const amountUsdc =
+    productDetails.amount_usdc != null ? Number(productDetails.amount_usdc) : null;
+  const amountSol =
+    productDetails.amount_sol != null ? Number(productDetails.amount_sol) : null;
+  const showCrypto =
+    source === "chowdeck" &&
+    ((paymentToken === "SOL" && amountSol != null && amountSol > 0) ||
+      (paymentToken !== "SOL" && amountUsdc != null && amountUsdc > 0));
 
   const handleClose = (confirmed: boolean) => {
     setVisible(false);
@@ -53,7 +62,7 @@ const PurchaseConfirmationSheet = () => {
     <DragableSheetModal
       close={() => handleClose(false)}
       panClose
-      snapPoints={["45%", "55%"]}
+      snapPoints={showCrypto ? ["50%", "60%"] : ["45%", "55%"]}
       child={
         <View className="py-2 w-full gap-y-4">
           <CText style={{ fontFamily: "bold" }} className="text-lg">
@@ -89,6 +98,26 @@ const PurchaseConfirmationSheet = () => {
                     {displayCurrency} {displayPrice.toLocaleString()}
                   </CText>
                 </View>
+                {showCrypto && paymentToken === "SOL" && amountSol != null && (
+                  <View className="flex-row justify-between mt-2">
+                    <CText className="text-sm" style={{ fontFamily: "bold" }}>
+                      You pay
+                    </CText>
+                    <CText className="text-sm" style={{ fontFamily: "bold" }}>
+                      {amountSol} SOL
+                    </CText>
+                  </View>
+                )}
+                {showCrypto && paymentToken !== "SOL" && amountUsdc != null && (
+                  <View className="flex-row justify-between mt-2">
+                    <CText className="text-sm" style={{ fontFamily: "bold" }}>
+                      You pay
+                    </CText>
+                    <CText className="text-sm" style={{ fontFamily: "bold" }}>
+                      {amountUsdc} USDC
+                    </CText>
+                  </View>
+                )}
               </>
             ) : (
               <CText className="text-sm text-gray-600 dark:text-gray-400">

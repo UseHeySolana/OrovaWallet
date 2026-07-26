@@ -59,6 +59,7 @@ const toolRouter = (SessionManager: SessionManager) => {
     new ChowdeckTool(SessionManager).setChowdeckLocation,
     new ChowdeckTool(SessionManager).searchChowdeckFood,
     new ChowdeckTool(SessionManager).getChowdeckMenuCategories,
+    new ChowdeckTool(SessionManager).browseChowdeckVendorMenu,
     new ChowdeckTool(SessionManager).getChowdeckMenuItem,
     new ChowdeckTool(SessionManager).addChowdeckToCart,
     new ChowdeckTool(SessionManager).viewChowdeckCart,
