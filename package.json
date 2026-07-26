@@ -52,6 +52,7 @@
     "@react-native-google-signin/google-signin": "^15.0.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
+    "@react-oauth/google": "^0.13.5",
     "@shopify/flash-list": "2.0.2",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.0",
