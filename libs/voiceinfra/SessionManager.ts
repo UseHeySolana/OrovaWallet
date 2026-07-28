@@ -237,9 +237,6 @@ class SessionManager {
 
     try {
       const sessionGeneration = ++this.sessionGeneration;
-      // API requires offer to include an audio media section. In verified-gated mode
-      // do not grab the mic here; the voice gate owns the microphone and forwards
-      // only verified PCM chunks over the data channel.
       if (Platform.OS === "android") {
         const granted = await this.requestAudioPermission();
         if (!granted) {
@@ -408,7 +405,7 @@ class SessionManager {
         model: SessionManager.REALTIME_MODEL,
         useVoiceInput,
       },
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   private rejectSessionReady(err: Error): void {
