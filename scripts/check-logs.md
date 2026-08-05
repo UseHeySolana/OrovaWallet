@@ -8,7 +8,7 @@
 - Connect device via USB
 
 ### Basic Commands
-
+    
 ```bash
 # View all logs in real-time
 adb logcat
