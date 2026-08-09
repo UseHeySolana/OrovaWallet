@@ -224,10 +224,9 @@ const checkUsernameAvailability = async (username: string) => {
 
 const verifyCode = async (otp: string, username: string) => {
   const item = {
-
-    "verification_code": otp,
-    "username": username,
-  }
+    verification_code: String(otp ?? "").trim(),
+    username: String(username ?? "").trim(),
+  };
   const url = "/v2/verify-code";
   try {
     const response = await request.postJson(item, url);

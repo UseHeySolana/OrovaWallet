@@ -39,8 +39,10 @@ const Otpsheet = ({ open, verifyOtp, setOtpValue, hint }: OTPSheet) => {
                                         },
                                     }}
                                     blurOnFilled={true}
-
-                                    numberOfDigits={6} onFilled={(text) => setOtpValue(text)} />
+                                    numberOfDigits={6}
+                                    onTextChange={(text) => setOtpValue(text)}
+                                    onFilled={(text) => setOtpValue(text)}
+                                />
                             </View>
                         </KeyboardAvoidingView>
                     </View>

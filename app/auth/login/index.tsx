@@ -345,6 +345,7 @@ export default function Login() {
       );
 
       if (response.status !== false) {
+        setOtpValue("");
         setUserDetails({
           ...userDetails,
           username: response.data.username,
@@ -575,6 +576,7 @@ export default function Login() {
     const response = await verifyCode(otpValue, userDetails.username);
     if (response.status !== false) {
       setToast("Verification Successfull", "success");
+      setOtpValue("");
       await finishLoginFromServerUser({
         username: userDetails.username,
         wallet_address: userDetails.wallet_address,
@@ -725,6 +727,11 @@ export default function Login() {
         open={currentState === "set-pin"}
         verifyOtp={verifyOtp}
         setOtpValue={(text) => setOtpValue(text)}
+        hint={
+          userDetails.email && !userDetails.mobileNumber
+            ? "Your one time password has been sent to your email"
+            : "Your one time password has been sent to your whatsapp number"
+        }
       />
 
       <WalletSheet

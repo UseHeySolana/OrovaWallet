@@ -56,15 +56,31 @@ function initFetchReporting(): void {
       const skipReport = shouldSkipFetchReport(rawUrl);
 
       if (!skipReport && !response.ok) {
+        let responseMessage = "";
+        try {
+          const clone = response.clone();
+          const body = await clone.json();
+          if (body && typeof body.message === "string") {
+            responseMessage = body.message;
+          }
+        } catch {
+          // non-JSON error body
+        }
+
         reportBug({
           title: `HTTP ${response.status} ${method} ${url}`.slice(0, 200),
-          summary: `${method} request failed with ${response.status} ${response.statusText || ""}`.trim(),
+          summary: (
+            responseMessage
+              ? `${method} failed (${response.status}): ${responseMessage}`
+              : `${method} request failed with ${response.status} ${response.statusText || ""}`
+          ).trim(),
           details: JSON.stringify(
             {
               url,
               method,
               status: response.status,
               statusText: response.statusText,
+              ...(responseMessage ? { message: responseMessage } : {}),
             },
             null,
             2
@@ -75,6 +91,7 @@ function initFetchReporting(): void {
             handler: "fetch",
             failure_kind: "http_error",
             has_query: rawUrl.includes("?"),
+            ...(responseMessage ? { response_message: responseMessage } : {}),
           },
         }).catch(() => {});
       }
