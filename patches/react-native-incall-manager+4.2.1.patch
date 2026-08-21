@@ -97,7 +97,7 @@ index 7c54f6e..570b455 100644
                             callerMemo:NSStringFromSelector(_cmd)];
          [self audioSessionSetMode:_incallAudioMode
                         callerMemo:NSStringFromSelector(_cmd)];
-@@ -589,6 +625,76 @@ - (BOOL)isWiredHeadsetPluggedIn
+@@ -589,6 +625,80 @@ - (BOOL)isWiredHeadsetPluggedIn
                         routeType:@"input"];
  }
  
