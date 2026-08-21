@@ -3,10 +3,8 @@ import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
 import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
-import {
-  convertSpeech,
-  signTransactions,
-} from "@/utils/functions/extrafunctions";
+import { convertSpeech } from "@/utils/functions/extrafunctions";
+import { signTransactions } from "@/utils/wallet/signing";
 import {
   completeConversation,
   getUserDetails,

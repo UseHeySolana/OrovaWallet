@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import GeminiAudioManager from './GeminiAudioManager';
 import { userWalletType } from "@/utils/store/userstore";
 import { Audio } from "expo-av";
-import { toolFunctions } from "../../tool-implemetation/tools";
+import { toolFunctions } from "../../tool-implementation/tools";
 import { LiveConfig } from "@/utils/types/multimodal-live-types.types";
 import { MultimodalLiveClient } from "./MultiModal";
 

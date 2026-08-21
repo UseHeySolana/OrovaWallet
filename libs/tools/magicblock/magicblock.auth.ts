@@ -21,7 +21,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { keypairSign } from "@/utils/functions/extrafunctions";
+import { keypairSign } from "@/utils/wallet/signing";
 import { magicblock, MbCluster } from "./magicblock";
 
 interface CachedToken {

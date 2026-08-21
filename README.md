@@ -1,139 +1,123 @@
-# HeySolana
+# HeySolana (Orova)
 
-HeySolana is a multilingual, AI assistant built with React Native and native Android services. It empowers users with real-time voice interactions to carry out solana transactions , GPT-4 integration, and floating UI components. Designed to be persistent, accessible, and contextually aware, HeySolana is the intelligent assistant you always wanted on mobile.
+Mobile **Solana wallet** with a **voice-first AI assistant**. Speak or chat to send, swap, pay bills, ramp fiat, and shop — with confirmation before money moves.
 
-## 🌟 Features
+Built with **Expo / React Native**. Product name in stores: **Orova** (see `app.config.ts` variants).
 
-- 🎤 **Voice Input** (WebRTC): Speak naturally to HeySolana in your preferred language.
-- 🧠 **GPT-4 Integration**: Smart responses powered by OpenAI's latest models.
-- 🔁 **Persistent Background Service**: Runs in the background without interruption.
-- 🌐 **Multilingual Support**: Understands and responds in multiple languages.
-- 🗂️ **Context Memory**: Optional short-term memory (can persist across sessions).
-- 🛠️ **Custom Commands**: Trigger device or app actions using your voice.
-- 🔒 **Privacy-First**: Audio streamed securely with minimal retention.
+For a deeper architecture map, see [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md).
 
----
+## Features
 
-## 📦 Tech Stack
+- BIP39 wallet create/import; SOL + SPL balances
+- Realtime voice + text AI (OpenAI Realtime via Laravel proxy)
+- Jupiter swaps, PajCash onramp/offramp, AirBills, commerce tools
+- Android PIP overlay + widgets; EAS Build / OTA updates
+- Optional speaker verification (`EXPO_PUBLIC_VOICE_VERIFICATION_ENABLED`)
+
+## Tech stack
 
 | Layer | Tech |
 |------|------|
-| Mobile Frontend | React Native + Reanimated |
-| Voice Handling | WebRTC + Custom Audio Worklet |
-| AI Backend | OpenAI GPT-4 via API |
-| State Management | Zustand / Redux |
-| Native Integration | Android Services (Java/Kotlin), iOS support (planned) |
-| Background Services | Foreground Service (Android) |
-| Assistant Core | Custom Task Dispatcher + GPT Tools |
+| App | Expo ~54, React Native, expo-router |
+| Chain | `@solana/web3.js`, Jupiter, Helius |
+| AI / voice | OpenAI Realtime (WebRTC), tool registry |
+| State | Zustand |
+| UI | NativeWind, Reanimated, Gorhom sheets |
+| Security | expo-secure-store, PIN / biometric |
 
----
+## Getting started
 
-## 🚀 Getting Started
-
-### 1. Clone the repo
+### 1. Clone & install
 
 ```bash
 git clone https://github.com/UseHeySolana/HeySolanaWallet
 cd HeySolanaWallet
-````
-
-### 2. Install dependencies
-
-```bash
 npm install
-# or
-yarn
 ```
 
-### 3. Add OpenAI API Key
+Use **npm** with `package-lock.json` as the source of truth for installs. Do not commit `yarn.lock` or `pnpm-lock.yaml`.
 
-Create a `.env` file:
-
-```env
-OPENAI_API_KEY=your_openai_key_here
-```
-
-> You can also plug in your own LLM endpoint if self-hosting.
-
-### 4. Run on Android
+### 2. Environment
 
 ```bash
-npx react-native run-android
+cp .env-example .env
 ```
 
-> Ensure you’ve granted **overlay**, **microphone**, and **background activity** permissions.
+Fill in values from `.env-example`. OpenAI keys live on the **Laravel backend** — the app does not need a client OpenAI key.
 
----
+Minimum for local device testing:
 
-## 🧠 Architecture Overview
+- `EXPO_PUBLIC_API_URL` — backend base ending in `/api` (use your LAN IP on a physical device)
+- `EXPO_PUBLIC_HELIUS_API` — RPC / DAS
+- `EXPO_PUBLIC_NETWORK` — Solana cluster RPC base if required by your setup
 
-```
-+-----------------------------+
-|     React Native App       |
-+------------+----------------
-             |
-     Voice Overlay (Bubble)
-             |
-     Expandable Overlay Panel
-             |
-      Audio Input via WebRTC
-             |
-        Voice Transcriber
-             |
-          LLM Backend <----- Context Cache (Optional)
-             |
-    +--------+--------+
-    | Device Commands |
-    |   Web Search    |
-    |   Smart Tools   |
-    +-----------------+
+### 3. Run (dev client)
+
+```bash
+npm run start          # Play Store variant
+npm run android        # native Android
+npm run ios            # native iOS (device)
 ```
 
+Solana Mobile variant:
 
-## 🛡️ Permissions
-
-Make sure the following Android permissions are enabled:
-* `SYSTEM_ALERT_WINDOW`
-* `RECORD_AUDIO`
-* `FOREGROUND_SERVICE`
-* `INTERNET`
-* `WAKE_LOCK` (Optional for wake-word)
-
----
-
-## 🔮 Future Plans
-
-* [ ] Wake Word ("Hey Solana") integration
-* [ ] Home automation plugin system
-* [ ] On-device LLM fallback (e.g., Whisper + local transformers)
-* [ ] iOS full parity
-* [ ] Vision mode using camera
-* [ ] Plugin SDK for devs to add custom tools
-
----
-
-## 👨‍💻 Contributing
-
-Got an idea for a tool, overlay mod, or model integration?
-
-1. Fork the repo
-2. Create your feature branch (`git checkout -b feature/awesome-thing`)
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request
-
----
-
-## 📜 License
-
-MIT License. Use it. Remix it. Just don’t train your evil robot uprising on it without credit.
-
----
-
-## 💬 Credits
-
-Built with love by Moses Erhinyodavwe (@YrayPixels)
-Powered by React Native, OpenAI, and caffeine.
-
+```bash
+npm run start:solana-mobile
+npm run android:solana-mobile
 ```
 
+### 4. Quality checks
+
+```bash
+npm run lint
+npm run typecheck
+```
+
+## Architecture (short)
+
+```
+UI (expo-router) → AiContext / SessionManager → OpenAI Realtime
+                         ↓ function calls
+                   tool registry (libs/tool-implementation)
+                         ↓
+              wallet sign + confirm sheets → Solana / partners
+```
+
+Bootstrap: fonts/splash in `app/_layout.tsx`, side-effects in `hooks/useRootBootstrap.ts`, provider tree in `app/providers/AppProviders.tsx`.
+
+## App variants
+
+| `APP_VARIANT` | Package / purpose |
+|---------------|-------------------|
+| `play` (default) | Play Store / general builds |
+| `solana-mobile` | Solana dApp Store identity |
+
+Configured in `app.config.ts` and `eas.json`.
+
+## Permissions (Android)
+
+Overlay, microphone, biometric, internet, foreground service, and related entries are declared in `app.json`. Grant overlay + mic when testing voice / PIP.
+
+## Related repos
+
+| Repo | Role |
+|------|------|
+| HeySolanaBackend (Laravel) | API, OpenAI proxy, Jumia, push, users |
+| Heysolana-admin-dashboard | Ops UI |
+| hey-solana-landing | Marketing |
+| python-speech-brain | Voice verification services |
+
+## Contributing
+
+1. Fork and branch from the latest main
+2. Prefer small PRs; match existing patterns under `libs/tools/` when adding tools
+3. Run `npm run lint` and `npm run typecheck` before opening a PR
+4. Never commit `.env`, keystores, or mnemonics
+
+## License
+
+MIT
+
+## Credits
+
+Built by Moses Erhinyodavwe (@YrayPixels) / Yray Labs.

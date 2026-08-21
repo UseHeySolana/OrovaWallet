@@ -1,10 +1,10 @@
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { FunctionParams } from "@/utils/types/types";
+import { convertSpeech } from "@/utils/functions/extrafunctions";
 import {
-    convertSpeech,
     signTransactions,
     signVersionedTxFromBase64,
-} from "@/utils/functions/extrafunctions";
+} from "@/utils/wallet/signing";
 import { confirm } from "@/services/confirmation";
 import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";

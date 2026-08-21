@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { copyItem } from "@/utils/functions";
 import WalletItem from "@/utils/store/wallet.store";
-import { keypairSign } from "@/utils/functions/extrafunctions";
+import { keypairSign } from "@/utils/wallet/signing";
 
 interface PrivateKeySheetTypes {
   open: boolean;

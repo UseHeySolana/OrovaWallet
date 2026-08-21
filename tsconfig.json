@@ -23,5 +23,5 @@
     "expo-env.d.ts",
     "nativewind-env.d.ts",
     "index.ts"
-, "libs/tools/heysolanaapp/endstream.tool.ts", "node_modules/transfers.ts"  ]
+  ]
 }

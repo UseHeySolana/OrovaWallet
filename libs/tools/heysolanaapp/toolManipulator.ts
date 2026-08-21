@@ -1,5 +1,5 @@
 import SessionManager from "@/libs/voiceinfra/SessionManager";
-import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
+import { toolRouter } from "@/libs/tool-implementation/toolsregistry";
 import { FunctionParams } from "@/utils/types/types";
 
 

@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import GeminiAudioManager from './GeminiAudioManager';
 import { userWalletType } from "@/utils/store/userstore.store";
 import { Audio } from "expo-av";
-import { toolFunctions } from "@/libs/tool-implemetation/tools";
+import { toolFunctions } from "@/libs/tool-implementation/tools";
 import { env } from "@/env";
 import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 

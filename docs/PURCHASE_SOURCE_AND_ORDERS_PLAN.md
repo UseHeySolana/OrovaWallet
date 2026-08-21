@@ -56,7 +56,7 @@
 - `components/ChatItems/Products.tsx` – already had `source` and “fetch the details from ${source}”.
 - `libs/tools/jumia/jumia.tool.ts` – `getJumiaProductDetails` tool; handler calls backend, maps to UI shape, `updateProductDetails`, `completeConversation`.
 - `libs/tools/crossmint/crossmint.tool.ts` – after successful order, `POST /crossmint/wallet/orders`.
-- `libs/tool-implemetation/toolsregistry.ts` – registered `getJumiaProductDetails`.
+- `libs/tool-implementation/toolsregistry.ts` – registered `getJumiaProductDetails`.
 - `services/jumiaApi.ts` – `getJumiaProductDetails` return type fixed to `Promise<JumiaProductDetails>`.
 
 **heysolanabackend**

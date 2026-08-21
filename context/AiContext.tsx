@@ -5,7 +5,7 @@ import { Connection } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
 import UserItem from "@/utils/store/userstore.store";
 import { api_key } from "@/utils/dashboard";
-import { getAssistantPromptBase } from "../libs/tool-implemetation/prompt";
+import { getAssistantPromptBase } from "../libs/tool-implementation/prompt";
 import Convo from "@/utils/store/conversation.store";
 import { v4 as uuidv4 } from "uuid";
 import WalletItem from "@/utils/store/wallet.store";

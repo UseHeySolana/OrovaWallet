@@ -62,13 +62,11 @@ flowchart TB
 
 ### 1. App bootstrap
 
-On launch (`app/_layout.tsx`):
+On launch:
 
-1. Fonts and splash screen load.
-2. **`initWallet()`** hydrates wallet state from **Expo SecureStore** (mnemonic) and Zustand stores; legacy mnemonics in AsyncStorage are migrated once.
-3. **`Brain`** starts (notifications, optional LLM digest for suggestions).
-4. Verified token list is bootstrapped for swap/search UX.
-5. Global providers wrap the app: theme, AI session, PIP overlay, push notifications, keyboard, bottom sheets.
+1. **`app/_layout.tsx`** — fonts, splash, bug reporting / Google Sign-In setup.
+2. **`hooks/useRootBootstrap.ts`** — **`initWallet()`** (SecureStore mnemonic + Zustand), **Brain**, verified tokens, app catalog sync, pending app transactions.
+3. **`app/providers/AppProviders.tsx`** — global providers: theme, AI session, PIP, widgets, push, PajCash managers, keyboard, bottom sheets.
 
 Routing (`app/index.tsx`) sends users to onboarding, **PIN/biometric login**, or the **dashboard** depending on whether a wallet exists and auth settings are enabled.
 
@@ -86,10 +84,10 @@ Routing (`app/index.tsx`) sends users to onboarding, **PIN/biometric login**, or
 - Creates a **`SessionManager`** wired to the active Solana `Connection`.
 - **`startSession()`** opens a **WebRTC** peer connection to OpenAI’s realtime model (`gpt-realtime-mini`), streams microphone audio, and plays assistant audio back.
 - **System prompt** comes from `getAssistantPromptBase()` — assistant name (default “Orova”), tone, and rules for when to call tools.
-- **Tool definitions** are registered from `toolRouter()` in `libs/tool-implemetation/toolsregistry.ts`.
+- **Tool definitions** are registered from `toolRouter()` in `libs/tool-implementation/toolsregistry.ts`.
 - When the model emits a **function call**, `SessionManager` dispatches to the matching tool implementation, updates the **conversation store** (message cards, pending/complete states), and returns results to the model.
 - **Chat mode** can disable voice input while keeping text + audio output.
-- Optional **voice verification** (`VerifiedVoiceStream`) gates commands so only an enrolled speaker can trigger sensitive actions.
+- Optional **voice verification** (`VerifiedVoiceStream`) gates commands so only an enrolled speaker can trigger sensitive actions. Off by default; enable with `EXPO_PUBLIC_VOICE_VERIFICATION_ENABLED=true`.
 
 Conversation history is stored in **`conversation.store`** (Zustand) for the dashboard chat UI and for Brain digest.
 
@@ -154,13 +152,14 @@ HeySolanaWallet/
 ├── context/                # AiContext, Theme, Keyboard, Wallet scroll
 ├── libs/
 │   ├── brain/              # Proactive Brain service
-│   ├── tool-implemetation/ # Tool registry + assistant prompt
+│   ├── tool-implementation/ # Tool registry + assistant prompt
 │   ├── tools/              # Per-integration tool implementations
-│   ├── voiceinfra/         # WebRTC SessionManager, audio, Gemini helpers
+│   ├── voiceinfra/         # WebRTC SessionManager + transcript/tool helpers
 │   ├── jupiter/            # Swap/search clients
 │   └── app/                # Apps marketplace metadata
-├── services/               # PIP, push, widgets, bug report, transactions API
-├── utils/                  # Wallet crypto, stores, API client, constants
+├── services/               # PIP, widgets, push, bug report, transactions API
+├── utils/                  # Wallet crypto/signing, stores, API client, constants
+├── hooks/                  # Root bootstrap and shared hooks
 ├── docs/                   # Feature/architecture notes (this file, Jumia, Brain, …)
 └── scripts/                # Version bump, log checking, build helpers
 ```
@@ -185,19 +184,24 @@ HeySolanaWallet/
 
 ## Configuration
 
-Copy `.env-example` to `.env` and set keys as needed:
+Copy `.env-example` to `.env` and set keys as needed. OpenAI realtime/chat is **proxied by Laravel** (`OPENAI_API_KEY` on the server) — no client OpenAI key.
 
 | Variable | Purpose |
 |----------|---------|
 | `EXPO_PUBLIC_API_URL` | Laravel backend base URL (`…/api`) |
 | `EXPO_PUBLIC_HELIUS_API` | Helius RPC/API key for balances and history |
-| `EXPO_PUBLIC_OPENAI_API_KEY` | OpenAI (realtime voice) |
 | `EXPO_PUBLIC_NETWORK` | Solana cluster RPC base |
+| `EXPO_PUBLIC_JUP_API_KEY` | Jupiter Swap / token search |
 | `EXPO_PUBLIC_PAJCASH_*` | Fiat ramp partner |
+| `EXPO_PUBLIC_VOICE_VERIFICATION_ENABLED` | Speaker gate for AI commands (`true` / `false`) |
 | `EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM` | Enable Brain LLM suggestions |
-| `EXPO_PUBLIC_QVAC_BASE_URL` | Optional local/alternate LLM endpoint |
+| `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` | Google Sign-In / Drive backup |
+
+See `.env-example` for the full list (MagicBlock, Crossmint, AirBills, fees, etc.).
 
 Production OTA scripts in `package.json` pin `EXPO_PUBLIC_API_URL` for release branches.
+
+App version is tracked in **`app.json`** / **`package.json`** (keep them aligned; EAS local builds bump via `scripts/version-bump.js`).
 
 ---
 
@@ -220,6 +224,8 @@ npm install
 npm run start          # Expo dev client
 npm run android        # Native Android run
 npm run ios            # Native iOS run (device)
+npm run lint           # ESLint (expo lint)
+npm run typecheck      # tsc --noEmit
 npm run logs           # Device log helper (scripts/check-logs.sh)
 ```
 
@@ -238,7 +244,7 @@ Build/release flows use **EAS** (`eas build`, `eas update`) with profiles for te
 
 ## Further reading (in-repo)
 
-- `README.md` — Original feature list and getting started
+- `README.md` — Getting started, variants, and quick architecture
 - `docs/AI_AGENT_THINKING_ARCHITECTURE.md` — Portable agent loop patterns (observe → decide → act → critique)
 - `docs/airbills.md`, `docs/paj.cash.md`, `docs/jup-swap.md` — Integration-specific notes
 - `docs/PURCHASE_SOURCE_AND_ORDERS_PLAN.md` — Commerce/order tracking design

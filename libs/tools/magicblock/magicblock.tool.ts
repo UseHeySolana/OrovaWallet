@@ -22,10 +22,8 @@ import WalletItem from "@/utils/store/wallet.store";
 import Convo from "@/utils/store/conversation.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 
-import {
-  convertSpeech,
-  signTransactions,
-} from "@/utils/functions/extrafunctions";
+import { convertSpeech } from "@/utils/functions/extrafunctions";
+import { signTransactions } from "@/utils/wallet/signing";
 import {
   completeConversation,
   getUserDetails,

@@ -1,50 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import '../global.css'
+import React, { useEffect, useState } from "react";
+import "../global.css";
 import { SplashScreen } from "expo-router";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
-import { DMSans_400Regular, DMSans_700Bold, DMSans_500Medium } from "@expo-google-fonts/dm-sans";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { View, AppState } from 'react-native';
-import { Image } from 'expo-image';
-import { AiServiceProvider } from "@/context/AiContext";
-import { KeyboardProvider } from "@/context/KeyboardContext";
-import { PIPManager } from "@/services/PIPService/PIPManager";
-import { WidgetManager } from "@/services/WidgetService/WidgetManager";
-import { PushNotificationManager } from "@/services/push/PushNotificationManager";
-import { PajCashBeneficiariesManager } from "@/services/pajcash/PajCashBeneficiariesManager";
-import { PajCashSessionManager } from "@/services/pajcash/PajCashSessionManager";
-import { NotificationPermissionNudge } from "@/services/push/NotificationPermissionNudge";
-import { GoogleDriveBackupNudge } from "@/services/account/GoogleDriveBackupNudge";
+import {
+  DMSans_400Regular,
+  DMSans_700Bold,
+  DMSans_500Medium,
+} from "@expo-google-fonts/dm-sans";
+import { View } from "react-native";
+import { Image } from "expo-image";
 import { configureGoogleSignIn } from "@/services/google/googleAuth";
-
-import { ThemeProvider } from "@/context/ThemeContext";
-import StackView from "./stack";
 import { useRouteTracking } from "@/components/hooks/navigation";
 import tracker from "@/utils/tracker";
-import PIPDeepLinkHandler from "@/components/PIPService/PIPDeepLinkHandler";
-import WhatsAppCampaignTracker from "@/services/whatsapp/WhatsAppCampaignTracker";
-import { Brain } from "@/libs/brain";
-import { initWallet } from "@/utils/wallet/initWallet";
-import { bootstrapVerifiedTokensList } from "@/utils/functions";
 import { initBugReporting } from "@/services/bugReport/initBugReporting";
-import { syncPendingAppTransactions } from "@/services/appTransactions";
-import AppCatalog from "@/utils/store/appCatalog.store";
-import ToolsItem from "@/utils/store/toolsitems.store";
+import { useRootBootstrap } from "@/hooks/useRootBootstrap";
+import { AppProviders } from "./providers/AppProviders";
 
-SplashScreen.preventAutoHideAsync(); // Prevent auto-hide
-
-const brain = new Brain({
-  notificationsEnabled: true,
-  // llmEnabled: backend Brain digest LLM. Or set EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM=true.
-  llmEnabled: false,
-  llmModel: "my-llm",
-});
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
-  const walletInitRanRef = React.useRef(false);
 
   const [loaded, error] = useFonts({
     reg: DMSans_400Regular,
@@ -52,20 +27,21 @@ export default function RootLayout() {
     bold: DMSans_700Bold,
   });
 
-  useRouteTracking((routeName: any) => {
+  useRouteTracking((routeName: string) => {
     tracker.page_open_count(routeName, 1);
   });
 
   useEffect(() => {
     async function prepare() {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate loading delay
+        // Brief delay so the animated splash gif can paint before hide.
+        await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (e) {
         console.warn(e);
       } finally {
         if (loaded) {
           setAppReady(true);
-          SplashScreen.hideAsync(); // Hide splash screen once everything is ready
+          SplashScreen.hideAsync();
         }
       }
     }
@@ -77,36 +53,7 @@ export default function RootLayout() {
     configureGoogleSignIn();
   }, []);
 
-  useEffect(() => {
-    if (!appReady) return;
-
-    // Hydrate wallet for *any* route (refresh/deeplink safe).
-    if (!walletInitRanRef.current) {
-      walletInitRanRef.current = true;
-      initWallet().catch(() => {
-        // non-fatal
-      });
-      bootstrapVerifiedTokensList();
-    }
-
-    // Start Brain once per app launch.
-    if (!brain.isStarted()) {
-      brain.start().catch(() => {
-        // non-fatal
-      });
-    }
-
-    void syncPendingAppTransactions();
-    ToolsItem.getState().migrateToolsToSlugs();
-    void AppCatalog.getState().refreshCatalog();
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        void syncPendingAppTransactions();
-        void AppCatalog.getState().refreshCatalog();
-      }
-    });
-    return () => subscription.remove();
-  }, [appReady]);
+  useRootBootstrap(appReady);
 
   if (!loaded && !error) {
     return null;
@@ -127,35 +74,5 @@ export default function RootLayout() {
     );
   }
 
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider style={{ flex: 1 }}>
-        <BottomSheetModalProvider>
-          <KeyboardProvider>
-            <ThemeProvider>
-            <AiServiceProvider>
-              <PIPManager>
-                <PIPDeepLinkHandler />
-                <WhatsAppCampaignTracker />
-                <PushNotificationManager>
-                  <PajCashBeneficiariesManager>
-                  <PajCashSessionManager>
-                  <NotificationPermissionNudge />
-                  <GoogleDriveBackupNudge />
-                  <WidgetManager>
-                    <StackView />
-                  </WidgetManager>
-                  </PajCashSessionManager>
-                  </PajCashBeneficiariesManager>
-                </PushNotificationManager>
-              </PIPManager>
-            </AiServiceProvider>
-          </ThemeProvider>
-        </KeyboardProvider>
-        </BottomSheetModalProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
-  );
+  return <AppProviders />;
 }
-
-

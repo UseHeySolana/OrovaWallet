@@ -31,7 +31,7 @@ import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
 import { Base } from "@/components//Navigation/Base";
 import { useThemeContext } from "@/context/ThemeContext";
 import Convo, { MessageType } from "@/utils/store/conversation.store";
-import { toolRouter } from "@/libs/tool-implemetation/toolsregistry";
+import { toolRouter } from "@/libs/tool-implementation/toolsregistry";
 import SetPin from "@/components/Sheets/SetPinSheet";
 import { PromoNotificationModal } from "@/services/promo/PromoNotificationModal";
 

@@ -38,7 +38,6 @@ export default function ImportPhrase({ navigation }: any) {
   const { isKeyboardVisible } = useKeyboard();
 
   const importWallet = async () => {
-    console.log(mnemonic);
     if (mnemonic === "") {
       setToast("No Phrase Imported", "error");
       setLoading(false);

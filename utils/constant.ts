@@ -6,8 +6,13 @@ const CROSSMINT_API_KEY = process.env.EXPO_PUBLIC_CROSSMINT || "";
 /** Fallback treasury wallet when admin settings are unavailable. Primary treasury is fetched from GET /settings/public. */
 const JUMIA_USDC_TREASURY = process.env.EXPO_PUBLIC_JUMIA_USDC_TREASURY || "";
 
-/** Set to true to require voice enrollment + VerifiedVoiceStream before AI commands. */
-const VOICE_VERIFICATION_ENABLED = false;
+/**
+ * Require voice enrollment + VerifiedVoiceStream before AI commands.
+ * Enable with EXPO_PUBLIC_VOICE_VERIFICATION_ENABLED=true (default: off).
+ */
+const VOICE_VERIFICATION_ENABLED =
+  process.env.EXPO_PUBLIC_VOICE_VERIFICATION_ENABLED === "1" ||
+  process.env.EXPO_PUBLIC_VOICE_VERIFICATION_ENABLED === "true";
 
 export {
   BASE_URL,

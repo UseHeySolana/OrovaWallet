@@ -13,23 +13,26 @@ import UserItem, { userWalletType } from "@/utils/store/userstore.store";
 import { Audio } from "expo-av";
 import AppSettings from "@/utils/store/settingsstore.store";
 import Convo from "@/utils/store/conversation.store";
-import { toolRouter } from "../tool-implemetation/toolsregistry";
+import { toolRouter } from "../tool-implementation/toolsregistry";
 import { FunctionParams } from "../../utils/types/types";
 
 import { summarizeConversation } from "../../utils/functions/extrafunctions";
 import { AgentContacts } from "../../utils/functions";
-import { refreshUserWalletBalances } from "@/utils/wallet/walletBalanceCache";
-import WalletItem from "@/utils/store/wallet.store";
-import tracker from "../../utils/tracker";
 import { request } from "../../utils/request/db";
-import { pushDevNetworkLog } from "@/utils/store/devNetworkLog.store";
 import { reportBug } from "@/services/bugReport/reportBug";
 
 import InCallManager from "react-native-incall-manager";
 import AudioManager, { AudioChannel } from "./AudioManager";
+import { TranscriptBatcher } from "./transcriptBatcher";
+import {
+  REALTIME_MODEL,
+  formatRealtimeTools,
+  buildGaSessionPayload,
+  getTurnDetectionConfig,
+} from "./realtimeSessionConfig";
+import { handleRealtimeFunctionCall } from "./realtimeToolDispatcher";
 
 class SessionManager {
-  private static readonly REALTIME_MODEL = "gpt-realtime-mini";
   private static readonly SESSION_UPDATE_TIMEOUT_MS = 10_000;
   private static lastVoiceUnavailableToastAt = 0;
 
@@ -56,12 +59,7 @@ class SessionManager {
   private sessionReadyPromise: Promise<void> | null = null;
   private startSessionPromise: Promise<void> | null = null;
   private sessionGeneration = 0;
-  /** Batched transcript deltas to avoid "Maximum update depth" from rapid store updates */
-  private pendingHumanDeltas: string = "";
-  private pendingAiDeltas: string = "";
-  private flushHumanTimer: ReturnType<typeof setTimeout> | null = null;
-  private flushAiTimer: ReturnType<typeof setTimeout> | null = null;
-  private static readonly FLUSH_MS = 80;
+  private transcriptBatcher: TranscriptBatcher;
   /** Current in-flight response id; used to cancel and stop audio when user sends a new message */
   private currentResponseId: string | null = null;
   /** Enhanced response state tracking */
@@ -121,6 +119,20 @@ class SessionManager {
 
     // Initialize audio manager
     this.audioManager = new AudioManager();
+
+    const self = this;
+    this.transcriptBatcher = new TranscriptBatcher({
+      get conversation_id() {
+        return self.conversation_id;
+      },
+      get activeHumanMessageId() {
+        return self.activeHumanMessageId;
+      },
+      get activeAiMessageId() {
+        return self.activeAiMessageId;
+      },
+      getMessageSource: () => self.getMessageSource(),
+    });
 
     // Load memory asynchronously
     this.loadMemory().then((memory) => {
@@ -306,7 +318,7 @@ class SessionManager {
 
       // Send offer to API
       const baseUrl = "https://api.openai.com/v1/realtime/calls";
-      const model = SessionManager.REALTIME_MODEL;
+      const model = REALTIME_MODEL;
       const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
         method: "POST",
         body: offer.sdp,
@@ -402,7 +414,7 @@ class SessionManager {
       metadata: {
         feature: "voice_assistant",
         handler: "SessionManager.startSession",
-        model: SessionManager.REALTIME_MODEL,
+        model: REALTIME_MODEL,
         useVoiceInput,
       },
     }).catch(() => { });
@@ -438,169 +450,6 @@ class SessionManager {
     this.assistantOutputAudioActive = false;
     this.pendingIdleModeAfterAssistant = false;
     this.callbacks.onAssistantPlaybackActive?.(false);
-  }
-
-  private scheduleFlushHuman(): void {
-    if (this.flushHumanTimer != null) return;
-    this.flushHumanTimer = setTimeout(() => {
-      this.flushHumanTimer = null;
-      this.flushHumanNow();
-    }, SessionManager.FLUSH_MS);
-  }
-
-  private cancelFlushHuman(): void {
-    if (this.flushHumanTimer != null) {
-      clearTimeout(this.flushHumanTimer);
-      this.flushHumanTimer = null;
-    }
-  }
-
-  private flushHumanNow(): void {
-    if (!this.activeHumanMessageId || !this.pendingHumanDeltas) return;
-    const toApply = this.pendingHumanDeltas;
-    this.pendingHumanDeltas = "";
-    const currentContent =
-      Convo.getState()
-        .getConversationMessages(this.conversation_id!)
-        ?.find((item) => item.id === this.activeHumanMessageId)?.content ?? "";
-    Convo.getState().updateMessage({
-      messageId: this.activeHumanMessageId,
-      content: { content: currentContent + toApply },
-      source: "voice",
-    });
-  }
-
-  private scheduleFlushAi(): void {
-    if (this.flushAiTimer != null) return;
-    this.flushAiTimer = setTimeout(() => {
-      this.flushAiTimer = null;
-      this.flushAiNow();
-    }, SessionManager.FLUSH_MS);
-  }
-
-  private cancelFlushAi(): void {
-    if (this.flushAiTimer != null) {
-      clearTimeout(this.flushAiTimer);
-      this.flushAiTimer = null;
-    }
-  }
-
-  private flushAiNow(): void {
-    if (!this.activeAiMessageId || !this.pendingAiDeltas) return;
-    const toApply = this.pendingAiDeltas;
-    this.pendingAiDeltas = "";
-    const currentContent =
-      Convo.getState()
-        .getConversationMessages(this.conversation_id!)
-        ?.find((item) => item.id === this.activeAiMessageId)?.content ?? "";
-    Convo.getState().updateMessage({
-      messageId: this.activeAiMessageId,
-      content: { content: currentContent + toApply },
-      source: this.getMessageSource(),
-    });
-  }
-
-  private formatTools(functions: FunctionParams[]) {
-    return functions.map((fn) => {
-      if (!fn.name) console.warn(`[Functions] Function missing name:`, fn);
-      if (!fn.description) {
-        console.warn(`[Functions] Function ${fn.name} missing description`);
-      }
-      if (!fn.parameters) {
-        console.warn(`[Functions] Function ${fn.name} missing parameters`);
-      }
-      return {
-        type: "function" as const,
-        name: fn.name,
-        description: typeof fn.getDescription === "function" ? fn.getDescription() : fn.description,
-        parameters: fn.parameters,
-      };
-    });
-  }
-
-  private getTurnDetectionConfig():
-    | {
-      type: "server_vad";
-      threshold: number;
-      prefix_padding_ms: number;
-      silence_duration_ms: number;
-      create_response: boolean;
-      interrupt_response: boolean;
-    }
-    | null {
-    if (!this.useVoiceInputThisSession || this.pushToTalkMode) {
-      return null;
-    }
-    return {
-      type: "server_vad",
-      threshold: this.vadConfig.threshold,
-      prefix_padding_ms: this.vadConfig.prefix_padding_ms,
-      silence_duration_ms: this.vadConfig.silence_duration_ms,
-      create_response: true,
-      interrupt_response: true,
-    };
-  }
-
-  private buildGaSessionPayload(
-    overrides: Record<string, unknown> = {}
-  ): Record<string, unknown> {
-    const {
-      turn_detection: turnDetectionOverride,
-      audio: audioOverride,
-      ...restOverrides
-    } = overrides;
-
-    const session: Record<string, unknown> = {
-      type: "realtime",
-      model: SessionManager.REALTIME_MODEL,
-      // Always use audio output so chat mode gets spoken replies + transcript events.
-      output_modalities: ["audio"],
-      ...restOverrides,
-    };
-
-    if (
-      overrides.instructions === undefined &&
-      this.systemInstructions.length > 0
-    ) {
-      session.instructions = this.systemInstructions;
-    }
-
-    if (overrides.tools === undefined && this.availableFunctions.length > 0) {
-      session.tools = this.formatTools(this.availableFunctions);
-      session.tool_choice = "auto";
-    } else if (overrides.tools !== undefined) {
-      session.tool_choice = overrides.tool_choice ?? "auto";
-    }
-
-    // GA Realtime: turn_detection lives under session.audio.input, not session root.
-    const audioFromOverride =
-      audioOverride && typeof audioOverride === "object"
-        ? (audioOverride as Record<string, unknown>)
-        : {};
-    const inputFromOverride =
-      audioFromOverride.input && typeof audioFromOverride.input === "object"
-        ? (audioFromOverride.input as Record<string, unknown>)
-        : {};
-
-    const turnDetection =
-      turnDetectionOverride !== undefined
-        ? turnDetectionOverride
-        : this.getTurnDetectionConfig();
-
-    session.audio = {
-      ...audioFromOverride,
-      input: {
-        ...inputFromOverride,
-        transcription: inputFromOverride.transcription ?? {
-          model: "gpt-4o-mini-transcribe",
-          prompt:
-            "Transcribe speech for Orova, a Solana crypto wallet assistant. Expect token symbols (SOL, USDC), amounts, mint addresses, swap, transfer, send, and usernames.",
-        },
-        turn_detection: turnDetection,
-      },
-    };
-
-    return session;
   }
 
   private onSessionUpdated(serverSession: Record<string, unknown> | undefined) {
@@ -648,7 +497,14 @@ class SessionManager {
     overrides: Record<string, unknown> = {},
     waitForAck = true
   ): Promise<void> {
-    const session = this.buildGaSessionPayload(overrides);
+    const session = buildGaSessionPayload({
+      systemInstructions: this.systemInstructions,
+      availableFunctions: this.availableFunctions,
+      useVoiceInputThisSession: this.useVoiceInputThisSession,
+      pushToTalkMode: this.pushToTalkMode,
+      vadConfig: this.vadConfig,
+      overrides,
+    });
     const event = { type: "session.update", session };
 
     if (__DEV__) {
@@ -750,8 +606,7 @@ class SessionManager {
           this.sendClientEvent({ type: "output_audio_buffer.clear" });
 
           // 4. Cancel pending AI transcript updates
-          this.cancelFlushAi();
-          this.pendingAiDeltas = "";
+          this.transcriptBatcher.cancelAll();
 
           // 5. Set mode and create user message placeholder
           this.callbacks.setMode("human");
@@ -787,8 +642,7 @@ class SessionManager {
           this.responseState = { id: null, status: 'cancelled', audioItemId: null };
           // Reset function call state on cancellation
           this.functionCallState = { itemId: null, name: null, arguments: "" };
-          this.cancelFlushAi();
-          this.pendingAiDeltas = "";
+          this.transcriptBatcher.cancelAll();
           this.clearAssistantPlaybackState();
           this.callbacks.onAssistantResponseEnded?.();
         }
@@ -804,8 +658,7 @@ class SessionManager {
           message.type === "conversation.item.input_audio_transcription.delta"
         ) {
           if (this.activeHumanMessageId) {
-            this.pendingHumanDeltas += message.delta ?? "";
-            this.scheduleFlushHuman();
+            this.transcriptBatcher.appendHuman(message.delta ?? "");
           } else {
             this.activeHumanMessageId =
               "temp" + new Date().getTime().toString();
@@ -829,8 +682,7 @@ class SessionManager {
               ? "[inaudible]"
               : message.transcript;
 
-          this.cancelFlushHuman();
-          this.flushHumanNow();
+          this.transcriptBatcher.flushHumanNow();
           if (this.activeHumanMessageId) {
             Convo.getState().updateMessage({
               messageId: this.activeHumanMessageId,
@@ -847,8 +699,7 @@ class SessionManager {
 
         if (message.type === "response.audio_transcript.delta") {
           if (this.activeAiMessageId) {
-            this.pendingAiDeltas += message.delta ?? "";
-            this.scheduleFlushAi();
+            this.transcriptBatcher.appendAi(message.delta ?? "");
           } else {
             this.activeAiMessageId = "temp" + new Date().getTime().toString();
             Convo.getState().setMessages({
@@ -865,8 +716,7 @@ class SessionManager {
         if (message.type === "response.audio_transcript.done") {
           this.updateMemory(message);
 
-          this.cancelFlushAi();
-          this.flushAiNow();
+          this.transcriptBatcher.flushAiNow();
           if (this.activeAiMessageId) {
             Convo.getState().updateMessage({
               messageId: this.activeAiMessageId,
@@ -883,8 +733,7 @@ class SessionManager {
 
         if (message.type === "response.output_text.delta") {
           if (this.activeAiMessageId) {
-            this.pendingAiDeltas += message.delta ?? "";
-            this.scheduleFlushAi();
+            this.transcriptBatcher.appendAi(message.delta ?? "");
           } else {
             this.activeAiMessageId = "temp" + new Date().getTime().toString();
             Convo.getState().setMessages({
@@ -899,8 +748,7 @@ class SessionManager {
         }
 
         if (message.type === "response.output_text.done") {
-          this.cancelFlushAi();
-          this.flushAiNow();
+          this.transcriptBatcher.flushAiNow();
           const finalText = message.text ?? "";
           if (this.activeAiMessageId) {
             Convo.getState().updateMessage({
@@ -1003,8 +851,7 @@ class SessionManager {
 
                   if (!transcript) continue;
 
-                  this.cancelFlushAi();
-                  this.flushAiNow();
+                  this.transcriptBatcher.flushAiNow();
 
                   if (this.activeAiMessageId) {
                     Convo.getState().updateMessage({
@@ -1207,10 +1054,7 @@ class SessionManager {
       // Stop InCallManager
       InCallManager.stop();
 
-      this.cancelFlushHuman();
-      this.cancelFlushAi();
-      this.pendingHumanDeltas = "";
-      this.pendingAiDeltas = "";
+      this.transcriptBatcher.cancelAll();
 
       this.rejectSessionUpdateWaiters("Session stopped");
       this.rejectSessionReady(new Error("Session stopped"));
@@ -1330,8 +1174,7 @@ class SessionManager {
         this.currentResponseId = null;
 
         // Cancel AI transcript updates
-        this.cancelFlushAi();
-        this.pendingAiDeltas = "";
+        this.transcriptBatcher.cancelAll();
       }
 
       const event = {
@@ -1379,8 +1222,7 @@ class SessionManager {
         });
         this.sendClientEvent({ type: "output_audio_buffer.clear" });
         this.currentResponseId = null;
-        this.cancelFlushAi();
-        this.pendingAiDeltas = "";
+        this.transcriptBatcher.cancelAll();
       }
 
       this.sendClientEvent({
@@ -1421,7 +1263,15 @@ class SessionManager {
     }
 
     await this.sendSessionUpdate(
-      { turn_detection: enabled ? null : this.getTurnDetectionConfig() },
+      {
+        turn_detection: enabled
+          ? null
+          : getTurnDetectionConfig({
+              useVoiceInputThisSession: this.useVoiceInputThisSession,
+              pushToTalkMode: this.pushToTalkMode,
+              vadConfig: this.vadConfig,
+            }),
+      },
       true
     );
 
@@ -1546,7 +1396,13 @@ class SessionManager {
 
     if (this.isSessionActive) {
       await this.sendSessionUpdate(
-        { turn_detection: this.getTurnDetectionConfig() },
+        {
+          turn_detection: getTurnDetectionConfig({
+            useVoiceInputThisSession: this.useVoiceInputThisSession,
+            pushToTalkMode: this.pushToTalkMode,
+            vadConfig: this.vadConfig,
+          }),
+        },
         true
       );
       console.log("VAD settings updated:", this.vadConfig);
@@ -1571,7 +1427,7 @@ class SessionManager {
     if (this.isSessionActive) {
       void this.sendSessionUpdate(
         {
-          tools: this.formatTools(functions),
+          tools: formatRealtimeTools(functions),
           tool_choice: "auto",
         },
         true
@@ -1589,202 +1445,21 @@ class SessionManager {
    * @param functionCall - The function call item from response.done output
    */
   private async handleFunctionCall(functionCall: any): Promise<void> {
-    const { name, arguments: argsJson, call_id } = functionCall;
-
-    console.log(`[Function Call] Received:`, {
-      name,
-      call_id,
-      arguments: argsJson,
-      status: functionCall.status
-    });
-
-    // Validate required fields
-    if (!name || !call_id) {
-      console.error("[Function Call] Missing required fields (name or call_id)");
-      return;
-    }
-
-    try {
-      // Find the registered function handler
-      const functionDef = this.availableFunctions.find(
-        (fn) => fn.name === name
-      );
-
-      if (!functionDef || !functionDef.handler) {
-        throw new Error(`No handler found for function: ${name}`);
-      }
-
-      // Parse arguments - OpenAI sends them as a JSON string
-      let args;
-      if (typeof argsJson === "string") {
-        try {
-          args = JSON.parse(argsJson);
-        } catch (parseError) {
-          if (__DEV__) {
-            pushDevNetworkLog({
-              label: `Realtime tool args JSON.parse failed: ${name}`,
-              method: "INTERNAL",
-              url: `function:${name}`,
-              status: 0,
-              durationMs: 0,
-              requestSummary:
-                typeof argsJson === "string"
-                  ? argsJson.slice(0, 12_000)
-                  : String(argsJson).slice(0, 12_000),
-              responseBody: String(parseError),
-            });
-          }
-          throw new Error(`Failed to parse function arguments: ${parseError}`);
-        }
-      } else {
-        args = argsJson;
-      }
-
-      console.log(`[Function Call] Executing ${name} with parsed args:`, args);
-
-      // Create a pending message in the conversation UI
-      if (this.conversation_id !== null) {
-        Convo.getState().setMessages({
-          id: call_id,
-          role: "tool",
-          content: "",
-          timestamp: new Date().getTime(),
-          conversation_id: this.conversation_id,
-          tool: {
-            owner: functionDef.owner,
-            status: "pending",
-            action: functionDef.name,
-            arguments: args,
-          },
-          source: this.getMessageSource(),
-        });
-        this.functionMessageId = call_id;
-      }
-
-      // Execute the function handler
-      const result = await functionDef.handler(args);
-      // Track tool usage
-      tracker.tool_calls(name, 1);
-
-      // Update conversation message with success status (use toolUpdates so we do not wipe tool.arguments or extra fields)
-      if (this.conversation_id !== null && this.functionMessageId) {
-        const toolMsg = Convo.getState().messages.find(
-          (m) => m.id === this.functionMessageId
-        );
-        Convo.getState().updateMessage({
-          messageId: this.functionMessageId,
-          source: toolMsg?.source ?? "voice",
-          toolUpdates: {
-            status: "complete",
-            action: functionDef.name,
-            owner: functionDef.owner,
-          },
-        });
-      }
-
-      // Send the result back to the model as per OpenAI spec
-      // The output must be a JSON string
-      const resultEvent = {
-        type: "conversation.item.create",
-        item: {
-          type: "function_call_output",
-          call_id: call_id,
-          output: JSON.stringify(result),
+    await handleRealtimeFunctionCall(
+      {
+        getConversationId: () => this.conversation_id,
+        getFunctionMessageId: () => this.functionMessageId,
+        getAvailableFunctions: () => this.availableFunctions,
+        getMessageSource: () => this.getMessageSource(),
+        setFunctionMessageId: (id) => {
+          this.functionMessageId = id;
         },
-      };
-
-      console.log(`[Function Call] Sending result back to model:`, resultEvent);
-      this.sendClientEvent(resultEvent);
-
-      // Trigger a new response to process the function result
-      // As per OpenAI docs: "ask the model to respond"
-      setTimeout(() => {
-        console.log(`[Function Call] Requesting model response with function result`);
-        this.createShortVoiceResponse({
-          instructions:
-            "Summarize the tool result for voice in one short sentence. If the tool result includes an assistant_instruction or message field, follow it closely. Do not enumerate arrays, product names, prices, or links unless the tool explicitly asks you to.",
-        });
-      }, 300);
-    } catch (error: any) {
-      console.error(`[Function Call] Error executing ${name}:`, error);
-
-      if (__DEV__) {
-        let argsSummary = "";
-        try {
-          argsSummary =
-            typeof argsJson === "string"
-              ? argsJson.slice(0, 4000)
-              : JSON.stringify(argsJson).slice(0, 4000);
-        } catch {
-          argsSummary = "«args unavailable»";
-        }
-        pushDevNetworkLog({
-          label: `Tool handler error: ${name}`,
-          method: "INTERNAL",
-          url: `handler:${name}`,
-          status: 0,
-          durationMs: 0,
-          requestSummary: argsSummary,
-          responseBody: [error?.name, error?.message, error?.stack]
-            .filter(Boolean)
-            .join("\n")
-            .slice(0, 12_000),
-        });
-      }
-
-      AppSettings.getState().setLoading(false);
-
-      // Update conversation message with error status
-      if (this.conversation_id !== null && this.functionMessageId) {
-        const functionDef = this.availableFunctions.find(
-          (fn) => fn.name === name
-        );
-
-        Convo.getState().updateMessage({
-          messageId: this.functionMessageId,
-          source:
-            Convo.getState().messages.find((m) => m.id === this.functionMessageId)
-              ?.source ?? "voice",
-          toolUpdates: {
-            status: "failed",
-            action: functionDef?.name || name,
-            owner: functionDef?.owner,
-          },
-        });
-      }
-
-      // Send error back to the model as per OpenAI spec
-      // The output should be a JSON string containing error information
-      const errorEvent = {
-        type: "conversation.item.create",
-        item: {
-          type: "function_call_output",
-          call_id: call_id,
-          output: JSON.stringify({
-            error: error.message || "Unknown error",
-            type: error.name || "FunctionExecutionError",
-          }),
-        },
-      };
-
-      console.log(`[Function Call] Sending error to model:`, errorEvent);
-      this.sendClientEvent(errorEvent);
-
-      // Still trigger a response so the model can handle the error gracefully
-      setTimeout(() => {
-        this.createShortVoiceResponse({
-          instructions:
-            "Explain the tool error briefly for voice in one short sentence and say what the user can try next.",
-        });
-      }, 300);
-    }
-
-    // Update user wallet state after function execution (e.g. transfer / swap)
-    const userItem = UserItem.getState();
-    const publicKey = WalletItem.getState().publicKey;
-    if (userItem.user && publicKey) {
-      await refreshUserWalletBalances({ force: true });
-    }
+        sendClientEvent: (event) => this.sendClientEvent(event),
+        createShortVoiceResponse: (overrides) =>
+          this.createShortVoiceResponse(overrides),
+      },
+      functionCall
+    );
   }
 
   /**

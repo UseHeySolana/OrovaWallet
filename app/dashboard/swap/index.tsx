@@ -21,7 +21,7 @@ import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { useThemeContext } from "@/context/ThemeContext";
 import { confirm } from "@/services/confirmation";
-import { signVersionedTxFromBase64 } from "@/utils/functions/extrafunctions";
+import { signVersionedTxFromBase64 } from "@/utils/wallet/signing";
 import {
   browseTokenHitsForSwap,
   type TokenSearchHit,

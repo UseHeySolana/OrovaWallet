@@ -1,6 +1,6 @@
 import { Connection, ParsedAccountData, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount, TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, TokenAccountNotFoundError } from "@solana/spl-token";
-import { keypairSign, signTransactions } from "@/utils/functions/extrafunctions";
+import { keypairSign, signTransactions } from "@/utils/wallet/signing";
 import {
     estimateSolTransferFeeLamports,
     solToLamports,

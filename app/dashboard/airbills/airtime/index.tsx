@@ -31,7 +31,7 @@ import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { api_key } from "@/utils/dashboard";
-import { signTransactions } from "@/utils/functions/extrafunctions";
+import { signTransactions } from "@/utils/wallet/signing";
 import { airBills, normalizeAirbillsPhoneNumber } from "@/libs/tools/airbills/airbills";
 import { formatPhoneDisplay } from "@/libs/tools/airbills/dataPlanDisplay";
 import { recordAppTransactionAsync } from "@/services/appTransactions";
