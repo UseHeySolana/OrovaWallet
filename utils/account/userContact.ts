@@ -47,8 +47,15 @@ export function buildSessionUserFromServer(
     ? split?.nationalNumber || nationalNumberFromPhone(rawPhone)
     : "";
 
+  const parsedId =
+    typeof data.id === "number" && Number.isInteger(data.id) && data.id > 0
+      ? data.id
+      : typeof data.id === "string" && /^\d{1,10}$/.test(data.id.trim())
+        ? Number(data.id.trim())
+        : undefined;
+
   return {
-    id: data.id,
+    id: parsedId,
     username: data.username,
     mobileNumber,
     phoneE164,

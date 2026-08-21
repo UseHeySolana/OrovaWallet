@@ -57,21 +57,34 @@ function initFetchReporting(): void {
 
       if (!skipReport && !response.ok) {
         let responseMessage = "";
+        let responseErrors: unknown;
         try {
           const clone = response.clone();
           const body = await clone.json();
           if (body && typeof body.message === "string") {
             responseMessage = body.message;
           }
+          if (body && body.errors != null) {
+            responseErrors = body.errors;
+          }
         } catch {
           // non-JSON error body
         }
+
+        const errorKeys =
+          responseErrors &&
+          typeof responseErrors === "object" &&
+          !Array.isArray(responseErrors)
+            ? Object.keys(responseErrors as Record<string, unknown>).slice(0, 8)
+            : [];
 
         reportBug({
           title: `HTTP ${response.status} ${method} ${url}`.slice(0, 200),
           summary: (
             responseMessage
-              ? `${method} failed (${response.status}): ${responseMessage}`
+              ? `${method} failed (${response.status}): ${responseMessage}${
+                  errorKeys.length ? ` [${errorKeys.join(", ")}]` : ""
+                }`
               : `${method} request failed with ${response.status} ${response.statusText || ""}`
           ).trim(),
           details: JSON.stringify(
@@ -81,6 +94,7 @@ function initFetchReporting(): void {
               status: response.status,
               statusText: response.statusText,
               ...(responseMessage ? { message: responseMessage } : {}),
+              ...(responseErrors != null ? { errors: responseErrors } : {}),
             },
             null,
             2
@@ -92,6 +106,7 @@ function initFetchReporting(): void {
             failure_kind: "http_error",
             has_query: rawUrl.includes("?"),
             ...(responseMessage ? { response_message: responseMessage } : {}),
+            ...(errorKeys.length ? { validation_fields: errorKeys.join(",") } : {}),
           },
         }).catch(() => {});
       }

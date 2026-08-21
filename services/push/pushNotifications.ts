@@ -10,15 +10,40 @@ import type { UserType } from "@/utils/types/user.types";
 
 const PUSH_TOKEN_STORAGE_KEY = "@heysolana/expo_push_token";
 const ANDROID_CHANNEL_ID = "heysolana-push";
+const EXPO_PUSH_TOKEN_RE = /^(ExponentPushToken|ExpoPushToken)\[.+\]$/;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 let cachedPushToken: string | null = null;
 let permissionRequested = false;
 
 function getEasProjectId(): string | undefined {
-  return (
+  const raw =
     Constants.expoConfig?.extra?.eas?.projectId ??
-    (Constants as { easConfig?: { projectId?: string } }).easConfig?.projectId
-  );
+    (Constants as { easConfig?: { projectId?: string } }).easConfig?.projectId;
+  const projectId = typeof raw === "string" ? raw.trim() : "";
+  return UUID_RE.test(projectId) ? projectId : undefined;
+}
+
+function isExpoPushToken(token: string | null | undefined): token is string {
+  return typeof token === "string" && EXPO_PUSH_TOKEN_RE.test(token.trim());
+}
+
+/** Addressbook ids only — drop Google subject ids / non-integers that fail Laravel `integer`. */
+function coerceAddressbookUserId(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === "string" && /^\d{1,10}$/.test(value.trim())) {
+    const n = Number(value.trim());
+    if (Number.isInteger(n) && n > 0) return n;
+  }
+  return undefined;
+}
+
+async function clearStoredPushToken(): Promise<void> {
+  cachedPushToken = null;
+  await AsyncStorage.removeItem(PUSH_TOKEN_STORAGE_KEY);
 }
 
 export function getCachedExpoPushToken(): string | null {
@@ -47,11 +72,15 @@ export async function ensurePushPermissions(): Promise<boolean> {
 }
 
 async function readStoredPushToken(): Promise<string | null> {
-  if (cachedPushToken) return cachedPushToken;
+  if (isExpoPushToken(cachedPushToken)) return cachedPushToken;
   const stored = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
+  if (isExpoPushToken(stored)) {
+    cachedPushToken = stored.trim();
+    return cachedPushToken;
+  }
   if (stored) {
-    cachedPushToken = stored;
-    return stored;
+    // Stale FCM/APNs tokens from older builds cause backend 422s.
+    await clearStoredPushToken();
   }
   return null;
 }
@@ -67,13 +96,19 @@ export async function resolveExpoPushToken(forceRefresh = false): Promise<string
 
   const projectId = getEasProjectId();
   if (!projectId) {
-    console.warn("[push] Missing EAS projectId in app config");
+    console.warn("[push] Missing or invalid EAS projectId in app config");
     return null;
   }
 
   try {
-    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
-    if (!data) return null;
+    const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId });
+    const data =
+      typeof tokenResult?.data === "string" ? tokenResult.data.trim() : "";
+    if (!isExpoPushToken(data)) {
+      console.warn("[push] Rejecting non-Expo push token from device");
+      await clearStoredPushToken();
+      return null;
+    }
     cachedPushToken = data;
     await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, data);
     return data;
@@ -105,7 +140,7 @@ export function pushRegistrationIdentityKey(
   const phone = resolvePhoneForPushRegistration(params);
   if (phone) return `phone:${phone}`;
 
-  const userId = params.user_id ?? params.user?.id;
+  const userId = coerceAddressbookUserId(params.user_id ?? params.user?.id);
   if (userId != null) return `user:${userId}`;
 
   const wallet = params.user?.wallet_address?.trim();
@@ -148,18 +183,27 @@ export async function registerPushTokenWithBackend(
   if (projectId) body.eas_project_id = projectId;
   const phone = resolvePhoneForPushRegistration(params);
   if (phone) body.phone_number = phone;
-  const userId = params.user_id ?? params.user?.id;
+  const userId = coerceAddressbookUserId(params.user_id ?? params.user?.id);
   if (userId != null) body.user_id = userId;
   const wallet = params.user?.wallet_address?.trim();
-  if (wallet) body.wallet_address = wallet;
+  if (wallet && wallet.length <= 64) body.wallet_address = wallet;
   const email = params.user?.email?.trim().toLowerCase();
-  if (email) body.email = email;
+  // Only send values Laravel's `email` rule will accept.
+  if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) body.email = email;
 
   try {
     const response = await request.postJson(body, "/notifications/register-token");
     if (!response.ok) {
       const text = await response.text();
-      console.warn("[push] register-token failed:", response.status, text);
+      console.warn("[push] register-token failed:", response.status, text, {
+        device_type: deviceType,
+        has_eas_project_id: Boolean(projectId),
+        has_phone: Boolean(phone),
+        has_user_id: userId != null,
+        has_wallet: Boolean(wallet),
+        has_email: Boolean(email),
+        push_token_prefix: pushToken.slice(0, 24),
+      });
       return false;
     }
     return true;
@@ -188,10 +232,11 @@ export function attachPushTokenRefreshListener(
   onToken: (token: string) => void
 ): () => void {
   const sub = Notifications.addPushTokenListener(({ data }) => {
-    if (!data) return;
-    cachedPushToken = data;
-    void AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, data);
-    onToken(data);
+    const token = typeof data === "string" ? data.trim() : "";
+    if (!isExpoPushToken(token)) return;
+    cachedPushToken = token;
+    void AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
+    onToken(token);
   });
   return () => sub.remove();
 }
