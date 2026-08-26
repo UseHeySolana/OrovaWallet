@@ -180,7 +180,7 @@ export const FALLBACK_APPS: App[] = [
     description:
       "Pajcash lets you buy crypto with Naira (onramp) or sell tokens for Naira (offramp) without leaving HeySolana.",
     tutorial:
-      "Add your email or phone, verify with PajCash OTP, then add bank details for offramp. You can onramp or offramp any supported SPL token.",
+      "Add your email or phone, verify with PajCash OTP, then onramp or offramp any supported SPL token. For offramp, choose a saved account, a beneficiary, or enter any Nigerian bank account.",
     url: "https://paj.cash",
     tags: ["Finance", "Onramping", "Offramping", "Solana", "SPL"],
     descriptionImages: [],
@@ -205,8 +205,19 @@ export const FALLBACK_APPS: App[] = [
       {
         name: "offramp",
         params: [
-          { name: "account_number", type: "string", label: "Bank account number" },
-          { name: "bank", type: "string", label: "Bank name or code" },
+          {
+            name: "account_number",
+            type: "string",
+            label: "Default bank account number",
+            helper: "Optional default. You can still offramp to other accounts in chat or on Send.",
+            optional: true,
+          },
+          {
+            name: "bank",
+            type: "string",
+            label: "Default bank name or code",
+            optional: true,
+          },
           {
             name: "bank_id",
             type: "string",

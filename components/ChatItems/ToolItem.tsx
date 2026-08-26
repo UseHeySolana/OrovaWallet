@@ -19,6 +19,7 @@ import MagicBlockTransfer from "./MagicBlockTransfer";
 import TokenSearchPicker from "./TokenSearchPicker";
 import DataPlanPicker from "./DataPlanPicker";
 import ChowdeckAddressPicker from "./ChowdeckAddressPicker";
+import BankSearchPicker from "./BankSearchPicker";
 interface ItemProps {
   item: any;
   isSystem: boolean;
@@ -390,6 +391,19 @@ const ToolItem = (props: ItemProps) => {
             query={item.tokenSearchPicker.query}
             hits={item.tokenSearchPicker.hits}
             swapLeg={item.tokenSearchPicker.swapLeg}
+          />
+        )}
+
+      {item?.bankSearchPicker &&
+        Array.isArray(item.bankSearchPicker.hits) &&
+        item.bankSearchPicker.hits.length > 0 && (
+          <BankSearchPicker
+            query={item.bankSearchPicker.query}
+            hits={item.bankSearchPicker.hits}
+            amount={item.bankSearchPicker.amount}
+            token={item.bankSearchPicker.token}
+            accountNumber={item.bankSearchPicker.accountNumber}
+            fiatAmount={item.bankSearchPicker.fiatAmount}
           />
         )}
 

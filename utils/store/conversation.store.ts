@@ -14,6 +14,14 @@ export interface TokenSearchPickRow {
   organicScore?: number;
 }
 
+/** Rows for PajCash bank search picker on pajit-offramp tool cards. */
+export interface BankSearchPickRow {
+  id: string;
+  name: string;
+  code?: string;
+  logo?: string;
+}
+
 export type { DataPlanPickerRow } from '@/libs/tools/airbills/dataPlanDisplay';
 
 export interface ChowdeckAddressPickRow {
@@ -90,6 +98,15 @@ export interface MessageType {
     hits: TokenSearchPickRow[];
     /** When shown under swap_tokens or check_price, which leg is being chosen. */
     swapLeg?: "from" | "to";
+  };
+  /** PajCash bank search results for offramp — user taps a card to select. */
+  bankSearchPicker?: {
+    query: string;
+    hits: BankSearchPickRow[];
+    amount: number;
+    token: string;
+    accountNumber: string;
+    fiatAmount?: number;
   };
   /** Airbills data bundle category + plan picker on buy-data-bundle tool card. */
   dataPlanPicker?: {

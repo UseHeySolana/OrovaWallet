@@ -16,11 +16,111 @@ import {
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { pajcash, Chain, Currency } from "@/libs/tools/pajcash/pajcash";
 import PajCashSession from "@/utils/store/pajcashSession.store";
+import { savePajCashBeneficiary } from "@/services/pajcashBeneficiariesApi";
+import PajCashBeneficiaries, {
+  type PajCashBeneficiary,
+} from "@/utils/store/pajcashBeneficiaries.store";
 import Convo from "@/utils/store/conversation.store";
 
 const PAJ_APP = "pajcash";
 const PAJ_OFFRAMP = "offramp";
 const PAJ_CREDENTIALS = "credentials";
+
+function getSavedOfframpAccount(): {
+  accountNumber: string;
+  bank: string;
+  accountName?: string;
+} | null {
+  const accountNumber =
+    ToolsItem.getState()
+      .getParameterValue(PAJ_APP, PAJ_OFFRAMP, "account_number")
+      ?.trim() || "";
+  const bank =
+    ToolsItem.getState()
+      .getParameterValue(PAJ_APP, PAJ_OFFRAMP, "bank_id")
+      ?.trim() ||
+    ToolsItem.getState()
+      .getParameterValue(PAJ_APP, PAJ_OFFRAMP, "bank")
+      ?.trim() ||
+    "";
+  if (!accountNumber || !bank) return null;
+  const accountName =
+    ToolsItem.getState()
+      .getParameterValue(PAJ_APP, PAJ_OFFRAMP, "account_name")
+      ?.trim() || undefined;
+  return { accountNumber, bank, accountName };
+}
+
+function formatBeneficiaryLine(b: PajCashBeneficiary, index: number): string {
+  const name = b.accountName?.trim() || "Account";
+  return `${index + 1}. ${name} — ${b.bankName} ${b.accountNumber}`;
+}
+
+/** Guidance for the assistant when bank destination was not provided. */
+function missingBankDestinationGuidance(): string {
+  const saved = getSavedOfframpAccount();
+  const beneficiaries = PajCashBeneficiaries.getState().beneficiaries;
+
+  if (saved) {
+    const label = saved.accountName
+      ? `${saved.accountName} (${saved.bank} ${saved.accountNumber})`
+      : `${saved.bank} ${saved.accountNumber}`;
+    const beneficiaryHint =
+      beneficiaries.length > 0
+        ? ` Saved beneficiaries: ${beneficiaries
+            .slice(0, 5)
+            .map(formatBeneficiaryLine)
+            .join("; ")}.`
+        : "";
+    return `Ask whether to send to their saved account ${label}, or to another account. If another, they can pick a beneficiary or give a new 10-digit account number and bank name (do not ask for account name). When they give a bank name, call pajit-offramp so the tool can resolve or show bank cards (or use_saved_account: true).${beneficiaryHint}`;
+  }
+
+  if (beneficiaries.length > 0) {
+    const list = beneficiaries
+      .slice(0, 8)
+      .map(formatBeneficiaryLine)
+      .join("; ");
+    return `No default bank account is set. Ask which beneficiary to use, or for a new 10-digit account number and bank name (do not ask for account name). Beneficiaries: ${list}. Then call pajit-offramp.`;
+  }
+
+  return "Ask for the Nigerian bank name and 10-digit account number only (do not ask for account name). Then call pajit-offramp with account_number and bank.";
+}
+
+/** Last resolved destination waiting for the user's name confirmation. */
+type PendingOfframpConfirm = {
+  bankId: string;
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  amount: number;
+  token: string;
+};
+
+let pendingOfframpConfirm: PendingOfframpConfirm | null = null;
+
+function setPendingOfframpConfirm(pending: PendingOfframpConfirm) {
+  pendingOfframpConfirm = pending;
+}
+
+function clearPendingOfframpConfirm() {
+  pendingOfframpConfirm = null;
+}
+
+function matchesPendingOfframpConfirm(args: {
+  bankId: string;
+  accountNumber: string;
+  amount: number;
+  token: string;
+}): boolean {
+  const pending = pendingOfframpConfirm;
+  if (!pending) return false;
+  return (
+    pending.bankId === args.bankId &&
+    pending.accountNumber === args.accountNumber &&
+    pending.amount === args.amount &&
+    pending.token.toLowerCase() === args.token.toLowerCase()
+  );
+}
 
 const DEFAULT_USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const DEFAULT_USDC_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
@@ -277,7 +377,7 @@ export class PajCash {
     return {
       name: "pajit-offramp",
       description:
-        "Offramp Solana tokens to Nigerian Naira via PajCash. Creates a Paj order and sends tokens to the deposit address.",
+        "Offramp Solana tokens to Nigerian Naira via PajCash. Call with amount, token, account_number, and bank search text. If several banks match, the app shows tappable cards — wait for bank_id. If exactly one bank matches, the tool resolves the account name immediately. Only after the user confirms that resolved name, call again with confirmed=true and the same bank_id. Never set confirmed=true on the first resolve call.",
       parameters: {
         type: "object",
         properties: {
@@ -294,6 +394,31 @@ export class PajCash {
             description:
               "Optional NGN amount to receive instead of specifying token amount",
           },
+          account_number: {
+            type: "string",
+            description:
+              "10-digit Nigerian bank account number to receive Naira (own account or someone else's)",
+          },
+          bank: {
+            type: "string",
+            description:
+              "Bank search text (e.g. Zenith, Palmpay, Opay). Used to find banks; cards appear only when multiple match.",
+          },
+          bank_id: {
+            type: "string",
+            description:
+              "PajCash bank id from a selected bank card, or from a previous resolve step.",
+          },
+          use_saved_account: {
+            type: "boolean",
+            description:
+              "If true, use the bank account saved in Pajcash settings (when present)",
+          },
+          confirmed: {
+            type: "boolean",
+            description:
+              "Set true only after the user confirmed the resolved account name returned by a previous pajit-offramp call. Ignored if that confirm step has not happened yet.",
+          },
         },
         required: ["amount", "token"],
       },
@@ -301,6 +426,11 @@ export class PajCash {
         amount: number;
         token: string;
         fiat_amount?: number;
+        account_number?: string;
+        bank?: string;
+        bank_id?: string;
+        use_saved_account?: boolean;
+        confirmed?: boolean;
       }) => {
         const messageId = this.session.functionMessageId;
         const pk = WalletItem.getState().publicKey;
@@ -310,24 +440,121 @@ export class PajCash {
           return "PajCash is not connected. Use pajcash-initiate-session and pajcash-verify-session first.";
         }
 
-        const accountNumber = ToolsItem.getState().getParameterValue(
-          PAJ_APP,
-          PAJ_OFFRAMP,
-          "account_number"
+        const saved = getSavedOfframpAccount();
+        let accountNumber = args.account_number?.trim() || "";
+        let bankQuery = args.bank?.trim() || "";
+        let bankId = args.bank_id?.trim() || "";
+
+        if (args.use_saved_account === true) {
+          if (!saved) {
+            return missingBankDestinationGuidance();
+          }
+          accountNumber = saved.accountNumber;
+          bankQuery = saved.bank;
+          if (!bankId && saved.bank && !/\s/.test(saved.bank) && saved.bank.length > 20) {
+            bankId = saved.bank;
+          }
+        }
+
+        if (accountNumber && !bankQuery && !bankId) {
+          const match = PajCashBeneficiaries.getState().beneficiaries.find(
+            (b) => b.accountNumber === accountNumber
+          );
+          if (match) {
+            bankId = match.bankId;
+            bankQuery = match.bankName;
+          }
+        }
+
+        if (!accountNumber || (!bankQuery && !bankId)) {
+          return missingBankDestinationGuidance();
+        }
+
+        // Resolve bank_id: search when missing. One hit → auto-select; many → cards.
+        if (!bankId) {
+          const search = await pajcash.searchBanks(bankQuery);
+          if (!search.status) return search.message;
+          if (search.data.length === 0) {
+            return `No banks matched "${bankQuery}". Ask the user for another bank name.`;
+          }
+
+          if (search.data.length === 1) {
+            bankId = search.data[0]!.id;
+            bankQuery = search.data[0]!.name || bankQuery;
+          } else {
+            if (messageId !== null) {
+              const toolMsg = Convo.getState().messages.find(
+                (m) => m.id === messageId
+              );
+              Convo.getState().updateMessage({
+                messageId,
+                source: toolMsg?.source ?? "voice",
+                content: {
+                  messageType: "bank_search",
+                  bankSearchPicker: {
+                    query: bankQuery,
+                    hits: search.data,
+                    amount: args.amount,
+                    token: args.token,
+                    accountNumber,
+                    fiatAmount: args.fiat_amount,
+                  },
+                },
+              });
+            }
+            return `Found ${search.data.length} banks for "${bankQuery}". Tell the user to tap the correct bank card. Do not guess, do not set confirmed, and do not ask for account name yet.`;
+          }
+        }
+
+        // Always resolve via PajCash before sending.
+        const confirmedAccount = await pajcash.confirmBankAccount(
+          bankQuery || bankId,
+          accountNumber,
+          { bankId }
         );
-        const bankQuery =
-          ToolsItem.getState().getParameterValue(PAJ_APP, PAJ_OFFRAMP, "bank_id") ||
-          ToolsItem.getState().getParameterValue(PAJ_APP, PAJ_OFFRAMP, "bank");
-
-        if (!accountNumber) {
-          return "Set your bank account number in Pajcash app settings first.";
-        }
-        if (!bankQuery) {
-          return "Set your bank name or bank_id in Pajcash app settings first.";
+        if (!confirmedAccount.status) {
+          clearPendingOfframpConfirm();
+          return confirmedAccount.message;
         }
 
-        const bankIdRes = await pajcash.findBankId(bankQuery);
-        if (!bankIdRes.status) return bankIdRes.message;
+        const destination = confirmedAccount.data;
+        PajCashBeneficiaries.getState().upsertBeneficiary({
+          bankId: destination.bankId,
+          bankName: destination.bankName,
+          bankCode: destination.bankCode,
+          accountNumber: destination.accountNumber,
+          accountName: destination.accountName,
+        });
+        void savePajCashBeneficiary({
+          bankId: destination.bankId,
+          bankName: destination.bankName,
+          bankCode: destination.bankCode,
+          accountNumber: destination.accountNumber,
+          accountName: destination.accountName,
+        }).catch(() => {});
+
+        const canFinalize =
+          args.confirmed === true &&
+          matchesPendingOfframpConfirm({
+            bankId: destination.bankId,
+            accountNumber: destination.accountNumber,
+            amount: args.amount,
+            token: args.token,
+          });
+
+        if (!canFinalize) {
+          setPendingOfframpConfirm({
+            bankId: destination.bankId,
+            accountNumber: destination.accountNumber,
+            accountName: destination.accountName,
+            bankName: destination.bankName,
+            amount: args.amount,
+            token: args.token,
+          });
+          return `ONLY confirmation step: PajCash resolved ${destination.accountName} at ${destination.bankName}, account ${destination.accountNumber}. Ask once if that name is correct. If yes, call pajit-offramp with confirmed: true, bank_id "${destination.bankId}", account_number "${destination.accountNumber}", and the same amount/token. Never set confirmed on the first resolve.`;
+        }
+
+        clearPendingOfframpConfirm();
 
         const tokenLower = args.token.toLowerCase();
         if (tokenLower === "sol") {
@@ -351,8 +578,8 @@ export class PajCash {
         }
 
         const orderRes = await pajcash.createOfframp({
-          bank: bankIdRes.data,
-          accountNumber,
+          bank: destination.bankId,
+          accountNumber: destination.accountNumber,
           currency: Currency.NGN,
           mint: meta.mint,
           chain: Chain.SOLANA,
@@ -410,11 +637,14 @@ export class PajCash {
                 : meta.mint,
             recipient: order.address,
             raw_metadata: {
-              account_number: accountNumber,
+              account_number: destination.accountNumber,
+              account_name: destination.accountName,
+              bank: destination.bankName,
+              bank_id: destination.bankId,
             },
           });
           return convertSpeech(
-            `Offramp started. Sent ${payAmount} ${meta.symbol}. You should receive about ${order.fiatAmount} NGN. Order id ${order.id}.`
+            `Offramp started. Sent ${payAmount} ${meta.symbol} to ${destination.accountName}. You should receive about ${order.fiatAmount} NGN. Order id ${order.id}.`
           );
         }
 
@@ -589,22 +819,11 @@ export class PajCash {
       },
       handler: async (args: { amount: number; token: string }) => {
         const messageId = this.session.functionMessageId;
-        const pk = WalletItem.getState().publicKey;
-        if (!pk) return "Please connect your wallet";
 
         if (args.token.toLowerCase() !== "sol") {
           const meta = await resolveMint(args.token, this.session.connection);
           if (!meta) {
             return `Could not resolve token: ${args.token}`;
-          }
-          const balance = await getTokenBalance(
-            pk.toBase58(),
-            meta.mint,
-            meta.decimals,
-            this.session.connection
-          );
-          if (balance < args.amount) {
-            return `Insufficient ${meta.symbol} balance`;
           }
 
           if (pajcash.getSessionToken()) {

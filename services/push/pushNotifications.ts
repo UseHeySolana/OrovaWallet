@@ -161,6 +161,11 @@ export function canRegisterPushForUser(
 export async function registerPushTokenWithBackend(
   params: RegisterPushTokenParams = {}
 ): Promise<boolean> {
+  // TODO: re-enable once iOS push registration is fixed on the backend.
+  if (Platform.OS === "ios") {
+    return false;
+  }
+
   if (!BASE_URL) {
     console.warn("[push] EXPO_PUBLIC_API_URL not set; skipping token registration");
     return false;
