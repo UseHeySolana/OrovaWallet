@@ -71,6 +71,7 @@ export default function Dashboard() {
     stopSession,
     currentMode,
     conversationId,
+    setResumeConversationId,
     voiceEnrolled,
   } = useAi();
   const { publicKey } = WalletItem();
@@ -93,6 +94,12 @@ export default function Dashboard() {
     resetWalletChangeNotifyCooldowns();
     UserItem.getState().setWalletLastSyncedAt(null);
   }, [user?.username, publicKey?.toBase58()]);
+
+  useEffect(() => {
+    const selectedId =
+      typeof convoId === "string" && convoId.trim() ? convoId.trim() : null;
+    setResumeConversationId(selectedId);
+  }, [convoId, setResumeConversationId]);
 
   useEffect(() => {
     console.log(
@@ -224,16 +231,27 @@ export default function Dashboard() {
 
   const startStreamingSession = async () => {
     if (!sessionManager) return;
+    const resumeId =
+      typeof convoId === "string" && convoId.trim() ? convoId.trim() : null;
+    setResumeConversationId(resumeId);
     startSession();
     setShowWallet(false);
-    router.setParams({
-      convoId: null,
-    });
+    // Keep convoId while resuming so the transcript stays visible until
+    // SessionManager binds conversationId; clear only for brand-new chats.
+    if (!resumeId) {
+      router.setParams({
+        convoId: null,
+      });
+    }
   };
 
   const stopStreamingSession = async () => {
     if (!sessionManager) return;
     stopSession();
+    setResumeConversationId(null);
+    router.setParams({
+      convoId: null,
+    });
     setShowWallet(true);
   };
 

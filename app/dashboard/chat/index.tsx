@@ -32,7 +32,9 @@ const ConversationItem = ({ conversation }: { conversation: ConversationType }) 
         <CText numberOfLines={1} ellipsizeMode="tail">
           {conversation?.summary}
         </CText>
-        <CText>{date.toLocaleString()}</CText>
+        <CText className="opacity-60">
+          {date.toLocaleString()} · Tap to continue
+        </CText>
       </View>
 
       <Pressable className=" p-2 rounded-full" onPress={() => handleDeleteConversation(conversation?.id)}>

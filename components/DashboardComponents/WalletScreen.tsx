@@ -343,6 +343,7 @@ export default function WalletScreen({
 
         <WalletToolsSection />
 
+        {/* Temporarily hidden — Brain suggestions carousel
         <View className="relative w-full">
           {hasBrainSuggestions ? (
             <View className="w-full">
@@ -425,6 +426,7 @@ export default function WalletScreen({
             </View>
           )}
         </View>
+        */}
 
         <View className="w-full min-h-[400px]  pb-[60px] shadow-md m-auto bg-white dark:bg-accent overflow-hidden rounded-3xl">
           <View className="flex flex-row items-center justify-between">

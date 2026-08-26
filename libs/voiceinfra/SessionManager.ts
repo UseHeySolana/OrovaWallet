@@ -48,6 +48,8 @@ class SessionManager {
   private availableFunctions: FunctionParams[] = [];
   private connectionEstablished: boolean = false;
   private conversation_id: string | null = null;
+  /** True when starting against an existing local conversation (resume). */
+  private isResumingConversation = false;
   public functionMessageId: string | null = null;
   public activeAiMessageId: string | null = null;
   public activeHumanMessageId: string | null = null;
@@ -74,9 +76,11 @@ class SessionManager {
     name: string | null;
     arguments: string;
   } = { itemId: null, name: null, arguments: "" };
-  /** Push-to-talk mode state */
+  /** Push-to-talk mode state (hold-to-record / release-to-send) */
   private pushToTalkMode: boolean = false;
   private isRecording: boolean = false;
+  private pushToTalkStartedAt = 0;
+  private static readonly PUSH_TO_TALK_MIN_MS = 280;
   /** VAD configuration */
   private vadConfig = {
     threshold: 0.5,
@@ -175,7 +179,7 @@ class SessionManager {
 
   async startSession(
     systemInstructions?: string,
-    options?: { useAudio?: boolean }
+    options?: { useAudio?: boolean; conversationId?: string }
   ): Promise<void> {
     if (this.startSessionPromise) {
       return this.startSessionPromise;
@@ -195,17 +199,82 @@ class SessionManager {
     return this.startSessionPromise;
   }
 
+  private buildResumeTranscript(conversationId: string): string {
+    const messages =
+      Convo.getState().getConversationMessages(conversationId) || [];
+    const textTurns = messages.filter(
+      (m) =>
+        (m.role === "user" || m.role === "system") &&
+        typeof m.content === "string" &&
+        m.content.trim().length > 0 &&
+        !m.tool
+    );
+    const recent = textTurns.slice(-16);
+    if (recent.length === 0) return "";
+
+    const lines = recent.map((m) => {
+      const who = m.role === "user" ? "User" : "Assistant";
+      const content =
+        m.content.length > 500 ? `${m.content.slice(0, 500)}…` : m.content;
+      return `${who}: ${content}`;
+    });
+
+    return (
+      "\n\nYou are continuing an existing conversation with this user. " +
+      "Stay consistent with the transcript below. Do not pretend this is a brand-new chat. " +
+      "Do not re-ask for information they already provided unless it may have changed.\n" +
+      "Recent transcript:\n" +
+      lines.join("\n") +
+      "\n"
+    );
+  }
+
+  private bindConversationId(existingId?: string): void {
+    if (existingId) {
+      this.conversation_id = existingId;
+      this.isResumingConversation = true;
+      this.callbacks.setConversationId(existingId);
+      const exists = Convo.getState().conversations.some(
+        (c) => c.id === existingId
+      );
+      if (!exists) {
+        Convo.getState().createConversation({
+          id: existingId,
+          summary: "",
+        });
+      }
+      return;
+    }
+
+    this.isResumingConversation = false;
+    this.conversation_id = new Date().getTime().toString();
+    this.callbacks.setConversationId(this.conversation_id);
+    Convo.getState().createConversation({
+      id: this.conversation_id,
+      summary: "",
+    });
+  }
+
   private async startSessionInternal(
     systemInstructions?: string,
-    options?: { useAudio?: boolean }
+    options?: { useAudio?: boolean; conversationId?: string }
   ): Promise<void> {
     const useVoiceInput = options?.useAudio !== false;
+    const resumeConversationId = options?.conversationId?.trim() || undefined;
     this.useVoiceInputThisSession = useVoiceInput;
+    // Audio sessions use hold-to-talk; chat / verified-voice sessions keep mic gated separately.
+    this.pushToTalkMode = useVoiceInput;
+    this.isRecording = false;
+    this.pushToTalkStartedAt = 0;
     this.sessionReadyPromise = new Promise((resolve, reject) => {
       this.sessionReadyResolve = resolve;
       this.sessionReadyReject = reject;
     });
     AppSettings.getState().setLoading(true);
+
+    // Bind conversation before network work so UI keeps showing the selected thread.
+    this.bindConversationId(resumeConversationId);
+
     // Set system instructions if provided
     if (systemInstructions) {
       const sysIns = `
@@ -233,7 +302,10 @@ class SessionManager {
       )}.
                 `;
 
-      this.systemInstructions = systemInstructions + sysIns;
+      const resumeContext = resumeConversationId
+        ? this.buildResumeTranscript(resumeConversationId)
+        : "";
+      this.systemInstructions = systemInstructions + sysIns + resumeContext;
     }
 
     const EPHEMERAL_KEY = await this.getToken({
@@ -364,13 +436,6 @@ class SessionManager {
           }
         }
       });
-      this.conversation_id = new Date().getTime().toString();
-      this.callbacks.setConversationId(this.conversation_id);
-      Convo.getState().createConversation({
-        id: this.conversation_id,
-        summary: "",
-      });
-
       const ready = this.sessionReadyPromise;
       if (ready) {
         await Promise.race([
@@ -952,7 +1017,8 @@ class SessionManager {
 
       if (this.sessionGeneration !== sessionGeneration) return;
 
-      if (!this.useVoiceInputThisSession) {
+      // Chat mode or push-to-talk: keep mic off until the user holds to talk.
+      if (!this.useVoiceInputThisSession || this.pushToTalkMode) {
         this.muteMic(true);
       }
 
@@ -974,6 +1040,9 @@ class SessionManager {
     const aiName = AppSettings.getState().aiName || "Orova";
     const username = UserItem.getState().user?.username?.trim();
     const nameHint = username ? ` The user's name is ${username}.` : "";
+    const resumeHint = this.isResumingConversation
+      ? "The user resumed an existing conversation. Welcome them back in one short sentence and offer to continue where you left off. Do not repeat the prior transcript."
+      : "The user just started a new session. Greet them warmly in one short sentence and ask how you can help.";
 
     setTimeout(() => {
       if (this.sessionGeneration !== sessionGeneration || !this.isSessionActive) {
@@ -984,7 +1053,7 @@ class SessionManager {
         response: {
           instructions:
             `You are ${aiName}, the Orova wallet assistant.${nameHint} ` +
-            "The user just started a new session. Greet them warmly in one short sentence and ask how you can help. " +
+            `${resumeHint} ` +
             "Do not call any tools for this greeting.",
         },
       });
@@ -1032,6 +1101,8 @@ class SessionManager {
   private cleanupResources(): void {
     try {
       this.sessionGeneration += 1;
+      this.isRecording = false;
+      this.pushToTalkStartedAt = 0;
       if (this.dataChannel) {
         if (this.dataChannel.readyState === "open") {
           this.dataChannel.close();
@@ -1062,6 +1133,8 @@ class SessionManager {
 
       this.isSessionActive = false;
       this.connectionEstablished = false;
+      this.isRecording = false;
+      this.pushToTalkStartedAt = 0;
     } catch (error) {
       console.error("Error during cleanup:", error);
     }
@@ -1279,21 +1352,22 @@ class SessionManager {
   }
 
   /**
-   * Start recording in push-to-talk mode
-   * Call this when user presses/holds the talk button
+   * Start recording in push-to-talk mode.
+   * Call when the user presses/holds the talk button.
    */
   async startPushToTalk(): Promise<void> {
-    if (!this.pushToTalkMode || this.isRecording) {
-      console.warn("Cannot start push-to-talk: mode not enabled or already recording");
+    if (!this.isSessionActive || !this.pushToTalkMode || this.isRecording) {
+      console.warn("Cannot start push-to-talk: inactive, mode off, or already recording");
       return;
     }
 
     this.isRecording = true;
+    this.pushToTalkStartedAt = Date.now();
 
-    // Clear input buffer for fresh recording (WebRTC requirement)
+    // Clear input buffer for a fresh take, then open the mic.
     this.sendClientEvent({ type: "input_audio_buffer.clear" });
 
-    // Cancel any in-flight response
+    // Cancel any in-flight response / playback so the user can barge in.
     if (this.currentResponseId) {
       this.sendClientEvent({
         type: "response.cancel",
@@ -1302,29 +1376,20 @@ class SessionManager {
       this.currentResponseId = null;
     }
 
-    // Stop playback and clear output buffer
     this.audioManager.stopPlayback();
     this.sendClientEvent({ type: "output_audio_buffer.clear" });
+    this.muteMic(false);
 
     this.callbacks.setMode("human");
-
-    // Create user message placeholder
-    this.activeHumanMessageId = "temp" + new Date().getTime().toString();
-    Convo.getState().setMessages({
-      id: this.activeHumanMessageId,
-      role: "user",
-      content: "",
-      timestamp: new Date().getTime(),
-      conversation_id: this.conversation_id!,
-      source: "voice",
-    });
+    // Message placeholder is created when transcription arrives (or on commit path).
 
     console.log("Push-to-talk recording started");
   }
 
   /**
-   * Stop recording in push-to-talk mode
-   * Call this when user releases the talk button
+   * Stop recording in push-to-talk mode and send.
+   * Call when the user releases the talk button.
+   * Very short taps are discarded so accidental presses do not fire a response.
    */
   async stopPushToTalk(): Promise<void> {
     if (!this.pushToTalkMode || !this.isRecording) {
@@ -1332,17 +1397,41 @@ class SessionManager {
       return;
     }
 
+    const heldMs = Date.now() - this.pushToTalkStartedAt;
     this.isRecording = false;
+    this.pushToTalkStartedAt = 0;
 
-    // Commit the audio buffer (triggers transcription if enabled)
+    // Close the mic first so nothing more is appended after release.
+    this.muteMic(true);
+
+    if (heldMs < SessionManager.PUSH_TO_TALK_MIN_MS) {
+      this.sendClientEvent({ type: "input_audio_buffer.clear" });
+      this.callbacks.setMode("loading");
+      console.log("Push-to-talk discarded (too short)");
+      return;
+    }
+
     this.sendClientEvent({ type: "input_audio_buffer.commit" });
 
-    // Trigger response after brief delay
     setTimeout(() => {
+      if (!this.isSessionActive) return;
       this.createShortVoiceResponse();
     }, 100);
 
     console.log("Push-to-talk recording stopped, triggering response");
+  }
+
+  /**
+   * Cancel an in-progress hold without sending (e.g. session ending).
+   */
+  cancelPushToTalk(): void {
+    if (!this.isRecording) return;
+    this.isRecording = false;
+    this.pushToTalkStartedAt = 0;
+    this.muteMic(true);
+    if (this.isSessionActive) {
+      this.sendClientEvent({ type: "input_audio_buffer.clear" });
+    }
   }
 
   /**

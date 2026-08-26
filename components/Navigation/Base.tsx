@@ -29,13 +29,20 @@ export const Base = ({
     sessionManager,
     inputMode,
     isVoiceCommandRecording,
+    isPushToTalkRecording,
+    startPushToTalk,
+    stopPushToTalk,
     voiceEnrolled,
+    resumeConversationId,
+    setResumeConversationId,
   } = useAi();
   const { isDarkMode } = useThemeContext();
   const [speakerMuted, setSpeakerMuted] = React.useState(false);
   const [micMuted, setMicMuted] = React.useState(false);
   const bubbleIntro = React.useRef(new Animated.Value(0)).current;
   const bubblePulse = React.useRef(new Animated.Value(0)).current;
+  const pttPulse = React.useRef(new Animated.Value(0)).current;
+  const useHoldToTalk = !VOICE_VERIFICATION_ENABLED;
 
   React.useEffect(() => {
     if (!isSessionActive) {
@@ -48,6 +55,7 @@ export const Base = ({
   const shouldShowCancel = isAiScreenOpen && isSessionActive;
   const showAudioSessionControls = shouldShowCancel && inputMode === "audio";
   const showStartHint = isAiScreenOpen && !isSessionActive;
+  const canContinueConversation = Boolean(resumeConversationId);
   const bubbleBackgroundColor = isDarkMode ? "#2A2440" : "#FFFFFF";
 
   React.useEffect(() => {
@@ -91,6 +99,32 @@ export const Base = ({
     };
   }, [bubbleIntro, bubblePulse, showStartHint]);
 
+  React.useEffect(() => {
+    if (!isPushToTalkRecording) {
+      pttPulse.setValue(0);
+      return undefined;
+    }
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pttPulse, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pttPulse, {
+          toValue: 0,
+          duration: 500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [isPushToTalkRecording, pttPulse]);
+
   const handleSecondaryPress = () => {
     if (isAiScreenOpen) {
       tracker.buttons("open_wallet", 1);
@@ -99,6 +133,10 @@ export const Base = ({
     }
 
     tracker.buttons("conversations", 1);
+    // Opening the list clears sticky resume so "back" without picking
+    // starts a fresh chat; selecting a row sets resume again.
+    setResumeConversationId(null);
+    router.setParams({ convoId: null });
     router.push("/dashboard/chat");
   };
 
@@ -116,6 +154,16 @@ export const Base = ({
     if (typeof sessionManager?.muteMic === "function") {
       sessionManager.muteMic(next);
     }
+  };
+
+  const handleTalkPressIn = () => {
+    tracker.buttons("push_to_talk_start", 1);
+    void startPushToTalk();
+  };
+
+  const handleTalkPressOut = () => {
+    tracker.buttons("push_to_talk_stop", 1);
+    void stopPushToTalk();
   };
 
   const handlePrimaryPress = () => {
@@ -162,6 +210,17 @@ export const Base = ({
 
       {showAudioSessionControls && (
         <>
+          {useHoldToTalk && (
+            <View
+              className="px-3 py-1.5 rounded-full border border-white/70 dark:border-white/10 shadow"
+              style={{ backgroundColor: bubbleBackgroundColor }}
+            >
+              <Text className="text-xs font-semibold text-purple dark:text-white">
+                {isPushToTalkRecording ? "Release to send" : "Hold to talk"}
+              </Text>
+            </View>
+          )}
+
           <TouchableOpacity
             onPress={handleToggleSpeaker}
             activeOpacity={0.85}
@@ -175,18 +234,50 @@ export const Base = ({
             />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={handleToggleMic}
-            activeOpacity={0.85}
-            className={`h-[56] w-[56] border border-white/70 dark:border-white/10 shadow flex items-center justify-center rounded-full ${micMuted ? "bg-red-500" : "bg-white/90 dark:bg-accent2"
-              }`}
-          >
-            <Feather
-              name={micMuted ? "mic-off" : "mic"}
-              size={22}
-              color={micMuted ? "#fff" : "#971BB2"}
-            />
-          </TouchableOpacity>
+          {useHoldToTalk ? (
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    scale: pttPulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.08],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <TouchableOpacity
+                onPressIn={handleTalkPressIn}
+                onPressOut={handleTalkPressOut}
+                delayPressIn={0}
+                activeOpacity={0.9}
+                className={`h-[64] w-[64] border-2 shadow flex items-center justify-center rounded-full ${isPushToTalkRecording
+                  ? "bg-red-500 border-red-300"
+                  : "bg-[#971BB2] border-white/70 dark:border-white/10"
+                  }`}
+              >
+                <Feather
+                  name="mic"
+                  size={26}
+                  color="#fff"
+                />
+              </TouchableOpacity>
+            </Animated.View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleToggleMic}
+              activeOpacity={0.85}
+              className={`h-[56] w-[56] border border-white/70 dark:border-white/10 shadow flex items-center justify-center rounded-full ${micMuted ? "bg-red-500" : "bg-white/90 dark:bg-accent2"
+                }`}
+            >
+              <Feather
+                name={micMuted ? "mic-off" : "mic"}
+                size={22}
+                color={micMuted ? "#fff" : "#971BB2"}
+              />
+            </TouchableOpacity>
+          )}
         </>
       )}
 
@@ -221,22 +312,9 @@ export const Base = ({
                 style={{ backgroundColor: bubbleBackgroundColor }}
               >
                 <Text className="text-sm font-semibold text-purple dark:text-white">
-                  Start
+                  {canContinueConversation ? "Continue" : "Start"}
                 </Text>
               </View>
-              {/* <View
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderTopWidth: 8,
-                  borderBottomWidth: 8,
-                  borderLeftWidth: 10,
-                  borderTopColor: "transparent",
-                  borderBottomColor: "transparent",
-                  borderLeftColor: bubbleBackgroundColor,
-                  marginLeft: -1,
-                }}
-              /> */}
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -246,7 +324,7 @@ export const Base = ({
           activeOpacity={0.85}
           className={`rounded-full shadow flex items-center justify-center ${shouldShowCancel ? "h-[56] w-[56]" : "h-[72] w-[72]"
             } ${shouldShowCancel ? "bg-red-500" : "bg-grey dark:bg-accent"
-            } ${isVoiceCommandRecording ? "border-4 border-red-500" : ""}`}
+            } ${isVoiceCommandRecording || isPushToTalkRecording ? "border-4 border-red-500" : ""}`}
         >
           {shouldShowCancel ? (
             <IconLibrary.cancel color="white" size={28} />

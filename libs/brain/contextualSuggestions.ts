@@ -297,21 +297,22 @@ export function buildContextualBrainSuggestions(
     });
   }
 
-  if (corpus.length > 8) {
-    drafts.push({
-      intent: "chat_continue",
-      score: 40,
-      suggestion: {
-        id: uuidv4(),
-        type: "generic",
-        title: "Continue the conversation",
-        body: "Pick up where you left off — the assistant remembers this session’s tools and context while you’re in the app.",
-        createdAt: Date.now(),
-        link: "/dashboard/chat",
-        dedupeKey: `digest:ctx:chat_continue:${bucket}`,
-      },
-    });
-  }
+  // Temporarily disabled — "Continue the conversation" card
+  // if (corpus.length > 8) {
+  //   drafts.push({
+  //     intent: "chat_continue",
+  //     score: 40,
+  //     suggestion: {
+  //       id: uuidv4(),
+  //       type: "generic",
+  //       title: "Continue the conversation",
+  //       body: "Pick up where you left off — the assistant remembers this session’s tools and context while you’re in the app.",
+  //       createdAt: Date.now(),
+  //       link: "/dashboard/chat",
+  //       dedupeKey: `digest:ctx:chat_continue:${bucket}`,
+  //     },
+  //   });
+  // }
 
   drafts.sort((a, b) => b.score - a.score);
 

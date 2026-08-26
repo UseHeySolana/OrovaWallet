@@ -141,11 +141,13 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
     setInputMode,
     sendChatMessage,
     isVoiceCommandRecording,
+    isPushToTalkRecording,
     voiceEnrolled,
     voiceGateStatus,
     voiceVerificationDebug,
     startVoiceCommand,
     stopVoiceCommand,
+    resumeConversationId,
   } = useAi();
 
   const [chatInput, setChatInput] = useState("");
@@ -462,10 +464,20 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
               className="w-full py-3.5 rounded-2xl bg-white dark:bg-accent2 border border-[#971BB2] dark:border-white/20 items-center justify-center shadow-sm"
             >
               <CText className="text-black dark:text-white text-base" style={{ fontFamily: "bold" }}>
-                Start
+                {resumeConversationId ? "Continue conversation" : "Start"}
               </CText>
             </TouchableOpacity>
           )}
+        </View>
+      )}
+
+      {inputMode === "audio" && !VOICE_VERIFICATION_ENABLED && isSessionActive && (
+        <View className="pt-1 pb-2 px-4">
+          <CText className="text-center text-xs text-gray-500 dark:text-gray-400">
+            {isPushToTalkRecording
+              ? "Listening… release the mic to send"
+              : "Hold the mic button to talk, release to send"}
+          </CText>
         </View>
       )}
 
@@ -514,7 +526,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
             ) : (
               <View className="gap-y-3">
                 <CText className="text-center text-xs text-gray-500 mt-2">
-                  Press Start to verify your voice and send commands to the AI.
+                  Press {resumeConversationId ? "Continue" : "Start"} to verify your voice and send commands to the AI.
                 </CText>
                 {__DEV__ && voiceDebugText ? (
                   <View className="rounded-xl bg-black/70 dark:bg-black/80 px-3 py-2">
@@ -532,7 +544,7 @@ export default function ChatInterface({ messages }: ChatInterfaceProps) {
                   className="w-full py-3.5 rounded-2xl bg-white dark:bg-accent2 border border-[#971BB2] dark:border-white/20 items-center justify-center shadow-sm"
                 >
                   <CText className="text-black dark:text-white text-base" style={{ fontFamily: "bold" }}>
-                    Start
+                    {resumeConversationId ? "Continue conversation" : "Start"}
                   </CText>
                 </TouchableOpacity>
               </View>

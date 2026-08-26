@@ -29,10 +29,15 @@ interface AIService {
     stopSession: () => void,
     currentMode: 'loading' | 'aispeaking' | 'human',
     conversationId: string,
+    resumeConversationId: string | null,
+    setResumeConversationId: (id: string | null) => void,
     inputMode: AiInputMode,
     setInputMode: (mode: AiInputMode) => void,
     sendChatMessage: (text: string) => void,
     isVoiceCommandRecording: boolean,
+    isPushToTalkRecording: boolean,
+    startPushToTalk: () => Promise<void>,
+    stopPushToTalk: () => Promise<void>,
     voiceEnrolled: boolean | null,
     voiceGateStatus: "idle" | "listening" | "hearing" | "verifying" | "verified",
     voiceVerificationDebug: VoiceVerificationDebugInfo | null,
@@ -55,6 +60,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const [currentMode, setCurrentMode] = useState<'loading' | 'aispeaking' | 'human'>("loading");
     const [inputMode, setInputMode] = useState<AiInputMode>('audio');
     const [isVoiceCommandRecording, setIsVoiceCommandRecording] = useState(false);
+    const [isPushToTalkRecording, setIsPushToTalkRecording] = useState(false);
     const [voiceEnrolled, setVoiceEnrolled] = useState<boolean | null>(null);
     const [voiceGateStatus, setVoiceGateStatus] = useState<"idle" | "listening" | "hearing" | "verifying" | "verified">("idle");
     const [voiceVerificationDebug, setVoiceVerificationDebug] = useState<VoiceVerificationDebugInfo | null>(null);
@@ -68,6 +74,8 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
 
     const [conversationId, setConversationId] = useState('');
     const conversationIdRef = useRef("");
+    const pendingResumeConversationIdRef = useRef<string | null>(null);
+    const [resumeConversationId, setResumeConversationIdState] = useState<string | null>(null);
     const [connection, setConnection] = useState<Connection | null>(null)
 
     useEffect(() => {
@@ -126,6 +134,12 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const setActiveConversationId = useCallback((id: string) => {
         conversationIdRef.current = id;
         setConversationId(id);
+    }, []);
+
+    const setResumeConversationId = useCallback((id: string | null) => {
+        const next = id?.trim() ? id.trim() : null;
+        pendingResumeConversationIdRef.current = next;
+        setResumeConversationIdState(next);
     }, []);
 
     useEffect(() => {
@@ -252,8 +266,11 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         }
         if (prompt === "") return;
         console.log('starting session');
+        const resumeConversationId =
+            pendingResumeConversationIdRef.current || undefined;
         const startPromise = sessionManager.startSession(prompt, {
             useAudio: VOICE_VERIFICATION_ENABLED ? false : inputMode === "audio",
+            conversationId: resumeConversationId,
         }).then(() => {
             setIsSessionActive(true);
         }).finally(() => {
@@ -266,6 +283,8 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
     const stopSession = useCallback(() => {
         setLoading(true);
         setActiveConversationId("");
+        pendingResumeConversationIdRef.current = null;
+        setResumeConversationIdState(null);
         setTimeout(() => {
             if (sessionManager) {
                 if (voiceResumeTimerRef.current) {
@@ -275,9 +294,11 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
                 void voiceStreamRef.current?.stop();
                 voiceStreamRef.current = null;
                 voiceCommandRecordingRef.current = false;
+                sessionManager.cancelPushToTalk();
                 sessionManager.stopSession();
                 setIsSessionActive(false);
                 setIsVoiceCommandRecording(false);
+                setIsPushToTalkRecording(false);
                 setVoiceGateStatus("idle");
                 setVoiceVerificationDebug(null);
                 setSessionManager(null);
@@ -469,8 +490,37 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [addLocalAssistantMessage]);
 
+    const startPushToTalk = useCallback(async () => {
+        if (!sessionManager || !isSessionActive) return;
+        if (VOICE_VERIFICATION_ENABLED) return;
+        if (inputMode !== "audio") return;
+        try {
+            await sessionManager.startPushToTalk();
+            setIsPushToTalkRecording(sessionManager.isCurrentlyRecording());
+        } catch (error) {
+            console.error("Failed to start push-to-talk:", error);
+            setIsPushToTalkRecording(false);
+        }
+    }, [inputMode, isSessionActive, sessionManager]);
+
+    const stopPushToTalk = useCallback(async () => {
+        if (!sessionManager) {
+            setIsPushToTalkRecording(false);
+            return;
+        }
+        try {
+            if (sessionManager.isCurrentlyRecording()) {
+                await sessionManager.stopPushToTalk();
+            }
+        } catch (error) {
+            console.error("Failed to stop push-to-talk:", error);
+        } finally {
+            setIsPushToTalkRecording(false);
+        }
+    }, [sessionManager]);
+
     return (
-        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId, connection, inputMode, setInputMode, sendChatMessage, isVoiceCommandRecording, voiceEnrolled, voiceGateStatus, voiceVerificationDebug, refreshVoiceEnrollment, startVoiceCommand, stopVoiceCommand }}>
+        <AiService.Provider value={{ sessionManager, isSessionActive, startSession, stopSession, currentMode, conversationId, resumeConversationId, setResumeConversationId, connection, inputMode, setInputMode, sendChatMessage, isVoiceCommandRecording, isPushToTalkRecording, startPushToTalk, stopPushToTalk, voiceEnrolled, voiceGateStatus, voiceVerificationDebug, refreshVoiceEnrollment, startVoiceCommand, stopVoiceCommand }}>
             {children}
         </AiService.Provider>
     );
