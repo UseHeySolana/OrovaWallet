@@ -93,6 +93,14 @@ class SessionManager {
   }[] = [];
   /** Ignore session.updated until we have sent a session.update (avoids early server ack). */
   private awaitingSessionUpdateAck = false;
+  /** Waiters for input_audio_buffer.committed (push-to-talk commit path). */
+  private audioCommitWaiters: {
+    resolve: () => void;
+    reject: (err: Error) => void;
+  }[] = [];
+  private static readonly AUDIO_COMMIT_TIMEOUT_MS = 2_000;
+  /** Fallback mic metering when getStats lacks audioLevel. */
+  private lastMicEnergySample: { energy: number; ts: number } | null = null;
   /** WebRTC: assistant audio may still be playing after response.done. */
   private assistantOutputAudioActive = false;
   private pendingIdleModeAfterAssistant = false;
@@ -543,6 +551,31 @@ class SessionManager {
     waiters.forEach((w) => w.reject(err));
   }
 
+  private resolveAudioCommitWaiters() {
+    const waiters = this.audioCommitWaiters.splice(0);
+    waiters.forEach((w) => w.resolve());
+  }
+
+  private rejectAudioCommitWaiters(reason: string) {
+    const err = new Error(reason);
+    const waiters = this.audioCommitWaiters.splice(0);
+    waiters.forEach((w) => w.reject(err));
+  }
+
+  private waitForAudioCommitted(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const waiter = { resolve, reject };
+      this.audioCommitWaiters.push(waiter);
+      setTimeout(() => {
+        const idx = this.audioCommitWaiters.indexOf(waiter);
+        if (idx >= 0) {
+          this.audioCommitWaiters.splice(idx, 1);
+          reject(new Error("input_audio_buffer.committed timeout"));
+        }
+      }, SessionManager.AUDIO_COMMIT_TIMEOUT_MS);
+    });
+  }
+
   private waitForSessionUpdated(): Promise<void> {
     return new Promise((resolve, reject) => {
       const waiter = { resolve, reject };
@@ -621,11 +654,29 @@ class SessionManager {
 
         if (message.type === "error") {
           console.error("[Realtime error]", message);
-          if (message.event_id) {
-            this.rejectSessionUpdateWaiters(
-              message.message ?? "Realtime API error"
-            );
+          const errorCode =
+            typeof message.error?.code === "string" ? message.error.code : "";
+          const errorMessage =
+            typeof message.error?.message === "string"
+              ? message.error.message
+              : typeof message.message === "string"
+                ? message.message
+                : "Realtime API error";
+
+          if (
+            errorCode === "input_audio_buffer_commit_empty" ||
+            /buffer too small|commit.*empty/i.test(errorMessage)
+          ) {
+            this.rejectAudioCommitWaiters(errorMessage);
           }
+
+          if (message.event_id) {
+            this.rejectSessionUpdateWaiters(errorMessage);
+          }
+        }
+
+        if (message.type === "input_audio_buffer.committed") {
+          this.resolveAudioCommitWaiters();
         }
 
         if (this.conversation_id === null) {
@@ -1017,9 +1068,12 @@ class SessionManager {
 
       if (this.sessionGeneration !== sessionGeneration) return;
 
-      // Chat mode or push-to-talk: keep mic off until the user holds to talk.
-      if (!this.useVoiceInputThisSession || this.pushToTalkMode) {
+      // Chat mode: no mic needed. Push-to-talk keeps the track live and uses
+      // input_audio_buffer.clear/commit so RN WebRTC mute toggling cannot drop frames.
+      if (!this.useVoiceInputThisSession) {
         this.muteMic(true);
+      } else if (this.pushToTalkMode) {
+        this.muteMic(false);
       }
 
       this.triggerInitialWelcome(sessionGeneration);
@@ -1128,6 +1182,7 @@ class SessionManager {
       this.transcriptBatcher.cancelAll();
 
       this.rejectSessionUpdateWaiters("Session stopped");
+      this.rejectAudioCommitWaiters("Session stopped");
       this.rejectSessionReady(new Error("Session stopped"));
       this.clearAssistantPlaybackState();
 
@@ -1169,6 +1224,52 @@ class SessionManager {
         sender.track.enabled = !muted;
       }
     });
+  }
+
+  /**
+   * Live local mic level (0–1) from WebRTC getStats for push-to-talk UI.
+   * Prefers media-source audioLevel; falls back to totalAudioEnergy delta.
+   */
+  async getLocalMicLevel(): Promise<number> {
+    if (!this.peerConnection || !this.isSessionActive) return 0;
+
+    try {
+      const report = await this.peerConnection.getStats();
+      let audioLevel: number | null = null;
+      let totalEnergy: number | null = null;
+
+      report.forEach((stat: any) => {
+        const kind = stat?.kind ?? stat?.mediaType;
+        if (kind && kind !== "audio") return;
+        if (stat?.type !== "media-source" && stat?.type !== "track") return;
+
+        if (typeof stat.audioLevel === "number") {
+          audioLevel = Math.max(audioLevel ?? 0, stat.audioLevel);
+        }
+        if (typeof stat.totalAudioEnergy === "number") {
+          totalEnergy = stat.totalAudioEnergy;
+        }
+      });
+
+      if (audioLevel != null) {
+        return Math.min(1, Math.max(0, audioLevel));
+      }
+
+      if (totalEnergy != null) {
+        const now = Date.now();
+        const prev = this.lastMicEnergySample;
+        this.lastMicEnergySample = { energy: totalEnergy, ts: now };
+        if (!prev || now <= prev.ts) return 0;
+        const dtSec = (now - prev.ts) / 1000;
+        const dEnergy = Math.max(0, totalEnergy - prev.energy);
+        // Energy rate → rough level; scale so normal speech is visible.
+        return Math.min(1, Math.max(0, Math.sqrt(dEnergy / dtSec) * 3));
+      }
+
+      return 0;
+    } catch {
+      return 0;
+    }
   }
 
   // Generate a UUID using the uuid package
@@ -1363,9 +1464,7 @@ class SessionManager {
 
     this.isRecording = true;
     this.pushToTalkStartedAt = Date.now();
-
-    // Clear input buffer for a fresh take, then open the mic.
-    this.sendClientEvent({ type: "input_audio_buffer.clear" });
+    this.lastMicEnergySample = null;
 
     // Cancel any in-flight response / playback so the user can barge in.
     if (this.currentResponseId) {
@@ -1378,6 +1477,9 @@ class SessionManager {
 
     this.audioManager.stopPlayback();
     this.sendClientEvent({ type: "output_audio_buffer.clear" });
+
+    // Drop anything captured before this hold, then keep the mic live.
+    this.sendClientEvent({ type: "input_audio_buffer.clear" });
     this.muteMic(false);
 
     this.callbacks.setMode("human");
@@ -1389,7 +1491,8 @@ class SessionManager {
   /**
    * Stop recording in push-to-talk mode and send.
    * Call when the user releases the talk button.
-   * Very short taps are discarded so accidental presses do not fire a response.
+   * Very short taps / empty buffers are discarded so accidental presses do not
+   * fire a hallucinated assistant response.
    */
   async stopPushToTalk(): Promise<void> {
     if (!this.pushToTalkMode || !this.isRecording) {
@@ -1401,23 +1504,29 @@ class SessionManager {
     this.isRecording = false;
     this.pushToTalkStartedAt = 0;
 
-    // Close the mic first so nothing more is appended after release.
-    this.muteMic(true);
-
     if (heldMs < SessionManager.PUSH_TO_TALK_MIN_MS) {
       this.sendClientEvent({ type: "input_audio_buffer.clear" });
-      this.callbacks.setMode("loading");
+      this.callbacks.setMode("human");
       console.log("Push-to-talk discarded (too short)");
       return;
     }
 
+    const commitAck = this.waitForAudioCommitted();
     this.sendClientEvent({ type: "input_audio_buffer.commit" });
 
-    setTimeout(() => {
-      if (!this.isSessionActive) return;
-      this.createShortVoiceResponse();
-    }, 100);
+    try {
+      await commitAck;
+    } catch (error) {
+      console.warn("Push-to-talk discarded (no audio committed):", error);
+      if (this.isSessionActive) {
+        this.sendClientEvent({ type: "input_audio_buffer.clear" });
+      }
+      this.callbacks.setMode("human");
+      return;
+    }
 
+    if (!this.isSessionActive) return;
+    this.createShortVoiceResponse();
     console.log("Push-to-talk recording stopped, triggering response");
   }
 
@@ -1428,7 +1537,7 @@ class SessionManager {
     if (!this.isRecording) return;
     this.isRecording = false;
     this.pushToTalkStartedAt = 0;
-    this.muteMic(true);
+    this.rejectAudioCommitWaiters("Push-to-talk cancelled");
     if (this.isSessionActive) {
       this.sendClientEvent({ type: "input_audio_buffer.clear" });
     }

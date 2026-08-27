@@ -62,6 +62,7 @@ const toolRouter = (SessionManager: SessionManager) => {
     new ChowdeckTool(SessionManager).browseChowdeckVendorMenu,
     new ChowdeckTool(SessionManager).getChowdeckMenuItem,
     new ChowdeckTool(SessionManager).addChowdeckToCart,
+    new ChowdeckTool(SessionManager).updateChowdeckCartQuantity,
     new ChowdeckTool(SessionManager).viewChowdeckCart,
     new ChowdeckTool(SessionManager).clearChowdeckCart,
     new ChowdeckTool(SessionManager).placeChowdeckOrder,

@@ -104,6 +104,7 @@ export const APP_CAPABILITIES: Record<string, AppCapability> = {
       "browse-chowdeck-vendor-menu",
       "get-chowdeck-menu-item",
       "add-chowdeck-to-cart",
+      "update-chowdeck-cart-quantity",
       "view-chowdeck-cart",
       "clear-chowdeck-cart",
       "place-chowdeck-order",

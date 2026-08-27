@@ -31,6 +31,17 @@ export interface ChowdeckCartLine {
   image?: string | null;
 }
 
+function modifiersKey(modifiers: ChowdeckCartModifier[] = []): string {
+  return [...modifiers]
+    .map((m) => `${m.group_id}:${m.option_id}`)
+    .sort()
+    .join("|");
+}
+
+function linesMatch(a: ChowdeckCartLine, b: Pick<ChowdeckCartLine, "menuId" | "modifiers">): boolean {
+  return a.menuId === b.menuId && modifiersKey(a.modifiers) === modifiersKey(b.modifiers ?? []);
+}
+
 interface ChowdeckCartStore {
   location: ChowdeckCartLocation | null;
   vendor: ChowdeckCartVendor | null;
@@ -38,6 +49,14 @@ interface ChowdeckCartStore {
   setLocation: (location: ChowdeckCartLocation | null) => void;
   setVendor: (vendor: ChowdeckCartVendor | null) => void;
   addLine: (line: ChowdeckCartLine) => { ok: boolean; message?: string };
+  /** Set qty on matching line(s). productName matches case-insensitively (partial OK). */
+  setQuantity: (args: {
+    quantity: number;
+    menuId?: number;
+    productName?: string;
+    /** When true (default if no item filter), set every line to this qty — e.g. "3 packs". */
+    allItems?: boolean;
+  }) => { ok: boolean; message?: string; updated?: number };
   removeLine: (menuId: number, index?: number) => void;
   clearLines: () => void;
   clear: () => void;
@@ -77,8 +96,62 @@ const ChowdeckCart = create<ChowdeckCartStore>((set, get) => ({
       unitPriceNgn,
       modifiers: line.modifiers ?? [],
     };
-    set((state) => ({ lines: [...state.lines, nextLine] }));
+    set((state) => {
+      const existingIdx = state.lines.findIndex((l) => linesMatch(l, nextLine));
+      if (existingIdx >= 0) {
+        const lines = state.lines.map((l, i) =>
+          i === existingIdx ? { ...l, qty: l.qty + nextLine.qty } : l
+        );
+        return { lines };
+      }
+      return { lines: [...state.lines, nextLine] };
+    });
     return { ok: true };
+  },
+
+  setQuantity: ({ quantity, menuId, productName, allItems }) => {
+    const qty = Math.max(1, Math.floor(quantity));
+    if (!Number.isFinite(qty) || qty < 1) {
+      return { ok: false, message: "Quantity must be at least 1." };
+    }
+    const lines = get().lines;
+    if (lines.length === 0) {
+      return { ok: false, message: "Cart is empty." };
+    }
+
+    const nameNeedle = productName?.trim().toLowerCase();
+    const hasItemFilter = menuId != null || Boolean(nameNeedle);
+    const applyAll = allItems === true || !hasItemFilter;
+
+    let updated = 0;
+    const next = lines.map((line) => {
+      if (applyAll) {
+        updated += 1;
+        return { ...line, qty };
+      }
+      const menuOk = menuId == null || line.menuId === menuId;
+      const nameOk =
+        !nameNeedle ||
+        line.name.toLowerCase().includes(nameNeedle) ||
+        nameNeedle.includes(line.name.toLowerCase());
+      if (menuOk && nameOk) {
+        updated += 1;
+        return { ...line, qty };
+      }
+      return line;
+    });
+
+    if (updated === 0) {
+      return {
+        ok: false,
+        message: nameNeedle
+          ? `No cart item matched "${productName}".`
+          : "No matching cart item to update.",
+      };
+    }
+
+    set({ lines: next });
+    return { ok: true, updated };
   },
 
   removeLine: (menuId, index) => {

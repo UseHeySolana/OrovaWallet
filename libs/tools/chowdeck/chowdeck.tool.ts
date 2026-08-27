@@ -167,6 +167,7 @@ export class ChowdeckTool {
   public browseChowdeckVendorMenu: FunctionParams;
   public getChowdeckMenuItem: FunctionParams;
   public addChowdeckToCart: FunctionParams;
+  public updateChowdeckCartQuantity: FunctionParams;
   public viewChowdeckCart: FunctionParams;
   public clearChowdeckCart: FunctionParams;
   public placeChowdeckOrder: FunctionParams;
@@ -178,6 +179,7 @@ export class ChowdeckTool {
     this.browseChowdeckVendorMenu = this.browse_vendor_menu();
     this.getChowdeckMenuItem = this.menu_item();
     this.addChowdeckToCart = this.add_to_cart();
+    this.updateChowdeckCartQuantity = this.update_cart_quantity();
     this.viewChowdeckCart = this.view_cart();
     this.clearChowdeckCart = this.clear_cart();
     this.placeChowdeckOrder = this.place_order();
@@ -918,7 +920,7 @@ export class ChowdeckTool {
     return {
       name: "add-chowdeck-to-cart",
       description:
-        "Add a Chowdeck menu item to the cart with selected modifiers. Prices are in Naira (NGN). After adding, the app shows a payment summary in Naira and USDC (PajCash rate). Default payment token is USDC; use SOL only if the user asks. Cart is single-vendor.",
+        "Add a Chowdeck menu item to the cart with selected modifiers. Pass quantity when they want more than 1 of a new item. To change qty on items already in the cart (e.g. '3 packs', 'make it 2'), use update-chowdeck-cart-quantity — do not clear the cart. Prices are in Naira (NGN). Default payment token is USDC; use SOL only if the user asks. Cart is single-vendor.",
       parameters: {
         type: "object",
         properties: {
@@ -926,7 +928,10 @@ export class ChowdeckTool {
           vendor_name: { type: "string" },
           menu_id: { type: "number" },
           product_name: { type: "string" },
-          quantity: { type: "number" },
+          quantity: {
+            type: "number",
+            description: "How many of this item to add (default 1). For changing qty of cart items already added, prefer update-chowdeck-cart-quantity.",
+          },
           unit_price_ngn: {
             type: "number",
             description: "Base item price in Naira (NGN), without modifier extras",
@@ -1097,6 +1102,118 @@ export class ChowdeckTool {
     };
   }
 
+  update_cart_quantity(): FunctionParams {
+    return {
+      name: "update-chowdeck-cart-quantity",
+      description:
+        "Change quantities on items already in the Chowdeck cart. Use for '3 packs', 'make it 2', 'I want 3 of each', or changing one item's qty. Omit product_name (or set all_items true) to set every cart line to that quantity — e.g. whole order × 3. Never clear the cart to change quantity.",
+      parameters: {
+        type: "object",
+        properties: {
+          quantity: {
+            type: "number",
+            description: "New quantity per updated line (minimum 1). Required.",
+          },
+          product_name: {
+            type: "string",
+            description:
+              "Optional. Item name to update (partial match OK). Omit to update the whole order (all lines).",
+          },
+          menu_id: {
+            type: "number",
+            description: "Optional. Exact menu_id of the line to update.",
+          },
+          all_items: {
+            type: "boolean",
+            description:
+              "If true, set quantity on every cart line (packs / whole order). Default true when product_name and menu_id are omitted.",
+          },
+        },
+        required: ["quantity"],
+      },
+      handler: async (args: {
+        quantity: number;
+        product_name?: string;
+        menu_id?: number;
+        all_items?: boolean;
+      }) => {
+        if (!isChowdeckActivated()) {
+          return "Chowdeck is not activated. Ask the user to activate Chowdeck in Settings → Apps.";
+        }
+        const messageId = this.session.functionMessageId;
+        const qty = Math.max(1, Math.floor(Number(args.quantity) || 0));
+        if (!Number.isFinite(qty) || qty < 1) {
+          if (messageId) completeConversation(messageId, "failed");
+          return { status: "error", message: "Quantity must be at least 1." };
+        }
+
+        const result = ChowdeckCart.getState().setQuantity({
+          quantity: qty,
+          menuId: args.menu_id != null ? Number(args.menu_id) : undefined,
+          productName: args.product_name,
+          allItems: args.all_items,
+        });
+        if (!result.ok) {
+          if (messageId) completeConversation(messageId, "failed");
+          return { status: "error", message: result.message };
+        }
+
+        const state = ChowdeckCart.getState();
+        const totalNgn = state.total();
+        const quote = await quoteChowdeckPayment(totalNgn);
+        const itemLines = state.lines.map((l) => ({
+          name: l.name,
+          quantity: l.qty,
+          line_total_ngn: l.unitPriceNgn * l.qty,
+        }));
+        const itemsText = itemLines
+          .map((l) => `${l.quantity}× ${l.name} — ₦${l.line_total_ngn.toFixed(0)}`)
+          .join("; ");
+
+        if (messageId) {
+          Convo.getState().updateMessage({
+            messageId,
+            content: {
+              content: `Updated cart quantities. Total ₦${totalNgn.toFixed(0)}.`,
+              chowdeckCartSummary: {
+                product_name: `${state.lineCount()} item${state.lineCount() === 1 ? "" : "s"}`,
+                vendor_name: state.vendor?.name || "Restaurant",
+                quantity: state.lineCount(),
+                subtotal_ngn: state.subtotal(),
+                delivery_fee_ngn: state.deliveryFee(),
+                total_ngn: totalNgn,
+                amount_usdc: quote.amount_usdc,
+                amount_sol: quote.amount_sol,
+                payment_token: "USDC",
+              },
+            },
+            source: "chowdeck",
+          });
+          completeConversation(messageId, "complete");
+        }
+
+        return {
+          status: "success",
+          currency: "NGN",
+          updated_lines: result.updated,
+          quantity: qty,
+          vendor_name: state.vendor?.name,
+          items: itemLines,
+          subtotal_ngn: state.subtotal(),
+          delivery_fee_ngn: state.deliveryFee(),
+          total_ngn: totalNgn,
+          amount_usdc: quote.amount_usdc,
+          amount_sol: quote.amount_sol,
+          message: `Updated quantities. Cart: ${itemsText}. Total ₦${totalNgn.toFixed(0)}${
+            quote.amount_usdc != null ? ` ≈ ${quote.amount_usdc} USDC` : ""
+          }.`,
+          assistant_instruction:
+            "Confirm the new quantities briefly with Naira total and USDC. Do not clear the cart. Do not mention IDs.",
+        };
+      },
+    };
+  }
+
   view_cart(): FunctionParams {
     return {
       name: "view-chowdeck-cart",
@@ -1176,7 +1293,8 @@ export class ChowdeckTool {
   clear_cart(): FunctionParams {
     return {
       name: "clear-chowdeck-cart",
-      description: "Clear Chowdeck cart line items (keeps delivery location).",
+      description:
+        "Empty the Chowdeck cart (keeps delivery location). ONLY when the user explicitly wants to clear/start over or switch restaurants. NEVER use this to change quantity or 'packs' — use update-chowdeck-cart-quantity instead.",
       parameters: { type: "object", properties: {}, required: [] },
       handler: async () => {
         if (!isChowdeckActivated()) {

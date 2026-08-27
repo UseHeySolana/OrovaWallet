@@ -8,6 +8,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useAi } from "@/context/AiContext";
 import { VOICE_VERIFICATION_ENABLED } from "@/utils/constant";
 import { useThemeContext } from "@/context/ThemeContext";
+import { MicWaveform } from "@/components/Navigation/MicWaveform";
 
 interface BASENAV {
   isSessionActive: boolean;
@@ -41,7 +42,7 @@ export const Base = ({
   const [micMuted, setMicMuted] = React.useState(false);
   const bubbleIntro = React.useRef(new Animated.Value(0)).current;
   const bubblePulse = React.useRef(new Animated.Value(0)).current;
-  const pttPulse = React.useRef(new Animated.Value(0)).current;
+  const micLevelAnim = React.useRef(new Animated.Value(0)).current;
   const useHoldToTalk = !VOICE_VERIFICATION_ENABLED;
 
   React.useEffect(() => {
@@ -101,29 +102,20 @@ export const Base = ({
 
   React.useEffect(() => {
     if (!isPushToTalkRecording) {
-      pttPulse.setValue(0);
-      return undefined;
+      micLevelAnim.setValue(0);
     }
+  }, [isPushToTalkRecording, micLevelAnim]);
 
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pttPulse, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pttPulse, {
-          toValue: 0,
-          duration: 500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [isPushToTalkRecording, pttPulse]);
+  const handleMicLevel = React.useCallback(
+    (level: number) => {
+      Animated.timing(micLevelAnim, {
+        toValue: level,
+        duration: 60,
+        useNativeDriver: true,
+      }).start();
+    },
+    [micLevelAnim]
+  );
 
   const handleSecondaryPress = () => {
     if (isAiScreenOpen) {
@@ -211,14 +203,22 @@ export const Base = ({
       {showAudioSessionControls && (
         <>
           {useHoldToTalk && (
-            <View
-              className="px-3 py-1.5 rounded-full border border-white/70 dark:border-white/10 shadow"
-              style={{ backgroundColor: bubbleBackgroundColor }}
-            >
-              <Text className="text-xs font-semibold text-purple dark:text-white">
-                {isPushToTalkRecording ? "Release to send" : "Hold to talk"}
-              </Text>
-            </View>
+            isPushToTalkRecording ? (
+              <MicWaveform
+                active={isPushToTalkRecording}
+                sessionManager={sessionManager}
+                onLevel={handleMicLevel}
+              />
+            ) : (
+              <View
+                className="px-3 py-1.5 rounded-full border border-white/70 dark:border-white/10 shadow"
+                style={{ backgroundColor: bubbleBackgroundColor }}
+              >
+                <Text className="text-xs font-semibold text-purple dark:text-white">
+                  Hold to talk
+                </Text>
+              </View>
+            )
           )}
 
           <TouchableOpacity
@@ -239,9 +239,9 @@ export const Base = ({
               style={{
                 transform: [
                   {
-                    scale: pttPulse.interpolate({
+                    scale: micLevelAnim.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [1, 1.08],
+                      outputRange: [1, 1.14],
                     }),
                   },
                 ],
