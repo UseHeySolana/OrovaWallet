@@ -4,6 +4,7 @@ import { Brain } from "@/libs/brain";
 import { initWallet } from "@/utils/wallet/initWallet";
 import { bootstrapVerifiedTokensList } from "@/utils/functions";
 import { syncPendingAppTransactions } from "@/services/appTransactions";
+import { prefetchHeliusApiKey } from "@/services/rpcConfig";
 import AppCatalog from "@/utils/store/appCatalog.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 
@@ -26,6 +27,7 @@ export function useRootBootstrap(appReady: boolean) {
 
     if (!walletInitRanRef.current) {
       walletInitRanRef.current = true;
+      prefetchHeliusApiKey();
       initWallet().catch(() => {
         // non-fatal
       });

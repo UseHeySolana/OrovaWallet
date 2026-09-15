@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Connection } from '@solana/web3.js';
 import AppSettings from '@/utils/store/settingsstore.store';
-import { api_key } from '@/utils/dashboard';
+import { getHeliusApiKeySync } from '@/services/rpcConfig';
 import { transferSol, transferToken } from '@/libs/tools/transfer/transfers';
 import { recordTransferTransaction } from '@/services/appTransactions';
 
@@ -42,7 +42,7 @@ interface TxQueueStore {
 
 const createConnection = (): Connection => {
   const network = AppSettings.getState().network;
-  return new Connection(`${network}${api_key}`);
+  return new Connection(`${network}${getHeliusApiKeySync()}`);
 };
 
 const processItem = async (id: string, get: () => TxQueueStore['items'], setItem: TxQueueStore['_setItem']) => {

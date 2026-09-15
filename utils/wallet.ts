@@ -6,6 +6,7 @@ import bs58 from 'bs58';
 import { storage } from "./storage/storage";
 
 import { PublicKey, Connection, Keypair } from '@solana/web3.js';
+import { getHeliusApiKey } from '@/services/rpcConfig';
 
 const ED25519_CURVE = 'ed25519 seed';
 const HARDENED_OFFSET = 0x80000000;
@@ -150,12 +151,10 @@ export const fetchConversionRate = async (fromCurrency: string) => {
 
 }
 
-const API_KEY = process.env.EXPO_PUBLIC_HELIUS_API;
-
 export const fetchTokenDetails = async (mintAddress: string) => {
     try {
-
-        const data = await fetch(`https://mainnet.helius-rpc.com/?api-key=${API_KEY}`, {
+        const apiKey = await getHeliusApiKey();
+        const data = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json"
@@ -184,7 +183,8 @@ export const getBalance = async (publickey: PublicKey, connection: Connection) =
 }
 
 export const fetchTokenAccounts = async (publickey: PublicKey, network: string) => {
-    const response = await fetch(`${network}${API_KEY}`, {
+    const apiKey = await getHeliusApiKey();
+    const response = await fetch(`${network}${apiKey}`, {
         method: 'POST',
         headers: {
             "Content-Type": "application/json"

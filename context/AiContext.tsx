@@ -4,7 +4,7 @@ import { Audio } from "expo-av";
 import { Connection } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
 import UserItem from "@/utils/store/userstore.store";
-import { api_key } from "@/utils/dashboard";
+import { getHeliusApiKeySync } from "@/services/rpcConfig";
 import { getAssistantPromptBase } from "../libs/tool-implementation/prompt";
 import Convo from "@/utils/store/conversation.store";
 import { v4 as uuidv4 } from "uuid";
@@ -161,7 +161,7 @@ export const AiServiceProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         if (permissionGranted) {
-            const connection = new Connection(`${network}${api_key}`)
+            const connection = new Connection(`${network}${getHeliusApiKeySync()}`)
             if (!connection) return;
             setConnection(connection);
             if (isSessionActive || sessionManager) return;

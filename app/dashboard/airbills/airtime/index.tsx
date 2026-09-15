@@ -30,7 +30,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import UserItem from "@/utils/store/userstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
-import { api_key } from "@/utils/dashboard";
+import { getHeliusApiKeySync } from "@/services/rpcConfig";
 import { signTransactions } from "@/utils/wallet/signing";
 import { airBills, normalizeAirbillsPhoneNumber } from "@/libs/tools/airbills/airbills";
 import { formatPhoneDisplay } from "@/libs/tools/airbills/dataPlanDisplay";
@@ -338,7 +338,7 @@ export default function AirbillsAirtimeScreen() {
         return;
       }
 
-      const connection = new Connection(`${network}${api_key}`);
+      const connection = new Connection(`${network}${getHeliusApiKeySync()}`);
       const confirmed = await connection.confirmTransaction(signed.message, "confirmed");
 
       if (!confirmed) {

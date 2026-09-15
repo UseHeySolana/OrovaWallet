@@ -21,6 +21,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
 import Convo from "@/utils/store/conversation.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
+import { getHeliusApiKeySync } from "@/services/rpcConfig";
 
 import { convertSpeech } from "@/utils/functions/extrafunctions";
 import { signTransactions } from "@/utils/wallet/signing";
@@ -61,8 +62,7 @@ const ephemeralRpcUrl = (c: MbCluster) =>
 
 const baseRpcUrl = () => {
   const network = AppSettings.getState().network;
-  const apiKey = process.env.EXPO_PUBLIC_HELIUS_API || "";
-  return `${network}${apiKey}`;
+  return `${network}${getHeliusApiKeySync()}`;
 };
 
 const getPref = (configType: string, paramType: string, fallback = "") =>

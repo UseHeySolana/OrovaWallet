@@ -12,8 +12,10 @@ import {
   hydrateWalletFromSecret,
   isWalletUnlockedForUser,
 } from "@/utils/wallet/walletUnlock";
+import { getHeliusApiKeySync } from "@/services/rpcConfig";
 
-export const api_key = process.env.EXPO_PUBLIC_HELIUS_API || "";
+/** Resolved via rpcConfig (admin settings + env fallback). Kept for legacy imports. */
+export const api_key = getHeliusApiKeySync();
 
 const setUserItems = async (
   user: UserType,
@@ -21,7 +23,7 @@ const setUserItems = async (
   publicKey: PublicKey,
   network: string
 ): Promise<boolean> => {
-  const connection = new Connection(`${network}${api_key}`);
+  const connection = new Connection(`${network}${getHeliusApiKeySync()}`);
   const pubConvert = new PublicKey(publicKey);
   try {
     if (user) {

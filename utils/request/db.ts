@@ -1,6 +1,7 @@
 import WalletItem from "@/utils/store/wallet.store";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { BASE_URL, HELIUS } from "@/utils/constant";
+import { BASE_URL } from "@/utils/constant";
+import { getHeliusApiKey } from "@/services/rpcConfig";
 
 /** Helius enhanced transactions API (cluster-specific; api.helius.xyz is mainnet-only). */
 function heliusEnhancedApiBaseForCluster(
@@ -396,8 +397,9 @@ const getTransactionHistory = async (
     cluster ??
     (AppSettings.getState().networkShort === "devnet" ? "devnet" : "mainnet");
   const base = heliusEnhancedApiBaseForCluster(resolved);
+  const heliusKey = await getHeliusApiKey();
   const response = await request.getRan(
-    `${base}/v0/addresses/${publicKey}/transactions?api-key=${HELIUS}`
+    `${base}/v0/addresses/${publicKey}/transactions?api-key=${heliusKey}`
   );
 
   if (!response.ok) {

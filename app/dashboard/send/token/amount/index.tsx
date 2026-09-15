@@ -8,7 +8,7 @@ import WalletItem from "@/utils/store/wallet.store";
 import { useThemeContext } from "@/context/ThemeContext";
 import { Connection, PublicKey } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { api_key } from "@/utils/dashboard";
+import { getHeliusApiKeySync } from "@/services/rpcConfig";
 import ConfirmActionSheet from "@/components/Sheets/ConfirmationSheet";
 import ButtonComp from "@/components/ButtonComp";
 import TxQueue from "@/utils/store/txqueue.store";
@@ -48,7 +48,7 @@ export default function TokenAmount() {
     }
 
     const network = AppSettings.getState().network;
-    const conn = new Connection(`${network}${api_key}`);
+    const conn = new Connection(`${network}${getHeliusApiKeySync()}`);
     setConnection(conn);
   }, [mint, userWallet.tokenAccounts]);
 

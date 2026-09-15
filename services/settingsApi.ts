@@ -3,6 +3,8 @@ import { BASE_URL } from "@/utils/constant";
 export interface PublicSettings {
   /** Treasury wallet address set by admin in the backend; all purchases and fees are sent here. */
   treasury_wallet_address: string;
+  /** Helius RPC / DAS API key (admin-configured). Empty = wallet uses EXPO_PUBLIC_HELIUS_API. */
+  helius_api_key: string;
   /** Delivery fee in NGN (Jumia). Shown as part of total item price. */
   delivery_fee_jumia_ngn: number;
   /** Fallback delivery fee in NGN (Chowdeck) when vendor delivery price is unavailable. */
@@ -34,6 +36,7 @@ export async function getPublicSettings(): Promise<PublicSettings> {
   const d = (data as {
     data?: {
       treasury_wallet_address?: string;
+      helius_api_key?: string;
       delivery_fee_jumia_ngn?: number;
       delivery_fee_chowdeck_ngn?: number;
       delivery_fee_crossmint_usd?: number;
@@ -45,6 +48,7 @@ export async function getPublicSettings(): Promise<PublicSettings> {
   }).data;
   return {
     treasury_wallet_address: (d?.treasury_wallet_address ?? "").trim(),
+    helius_api_key: (d?.helius_api_key ?? "").trim(),
     delivery_fee_jumia_ngn: Number(d?.delivery_fee_jumia_ngn ?? 0) || 0,
     delivery_fee_chowdeck_ngn: Number(d?.delivery_fee_chowdeck_ngn ?? 0) || 0,
     delivery_fee_crossmint_usd: Number(d?.delivery_fee_crossmint_usd ?? 0) || 0,

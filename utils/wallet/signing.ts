@@ -8,7 +8,7 @@ import {
 } from "@solana/web3.js";
 import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
-import { api_key } from "@/utils/dashboard";
+import { getHeliusApiKeySync } from "@/services/rpcConfig";
 import { confirm } from "@/services/confirmation";
 
 /** Resolve the unlocked wallet keypair for signing. */
@@ -44,7 +44,7 @@ export const signTransactions = async ({
   skipConfirm?: boolean;
 }) => {
   const network = AppSettings.getState().network;
-  const connection = providedConnection ?? new Connection(`${network}${api_key}`);
+  const connection = providedConnection ?? new Connection(`${network}${getHeliusApiKeySync()}`);
 
   const keyPair = await keypairSign();
   if (!keyPair || !connection) {

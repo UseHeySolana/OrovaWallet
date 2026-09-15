@@ -34,7 +34,7 @@ import UserItem from "@/utils/store/userstore.store";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import { Chain, Currency, pajcash, PAJCASH_REVALIDATE_MESSAGE } from "@/libs/tools/pajcash/pajcash";
 import { getPajCashFeeConfig } from "@/services/pajcashFeeConfig";
-import { api_key } from "@/utils/dashboard";
+import { getHeliusApiKeySync } from "@/services/rpcConfig";
 import WalletItem from "@/utils/store/wallet.store";
 import {
   SOL_MINT,
@@ -257,7 +257,7 @@ export default function SendToBank() {
 
   useEffect(() => {
     const network = AppSettings.getState().network;
-    setConnection(new Connection(`${network}${api_key}`));
+    setConnection(new Connection(`${network}${getHeliusApiKeySync()}`));
   }, []);
 
   useEffect(() => {
