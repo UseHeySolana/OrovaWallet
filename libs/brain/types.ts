@@ -27,16 +27,13 @@ export interface BrainConfig {
   notificationsEnabled?: boolean;
 
   /**
-   * Controls whether Brain is allowed to call a local LLM endpoint (e.g. QVAC OpenAI-compatible server)
+   * Controls whether Brain is allowed to call an OpenAI-compatible LLM endpoint
    * to generate better notification copy / summaries.
    */
   llmEnabled?: boolean;
 
   /**
-   * OpenAI-compatible base URL. For QVAC server this is usually:
-   * - iOS simulator: http://127.0.0.1:11434/v1
-   * - Android emulator: http://10.0.2.2:11434/v1
-   * - Physical device: http://<LAN-IP>:11434/v1 (must be provided)
+   * OpenAI-compatible base URL for a local or remote LLM server.
    */
   llmBaseUrl?: string;
 

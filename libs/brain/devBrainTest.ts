@@ -73,7 +73,6 @@ export async function runDevBrainDigestNow() {
 
   await runBrainDigest({
     useBackendLlm,
-    qvac: null,
     devSkipDigestInterval: true,
     devReprocessAllEvents: true,
     devUniqueDedupeKey: true,
