@@ -16,7 +16,6 @@ import { logBackup, logBackupError } from "@/services/backup/backupLogger";
 let configured = false;
 
 export function configureGoogleSignIn(): void {
-  // TODO: re-enable once iOS has GoogleService-Info.plist / iosClientId.
   if (configured || !isGoogleSignInConfigured()) return;
 
   GoogleSignin.configure({

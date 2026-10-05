@@ -9,6 +9,13 @@ function getAppVariant(): AppVariant {
   return process.env.APP_VARIANT === "solana-mobile" ? "solana-mobile" : "play";
 }
 
+function googleIosUrlSchemeFromEnv(): string | null {
+  const iosClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || "";
+  const match = iosClientId.match(/^([\w-]+)\.apps\.googleusercontent\.com$/);
+  return match ? `com.googleusercontent.apps.${match[1]}` : null;
+}
+
 const variantIdentity: Record<
   AppVariant,
   Pick<ExpoConfig, "name" | "slug"> & {
@@ -36,6 +43,7 @@ const variantIdentity: Record<
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = getAppVariant();
   const identity = variantIdentity[variant];
+  const iosUrlScheme = googleIosUrlSchemeFromEnv();
 
   const android = {
     ...config.android,
@@ -45,15 +53,30 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   android.googleServicesFile =
     config.android?.googleServicesFile ?? "./google-services.json";
 
+  const plugins = (config.plugins ?? []).map((plugin) => {
+    if (plugin === "@react-native-google-signin/google-signin" && iosUrlScheme) {
+      return [
+        "@react-native-google-signin/google-signin",
+        { iosUrlScheme },
+      ] as [string, { iosUrlScheme: string }];
+    }
+    return plugin;
+  });
+
+  const ios = {
+    ...config.ios,
+    bundleIdentifier: identity.ios.bundleIdentifier,
+    googleServicesFile:
+      config.ios?.googleServicesFile ?? "./GoogleService-Info.plist",
+  };
+
   return {
     ...config,
     name: identity.name,
     slug: identity.slug,
-    ios: {
-      ...config.ios,
-      bundleIdentifier: identity.ios.bundleIdentifier,
-    },
+    ios,
     android,
+    plugins,
     extra: {
       ...config.extra,
       appVariant: variant,

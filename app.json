@@ -10,6 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "This app uses the microphone for AI voice interactions.",
