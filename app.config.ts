@@ -9,11 +9,20 @@ function getAppVariant(): AppVariant {
   return process.env.APP_VARIANT === "solana-mobile" ? "solana-mobile" : "play";
 }
 
-function googleIosUrlSchemeFromEnv(): string | null {
+/** Public iOS OAuth client for com.maskyray.heysolana — safe to ship; used when EAS env is missing. */
+const DEFAULT_GOOGLE_IOS_CLIENT_ID =
+  "830472884588-ed2gq5e5rblpuncibuc3l264r4lmtpe4.apps.googleusercontent.com";
+const DEFAULT_GOOGLE_IOS_URL_SCHEME =
+  "com.googleusercontent.apps.830472884588-ed2gq5e5rblpuncibuc3l264r4lmtpe4";
+
+function googleIosUrlSchemeFromEnv(): string {
   const iosClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || "";
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ||
+    DEFAULT_GOOGLE_IOS_CLIENT_ID;
   const match = iosClientId.match(/^([\w-]+)\.apps\.googleusercontent\.com$/);
-  return match ? `com.googleusercontent.apps.${match[1]}` : null;
+  return match
+    ? `com.googleusercontent.apps.${match[1]}`
+    : DEFAULT_GOOGLE_IOS_URL_SCHEME;
 }
 
 const variantIdentity: Record<
@@ -54,7 +63,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     config.android?.googleServicesFile ?? "./google-services.json";
 
   const plugins = (config.plugins ?? []).map((plugin) => {
-    if (plugin === "@react-native-google-signin/google-signin" && iosUrlScheme) {
+    const isGooglePlugin =
+      plugin === "@react-native-google-signin/google-signin" ||
+      (Array.isArray(plugin) &&
+        plugin[0] === "@react-native-google-signin/google-signin");
+    if (isGooglePlugin) {
       return [
         "@react-native-google-signin/google-signin",
         { iosUrlScheme },

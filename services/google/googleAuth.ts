@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -85,8 +86,11 @@ export type GoogleAccountSelection = "silent-first" | "choose-account";
 async function performGoogleSignIn(options?: {
   accountSelection?: GoogleAccountSelection;
 }): Promise<void> {
-  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-  logBackup("play services ok");
+  // Play Services is Android-only; calling it on iOS is unnecessary.
+  if (Platform.OS === "android") {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    logBackup("play services ok");
+  }
 
   if (options?.accountSelection === "choose-account") {
     try {

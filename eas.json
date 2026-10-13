@@ -24,7 +24,10 @@
     },
     "production": {
       "env": {
-        "APP_VARIANT": "play"
+        "APP_VARIANT": "play",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "830472884588-kb9ehbn1jdh9qa90ohlfm1kv3uvsc783.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "830472884588-0v08ppkes9574ij59qgmtkanirhvg3rl.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "830472884588-ed2gq5e5rblpuncibuc3l264r4lmtpe4.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "app-bundle",

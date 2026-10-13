@@ -24,6 +24,11 @@
             "CFBundleURLSchemes": [
               "heysolana"
             ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.830472884588-ed2gq5e5rblpuncibuc3l264r4lmtpe4"
+            ]
           }
         ]
       }
@@ -118,7 +123,12 @@
       ],
       "expo-secure-store",
       "expo-web-browser",
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.830472884588-ed2gq5e5rblpuncibuc3l264r4lmtpe4"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
