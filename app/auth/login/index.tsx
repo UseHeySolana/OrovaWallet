@@ -37,6 +37,7 @@ import {
 import { toPhoneE164 } from "@/utils/phone/phoneE164";
 import { BiometricAuth } from "@/utils/dashboard";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
+import { compactOtpInputTheme } from "@/components/otpInputTheme";
 import {
   getGoogleSignInErrorMessage,
   refreshGoogleAuthSession,
@@ -55,6 +56,12 @@ import {
   buildSessionUserFromServer,
   type ServerAuthUser,
 } from "@/utils/account/userContact";
+import {
+  isAppReviewAccount,
+  isAppReviewEmail,
+  isAppReviewPhone,
+  restoreAppReviewDemoWallet,
+} from "@/utils/auth/reviewAccount";
 
 export default function Login() {
   const [contactInput, setContactInput] = useState("");
@@ -89,6 +96,8 @@ export default function Login() {
     useState<ServerAuthUser | null>(null);
   const { isDarkMode } = useThemeContext();
   const otpRef = useRef<OtpInputRef>(null);
+  const reviewProvisionAttempted = useRef(false);
+  const reviewProvisionInFlight = useRef(false);
   const [attempts, setAttempts] = useState(0);
 
   const [pinValue, setPinValue] = useState("");
@@ -112,13 +121,11 @@ export default function Login() {
   const silentProvisionWallet = async (
     sessionUser: ReturnType<typeof buildSessionUserFromServer>
   ): Promise<boolean> => {
+    // Prevent the user-hydration effect from racing a second provision.
+    const ownsInFlight = !reviewProvisionInFlight.current;
+    if (ownsInFlight) reviewProvisionInFlight.current = true;
     setLoading(true);
     try {
-      setUser({
-        ...sessionUser,
-        wallet_address: "",
-      });
-
       const result = await createWalletForUser(sessionUser.username);
       if (!result.success) {
         setToast(result.message, "error");
@@ -135,7 +142,45 @@ export default function Login() {
       router.replace("/dashboard");
       return true;
     } finally {
+      if (ownsInFlight) reviewProvisionInFlight.current = false;
       setLoading(false);
+    }
+  };
+
+  const provisionReviewWallet = async (
+    sessionUser: ReturnType<typeof buildSessionUserFromServer>
+  ): Promise<boolean> => {
+    if (reviewProvisionInFlight.current || reviewProvisionAttempted.current) {
+      return false;
+    }
+    reviewProvisionAttempted.current = true;
+    reviewProvisionInFlight.current = true;
+    try {
+      // Email demo uses a fixed seed; phone review account creates a fresh local wallet.
+      if (isAppReviewEmail(sessionUser.email)) {
+        // Caller (verifyOtp / finishLogin) already owns global loading — don't nest.
+        const result = await restoreAppReviewDemoWallet(sessionUser.username);
+        if (!result.success) {
+          setToast(result.message, "error");
+          return false;
+        }
+        setUser({
+          ...sessionUser,
+          wallet_address: result.walletAddress,
+        });
+        setCurrentState("");
+        setShowLegacyWalletOptions(false);
+        setToast("Demo wallet ready", "success");
+        router.replace("/dashboard");
+        return true;
+      }
+
+      return await silentProvisionWallet({
+        ...sessionUser,
+        wallet_address: "",
+      });
+    } finally {
+      reviewProvisionInFlight.current = false;
     }
   };
 
@@ -153,12 +198,15 @@ export default function Login() {
 
   useEffect(() => {
     if (!user || googleRestoreOpen) return;
+    // Demo/silent provision sets the user after the wallet is ready; don't
+    // start a competing createWalletForUser while that is in flight.
+    if (reviewProvisionInFlight.current) return;
 
     let cancelled = false;
 
     (async () => {
       const unlocked = await isWalletUnlockedForUser(user.wallet_address);
-      if (cancelled) return;
+      if (cancelled || reviewProvisionInFlight.current) return;
 
       if (unlocked) {
         await hydrateWalletFromSecret();
@@ -175,17 +223,28 @@ export default function Login() {
         return;
       }
 
-      if (!unlocked) {
-        clearStaleWalletPublicKey(user.wallet_address);
+      clearStaleWalletPublicKey(user.wallet_address);
 
-        setUserDetails((prev) => ({
-          ...prev,
+      setUserDetails((prev) => ({
+        ...prev,
+        mobileNumber: user.mobileNumber,
+      }));
+
+      setFingerPrintSigning(false);
+      setPinSignin(false);
+
+      // Review accounts: hydrate the fixed demo wallet (or silently provision
+      // the phone review account). Never fall through to createWalletForUser
+      // for the email demo — that races and leaves loading stuck.
+      if (
+        isAppReviewAccount({
+          email: user.email,
+          phoneE164: user.phoneE164,
           mobileNumber: user.mobileNumber,
-        }));
-
-        setFingerPrintSigning(false);
-        setPinSignin(false);
-        await promptWalletRestoreOrProvision({
+          username: user.username,
+        })
+      ) {
+        await provisionReviewWallet({
           username: user.username,
           mobileNumber: user.mobileNumber,
           phoneE164: user.phoneE164,
@@ -195,6 +254,15 @@ export default function Login() {
         });
         return;
       }
+
+      await promptWalletRestoreOrProvision({
+        username: user.username,
+        mobileNumber: user.mobileNumber,
+        phoneE164: user.phoneE164,
+        email: user.email,
+        wallet_address: user.wallet_address || "",
+        pin: user.pin || "",
+      });
     })();
 
     return () => {
@@ -238,6 +306,8 @@ export default function Login() {
     const clearGlobalLoading = options?.clearGlobalLoading !== false;
     const sessionUser = buildSessionUserFromServer(data, googleEmail);
     const walletAddress = data.wallet_address || sessionUser.wallet_address;
+    // Allow a fresh review-wallet provision on each completed OTP / Google login.
+    reviewProvisionAttempted.current = false;
 
     const unlocked = await isWalletUnlockedForUser(walletAddress);
     if (unlocked) {
@@ -257,6 +327,20 @@ export default function Login() {
     }
 
     clearStaleWalletPublicKey(walletAddress);
+
+    if (
+      isAppReviewAccount({
+        email: sessionUser.email,
+        phoneE164: sessionUser.phoneE164,
+        mobileNumber: sessionUser.mobileNumber,
+        phone_number: data.phone_number,
+        username: sessionUser.username,
+      })
+    ) {
+      const provisioned = await provisionReviewWallet(sessionUser);
+      if (clearGlobalLoading) setLoading(false);
+      if (provisioned) return;
+    }
 
     if (googleSession && !options?.skipRestoreOffer) {
       const offered = await offerGoogleRestoreIfAvailable(
@@ -665,10 +749,12 @@ export default function Login() {
                 <OtpInput
                   ref={otpRef}
                   secureTextEntry={true}
-                  focusColor={"purple"}
+                  focusColor={"#971BB2"}
+                  theme={compactOtpInputTheme}
                   textProps={{
                     style: {
                       fontFamily: "bold",
+                      fontSize: 18,
                       color: isDarkMode ? "white" : "black",
                     },
                   }}
@@ -728,9 +814,14 @@ export default function Login() {
         verifyOtp={verifyOtp}
         setOtpValue={(text) => setOtpValue(text)}
         hint={
-          userDetails.email && !userDetails.mobileNumber
-            ? "Your one time password has been sent to your email"
-            : "Your one time password has been sent to your whatsapp number"
+          isAppReviewEmail(contactInput) ||
+          isAppReviewEmail(userDetails.email) ||
+          isAppReviewPhone(contactInput) ||
+          isAppReviewPhone(userDetails.mobileNumber)
+            ? "Enter the one-time code from the App Review notes. No message is sent for this demo account."
+            : userDetails.email && !userDetails.mobileNumber
+              ? "Your one time password has been sent to your email"
+              : "Your one time password has been sent to your whatsapp number"
         }
       />
 

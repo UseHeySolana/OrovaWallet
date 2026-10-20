@@ -11,6 +11,8 @@ import { useThemeContext } from "@/context/ThemeContext";
 import Buttons from "../ButtonComp";
 import React, { useEffect, useRef, useState } from "react";
 import AppSettings from "@/utils/store/settingsstore.store";
+import { compactOtpInputTheme } from "@/components/otpInputTheme";
+import { tabletSize } from "@/utils/layout/tablet";
 
 interface SetPinSheet {
   open: boolean;
@@ -18,6 +20,7 @@ interface SetPinSheet {
   usage?: "verify" | "first-time";
   onSuccess?: () => void;
 }
+
 const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
   const { isDarkMode } = useThemeContext();
   if (!open) return null;
@@ -33,7 +36,6 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
 
   const [enterPreviousPin, setEnterPreviousPin] = useState<string | null>(null);
 
-  useEffect;
   useEffect(() => {
     if (previousPin.length == 4) {
       setStage("enter-previous-pin");
@@ -55,7 +57,6 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
     if (attempts >= 4) {
       setToast("You have reached the maximum number of attempts", "error");
       setOpen(false);
-      // Close the app after 4 failed attempts
       if (Platform.OS === "ios") {
         BackHandler.exitApp();
       } else {
@@ -85,7 +86,6 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
       }
       return;
     } else {
-      console.log(pin, previousPin);
       if (pin == previousPin) {
         onSuccess?.();
         setOpen(false);
@@ -96,6 +96,47 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
     }
   };
 
+  const title =
+    stage === "enter-previous-pin"
+      ? "Enter Previous PIN"
+      : stage === "new-pin"
+        ? "Enter New PIN"
+        : "Confirm PIN";
+
+  const subtitle =
+    stage === "enter-previous-pin"
+      ? "Enter your previous PIN to change pin"
+      : stage === "new-pin"
+        ? "Create a PIN to secure your account"
+        : "Confirm your PIN to secure your account";
+
+  const pinInput = (
+    <OtpInput
+      ref={otpRef}
+      secureTextEntry={true}
+      focusColor={"#971BB2"}
+      theme={compactOtpInputTheme}
+      textProps={{
+        style: {
+          fontFamily: "bold",
+          fontSize: tabletSize(18),
+          color: isDarkMode ? "white" : "black",
+        },
+      }}
+      blurOnFilled={true}
+      numberOfDigits={4}
+      onFilled={(text) => {
+        if (usage === "verify") {
+          setPin(text);
+          return;
+        }
+        if (stage === "new-pin") setPin(text);
+        else if (stage === "enter-previous-pin") setEnterPreviousPin(text);
+        else setConfirmPin(text);
+      }}
+    />
+  );
+
   return (
     <DragableSheet
       close={() => setOpen(false)}
@@ -103,33 +144,20 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
       snapPoints={["60%"]}
       child={
         usage === "verify" ? (
-          <View className=" py-4 w-full h-fit gap-y-10 flex-1 flex-col justify-start ">
-            <View className="w-8/12 m-auto">
+          <View className="py-4 w-full h-fit gap-y-8 flex-1 flex-col justify-start">
+            <View className="w-full max-w-md self-center px-2">
               <CText
                 style={{ fontFamily: "bold" }}
-                className="text-[20px] text-center"
+                className="text-[1.35rem] leading-8 text-center"
               >
                 Enter your PIN
               </CText>
             </View>
 
             <View className="flex-1">
-              <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 py-5">
-                <View className="w-10/12 m-auto bg-white dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
-                  <OtpInput
-                    ref={otpRef}
-                    secureTextEntry={true}
-                    focusColor={"purple"}
-                    textProps={{
-                      style: {
-                        fontFamily: "bold",
-                        color: isDarkMode ? "white" : "black",
-                      },
-                    }}
-                    blurOnFilled={true}
-                    numberOfDigits={4}
-                    onFilled={(text) => setPin(text)}
-                  />
+              <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 py-5 px-4">
+                <View className="bg-white dark:bg-accent2 h-fit py-4 px-3 rounded-2xl items-center">
+                  {pinInput}
                 </View>
               </KeyboardAvoidingView>
             </View>
@@ -139,60 +167,31 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
               onPress={() => {
                 verifyPin();
               }}
-              className=""
-              text={"Confirm"}
+              text="Confirm"
               type="primary"
             />
           </View>
         ) : (
-          <View className=" py-4 w-full h-fit gap-y-10 flex-1 flex-col justify-start ">
-            <View className="w-8/12 m-auto">
+          <View className="py-4 w-full h-fit gap-y-8 flex-1 flex-col justify-start">
+            <View className="w-full max-w-md self-center px-2 gap-y-2">
               <CText
                 style={{ fontFamily: "bold" }}
-                className="text-[20px] text-center"
+                className="text-[1.35rem] leading-8 text-center"
               >
-                {stage === "enter-previous-pin"
-                  ? "Enter Previous PIN"
-                  : stage === "new-pin"
-                    ? "Enter New PIN"
-                    : "Confirm PIN"}
+                {title}
               </CText>
               <CText
                 style={{ fontFamily: "md" }}
-                textColor="text-purple"
-                className="text-[12px] text-center"
+                className="text-[1.0625rem] leading-6 text-center text-black/80 dark:text-white/85"
               >
-                {stage === "enter-previous-pin"
-                  ? "Enter your previous PIN to change pin"
-                  : stage === "new-pin"
-                    ? "Create a PIN to secure your account"
-                    : "Confirm your PIN to secure your account"}
+                {subtitle}
               </CText>
             </View>
 
             <View className="flex-1">
               <KeyboardAvoidingView className="bg-grey dark:bg-accent rounded-3xl gap-y-3 px-4 py-5">
-                <View className="bg-white w-10/12 m-auto dark:bg-accent2 h-fit py-3 px-2 rounded-2xl">
-                  <OtpInput
-                    ref={otpRef}
-                    secureTextEntry={true}
-                    focusColor={"purple"}
-                    textProps={{
-                      style: {
-                        fontFamily: "bold",
-                        color: isDarkMode ? "white" : "black",
-                      },
-                    }}
-                    blurOnFilled={true}
-                    numberOfDigits={4}
-                    onFilled={(text) =>
-                      stage === "new-pin"
-                        ? setPin(text)
-                        : stage === "enter-previous-pin"
-                          ? setEnterPreviousPin(text)
-                          : setConfirmPin(text)
-                    }
-                  />
+                <View className="bg-white dark:bg-accent2 h-fit py-4 px-3 rounded-2xl items-center">
+                  {pinInput}
                 </View>
               </KeyboardAvoidingView>
             </View>
@@ -203,8 +202,7 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                 onPress={() => {
                   verifyPreviousPin();
                 }}
-                className=""
-                text={"Verify"}
+                text="Verify"
                 type="primary"
               />
             ) : (
@@ -214,7 +212,6 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                   onPress={() => {
                     if (stage === "new-pin") {
                       if (pin.length < 4) {
-                        console.log("pin", pin);
                         setToast("PIN must be 4 digits", "error");
                       } else {
                         setStage("confirm-pin");
@@ -224,7 +221,6 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                       handlePinChange();
                     }
                   }}
-                  className=""
                   text={stage === "new-pin" ? "Next" : "Saved"}
                   type="primary"
                 />
@@ -233,14 +229,12 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                     buttonType="pressable"
                     onPress={() => {
                       setOpen(false);
-                      // setPinReminder(new Date().getTime() + 1000 * 60 * 60 * 24 * 30);
                       setPinReminder(new Date().getTime() + 1000 * 30);
                       setStage("new-pin");
                       otpRef.current.clear();
                       setPin("");
                       setConfirmPin("");
                     }}
-                    className=""
                     text="Cancel"
                     type="secondary"
                   />
@@ -254,7 +248,6 @@ const SetPin = ({ open, setOpen, usage, onSuccess }: SetPinSheet) => {
                       setPin("");
                       setConfirmPin("");
                     }}
-                    className=""
                     text="Back"
                     type="secondary"
                   />

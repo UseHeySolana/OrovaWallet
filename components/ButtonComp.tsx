@@ -2,6 +2,7 @@ import React from "react";
 import { Text, TouchableNativeFeedback, TouchableOpacity, View } from "react-native";
 import tracker from "@/utils/tracker";
 import { ButtonInlineLoader } from "@/components/skeletons";
+import { isTablet, tabletSize } from "@/utils/layout/tablet";
 
 
 interface ButtonsProp {
@@ -36,10 +37,20 @@ export default function Buttons(props: ButtonsProp) {
   const { loading, style, textClass, text, className, type = "primary", onPress, buttonType, accessibilityLabel, compact } = props;
   const loaderVariant = type === "primary" ? "primary" : "secondary";
 
+  const pad = isTablet();
   const buttonColor = type === "primary" ? "bg-[#971BB2]  " : "bg-gray-200  dark:bg-accent2"
-  const textColor = type === "primary" ? "#FFFFFF" : "#FFFFFF"
-  const sizeClass = compact ? "py-1.5 rounded-xl" : "py-5 rounded-full";
-  const fontSize = compact ? 12 : 16;
+  const textTone =
+    type === "primary"
+      ? "text-white"
+      : "text-black dark:text-white";
+  const sizeClass = compact
+    ? pad
+      ? "py-2.5 rounded-xl"
+      : "py-1.5 rounded-xl"
+    : pad
+      ? "py-6 rounded-full"
+      : "py-5 rounded-full";
+  const fontSize = tabletSize(compact ? 12 : 16);
 
   const trackPress = () => {
     tracker.buttons(text || accessibilityLabel || "Button", 1);
@@ -53,8 +64,8 @@ export default function Buttons(props: ButtonsProp) {
         <ButtonInlineLoader variant={loaderVariant} />
       ) : text ? (
         <Text
-          style={{ fontFamily: "bold", color: textColor, textAlign: "center", fontSize }}
-          className={textClass}
+          style={{ fontFamily: "bold", textAlign: "center", fontSize }}
+          className={`${textTone} ${textClass ?? ""}`}
         >
           {text}
         </Text>

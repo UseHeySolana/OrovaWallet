@@ -56,18 +56,18 @@ const settingsMenu = [
       </View>
     ),
   },
-  {
-    title: "Voice Security",
-    route: "/voicereg",
-    subtitle: "Enroll or update the voice used for verified commands",
-    icon: (
-      <Ionicons
-        name="mic-circle-outline"
-        size={24}
-        color="#971BB2"
-      />
-    ),
-  },
+  // {
+  //   title: "Voice Security",
+  //   route: "/voicereg",
+  //   subtitle: "Enroll or update the voice used for verified commands",
+  //   icon: (
+  //     <Ionicons
+  //       name="mic-circle-outline"
+  //       size={24}
+  //       color="#971BB2"
+  //     />
+  //   ),
+  // },
   // {
   //   title: "Smart Hedging",
   //   route: "/manageaccounts",

@@ -10,7 +10,7 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import QRCode from "react-native-qrcode-svg";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
-import { scale } from "react-native-size-matters";
+import { scale } from "@/utils/layout/scale";
 
 import Buttons from "@/components/ButtonComp";
 import DragableSheet from "@/components/CustomItems/DragableSheet";

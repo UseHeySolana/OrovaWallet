@@ -104,3 +104,42 @@ export async function deleteWalletSecret() {
   devLog("delete done");
 }
 
+/** Namespaced secrets for non-Solana wallets (e.g. stellarSecret_12). */
+function namedDevKey(key: string) {
+  return `namedSecret_dev_${key}`;
+}
+
+export async function setNamedSecret(key: string, secret: string) {
+  if (useDevSimulatorInsecureStore) {
+    await AsyncStorage.setItem(namedDevKey(key), secret);
+    return;
+  }
+  await SecureStore.setItemAsync(key, secret, {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  });
+}
+
+export async function getNamedSecret(key: string): Promise<string | null> {
+  if (useDevSimulatorInsecureStore) {
+    const dev = await AsyncStorage.getItem(namedDevKey(key));
+    if (dev) return dev;
+  }
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteNamedSecret(key: string) {
+  if (useDevSimulatorInsecureStore) {
+    await AsyncStorage.removeItem(namedDevKey(key));
+  }
+  try {
+    await SecureStore.deleteItemAsync(key);
+  } catch {
+    // ignore
+  }
+}
+
+

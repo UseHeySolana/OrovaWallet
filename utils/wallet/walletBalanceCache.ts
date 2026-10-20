@@ -8,7 +8,7 @@ import setUserItems from "@/utils/dashboard";
 export const WALLET_BALANCE_TTL_MS = 45_000;
 
 /** Background poll interval while dashboard is open (only fetches when cache is stale) */
-export const WALLET_POLL_INTERVAL_MS = 30_000;
+export const WALLET_POLL_INTERVAL_MS = 60_000;
 
 export function isWalletBalanceCacheFresh(
   lastSyncedAt: number | null | undefined

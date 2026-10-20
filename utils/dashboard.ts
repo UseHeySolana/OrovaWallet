@@ -23,14 +23,18 @@ const setUserItems = async (
   publicKey: PublicKey,
   network: string
 ): Promise<boolean> => {
-  const connection = new Connection(`${network}${getHeliusApiKeySync()}`);
+  const connection = new Connection(`${network}${getHeliusApiKeySync()}`, {
+    disableRetryOnRateLimit: true,
+    commitment: "confirmed",
+  });
   const pubConvert = new PublicKey(publicKey);
   try {
     if (user) {
       const Solbalance = await getBalance(pubConvert, connection);
-      const rate = await fetchConversionRate(
-        "So11111111111111111111111111111111111111112"
-      );
+      const rate =
+        (await fetchConversionRate(
+          "So11111111111111111111111111111111111111112"
+        )) ?? 0;
       const balance = Number(Solbalance) * rate;
       let usdBalance = balance;
 
@@ -46,7 +50,8 @@ const setUserItems = async (
       };
 
       const tokens = await fetchTokenAccounts(pubConvert, network);
-      const fungible = tokens.result.items
+      const items = tokens?.result?.items ?? [];
+      const fungible = items
         .filter((item: any) => item.interface === "FungibleToken")
         .map((token: any) => {
           const tokenInfo = token?.token_info;
@@ -70,14 +75,14 @@ const setUserItems = async (
       updateUserWallet({
         balance: Number(balance.toFixed(2)),
         solBalance: Number(Solbalance?.toFixed(4)),
-        tokenAccounts: tokens ? fungible : [sol],
+        tokenAccounts: fungible,
         totalUsdBalance: usdBalance,
       });
       return true;
     }
     return false;
   } catch (error) {
-    console.log("Error fetching user data", error);
+    console.warn("Error fetching user data", error);
     return false;
   }
 };

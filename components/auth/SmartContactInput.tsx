@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { TextInput, TouchableOpacity, View, type KeyboardTypeOptions } from "react-native";
 import { CountryPickerModal } from "react-native-country-code-select";
 import CText from "@/components/TextComp";
 import { useThemeContext } from "@/context/ThemeContext";
@@ -9,6 +9,7 @@ import {
   CountrySelection,
   detectSmartContactMode,
 } from "@/utils/contact/smartContact";
+import { tabletSize } from "@/utils/layout/tablet";
 
 const DEFAULT_COUNTRY: CountrySelection = {
   callingCode: ["234"],
@@ -46,6 +47,22 @@ export default function SmartContactInput({
   const displayMode = variant === "phone" ? "phone" : contactMode;
   const showCountryCode = displayMode === "phone";
   const iconColor = isDarkMode ? "#9ca3af" : "#6b7280";
+  const [focused, setFocused] = useState(false);
+  const nextKeyboardType: KeyboardTypeOptions =
+    displayMode === "phone"
+      ? "phone-pad"
+      : displayMode === "email"
+        ? "email-address"
+        : "default";
+  const [keyboardType, setKeyboardType] =
+    useState<KeyboardTypeOptions>(nextKeyboardType);
+
+  // Changing keyboardType while focused dismisses the soft keyboard on iPad.
+  useEffect(() => {
+    if (!focused) {
+      setKeyboardType(nextKeyboardType);
+    }
+  }, [focused, nextKeyboardType]);
 
   const handleCountrySelect = (country: CountrySelection) => {
     if (onCountryChange) {
@@ -81,19 +98,22 @@ export default function SmartContactInput({
             </TouchableOpacity>
           )}
           <TextInput
-            style={{ fontFamily: showCountryCode ? "bold" : "reg", fontSize: 16 }}
+            style={{
+              fontFamily: showCountryCode ? "bold" : "reg",
+              fontSize: tabletSize(16),
+            }}
             className="flex-1 text-dark dark:text-white"
             value={value}
-            keyboardType={
-              displayMode === "phone"
-                ? "phone-pad"
-                : displayMode === "email"
-                  ? "email-address"
-                  : "default"
-            }
+            showSoftInputOnFocus
+            keyboardType={keyboardType}
             autoCapitalize="none"
             autoCorrect={false}
             placeholderTextColor={isDarkMode ? "#9ca3af" : "#6b7280"}
+            onFocus={() => setFocused(true)}
+            onBlur={() => {
+              setFocused(false);
+              setKeyboardType(nextKeyboardType);
+            }}
             onChangeText={onChangeText}
             placeholder={placeholder}
           />

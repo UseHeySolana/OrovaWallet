@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { Pressable, Switch, View } from "react-native";
 import CText from "@/components/TextComp";
 import AppSettings from "@/utils/store/settingsstore.store";
 import { router } from "expo-router";
@@ -8,55 +8,94 @@ import UserItem from "@/utils/store/userstore.store";
 import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
 import SetPin from "@/components/Sheets/SetPinSheet";
-
-
+import { confirm } from "@/services/confirmation";
+import { requestAccountDeletion } from "@/utils/request/db";
 
 const settingsMenu2 = [
   {
     title: "Biometric Signin",
-    route: 'dark',
-    type: 'toggle',
+    route: "dark",
+    type: "toggle",
     subtitle: "Use fingerprint and faceId to signin",
     icon: <IconLibrary.lock />,
   },
   {
     title: "Set PIN",
-    route: 'dark',
-    type: 'activate',
+    route: "dark",
+    type: "activate",
     subtitle: "Set a PIN to secure your account",
     icon: <IconLibrary.password />,
   },
   {
     title: "Private Key",
-    route: '/settings/security/private',
+    route: "/settings/security/private",
     subtitle: "View your private key/key phrases",
     icon: <IconLibrary.security />,
   },
   {
     title: "Delete Account",
     route: null,
-    subtitle: "Delete account from HeySolana",
+    type: "delete-account",
+    subtitle: "Request account deletion from Orova",
     icon: <IconLibrary.delete />,
   },
-]
-/*
+];
+
 /**
-  * What should be done here
-  * 1. Updates Settings and Shows Settings and What to Change
-  */
+ * What should be done here
+ * 1. Updates Settings and Shows Settings and What to Change
+ */
 export default function Security() {
-  const { isDarkMode, toggleTheme } = useThemeContext();
-  const { setDefault, openWithAuth, setOpenWithAuth, setToast, pin } =
+  const { setToast, openWithAuth, setOpenWithAuth, pin, setLoading } =
     AppSettings();
-  const { user, userWallet, logout } = UserItem();
+  const { user, logout } = UserItem();
   const [setPinOpen, setSetPinOpen] = useState<boolean>(false);
 
-  const routeNavigation = (route: any, type?: string) => {
-    if (type == "toggle") {
+  const submitDeleteRequest = async () => {
+    if (!user?.username) {
+      setToast("Sign in again to request account deletion", "error");
       return;
     }
-    if (type == "activate") {
+
+    const confirmed = await confirm({
+      message: "Request account deletion?",
+      subtitle:
+        "Your account deletion request will be submitted. Your account will be deleted within the next few days.",
+    });
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      const response = await requestAccountDeletion({
+        username: user.username,
+        wallet_address: user.wallet_address || undefined,
+        email: user.email || undefined,
+        phone_number: user.phoneE164 || user.mobileNumber || undefined,
+      });
+
+      if (response.status === false) {
+        setToast(response.message, "error");
+        return;
+      }
+
+      setToast(response.message, "success");
+      logout();
+      router.replace("/auth/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const routeNavigation = async (route: any, type?: string) => {
+    if (type === "toggle") {
+      return;
+    }
+    if (type === "activate") {
       setSetPinOpen(!setPinOpen);
+      return;
+    }
+    if (type === "delete-account") {
+      await submitDeleteRequest();
       return;
     }
     if (route == null) {
@@ -107,7 +146,8 @@ export default function Security() {
                   </View>
                 </View>
 
-                {item.route && item.route !== "logout" && (
+                {(item.route && item.route !== "logout") ||
+                item.type === "delete-account" ? (
                   <>
                     {item.type === "toggle" ? (
                       <Switch
@@ -115,7 +155,6 @@ export default function Security() {
                         thumbColor={"white"}
                         ios_backgroundColor="#3e3e3e"
                         onValueChange={() => {
-                          //if pin is not set, set it
                           if (pin === "") {
                             setToast("Please set a PIN first", "error");
                             setSetPinOpen(true);
@@ -131,12 +170,12 @@ export default function Security() {
                         value={Boolean(openWithAuth)}
                       />
                     ) : (
-                      <Pressable onPress={() => router.back()} className="p-3">
+                      <View className="p-3">
                         <IconLibrary.angle_right />
-                      </Pressable>
+                      </View>
                     )}
                   </>
-                )}
+                ) : null}
               </Pressable>
             );
           })}
@@ -147,5 +186,3 @@ export default function Security() {
     </View>
   );
 }
-
-

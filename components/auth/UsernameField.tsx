@@ -116,7 +116,7 @@ export default function UsernameField({
         <View
           className={`rounded-full border px-4 py-3 ${bannerStyles}`}
         >
-          <CText className={`text-center text-[0.875rem] ${bannerTextStyles}`}>
+          <CText className={`text-center text-[1rem] leading-6 ${bannerTextStyles}`}>
             {statusMessage}
           </CText>
         </View>

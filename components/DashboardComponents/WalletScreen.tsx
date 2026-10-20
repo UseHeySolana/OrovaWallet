@@ -21,7 +21,8 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Image } from "expo-image";
-import { scale } from "react-native-size-matters";
+import { scale } from "@/utils/layout/scale";
+import { isTablet } from "@/utils/layout/tablet";
 import UserItem from "@/utils/store/userstore.store";
 import { copyItem } from "@/utils/functions";
 import WalletItem from "@/utils/store/wallet.store";
@@ -39,6 +40,8 @@ import {
   type AppTransaction,
 } from "@/services/appTransactions";
 import { appTxRowSummary } from "@/utils/appTransactionDisplay";
+import AddWalletAccount from "@/components/Sheets/AddWalletAccount";
+import AccountsStore from "@/utils/store/accounts.store";
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 const APP_TRANSACTION_PREVIEW_LIMIT = 10;
@@ -81,7 +84,14 @@ export default function WalletScreen({
   const [walletHistory, setWalletHistory] = useState<AppTransaction[] | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
   const { isDarkMode } = useThemeContext();
+  const refreshAccounts = AccountsStore((s) => s.refreshAccounts);
+  const pad = isTablet();
+
+  useEffect(() => {
+    refreshAccounts();
+  }, [refreshAccounts]);
 
   const helpersScrollRef = useRef<ScrollView>(null);
   const [activeHelperIndex, setActiveHelperIndex] = useState(0);
@@ -210,7 +220,13 @@ export default function WalletScreen({
           >
             <View className="flex-1 pr-3">
               <View className="flex-row items-center gap-x-2">
-                <CText className="text-[12px]">Wallet balance</CText>
+                <CText
+                  className={
+                    pad ? "text-[17px] leading-6" : "text-[15px] leading-5"
+                  }
+                >
+                  Wallet balance
+                </CText>
                 <TouchableOpacity
                   accessibilityLabel={
                     balancesHidden ? "Show balances" : "Hide balances"
@@ -282,8 +298,25 @@ export default function WalletScreen({
                   color={isDarkMode ? "white" : "black"}
                 />
               </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Add account"
+                onPress={() => setAddAccountOpen(true)}
+                className="p-3 rounded-full bg-grey dark:bg-accent2"
+              >
+                <Ionicons
+                  name="wallet-outline"
+                  size={16}
+                  color={isDarkMode ? "white" : "black"}
+                />
+              </TouchableOpacity>
             </View>
           </View>
+
+          <AddWalletAccount
+            open={addAccountOpen}
+            onClose={() => setAddAccountOpen(false)}
+          />
 
           <View className="bg-grey dark:bg-dark w-full p-[0.6]" />
 
@@ -302,7 +335,13 @@ export default function WalletScreen({
                   <AntDesign name="arrow-down" size={18} color="white" />
                 </View>
               </TouchableOpacity>
-              <CText className="text-[0.85rem]">Send</CText>
+              <CText
+                className={
+                  pad ? "text-[1.125rem] leading-6" : "text-[1rem] leading-5"
+                }
+              >
+                Send
+              </CText>
             </View>
             <View className="flex-1 items-center gap-y-2">
               <TouchableOpacity
@@ -320,7 +359,13 @@ export default function WalletScreen({
                   color="white"
                 />
               </TouchableOpacity>
-              <CText className="text-[0.85rem]">Swap</CText>
+              <CText
+                className={
+                  pad ? "text-[1.125rem] leading-6" : "text-[1rem] leading-5"
+                }
+              >
+                Swap
+              </CText>
             </View>
             <View className="flex-1 items-center gap-y-2">
               <TouchableOpacity
@@ -336,7 +381,13 @@ export default function WalletScreen({
                   <AntDesign name="arrow-down" size={18} color="white" />
                 </View>
               </TouchableOpacity>
-              <CText className="text-[0.85rem]">Deposit</CText>
+              <CText
+                className={
+                  pad ? "text-[1.125rem] leading-6" : "text-[1rem] leading-5"
+                }
+              >
+                Deposit
+              </CText>
             </View>
           </View>
         </View>

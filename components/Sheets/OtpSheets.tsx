@@ -22,8 +22,8 @@ const Otpsheet = ({ open, verifyOtp, setOtpValue, hint }: OTPSheet) => {
             child={
                 <View className=" py-4 w-full h-fit gap-y-10 flex-1 flex-col justify-between ">
                     <View className="w-8/12 m-auto">
-                        <CText style={{ fontFamily: "bold" }} className="text-[20px] text-center">Enter Verification Code</CText>
-                        <CText style={{ fontFamily: "md" }} textColor="text-purple" className="text-[12px] text-center">{hint ?? "Your one time password has been sent to your whatsapp number"}</CText>
+                        <CText style={{ fontFamily: "bold" }} className="text-[1.35rem] leading-8 text-center">Enter Verification Code</CText>
+                        <CText style={{ fontFamily: "md" }} className="text-[1rem] leading-6 text-center mt-2 text-black/80 dark:text-white/85">{hint ?? "Your one time password has been sent to your whatsapp number"}</CText>
                     </View>
                     <View className="flex-1">
 

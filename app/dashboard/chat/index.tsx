@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 import CText from "@/components/TextComp";
-import { scale } from 'react-native-size-matters';
+import { scale } from "@/utils/layout/scale";
 import { router } from "expo-router";
 import IconLibrary from "@/utils/icons";
 import Convo, { ConversationType } from "@/utils/store/conversation.store";

@@ -12,7 +12,7 @@ import IconLibrary from "@/utils/icons";
 import CText from "@/components/TextComp";
 import UserItem from "@/utils/store/userstore.store";
 import { Image } from "expo-image";
-import { scale } from "react-native-size-matters";
+import { scale } from "@/utils/layout/scale";
 import Buttons from "@/components/ButtonComp";
 import {
   formatDate,

@@ -59,13 +59,12 @@ export default function PinConfirmModal({
       child={
         <View className="py-4 w-full h-fit gap-y-8 flex-1 flex-col justify-between">
           <View className="w-full gap-y-2">
-            <CText style={{ fontFamily: "bold" }} className="text-[1.2rem] text-center">
+            <CText style={{ fontFamily: "bold" }} className="text-[1.35rem] leading-8 text-center">
               {title}
             </CText>
             <CText
               style={{ fontFamily: "md" }}
-              textColor="text-purple"
-              className="text-[0.85rem] text-center px-2"
+              className="text-[1.0625rem] leading-6 text-center px-2 text-black/80 dark:text-white/85"
             >
               {subtitle}
             </CText>

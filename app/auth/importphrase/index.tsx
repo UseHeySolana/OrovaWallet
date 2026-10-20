@@ -3,13 +3,14 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   TextInput,
   View,
 } from "react-native";
 import { CText } from "@/components/TextComp";
 import Buttons from "@/components/ButtonComp";
+import { validateMnemonic } from "bip39";
 import { getKeypairFromMnemonic, isJson } from "@/utils/wallet";
+import { createWalletForUser } from "@/utils/wallet/createWalletForUser";
 
 import AppSettings from "@/utils/store/settingsstore.store";
 import WalletItem from "@/utils/store/wallet.store";
@@ -37,73 +38,98 @@ export default function ImportPhrase({ navigation }: any) {
   const { user, setUser } = UserItem();
   const { isKeyboardVisible } = useKeyboard();
 
+  const secretErrorMessage = (value: string) => {
+    const trimmed = value.trim();
+    if (isJson(trimmed)) {
+      return "That private key is not valid. Paste the full key, or enter your 12-word phrase.";
+    }
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (words.length > 1 && words.length !== 12 && words.length !== 24) {
+      return `A secret phrase is 12 or 24 words. This one has ${words.length}.`;
+    }
+    return "That secret phrase is not valid. Check the spelling of each word and try again.";
+  };
+
   const importWallet = async () => {
-    if (mnemonic === "") {
-      setToast("No Phrase Imported", "error");
-      setLoading(false);
+    const trimmed = mnemonic.trim().replace(/\s+/g, " ");
+    if (trimmed === "") {
+      setToast("Enter a secret phrase or private key first.", "error");
       return;
     }
 
-    if (isJson(mnemonic)) {
-      if (JSON.parse(mnemonic).length !== 64) {
-        setToast("Awwn! this is not a valid private key!", "error");
-        setLoading(false);
-
+    if (isJson(trimmed)) {
+      try {
+        if (JSON.parse(trimmed).length !== 64) {
+          setToast(secretErrorMessage(trimmed), "error");
+          return;
+        }
+      } catch {
+        setToast(secretErrorMessage(trimmed), "error");
         return;
       }
+    } else if (trimmed.includes(" ") && !validateMnemonic(trimmed)) {
+      setToast(secretErrorMessage(trimmed), "error");
+      return;
     }
-    // } else {
-    //   if (mnemonic.trim().split(/\s+/).length !== 12) {
-    //     setToast("Invalid phrase!, phrase must be 12.", "error");
-    //     setLoading(false);
-    //     return;
-    //   }
-    // }
+
     setLoading(true);
 
     try {
-      const trimmed = mnemonic.trim();
       const keyPair = await getKeypairFromMnemonic(trimmed);
-      console.log(keyPair.publicKey, user);
+      if (!keyPair?.publicKey || !user?.username) {
+        setToast("Sign in again, then import the phrase.", "error");
+        return;
+      }
+
       try {
         await setWalletSecret(trimmed);
       } catch (e) {
-        setLoading(false);
         setToast("Could not save your phrase securely on this device.", "error");
         console.error("setWalletSecret failed:", e);
         return;
       }
+
       updatePassphrase(trimmed);
-      // Only proceed once keypair is available
-      if (keyPair && keyPair.publicKey && user) {
-        try {
-          const response = await saveWalletAddress(
-            keyPair.publicKey.toBase58(),
-            user.username
-          );
-          if (response.status !== false) {
-            updateKeypair(keyPair);
-            setUser({
-              ...user,
-              wallet_address: keyPair.publicKey.toBase58(),
-            });
-            setToast("Wallet Created", "success");
-            router.replace("/dashboard");
-            setLoading(false);
-          }
-        } catch (error) {
-          setLoading(false);
-          console.error("Error saving wallet address:", error);
-        }
-      } else {
-        setLoading(false);
-        console.error(
-          "Failed to generate keypair: keypair is null or undefined"
-        );
+      const response = await saveWalletAddress(
+        keyPair.publicKey.toBase58(),
+        user.username
+      );
+      if (response.status === false) {
+        setToast(response.message || "Could not import this wallet.", "error");
+        return;
       }
+
+      updateKeypair(keyPair);
+      setUser({
+        ...user,
+        wallet_address: keyPair.publicKey.toBase58(),
+      });
+      setToast("Wallet restored", "success");
+      router.replace("/dashboard");
     } catch (error) {
-      setLoading(false);
       console.error("Error generating keypair:", error);
+      setToast(secretErrorMessage(trimmed), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createNewWallet = async () => {
+    if (!user?.username) {
+      setToast("Sign in again, then create a wallet.", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await createWalletForUser(user.username);
+      if (!result.success) {
+        setToast(result.message, "error");
+        return;
+      }
+      setToast("Wallet ready", "success");
+      router.replace("/dashboard");
+    } finally {
+      setLoading(false);
     }
   };
   return (
@@ -112,17 +138,17 @@ export default function ImportPhrase({ navigation }: any) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 16 : 0}
     >
-      <Pressable className="flex-1 pt-4" onPress={Keyboard.dismiss}>
+      <View className="flex-1 pt-4">
         <View className="gap-y-5 w-full px-4 flex flex-1 flex-col justify-start ">
           <View className=" bg-white dark:bg-accent rounded-3xl px-3 py-10 gap-y-5">
             <View className="gap-x-5">
               <CText
                 style={{ fontFamily: "bold" }}
-                className="text-[1.5em] text-center"
+                className="text-[1.5rem] leading-8 text-center"
               >
                 Import existing wallet
               </CText>
-              <CText className="text-[1em] text-center">
+              <CText className="text-[1.0625rem] leading-6 text-center text-black/80 dark:text-white/85">
                 Enter the secret phrase to restore your Solana wallet.
               </CText>
             </View>
@@ -130,7 +156,7 @@ export default function ImportPhrase({ navigation }: any) {
             <View className="w-100 m-auto bg-grey dark:bg-accent w-full rounded-2xl p-2  ">
               <View className="bg-white dark:bg-accent2 p-3 rounded-2xl">
                 <View className="py-4">
-                  <CText className="text-[1em]" style={{ fontFamily: "bold" }}>
+                  <CText className="text-[1.0625rem] leading-6" style={{ fontFamily: "bold" }}>
                     Secret Phrase or Private Key
                   </CText>
                 </View>
@@ -141,9 +167,10 @@ export default function ImportPhrase({ navigation }: any) {
                     multiline
                     returnKeyType="done"
                     blurOnSubmit
+                    showSoftInputOnFocus
                     value={mnemonic}
                     numberOfLines={100}
-                    className=" px-4  w-full h-[12.43rem] text-[1rem] text-dark dark:text-white"
+                    className="px-4 w-full h-[12.43rem] text-[1.0625rem] leading-6 text-dark dark:text-white"
                     onChangeText={(text) => {
                       setMnemonic(text);
                     }}
@@ -170,7 +197,7 @@ export default function ImportPhrase({ navigation }: any) {
             <View className="w-[12.5rem] flex-1 ">
               <CText
                 style={{ fontFamily: "md" }}
-                className="text-[1em] text-start text-wrap"
+                className="text-[1.0625rem] leading-6 text-start text-wrap"
               >
                 The secret phrase is typically 12 words separated by single
                 spaces.
@@ -200,13 +227,13 @@ export default function ImportPhrase({ navigation }: any) {
               type="secondary"
               onPress={() => {
                 Keyboard.dismiss();
-                router.push("/auth/secretphrase");
+                return createNewWallet();
               }}
-              text="I don't know what a secret phrase is"
+              text="Create a new wallet instead"
             />
           </View>
         </View>
-      </Pressable>
+      </View>
     </KeyboardAvoidingView>
   );
 }

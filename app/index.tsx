@@ -1,19 +1,17 @@
 import AppSettings from "@/utils/store/settingsstore.store";
 import Buttons from "@/components/ButtonComp";
-import { ImageBackground } from "expo-image";
+import { Image } from "expo-image";
+import { useEffect, useRef, useState } from "react";
 import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import WalletItem from "@/utils/store/wallet.store";
 import UserItem from "@/utils/store/userstore.store";
@@ -41,11 +39,11 @@ const screens = [
   },
   {
     title: "Secure & Fast - Your Security, Our Priority",
-    subtitle: `Experience top-notch security, with full control over permissions and privacy.`,
+    subtitle:
+      "Experience top-notch security, with full control over permissions and privacy.",
     image: require("@/assets/secure.png"),
   },
 ];
-const { width, height } = Dimensions.get("window");
 
 /** Read stores after `initWallet()` — avoids stale hook values in the same tick as hydration. */
 function getPostWalletInitDestination(walletHydrated: boolean): string | null {
@@ -74,7 +72,6 @@ async function runComboUpdateFlow() {
       return;
     }
 
-    // 1. Try OTA update
     const otaUpdate = await Updates.checkForUpdateAsync();
     if (otaUpdate.isAvailable) {
       await Updates.fetchUpdateAsync();
@@ -82,7 +79,6 @@ async function runComboUpdateFlow() {
       return;
     }
 
-    // 2. If no OTA, check Play Store update
     try {
       await startUpdateFlow(UpdateFlow.FLEXIBLE);
     } catch (e) {
@@ -98,6 +94,11 @@ export default function Index() {
   const scrollRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const isPad = Platform.OS === "ios" && Platform.isPad;
+  const copyMaxWidth = Math.min(width - 48, isPad ? 640 : width);
+  const bottomPad = Math.max(insets.bottom, 16) + (isPad ? 48 : 8);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -129,7 +130,6 @@ export default function Index() {
           }
         }
       } catch {
-        // ignore
         if (!cancelled) {
           setIsBootstrapping(false);
         }
@@ -150,11 +150,11 @@ export default function Index() {
   }
 
   return (
-    <View
-      // onLayout={onLayoutRootView}
-      className="relative flex-1 bg-white dark:bg-dark"
-    >
-      <View className="absolute top-10  z-50 flex-row self-center">
+    <View className="relative flex-1 bg-white dark:bg-dark">
+      <View
+        className="absolute z-50 flex-row self-center"
+        style={{ top: Math.max(insets.top, 16) + 8 }}
+      >
         {screens.map((_, index) => (
           <Pressable
             onPress={() => {
@@ -173,46 +173,73 @@ export default function Index() {
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ justifyContent: 'flex-end', alignItems: 'center' }}
       >
         {screens.map((screen, index) => (
-          <ImageBackground
-            source={screen.image}
-            contentFit="contain"
-            contentPosition="top center"
+          <View
             key={index}
             style={{ width, height }}
-            className="flex-1 items-center justify-end h-screen gap-y-3 relative"
+            className="flex-1 bg-white dark:bg-dark"
           >
+            <Image
+              source={screen.image}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width,
+                height,
+              }}
+              contentFit="cover"
+              contentPosition="top center"
+            />
+
             <View
-              className={`px-3 absolute bottom-20 h-[100%]"
-                } left-0`}
+              className="flex-1 justify-end items-center px-6"
+              style={{ paddingBottom: bottomPad }}
             >
               <View
-                className={`items-center mt-5 mb-5 flex-1 px-6`}
+                className="items-center w-full mb-6"
+                style={{ maxWidth: copyMaxWidth }}
               >
-                <CText className="text-[1.2rem]  text-center font-bold text-primary dark:text-white">
-                  {screen.title}
-                </CText>
-                <CText className="text-[0.8rem] mt-2 text-gray-600 dark:text-white text-center">
-                  {screen.subtitle}
-                </CText>
+                  <CText
+                    style={{ fontFamily: "bold" }}
+                    className={`${
+                      isPad
+                        ? "text-[2.25rem] leading-[2.75rem]"
+                        : "text-[1.5rem] leading-8"
+                    } text-center text-primary dark:text-white`}
+                  >
+                    {screen.title}
+                  </CText>
+                  <CText
+                    className={`${
+                      isPad
+                        ? "text-[1.25rem] leading-8"
+                        : "text-[1.0625rem] leading-6"
+                    } mt-3 text-center text-black/80 dark:text-white/85`}
+                  >
+                    {screen.subtitle}
+                  </CText>
               </View>
-              <Buttons
-                className=""
-                text="Next"
-                onPress={() => {
-                  if (currentIndex >= 2) {
-                    markOpened();
-                    router.replace("/auth/register");
-                  }
-                  scrollRef.current?.scrollTo({
-                    x: width * (currentIndex + 1),
-                  });
-                }}
-              />
+              <View className="w-full" style={{ maxWidth: copyMaxWidth }}>
+                <Buttons
+                  text="Next"
+                  onPress={() => {
+                    if (currentIndex >= 2) {
+                      markOpened();
+                      router.replace("/auth/register");
+                      return;
+                    }
+                    scrollRef.current?.scrollTo({
+                      x: width * (currentIndex + 1),
+                    });
+                  }}
+                />
+              </View>
             </View>
-          </ImageBackground>
+          </View>
         ))}
       </ScrollView>
     </View>

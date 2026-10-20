@@ -49,6 +49,17 @@ export async function createWalletForUser(
 
     AppSettings.getState().setPromptWalletBackup(true);
 
+    // Sync into multiwallet user_wallets catalog (best-effort).
+    try {
+      const { createUserWallet } = await import("@/utils/wallet/accountsApi");
+      await createUserWallet({
+        username: trimmedUsername,
+        wallet_type_slug: "solana",
+      });
+    } catch {
+      // Catalog may not be migrated yet; Solana addressbook path still works.
+    }
+
     return { success: true, walletAddress };
   } catch (error) {
     const message =

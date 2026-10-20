@@ -11,7 +11,7 @@ import { router } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
 import IconLibrary from "@/utils/icons";
 import { useThemeContext } from "@/context/ThemeContext";
-import { scale } from "react-native-size-matters";
+import { scale } from "@/utils/layout/scale";
 
 export default function ManageTokens() {
   const { userWallet, visibleTokenMints, setVisibleTokenMints } = UserItem();

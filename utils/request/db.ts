@@ -277,6 +277,48 @@ const saveWalletAddress = async (walletAddress: string, username: string) => {
   return { status: true, data: await response.json() };
 };
 
+const requestAccountDeletion = async (payload: {
+  username: string;
+  wallet_address?: string;
+  email?: string;
+  phone_number?: string;
+  reason?: string;
+}) => {
+  const url = "/v2/account-deletion-request";
+  try {
+    const response = await request.postJson(
+      {
+        username: payload.username.trim(),
+        wallet_address: payload.wallet_address?.trim() || undefined,
+        email: payload.email?.trim() || undefined,
+        phone_number: payload.phone_number?.trim() || undefined,
+        reason: payload.reason?.trim() || undefined,
+      },
+      url
+    );
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return {
+        status: false as const,
+        message: result.message || "Could not submit deletion request",
+      };
+    }
+    return {
+      status: true as const,
+      message:
+        result.message ||
+        "Your account deletion request has been submitted. Your account will be deleted within the next few days.",
+      data: result.data,
+    };
+  } catch (err) {
+    return {
+      status: false as const,
+      message:
+        err instanceof Error ? err.message : "Could not submit deletion request",
+    };
+  }
+};
+
 const addEmail = async (username: string, email: string) => {
   const item = {
     username: username.trim(),
@@ -567,6 +609,7 @@ export {
   loginWithGoogle,
   loginWithGoogleBackup,
   saveWalletAddress,
+  requestAccountDeletion,
   getTransactionHistory,
   registerUser,
   checkUsernameAvailability,

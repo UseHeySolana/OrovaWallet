@@ -8,11 +8,14 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from "react-native-reanimated";
+import { isTablet } from "@/utils/layout/tablet";
 
 interface CustomTextProps extends TextProps {
   children: React.ReactNode;
   textColor?: string;
 }
+
+const pad = isTablet();
 
 const CText: React.FC<CustomTextProps> = ({
   style,
@@ -24,8 +27,15 @@ const CText: React.FC<CustomTextProps> = ({
   <Animated.Text
     entering={FadeIn.duration(200).delay(100)}
     {...props}
-    className={`${textColor ? textColor : "text-[1rem] text-dark dark:text-white"
-      } ${className}`}
+    allowFontScaling
+    maxFontSizeMultiplier={pad ? 1.35 : 1.2}
+    className={`${
+      textColor
+        ? textColor
+        : pad
+          ? "text-[1.125rem] text-dark dark:text-white"
+          : "text-[1rem] text-dark dark:text-white"
+    } ${className}`}
     style={[{ fontFamily: "reg" }, style]}
   >
     {children}
@@ -92,8 +102,14 @@ const CNumber: React.FC<CNumberProps> = ({
   return (
     <Animated.Text
       {...props}
-      className={`${textColor ?? "text-[1rem] text-dark dark:text-white"} ${className ?? ""
-        }`}
+      allowFontScaling
+      maxFontSizeMultiplier={pad ? 1.35 : 1.2}
+      className={`${
+        textColor ??
+        (pad
+          ? "text-[1.125rem] text-dark dark:text-white"
+          : "text-[1rem] text-dark dark:text-white")
+      } ${className ?? ""}`}
       style={[
         animatedStyle,
         { fontFamily: "reg", backfaceVisibility: "hidden" },

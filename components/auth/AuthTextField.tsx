@@ -3,6 +3,7 @@ import { TextInput, TextInputProps, View } from "react-native";
 import { useThemeContext } from "@/context/ThemeContext";
 import IconLibrary from "@/utils/icons";
 import { authUi } from "@/components/auth/authUi";
+import { tabletSize } from "@/utils/layout/tablet";
 
 type AuthTextFieldIcon = "user";
 
@@ -34,8 +35,12 @@ export default function AuthTextField({
           </View>
         )}
         <TextInput
+          showSoftInputOnFocus
           {...props}
-          style={[{ fontFamily: "reg", fontSize: 16, flex: 1 }, style]}
+          style={[
+            { fontFamily: "reg", fontSize: tabletSize(16), flex: 1 },
+            style,
+          ]}
           className={`flex-1 text-dark dark:text-white ${className}`}
           placeholderTextColor={isDarkMode ? "#9ca3af" : "#6b7280"}
         />

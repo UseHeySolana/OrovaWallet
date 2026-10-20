@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { View } from "react-native";
 import { useKeyboard } from "@/context/KeyboardContext";
 import { authUi } from "@/components/auth/authUi";
+import { isTablet } from "@/utils/layout/tablet";
 
 interface AuthFlowScreenProps {
   children: ReactNode;
@@ -13,6 +14,7 @@ export default function AuthFlowScreen({
   footer,
 }: AuthFlowScreenProps) {
   const { isKeyboardVisible } = useKeyboard();
+  const pad = isTablet();
 
   return (
     <View className="relative bg-grey dark:bg-dark flex-1 w-full">
@@ -21,7 +23,10 @@ export default function AuthFlowScreen({
           isKeyboardVisible ? "justify-start pt-8" : "justify-center"
         }`}
       >
-        <View className={`w-full max-w-md self-center ${authUi.sectionGap}`}>
+        <View
+          className={`w-full self-center ${authUi.sectionGap}`}
+          style={{ maxWidth: pad ? 560 : 448 }}
+        >
           {children}
         </View>
       </View>

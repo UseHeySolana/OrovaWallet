@@ -13,6 +13,7 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "UIApplicationSupportsIndirectInputEvents": true,
         "NSMicrophoneUsageDescription": "This app uses the microphone for AI voice interactions.",
         "NSCameraUsageDescription": "This app uses the camera for QR code scanning.",
         "UIBackgroundModes": [

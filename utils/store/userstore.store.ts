@@ -5,6 +5,7 @@ import { UserType } from '@/utils/types/user.types';
 import AppSettings from '@/utils/store/settingsstore.store';
 import WalletItem from '@/utils/store/wallet.store';
 import { deleteWalletSecret } from '@/utils/storage/secureStore';
+import AccountsStore from '@/utils/store/accounts.store';
 
 interface TokenAccount {
   symbol: string;
@@ -61,6 +62,7 @@ const UserItem = create(
       clearData: () => {
         AppSettings.getState().setDefault();
         WalletItem.getState().setDefault();
+        AccountsStore.getState().clear();
         deleteWalletSecret();
         // Clear user state and wallet state
         set({
