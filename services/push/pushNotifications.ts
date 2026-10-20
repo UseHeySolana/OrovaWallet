@@ -25,6 +25,16 @@ function getEasProjectId(): string | undefined {
   return UUID_RE.test(projectId) ? projectId : undefined;
 }
 
+function getAppVersion(): string | undefined {
+  const version =
+    Constants.expoConfig?.version ??
+    Constants.nativeAppVersion ??
+    undefined;
+  if (typeof version !== "string") return undefined;
+  const trimmed = version.trim();
+  return trimmed ? trimmed.slice(0, 64) : undefined;
+}
+
 function isExpoPushToken(token: string | null | undefined): token is string {
   return typeof token === "string" && EXPO_PUSH_TOKEN_RE.test(token.trim());
 }
@@ -184,6 +194,8 @@ export async function registerPushTokenWithBackend(
     push_token: pushToken,
     device_type: deviceType,
   };
+  const appVersion = getAppVersion();
+  if (appVersion) body.app_version = appVersion;
   const projectId = getEasProjectId();
   if (projectId) body.eas_project_id = projectId;
   const phone = resolvePhoneForPushRegistration(params);
