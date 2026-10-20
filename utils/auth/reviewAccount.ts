@@ -37,6 +37,20 @@ export function isAppReviewEmail(value?: string | null): boolean {
   return value.trim().toLowerCase() === APP_REVIEW_DEMO.email;
 }
 
+export function isAppReviewDemoUsername(value?: string | null): boolean {
+  if (!value) return false;
+  return value.trim().toLowerCase() === APP_REVIEW_DEMO.username;
+}
+
+/** Fixed-seed demo wallet (email and/or username), not the phone review account. */
+export function isAppReviewDemoWalletUser(input?: {
+  email?: string | null;
+  username?: string | null;
+} | null): boolean {
+  if (!input) return false;
+  return isAppReviewEmail(input.email) || isAppReviewDemoUsername(input.username);
+}
+
 export function isAppReviewAccount(input?: {
   email?: string | null;
   phoneE164?: string | null;
@@ -45,10 +59,7 @@ export function isAppReviewAccount(input?: {
   username?: string | null;
 } | null): boolean {
   if (!input) return false;
-  if (isAppReviewEmail(input.email)) return true;
-  if (input.username?.trim().toLowerCase() === APP_REVIEW_DEMO.username) {
-    return true;
-  }
+  if (isAppReviewDemoWalletUser(input)) return true;
   return (
     isAppReviewPhone(input.phoneE164) ||
     isAppReviewPhone(input.mobileNumber) ||

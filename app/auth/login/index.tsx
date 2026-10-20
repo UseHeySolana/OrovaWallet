@@ -7,7 +7,7 @@ import {
 import CText from "@/components/TextComp";
 import { Image } from "expo-image";
 import AppSettings from "@/utils/store/settingsstore.store";
-import { router } from "expo-router";
+import { router, useRootNavigationState } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
 import Buttons from "@/components/ButtonComp";
 import { getCode, loginWithGoogle, loginWithGoogleBackup, verifyCode } from "@/utils/request/db";
@@ -57,13 +57,43 @@ import {
   type ServerAuthUser,
 } from "@/utils/account/userContact";
 import {
+  APP_REVIEW_DEMO,
   isAppReviewAccount,
+  isAppReviewDemoWalletUser,
   isAppReviewEmail,
   isAppReviewPhone,
   restoreAppReviewDemoWallet,
 } from "@/utils/auth/reviewAccount";
 
+/** Survives Login remounts — prevents provision/nav loops when replace throws. */
+let loginProvisionLock = false;
+let loginDashboardNavScheduled = false;
+
+function replaceToDashboard() {
+  if (loginDashboardNavScheduled) return;
+  loginDashboardNavScheduled = true;
+  const attempt = (retriesLeft: number) => {
+    const retry = () => {
+      if (retriesLeft <= 0) {
+        loginDashboardNavScheduled = false;
+        return;
+      }
+      setTimeout(() => attempt(retriesLeft - 1), 50);
+    };
+    try {
+      // expo-router may reject asynchronously if the root layout is remounting.
+      Promise.resolve(router.replace("/dashboard")).catch(retry);
+    } catch {
+      retry();
+    }
+  };
+  // Defer until after the current commit so Root Layout / Slot are mounted.
+  setTimeout(() => attempt(5), 0);
+}
+
 export default function Login() {
+  const rootNavState = useRootNavigationState();
+  const navigationReady = Boolean(rootNavState?.key);
   const [contactInput, setContactInput] = useState("");
   const [userDetails, setUserDetails] = useState({
     username: "",
@@ -121,11 +151,35 @@ export default function Login() {
   const silentProvisionWallet = async (
     sessionUser: ReturnType<typeof buildSessionUserFromServer>
   ): Promise<boolean> => {
-    // Prevent the user-hydration effect from racing a second provision.
-    const ownsInFlight = !reviewProvisionInFlight.current;
-    if (ownsInFlight) reviewProvisionInFlight.current = true;
+    if (loginProvisionLock || reviewProvisionInFlight.current) {
+      return false;
+    }
+    loginProvisionLock = true;
+    reviewProvisionInFlight.current = true;
     setLoading(true);
     try {
+      // Never mint a random wallet for the fixed App Review demo account.
+      if (isAppReviewDemoWalletUser(sessionUser)) {
+        const result = await restoreAppReviewDemoWallet(
+          sessionUser.username || APP_REVIEW_DEMO.username
+        );
+        if (!result.success) {
+          setToast(result.message, "error");
+          return false;
+        }
+        setUser({
+          ...sessionUser,
+          email: sessionUser.email || APP_REVIEW_DEMO.email,
+          username: sessionUser.username || APP_REVIEW_DEMO.username,
+          wallet_address: result.walletAddress,
+        });
+        setCurrentState("");
+        setShowLegacyWalletOptions(false);
+        setToast("Demo wallet ready", "success");
+        replaceToDashboard();
+        return true;
+      }
+
       const result = await createWalletForUser(sessionUser.username);
       if (!result.success) {
         setToast(result.message, "error");
@@ -139,10 +193,11 @@ export default function Login() {
       setCurrentState("");
       setShowLegacyWalletOptions(false);
       setToast("Wallet ready — set a PIN and back up when prompted", "success");
-      router.replace("/dashboard");
+      replaceToDashboard();
       return true;
     } finally {
-      if (ownsInFlight) reviewProvisionInFlight.current = false;
+      reviewProvisionInFlight.current = false;
+      loginProvisionLock = false;
       setLoading(false);
     }
   };
@@ -150,37 +205,49 @@ export default function Login() {
   const provisionReviewWallet = async (
     sessionUser: ReturnType<typeof buildSessionUserFromServer>
   ): Promise<boolean> => {
-    if (reviewProvisionInFlight.current || reviewProvisionAttempted.current) {
+    if (
+      loginProvisionLock ||
+      reviewProvisionInFlight.current ||
+      reviewProvisionAttempted.current
+    ) {
       return false;
     }
     reviewProvisionAttempted.current = true;
     reviewProvisionInFlight.current = true;
+    loginProvisionLock = true;
     try {
-      // Email demo uses a fixed seed; phone review account creates a fresh local wallet.
-      if (isAppReviewEmail(sessionUser.email)) {
-        // Caller (verifyOtp / finishLogin) already owns global loading — don't nest.
-        const result = await restoreAppReviewDemoWallet(sessionUser.username);
+      // Fixed-seed demo (email and/or username). Phone review creates a local wallet.
+      if (isAppReviewDemoWalletUser(sessionUser)) {
+        const result = await restoreAppReviewDemoWallet(
+          sessionUser.username || APP_REVIEW_DEMO.username
+        );
         if (!result.success) {
           setToast(result.message, "error");
           return false;
         }
         setUser({
           ...sessionUser,
+          email: sessionUser.email || APP_REVIEW_DEMO.email,
+          username: sessionUser.username || APP_REVIEW_DEMO.username,
           wallet_address: result.walletAddress,
         });
         setCurrentState("");
         setShowLegacyWalletOptions(false);
         setToast("Demo wallet ready", "success");
-        router.replace("/dashboard");
+        replaceToDashboard();
         return true;
       }
 
+      // Phone review path — release locks so silentProvision can own them.
+      reviewProvisionInFlight.current = false;
+      loginProvisionLock = false;
       return await silentProvisionWallet({
         ...sessionUser,
         wallet_address: "",
       });
     } finally {
       reviewProvisionInFlight.current = false;
+      loginProvisionLock = false;
     }
   };
 
@@ -197,16 +264,28 @@ export default function Login() {
   };
 
   useEffect(() => {
-    if (!user || googleRestoreOpen) return;
-    // Demo/silent provision sets the user after the wallet is ready; don't
-    // start a competing createWalletForUser while that is in flight.
-    if (reviewProvisionInFlight.current) return;
+    if (!user || googleRestoreOpen || !navigationReady) return;
+    if (
+      loginProvisionLock ||
+      reviewProvisionInFlight.current ||
+      loginDashboardNavScheduled
+    ) {
+      return;
+    }
 
     let cancelled = false;
+    const walletAddress = user.wallet_address || "";
 
     (async () => {
-      const unlocked = await isWalletUnlockedForUser(user.wallet_address);
-      if (cancelled || reviewProvisionInFlight.current) return;
+      const unlocked = await isWalletUnlockedForUser(walletAddress);
+      if (
+        cancelled ||
+        loginProvisionLock ||
+        reviewProvisionInFlight.current ||
+        loginDashboardNavScheduled
+      ) {
+        return;
+      }
 
       if (unlocked) {
         await hydrateWalletFromSecret();
@@ -218,12 +297,12 @@ export default function Login() {
             BiometricAuth();
           }, 1000);
         } else {
-          router.replace("/dashboard");
+          replaceToDashboard();
         }
         return;
       }
 
-      clearStaleWalletPublicKey(user.wallet_address);
+      clearStaleWalletPublicKey(walletAddress);
 
       setUserDetails((prev) => ({
         ...prev,
@@ -248,8 +327,8 @@ export default function Login() {
           username: user.username,
           mobileNumber: user.mobileNumber,
           phoneE164: user.phoneE164,
-          email: user.email,
-          wallet_address: user.wallet_address || "",
+          email: user.email || (isAppReviewDemoWalletUser(user) ? APP_REVIEW_DEMO.email : ""),
+          wallet_address: walletAddress,
           pin: user.pin || "",
         });
         return;
@@ -260,7 +339,7 @@ export default function Login() {
         mobileNumber: user.mobileNumber,
         phoneE164: user.phoneE164,
         email: user.email,
-        wallet_address: user.wallet_address || "",
+        wallet_address: walletAddress,
         pin: user.pin || "",
       });
     })();
@@ -268,7 +347,15 @@ export default function Login() {
     return () => {
       cancelled = true;
     };
-  }, [user, openWithAuth, pin.length, googleRestoreOpen]);
+  }, [
+    user?.username,
+    user?.wallet_address,
+    user?.email,
+    openWithAuth,
+    pin.length,
+    googleRestoreOpen,
+    navigationReady,
+  ]);
 
   const offerGoogleRestoreIfAvailable = async (
     session: GoogleAuthSession,
@@ -306,8 +393,11 @@ export default function Login() {
     const clearGlobalLoading = options?.clearGlobalLoading !== false;
     const sessionUser = buildSessionUserFromServer(data, googleEmail);
     const walletAddress = data.wallet_address || sessionUser.wallet_address;
-    // Allow a fresh review-wallet provision on each completed OTP / Google login.
-    reviewProvisionAttempted.current = false;
+    // Allow a fresh review-wallet provision on each completed OTP / Google login,
+    // unless a provision/nav is already in flight from a remounted effect.
+    if (!loginProvisionLock && !loginDashboardNavScheduled) {
+      reviewProvisionAttempted.current = false;
+    }
 
     const unlocked = await isWalletUnlockedForUser(walletAddress);
     if (unlocked) {
@@ -321,7 +411,7 @@ export default function Login() {
       setFingerPrintSigning(false);
       setPendingServerLogin(null);
       setToast("Welcome back!", "success");
-      router.replace("/dashboard");
+      replaceToDashboard();
       if (clearGlobalLoading) setLoading(false);
       return;
     }
@@ -402,7 +492,7 @@ export default function Login() {
       }
       setShowLegacyWalletOptions(false);
       setToast("Wallet created", "success");
-      router.replace("/dashboard");
+      replaceToDashboard();
     } finally {
       setLoading(false);
     }
@@ -414,6 +504,11 @@ export default function Login() {
       setToast(parsed.message, "error");
       return;
     }
+
+    // Fresh attempt — clear remount locks from a prior failed navigation.
+    loginProvisionLock = false;
+    loginDashboardNavScheduled = false;
+    reviewProvisionAttempted.current = false;
 
     setLoading(true);
     try {
@@ -626,7 +721,7 @@ export default function Login() {
       }
       await hydrateWalletFromSecret();
       setToast("Pin Verified", "success");
-      router.replace("/dashboard");
+      replaceToDashboard();
     } else {
       setToast("Invalid Pin", "error");
       otpRef.current?.clear();
@@ -656,6 +751,9 @@ export default function Login() {
       setToast("Invalid Otp", "error");
       return;
     }
+    loginProvisionLock = false;
+    loginDashboardNavScheduled = false;
+    reviewProvisionAttempted.current = false;
     setLoading(true);
     const response = await verifyCode(otpValue, userDetails.username);
     if (response.status !== false) {
