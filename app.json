@@ -16,6 +16,7 @@
         "UIApplicationSupportsIndirectInputEvents": true,
         "NSMicrophoneUsageDescription": "This app uses the microphone for AI voice interactions.",
         "NSCameraUsageDescription": "This app uses the camera for QR code scanning.",
+        "NSLocationWhenInUseUsageDescription": "Orova uses your location to discover nearby restaurants and deliver food accurately via Chowdeck.",
         "UIBackgroundModes": [
           "audio"
         ],
@@ -49,6 +50,8 @@
         "android.permission.READ_CONTACTS",
         "android.permission.WRITE_CONTACTS",
         "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.INTERNET",
         "android.permission.MODIFY_AUDIO_SETTINGS",

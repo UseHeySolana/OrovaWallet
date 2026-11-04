@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAi } from "@/context/AiContext";
 import type { ChowdeckAddressPickRow } from "@/utils/store/conversation.store";
 import { CText } from "@/components/TextComp";
 import {
   getChowdeckPlaceDetails,
 } from "@/services/chowdeckApi";
+import { getLiveDeliveryLocation } from "@/services/locationService";
 import ToolsItem from "@/utils/store/toolsitems.store";
-import ChowdeckCart from "@/utils/store/chowdeck.cart.store";
+import ChowdeckCart, { type ChowdeckCartLocation } from "@/utils/store/chowdeck.cart.store";
 import AppSettings from "@/utils/store/settingsstore.store";
 
 const CHOWDECK_APP_NAME = "chowdeck";
@@ -66,9 +68,51 @@ export default function ChowdeckAddressPicker({ query, options }: Props) {
   const { setToast } = AppSettings();
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedLabel, setSavedLabel] = useState<string | null>(null);
+  const [detectingLiveLocation, setDetectingLiveLocation] = useState(false);
+
+  const savedAddresses = ChowdeckCart((s) => s.savedAddresses);
+
+  const onUseLiveLocation = async () => {
+    if (detectingLiveLocation || savingId || savedLabel) return;
+    setDetectingLiveLocation(true);
+    try {
+      const res = await getLiveDeliveryLocation();
+      if (!res.success) {
+        setToast(res.message, "error");
+        return;
+      }
+      const formatted = res.place.formatted_address || "Current Location";
+      persistResolvedPlace({
+        place_id: res.place.place_id,
+        formatted_address: formatted,
+        latitude: res.coords.latitude,
+        longitude: res.coords.longitude,
+      });
+      setSavedLabel(formatted);
+      setToast("Delivery address set to live GPS location", "success");
+      sendChatMessage(
+        `I set my Chowdeck delivery address to my live location: ${formatted}. Continue with my food request.`
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to obtain live location";
+      setToast(msg, "error");
+    } finally {
+      setDetectingLiveLocation(false);
+    }
+  };
+
+  const onSelectSaved = async (saved: ChowdeckCartLocation) => {
+    if (savingId || savedLabel || detectingLiveLocation) return;
+    persistResolvedPlace(saved);
+    setSavedLabel(saved.formatted_address);
+    setToast("Saved address selected", "success");
+    sendChatMessage(
+      `I selected my Chowdeck delivery address: ${saved.formatted_address}. Continue with my food request.`
+    );
+  };
 
   const onPick = async (row: ChowdeckAddressPickRow) => {
-    if (savingId || savedLabel) return;
+    if (savingId || savedLabel || detectingLiveLocation) return;
     setSavingId(row.place_id);
     try {
       const details = await getChowdeckPlaceDetails(row.place_id);
@@ -107,7 +151,7 @@ export default function ChowdeckAddressPicker({ query, options }: Props) {
           style={{ fontFamily: "bold" }}
           className="text-[15px] text-green-700 dark:text-green-400"
         >
-          Saved address
+          Delivery address confirmed
         </CText>
         <CText className="text-[13px] mt-1 text-dark dark:text-white">
           {savedLabel}
@@ -123,47 +167,102 @@ export default function ChowdeckAddressPicker({ query, options }: Props) {
           style={{ fontFamily: "bold" }}
           className="text-[15px] text-dark dark:text-white"
         >
-          Choose delivery address
+          Choose delivery location
         </CText>
         <CText className="text-[12px] text-gray-600 dark:text-gray-400 mt-0.5">
-          Tap one for “{query}” · {options.length} match
-          {options.length === 1 ? "" : "es"}
+          Select live GPS, saved address, or a search result below
         </CText>
       </View>
-      <View className="w-full">
-        {options.map((row) => {
-          const busy = savingId === row.place_id;
-          return (
-            <Pressable
-              key={row.place_id}
-              onPress={() => onPick(row)}
-              disabled={!!savingId}
-              className="px-3 py-3 border-b border-[#971BB2]/10 dark:border-white/10 active:opacity-70"
-            >
-              <View className="flex-row items-center justify-between gap-x-2">
-                <View className="flex-1 min-w-0">
-                  <CText
-                    style={{ fontFamily: "bold" }}
-                    className="text-[0.95rem] text-dark dark:text-white"
-                    numberOfLines={1}
-                  >
-                    {row.label}
-                  </CText>
-                  {!!row.description && (
+
+      {/* Live GPS button */}
+      <Pressable
+        onPress={onUseLiveLocation}
+        disabled={detectingLiveLocation || !!savingId}
+        className="px-3 py-2.5 bg-[#971BB2]/10 dark:bg-[#971BB2]/20 border-b border-[#971BB2]/15 dark:border-white/10 flex-row items-center justify-between active:opacity-75"
+      >
+        <View className="flex-row items-center gap-x-2 flex-1 mr-2">
+          <Ionicons name="navigate-circle" size={20} color="#971BB2" />
+          <View className="flex-1">
+            <CText style={{ fontFamily: "bold" }} className="text-[14px] text-[#971BB2]">
+              Use my live location
+            </CText>
+            <CText className="text-[11px] text-gray-600 dark:text-gray-400">
+              Detect GPS position automatically
+            </CText>
+          </View>
+        </View>
+        {detectingLiveLocation ? (
+          <ActivityIndicator size="small" color="#971BB2" />
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color="#971BB2" />
+        )}
+      </Pressable>
+
+      {/* Quick saved addresses */}
+      {savedAddresses.length > 0 && (
+        <View className="px-3 py-2 border-b border-[#971BB2]/15 dark:border-white/10">
+          <CText className="text-[11px] text-gray-500 dark:text-gray-400 mb-1.5 uppercase">
+            Recent / Saved
+          </CText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {savedAddresses.map((addr) => (
+              <Pressable
+                key={addr.place_id}
+                onPress={() => onSelectSaved(addr)}
+                className="bg-white/80 dark:bg-accent2 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 flex-row items-center gap-x-1"
+              >
+                <Ionicons name="location-sharp" size={12} color="#971BB2" />
+                <CText numberOfLines={1} className="text-[12px] max-w-[160px] text-dark dark:text-white">
+                  {addr.formatted_address}
+                </CText>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Autocomplete matches */}
+      {options.length > 0 && (
+        <View className="w-full">
+          <View className="px-3 pt-2 pb-1">
+            <CText className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">
+              Matches for “{query}”
+            </CText>
+          </View>
+          {options.map((row) => {
+            const busy = savingId === row.place_id;
+            return (
+              <Pressable
+                key={row.place_id}
+                onPress={() => onPick(row)}
+                disabled={!!savingId || detectingLiveLocation}
+                className="px-3 py-2.5 border-b border-[#971BB2]/10 dark:border-white/10 active:opacity-70"
+              >
+                <View className="flex-row items-center justify-between gap-x-2">
+                  <View className="flex-1 min-w-0">
                     <CText
-                      className="text-[0.8rem] text-black/60 dark:text-grey/70 mt-0.5"
-                      numberOfLines={2}
+                      style={{ fontFamily: "bold" }}
+                      className="text-[0.92rem] text-dark dark:text-white"
+                      numberOfLines={1}
                     >
-                      {row.description}
+                      {row.label}
                     </CText>
-                  )}
+                    {!!row.description && (
+                      <CText
+                        className="text-[0.78rem] text-black/60 dark:text-grey/70 mt-0.5"
+                        numberOfLines={2}
+                      >
+                        {row.description}
+                      </CText>
+                    )}
+                  </View>
+                  {busy ? <ActivityIndicator size="small" /> : null}
                 </View>
-                {busy ? <ActivityIndicator size="small" /> : null}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }

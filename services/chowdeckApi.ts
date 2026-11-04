@@ -213,6 +213,22 @@ export async function getChowdeckPlaceDetails(placeId: string): Promise<Chowdeck
   return (data as { data: ChowdeckPlaceDetails }).data;
 }
 
+export async function reverseGeocodeChowdeckPlace(
+  latitude: number,
+  longitude: number,
+  addressHint?: string
+): Promise<ChowdeckPlaceDetails> {
+  const qs = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+  });
+  if (addressHint) {
+    qs.append("address_hint", addressHint);
+  }
+  const data = await getJson(`/chowdeck/place/reverse?${qs.toString()}`);
+  return (data as { data: ChowdeckPlaceDetails }).data;
+}
+
 export async function searchChowdeckFood(
   addressId: string,
   query: string

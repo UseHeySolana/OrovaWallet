@@ -26,7 +26,7 @@ function getNotificationContent(
   notification: Notifications.Notification | undefined
 ): Notifications.NotificationContent | null {
   if (!notification) return null;
-  return notification.request?.content ?? null;
+  return notification.request?.content ?? (notification as any)?.content ?? null;
 }
 
 function parseNotificationData(
@@ -49,8 +49,43 @@ function parseNotificationData(
   return undefined;
 }
 
+function isChowdeckTarget(data: Record<string, unknown>): boolean {
+  const type = String(data.type || "").toLowerCase();
+  const action = String(data.action || "").toLowerCase();
+  const app = String(data.app || "").toLowerCase();
+  const target = String(data.target || "").toLowerCase();
+  const screen = String(data.screen || "").toLowerCase();
+  const link = String(data.link || data.url || "").toLowerCase();
+
+  return (
+    type === "chowdeck" ||
+    type === "chowdeck_details" ||
+    type === "chowdeck_setup" ||
+    type === "chowdeck_address" ||
+    action === "chowdeck" ||
+    action === "chowdeck_details" ||
+    action === "chowdeck_setup" ||
+    app === "chowdeck" ||
+    target === "chowdeck" ||
+    screen === "chowdeck" ||
+    link.includes("chowdeck")
+  );
+}
+
 function routeFromNotificationData(data: Record<string, unknown> | undefined) {
   if (!data) return;
+
+  if (isChowdeckTarget(data)) {
+    const campaignKey = data.campaign_key;
+    if (typeof campaignKey === "string" && campaignKey.trim()) {
+      void reportPushCampaignEvent(campaignKey, "opened");
+    }
+    router.push({
+      pathname: "/settings/apps/appitem",
+      params: { app: "chowdeck" },
+    });
+    return;
+  }
 
   const action = data.action;
   if (action === "start_ai") {
@@ -120,6 +155,7 @@ type Props = {
 export const PushNotificationManager: React.FC<Props> = ({ children }) => {
   const lastIdentityRef = useRef<string | null>(null);
   const registeringRef = useRef(false);
+  const handledResponseIdsRef = useRef<Set<string>>(new Set());
 
   const syncTokenForUser = async (
     user: UserType | null | undefined,
@@ -149,12 +185,45 @@ export const PushNotificationManager: React.FC<Props> = ({ children }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
+    const handleNotificationResponse = (
+      response: Notifications.NotificationResponse | null | undefined
+    ) => {
+      if (!response) return;
+      try {
+        const notifId =
+          response.notification?.request?.identifier ||
+          (response.notification as any)?.id;
+        if (notifId && handledResponseIdsRef.current.has(notifId)) {
+          return;
+        }
+        if (notifId) {
+          handledResponseIdsRef.current.add(notifId);
+        }
+        const content = getNotificationContent(response.notification);
+        routeFromNotificationData(parseNotificationData(content?.data));
+      } catch (err) {
+        console.warn("[push] notification response handler:", err);
+      }
+    };
+
     void (async () => {
       await Promise.all([
         waitForPersistStore(UserItem as unknown as StoreWithPersist),
         waitForPersistStore(AppSettings as unknown as StoreWithPersist),
       ]);
       bootstrapPushRegistration();
+
+      // Check cold-start notification response (when app is launched by tapping a push notification)
+      try {
+        const lastResponse = await Notifications.getLastNotificationResponseAsync();
+        if (lastResponse && isMounted) {
+          handleNotificationResponse(lastResponse);
+        }
+      } catch (err) {
+        console.warn("[push] getLastNotificationResponseAsync error:", err);
+      }
     })();
 
     const appStateSub = AppState.addEventListener("change", (next) => {
@@ -185,9 +254,10 @@ export const PushNotificationManager: React.FC<Props> = ({ children }) => {
       if (user) void syncTokenForUser(user, { force: true });
     });
 
-    const receivedSub = Notifications.addNotificationReceivedListener((event) => {
+    const receivedSub = Notifications.addNotificationReceivedListener((event: any) => {
       try {
-        const content = getNotificationContent(event.notification);
+        const notif = event?.notification ?? event;
+        const content = getNotificationContent(notif);
         if (!content) return;
 
         const data = parseNotificationData(content.data);
@@ -210,12 +280,7 @@ export const PushNotificationManager: React.FC<Props> = ({ children }) => {
 
     const responseSub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        try {
-          const content = getNotificationContent(response.notification);
-          routeFromNotificationData(parseNotificationData(content?.data));
-        } catch (err) {
-          console.warn("[push] notification response handler:", err);
-        }
+        handleNotificationResponse(response);
       }
     );
 
@@ -231,6 +296,7 @@ export const PushNotificationManager: React.FC<Props> = ({ children }) => {
     });
 
     return () => {
+      isMounted = false;
       appStateSub.remove();
       unsubUser();
       unsubSettings();

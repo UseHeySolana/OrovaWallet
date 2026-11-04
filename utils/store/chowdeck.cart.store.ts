@@ -5,6 +5,7 @@ export interface ChowdeckCartLocation {
   formatted_address: string;
   latitude?: number | null;
   longitude?: number | null;
+  label?: string;
 }
 
 export interface ChowdeckCartVendor {
@@ -44,9 +45,16 @@ function linesMatch(a: ChowdeckCartLine, b: Pick<ChowdeckCartLine, "menuId" | "m
 
 interface ChowdeckCartStore {
   location: ChowdeckCartLocation | null;
+  savedAddresses: ChowdeckCartLocation[];
   vendor: ChowdeckCartVendor | null;
   lines: ChowdeckCartLine[];
   setLocation: (location: ChowdeckCartLocation | null) => void;
+  saveAddress: (location: ChowdeckCartLocation) => void;
+  removeSavedAddress: (placeId: string) => void;
+  validateLocationChange: (newLocation: ChowdeckCartLocation) => {
+    canKeepCart: boolean;
+    warning?: string;
+  };
   setVendor: (vendor: ChowdeckCartVendor | null) => void;
   addLine: (line: ChowdeckCartLine) => { ok: boolean; message?: string };
   /** Set qty on matching line(s). productName matches case-insensitively (partial OK). */
@@ -69,10 +77,46 @@ interface ChowdeckCartStore {
 
 const ChowdeckCart = create<ChowdeckCartStore>((set, get) => ({
   location: null,
+  savedAddresses: [],
   vendor: null,
   lines: [],
 
-  setLocation: (location) => set({ location }),
+  setLocation: (location) => {
+    set({ location });
+    if (location && location.place_id) {
+      get().saveAddress(location);
+    }
+  },
+
+  saveAddress: (newAddr) => {
+    if (!newAddr || !newAddr.place_id) return;
+    set((state) => {
+      const filtered = state.savedAddresses.filter(
+        (a) => a.place_id !== newAddr.place_id && a.formatted_address !== newAddr.formatted_address
+      );
+      return { savedAddresses: [newAddr, ...filtered].slice(0, 5) };
+    });
+  },
+
+  removeSavedAddress: (placeId) => {
+    set((state) => ({
+      savedAddresses: state.savedAddresses.filter((a) => a.place_id !== placeId),
+    }));
+  },
+
+  validateLocationChange: (newLocation) => {
+    const { lines, vendor, location } = get();
+    if (lines.length === 0 || !vendor) {
+      return { canKeepCart: true };
+    }
+    if (location && location.place_id === newLocation.place_id) {
+      return { canKeepCart: true };
+    }
+    return {
+      canKeepCart: false,
+      warning: `You have items from ${vendor.name} in your cart. Switching locations to "${newLocation.formatted_address}" may require clearing your cart if this restaurant does not deliver to the new area.`,
+    };
+  },
 
   setVendor: (vendor) => {
     const current = get().vendor;

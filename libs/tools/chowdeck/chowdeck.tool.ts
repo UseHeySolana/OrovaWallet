@@ -19,6 +19,7 @@ import {
   markChowdeckOrderPaid,
   type ChowdeckOrderModifier,
 } from "@/services/chowdeckApi";
+import { getLiveDeliveryLocation } from "@/services/locationService";
 import { getPublicSettings } from "@/services/settingsApi";
 import { requestPurchaseConfirmation } from "@/services/purchaseConfirmation";
 import { transferToken, getTokenBalance } from "@/libs/tools/transfer/transfers";
@@ -189,14 +190,19 @@ export class ChowdeckTool {
     return {
       name: "set-chowdeck-location",
       description:
-        "Set or change the user's saved Chowdeck delivery address. Call only when no address is saved yet, or the user wants to change it. Pass the address text they typed; prefer street + area (not just a neighborhood name). The app shows tappable autocomplete suggestions — do not list options aloud or ask for place_id/coordinates.",
+        "Set or change the user's saved Chowdeck delivery address. Call when no address is saved yet, or the user wants to change it. Supports typing a street/area, or setting use_current_location=true if they say 'my location', 'current location', or 'where I am'. The app displays a live GPS button and tappable suggestions.",
       parameters: {
         type: "object",
         properties: {
+          use_current_location: {
+            type: "boolean",
+            description:
+              "Set to true when user asks to use their current location, live GPS position, or where they are right now.",
+          },
           address: {
             type: "string",
             description:
-              "The address text the user typed (e.g. 'Mpape', 'Wuse 2 Abuja'). Required.",
+              "The address text the user typed or spoke (e.g. 'Mpape', 'Wuse 2 Abuja'). Optional if use_current_location is true.",
           },
           place_id: {
             type: "string",
@@ -204,23 +210,107 @@ export class ChowdeckTool {
               "Optional. When the user taps a suggestion in the app, the place_id of that suggestion.",
           },
         },
-        required: ["address"],
+        required: [],
       },
-      handler: async (args: { address?: string; place_id?: string }) => {
+      handler: async (args: { address?: string; place_id?: string; use_current_location?: boolean }) => {
         if (!isChowdeckActivated()) {
           return "Chowdeck is not activated. Ask the user to activate Chowdeck in Settings → Apps, or type their delivery address here.";
         }
         const messageId = this.session.functionMessageId;
         const address = args.address?.trim();
         const tappedPlaceId = args.place_id?.trim();
+        const isCurrentLocation =
+          Boolean(args.use_current_location) ||
+          (address ? /^(current\s*location|my\s*location|where\s*i\s*am|live\s*location|here|my\s*gps)$/i.test(address) : false);
+
+        // 1. Live GPS request
+        if (isCurrentLocation) {
+          try {
+            const geo = await getLiveDeliveryLocation();
+            if (!geo.success) {
+              if (messageId) completeConversation(messageId, "failed");
+              return {
+                status: "error",
+                message: `${geo.message} Please type your delivery address or area manually.`,
+                assistant_instruction: "Briefly explain GPS detection was unavailable and ask them to type their street or area.",
+              };
+            }
+
+            const formatted = geo.place.formatted_address || "Current Location";
+            const locationChange = ChowdeckCart.getState().validateLocationChange({
+              place_id: geo.place.place_id,
+              formatted_address: formatted,
+              latitude: geo.coords.latitude,
+              longitude: geo.coords.longitude,
+            });
+
+            persistLocationParams({
+              place_id: geo.place.place_id,
+              formatted_address: formatted,
+              latitude: geo.coords.latitude,
+              longitude: geo.coords.longitude,
+            });
+
+            if (messageId) {
+              Convo.getState().updateMessage({
+                messageId,
+                content: {
+                  content: `Live delivery location detected: ${formatted}.${
+                    !locationChange.canKeepCart && locationChange.warning
+                      ? ` Note: ${locationChange.warning}`
+                      : ""
+                  }`,
+                  chowdeckAddressPicker: undefined,
+                },
+                source: "chowdeck",
+              });
+              completeConversation(messageId, "complete");
+            }
+
+            return {
+              status: "success",
+              delivery_address: formatted,
+              message: `Delivery location set to live GPS address: ${formatted}.${
+                !locationChange.canKeepCart && locationChange.warning ? ` Warning: ${locationChange.warning}` : ""
+              } You can now search for food.`,
+              assistant_instruction:
+                "Confirm the live address briefly, mention any cart conflict if warned, then continue with their food request.",
+            };
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : "Failed to obtain live location";
+            if (messageId) completeConversation(messageId, "failed");
+            return {
+              status: "error",
+              message: `${msg}. Please type your street or area.`,
+            };
+          }
+        }
+
         if (!address && !tappedPlaceId) {
+          // Present address picker with live GPS option to the user
+          if (messageId) {
+            Convo.getState().updateMessage({
+              messageId,
+              content: {
+                content: "Choose your Chowdeck delivery location.",
+                chowdeckAddressPicker: {
+                  query: "your area",
+                  options: [],
+                },
+              },
+              source: "chowdeck",
+            });
+            completeConversation(messageId, "complete");
+          }
           return {
             status: "needs_address",
-            message: "Ask the user to type their delivery address or area (for example: Mpape).",
+            message: "The app is showing location options. Ask the user to tap 'Use my live location' or type their street/area.",
             assistant_instruction:
-              "Ask them to type the address. Do not ask for place IDs or coordinates.",
+              "Tell them to tap 'Use my live location' on the card, or type their street/area.",
+            displayed_in_address_picker: true,
           };
         }
+
         try {
           // User tapped a suggestion (or confirmed a known place_id) — resolve and save.
           if (tappedPlaceId) {
@@ -237,6 +327,14 @@ export class ChowdeckTool {
                 message: "Could not resolve that place. Ask them to try another address.",
               };
             }
+
+            const locationChange = ChowdeckCart.getState().validateLocationChange({
+              place_id: details.place_id,
+              formatted_address: formatted,
+              latitude: details.latitude,
+              longitude: details.longitude,
+            });
+
             persistLocationParams({
               place_id: details.place_id,
               formatted_address: formatted,
@@ -247,7 +345,9 @@ export class ChowdeckTool {
               Convo.getState().updateMessage({
                 messageId,
                 content: {
-                  content: `Delivery address saved: ${formatted}.`,
+                  content: `Delivery address saved: ${formatted}.${
+                    !locationChange.canKeepCart && locationChange.warning ? ` Note: ${locationChange.warning}` : ""
+                  }`,
                   chowdeckAddressPicker: undefined,
                 },
                 source: "chowdeck",
@@ -257,9 +357,11 @@ export class ChowdeckTool {
             return {
               status: "success",
               delivery_address: formatted,
-              message: `Delivery location set to ${formatted}. You can now search for food.`,
+              message: `Delivery location set to ${formatted}.${
+                !locationChange.canKeepCart && locationChange.warning ? ` Warning: ${locationChange.warning}` : ""
+              } You can now search for food.`,
               assistant_instruction:
-                "Confirm the address briefly, then continue with their food request if they had one. Do not mention place_id or coordinates.",
+                "Confirm the address briefly, mention any cart conflict if warned, then continue with their food request if they had one. Do not mention place_id or coordinates.",
             };
           }
 

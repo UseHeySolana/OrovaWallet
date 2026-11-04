@@ -5,6 +5,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import ToolsItem from "@/utils/store/toolsitems.store";
 import CText from "../TextComp";
 import {
@@ -12,6 +13,7 @@ import {
   getChowdeckPlaceDetails,
   type ChowdeckPlacePrediction,
 } from "@/services/chowdeckApi";
+import { getLiveDeliveryLocation } from "@/services/locationService";
 import AppSettings from "@/utils/store/settingsstore.store";
 import ChowdeckCart from "@/utils/store/chowdeck.cart.store";
 
@@ -67,8 +69,36 @@ const ChowdeckAddressParam = ({ appData, item, param }: ChowdeckAddressParamProp
   const [predictions, setPredictions] = useState<ChowdeckPlacePrediction[]>([]);
   const [searching, setSearching] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [detectingLive, setDetectingLive] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
+
+  const handleUseLiveLocation = async () => {
+    if (detectingLive || resolving) return;
+    setDetectingLive(true);
+    try {
+      const res = await getLiveDeliveryLocation();
+      if (!res.success) {
+        setToast(res.message, "error");
+        return;
+      }
+      const formatted = res.place.formatted_address || "Current Location";
+      persistResolvedPlace(appName, configType, {
+        place_id: res.place.place_id,
+        formatted_address: formatted,
+        latitude: res.coords.latitude,
+        longitude: res.coords.longitude,
+      });
+      setSelectedLabel(formatted);
+      setQuery(formatted);
+      setToast("Delivery address set to live GPS position", "success");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to obtain live location";
+      setToast(msg, "error");
+    } finally {
+      setDetectingLive(false);
+    }
+  };
 
   useEffect(() => {
     const saved =
@@ -172,6 +202,23 @@ const ChowdeckAddressParam = ({ appData, item, param }: ChowdeckAddressParamProp
       <CText className="text-[0.85rem] mb-2 text-black/70 dark:text-grey/70" style={{ fontFamily: "reg" }}>
         {helper} Tap a suggestion to save it.
       </CText>
+      <Pressable
+        onPress={handleUseLiveLocation}
+        disabled={detectingLive || resolving}
+        className="mb-2.5 py-2.5 px-3 bg-[#971BB2]/10 dark:bg-[#971BB2]/20 rounded-xl border border-[#971BB2]/25 flex-row items-center justify-between active:opacity-75"
+      >
+        <View className="flex-row items-center gap-x-2">
+          <Ionicons name="navigate-circle" size={18} color="#971BB2" />
+          <CText style={{ fontFamily: "bold" }} className="text-[13px] text-[#971BB2]">
+            Use current GPS location
+          </CText>
+        </View>
+        {detectingLive ? (
+          <ActivityIndicator size="small" color="#971BB2" />
+        ) : (
+          <Ionicons name="chevron-forward" size={14} color="#971BB2" />
+        )}
+      </Pressable>
       <View className="w-full relative">
         <TextInput
           className="w-full h-[44px] text-black dark:text-grey rounded-xl border border-grey dark:border-accent2 p-2 pr-10"
