@@ -19,10 +19,14 @@ import {
   consumePendingGoogleAuth,
   peekPendingGoogleAuth,
 } from "@/services/google/googleAuth";
+import {
+  consumePendingAppleAuth,
+  peekPendingAppleAuth,
+} from "@/services/apple/appleAuth";
 import { createWalletForUser } from "@/utils/wallet/createWalletForUser";
 
 type RegisterParams = {
-  contactMethod?: "phone" | "email" | "google";
+  contactMethod?: "phone" | "email" | "google" | "apple";
   email?: string;
   mobileNumber?: string;
   callingCode?: string;
@@ -37,7 +41,9 @@ export default function Username() {
       ? "email"
       : params.contactMethod === "google"
         ? "google"
-        : "phone";
+        : params.contactMethod === "apple"
+          ? "apple"
+          : "phone";
   const email = typeof params.email === "string" ? params.email : "";
   const mobileNumber =
     typeof params.mobileNumber === "string" ? params.mobileNumber : "";
@@ -57,12 +63,16 @@ export default function Username() {
   const hasContact =
     contactMethod === "google"
       ? email.length > 0 && Boolean(peekPendingGoogleAuth()?.idToken)
-      : contactMethod === "email"
-        ? email.length > 0
-        : mobileNumber.length > 0;
+      : contactMethod === "apple"
+        ? Boolean(peekPendingAppleAuth()?.identityToken)
+        : contactMethod === "email"
+          ? email.length > 0
+          : mobileNumber.length > 0;
 
   const canSignUp = usernameStatus === "available";
   const isGoogleSignup = contactMethod === "google";
+  const isAppleSignup = contactMethod === "apple";
+  const isSocialSignup = isGoogleSignup || isAppleSignup;
 
   useEffect(() => {
     if (user?.wallet_address?.trim()) {
@@ -127,6 +137,18 @@ export default function Username() {
         return;
       }
 
+      const appleSession = isAppleSignup ? consumePendingAppleAuth() : null;
+      if (isAppleSignup && !appleSession?.identityToken) {
+        setToast("Apple sign-in expired. Please try again.", "error");
+        router.replace("/auth/register");
+        return;
+      }
+
+      const socialEmail =
+        (isGoogleSignup ? googleSession?.email : undefined) ||
+        (isAppleSignup ? appleSession?.email || email : undefined) ||
+        email;
+
       const response = await registerUser({
         username: username.trim(),
         phone_number:
@@ -134,12 +156,14 @@ export default function Username() {
             ? `+${callingCode}${mobileNumber}`
             : undefined,
         email:
-          contactMethod === "email" || contactMethod === "google"
-            ? email
+          contactMethod === "email" || isSocialSignup
+            ? socialEmail || undefined
             : undefined,
         country: contactMethod === "phone" ? country : undefined,
         google_id_token: googleSession?.idToken,
         google_id: googleSession?.id,
+        apple_id_token: appleSession?.identityToken,
+        apple_id: appleSession?.id,
       });
 
       if (response.status !== false) {
@@ -149,12 +173,12 @@ export default function Username() {
           setRegisteredUserId(serverUserId);
         }
 
-        if (isGoogleSignup) {
+        if (isSocialSignup) {
           await finishSignupWithWallet({
             id: serverUserId,
             username: username.trim(),
             mobileNumber: "",
-            email,
+            email: socialEmail || response.data?.email || "",
           });
           return;
         }
@@ -202,7 +226,7 @@ export default function Username() {
           showLogo
           title="Pick a username"
           subtitle={
-            isGoogleSignup
+            isSocialSignup
               ? "Choose a unique username — we'll create your wallet automatically."
               : "Your username will be unique and can be used to make transactions."
           }
@@ -219,6 +243,21 @@ export default function Username() {
           </View>
         ) : null}
 
+        {isAppleSignup ? (
+          <View className={`${authUi.headerContentWidth} self-center`}>
+            <CText className={`${authUi.caption} text-center`}>
+              {email
+                ? "Signed in with Apple as "
+                : "Signed in with Apple. Choose a username to finish setup."}
+              {email ? (
+                <CText style={{ fontFamily: "bold" }} className={authUi.caption}>
+                  {email}
+                </CText>
+              ) : null}
+            </CText>
+          </View>
+        ) : null}
+
         <UsernameField
           value={username}
           onChangeText={setUsername}
@@ -231,7 +270,7 @@ export default function Username() {
             onPress={() => {
               if (canSignUp) saveUserToDB();
             }}
-            text={isGoogleSignup ? "Create account & wallet" : "Sign up"}
+            text={isSocialSignup ? "Create account & wallet" : "Sign up"}
             loading={isLoading}
             type="primary"
           />

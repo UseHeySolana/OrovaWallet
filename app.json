@@ -16,6 +16,7 @@
         "UIApplicationSupportsIndirectInputEvents": true,
         "NSMicrophoneUsageDescription": "This app uses the microphone for AI voice interactions.",
         "NSCameraUsageDescription": "This app uses the camera for QR code scanning.",
+        "NSPhotoLibraryUsageDescription": "Orova uses your photo library so you can choose a profile picture and attach screenshots when contacting support.",
         "UIBackgroundModes": [
           "audio"
         ],
@@ -128,6 +129,13 @@
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.830472884588-ed2gq5e5rblpuncibuc3l264r4lmtpe4"
+        }
+      ],
+      "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Orova uses your photo library so you can choose a profile picture and attach screenshots when contacting support."
         }
       ]
     ],

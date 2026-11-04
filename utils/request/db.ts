@@ -175,6 +175,8 @@ const registerUser = async (payload: {
   country?: string;
   google_id_token?: string;
   google_id?: string;
+  apple_id_token?: string;
+  apple_id?: string;
 }) => {
   const item: Record<string, string> = {
     username: payload.username,
@@ -184,6 +186,8 @@ const registerUser = async (payload: {
   if (payload.country) item.country = payload.country;
   if (payload.google_id_token) item.google_id_token = payload.google_id_token;
   if (payload.google_id) item.google_id = payload.google_id;
+  if (payload.apple_id_token) item.apple_id_token = payload.apple_id_token;
+  if (payload.apple_id) item.apple_id = payload.apple_id;
 
   const response = await request.postJson(item, "/v2/register-users");
   if (!response.ok) {
@@ -598,6 +602,48 @@ const loginWithGoogleBackup = async (payload: {
   }
 };
 
+const loginWithApple = async (payload: {
+  apple_id_token: string;
+  apple_id?: string;
+  email?: string;
+}) => {
+  const item: Record<string, string> = {
+    apple_id_token: payload.apple_id_token,
+  };
+  if (payload.apple_id) item.apple_id = payload.apple_id;
+  if (payload.email) item.email = payload.email;
+
+  const url = "/v2/apple-login";
+  try {
+    const response = await request.postJson(item, url);
+    if (!response.ok) {
+      let message = response.statusText || "Apple sign-in failed";
+      try {
+        const result = await response.json();
+        if (result?.message) message = result.message;
+      } catch {
+        // non-JSON response
+      }
+      console.warn("[loginWithApple] failed", BASE_URL + url, response.status, message);
+      return {
+        status: false,
+        message,
+        notFound: response.status === 404,
+      };
+    }
+    return { status: true, data: await response.json() };
+  } catch (err) {
+    const message =
+      err instanceof TypeError && err.message?.includes("fetch")
+        ? "Cannot reach server. Check EXPO_PUBLIC_API_URL and that the backend is running."
+        : err instanceof Error
+          ? err.message
+          : "Request failed";
+    console.warn("[loginWithApple] error", BASE_URL + url, err);
+    return { status: false, message };
+  }
+};
+
 export {
   addContact,
   addEmail,
@@ -608,6 +654,7 @@ export {
   getCode,
   loginWithGoogle,
   loginWithGoogleBackup,
+  loginWithApple,
   saveWalletAddress,
   requestAccountDeletion,
   getTransactionHistory,

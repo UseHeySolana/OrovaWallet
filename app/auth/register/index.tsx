@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import Buttons from "@/components/ButtonComp";
 import { router } from "expo-router";
@@ -11,6 +11,7 @@ import AuthFlowScreen from "@/components/auth/AuthFlowScreen";
 import AuthFlowFooter from "@/components/auth/AuthFlowFooter";
 import AuthFlowHeader from "@/components/auth/AuthFlowHeader";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import AppleSignInButton from "@/components/auth/AppleSignInButton";
 import {
   CountrySelection,
   parseSmartContact,
@@ -20,6 +21,11 @@ import {
   signInWithGoogleForAuth,
 } from "@/services/google/googleAuth";
 import { isGoogleSignInConfigured } from "@/utils/google/googleConfig";
+import {
+  getAppleSignInErrorMessage,
+  isAppleSignInAvailable,
+  signInWithAppleForAuth,
+} from "@/services/apple/appleAuth";
 
 export default function RegisterContact() {
   const { setToast } = AppSettings();
@@ -28,8 +34,20 @@ export default function RegisterContact() {
   const [selectedValue, setSelectedValue] =
     useState<CountrySelection>(DEFAULT_COUNTRY);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleEnabled, setAppleEnabled] = useState(false);
 
   const googleEnabled = isGoogleSignInConfigured();
+
+  useEffect(() => {
+    let cancelled = false;
+    isAppleSignInAvailable().then((available) => {
+      if (!cancelled) setAppleEnabled(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const continueToUsername = () => {
     const parsed = parseSmartContact(contactInput, selectedValue);
@@ -78,6 +96,24 @@ export default function RegisterContact() {
     }
   };
 
+  const continueWithApple = async () => {
+    setAppleLoading(true);
+    try {
+      const session = await signInWithAppleForAuth();
+      router.push({
+        pathname: "/auth/username",
+        params: {
+          contactMethod: "apple",
+          email: session.email || "",
+        },
+      });
+    } catch (error) {
+      setToast(getAppleSignInErrorMessage(error), "error");
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <AuthFlowScreen footer={<AuthFlowFooter />}>
       <AuthFlowHeader
@@ -103,12 +139,22 @@ export default function RegisterContact() {
         <LegalConsentNotice />
       </View>
 
-      {googleEnabled ? (
-        <GoogleSignInButton
-          loading={googleLoading}
-          onPress={continueWithGoogle}
-          accessibilityLabel="Sign up with Google"
-        />
+      {appleEnabled || googleEnabled ? (
+        <View className="mt-2 w-full items-center gap-3">
+          {appleEnabled ? (
+            <AppleSignInButton
+              loading={appleLoading}
+              onPress={continueWithApple}
+            />
+          ) : null}
+          {googleEnabled ? (
+            <GoogleSignInButton
+              loading={googleLoading}
+              onPress={continueWithGoogle}
+              accessibilityLabel="Sign up with Google"
+            />
+          ) : null}
+        </View>
       ) : null}
     </AuthFlowScreen>
   );

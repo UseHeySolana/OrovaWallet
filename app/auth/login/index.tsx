@@ -10,7 +10,7 @@ import AppSettings from "@/utils/store/settingsstore.store";
 import { router, useRootNavigationState } from "expo-router";
 import UserItem from "@/utils/store/userstore.store";
 import Buttons from "@/components/ButtonComp";
-import { getCode, loginWithGoogle, loginWithGoogleBackup, verifyCode } from "@/utils/request/db";
+import { getCode, loginWithApple, loginWithGoogle, loginWithGoogleBackup, verifyCode } from "@/utils/request/db";
 import {
   clearStaleWalletPublicKey,
   hydrateWalletFromSecret,
@@ -28,6 +28,7 @@ import AuthFlowHeader from "@/components/auth/AuthFlowHeader";
 import AuthFlowFooter from "@/components/auth/AuthFlowFooter";
 import AuthCard from "@/components/auth/AuthCard";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import AppleSignInButton from "@/components/auth/AppleSignInButton";
 import PinConfirmModal from "@/components/backup/PinConfirmModal";
 import { authUi } from "@/components/auth/authUi";
 import {
@@ -45,6 +46,11 @@ import {
   type GoogleAuthSession,
 } from "@/services/google/googleAuth";
 import { isGoogleSignInConfigured } from "@/utils/google/googleConfig";
+import {
+  getAppleSignInErrorMessage,
+  isAppleSignInAvailable,
+  signInWithAppleForAuth,
+} from "@/services/apple/appleAuth";
 import {
   peekGoogleDriveWalletBackup,
   restoreWalletFromGoogleDrive,
@@ -114,6 +120,8 @@ export default function Login() {
   const [fingerPrintSigning, setFingerPrintSigning] = useState(false);
   const [pinSignin, setPinSignin] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleEnabled, setAppleEnabled] = useState(false);
   const [googleRestoreOpen, setGoogleRestoreOpen] = useState(false);
   const [googleRestoreLoading, setGoogleRestoreLoading] = useState(false);
   const [googleRestoreSession, setGoogleRestoreSession] =
@@ -133,6 +141,16 @@ export default function Login() {
   const [pinValue, setPinValue] = useState("");
   const [showLegacyWalletOptions, setShowLegacyWalletOptions] = useState(false);
   const googleEnabled = isGoogleSignInConfigured();
+
+  useEffect(() => {
+    let cancelled = false;
+    isAppleSignInAvailable().then((available) => {
+      if (!cancelled) setAppleEnabled(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refreshLegacyWalletSheet = async (
     sessionUser: ReturnType<typeof buildSessionUserFromServer>
@@ -589,6 +607,51 @@ export default function Login() {
     }
   };
 
+  const loginWithAppleAccount = async () => {
+    setAppleLoading(true);
+    let ownsGlobalLoading = false;
+    try {
+      const session = await signInWithAppleForAuth();
+      setLoading(true);
+      ownsGlobalLoading = true;
+
+      const response = await loginWithApple({
+        apple_id_token: session.identityToken,
+        apple_id: session.id,
+        email: session.email || undefined,
+      });
+
+      if (response.status !== false) {
+        setToast("Signed in with Apple", "success");
+        await finishLoginFromServerUser(
+          response.data,
+          session.email || response.data?.email || ""
+        );
+        ownsGlobalLoading = false;
+        return;
+      }
+
+      if (response.notFound) {
+        setToast("No account yet — pick a username to get started", "success");
+        router.replace({
+          pathname: "/auth/username",
+          params: {
+            contactMethod: "apple",
+            email: session.email || "",
+          },
+        });
+        return;
+      }
+
+      setToast(response.message || "Apple sign-in failed", "error");
+    } catch (error) {
+      setToast(getAppleSignInErrorMessage(error), "error");
+    } finally {
+      setAppleLoading(false);
+      if (ownsGlobalLoading) setLoading(false);
+    }
+  };
+
   const startWalletSheetGoogleRestore = async () => {
     setCurrentState("");
     setGoogleLoading(true);
@@ -891,16 +954,26 @@ export default function Login() {
                 buttonType="pressable"
                 onPress={() => loginWithContact()}
                 text="Login"
-                loading={isLoading && !googleLoading}
+                loading={isLoading && !googleLoading && !appleLoading}
                 type="primary"
               />
 
-              {googleEnabled ? (
-                <GoogleSignInButton
-                  loading={googleLoading}
-                  onPress={loginWithGoogleAccount}
-                  accessibilityLabel="Sign in with Google"
-                />
+              {appleEnabled || googleEnabled ? (
+                <View className="mt-2 w-full items-center gap-3">
+                  {appleEnabled ? (
+                    <AppleSignInButton
+                      loading={appleLoading}
+                      onPress={loginWithAppleAccount}
+                    />
+                  ) : null}
+                  {googleEnabled ? (
+                    <GoogleSignInButton
+                      loading={googleLoading}
+                      onPress={loginWithGoogleAccount}
+                      accessibilityLabel="Sign in with Google"
+                    />
+                  ) : null}
+                </View>
               ) : null}
             </>
           )}
