@@ -12,18 +12,18 @@ Primary platforms: **Android** (full feature set, including picture-in-picture o
 
 ## Core capabilities
 
-| Area | What users can do |
-|------|-------------------|
-| **Wallet** | Create/import BIP39 mnemonic, view SOL + SPL balances, send tokens, QR receive, token management |
-| **Voice AI** | Real-time voice chat with the assistant (WebRTC + OpenAI Realtime); optional text chat mode |
-| **Swaps** | Jupiter-powered token swaps and price checks |
-| **Fiat ramps** | PajCash onramp/offramp (Naira ↔ SPL) |
-| **Bills** | Airtime and electricity via AirBills |
-| **Commerce** | Amazon (Crossmint), Jumia product search and orders (via Laravel backend scraper/API) |
-| **Private payments** | MagicBlock private deposit/transfer/withdraw/balance |
-| **Bank send** | Fiat/bank transfer flows in the send UI |
-| **Apps marketplace** | Curated “apps” (integrations) with metadata in `libs/app/apps.ts` |
-| **Proactive layer** | “Brain” watches conversation/tool activity and can surface notifications and suggestions |
+| Area                 | What users can do                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| **Wallet**           | Create/import BIP39 mnemonic, view SOL + SPL balances, send tokens, QR receive, token management |
+| **Voice AI**         | Real-time voice chat with the assistant (WebRTC + OpenAI Realtime); optional text chat mode      |
+| **Swaps**            | Jupiter-powered token swaps and price checks                                                     |
+| **Fiat ramps**       | PajCash onramp/offramp (Naira ↔ SPL)                                                             |
+| **Bills**            | Airtime and electricity via AirBills                                                             |
+| **Commerce**         | Amazon (Crossmint), Jumia product search and orders (via Laravel backend scraper/API)            |
+| **Private payments** | MagicBlock private deposit/transfer/withdraw/balance                                             |
+| **Bank send**        | Fiat/bank transfer flows in the send UI                                                          |
+| **Apps marketplace** | Curated “apps” (integrations) with metadata in `libs/app/apps.ts`                                |
+| **Proactive layer**  | “Brain” watches conversation/tool activity and can surface notifications and suggestions         |
 
 ---
 
@@ -97,16 +97,16 @@ Tools are plain objects with JSON-schema-style parameters (OpenAI function forma
 
 **Active tools** (representative list):
 
-| Tool domain | Examples |
-|-------------|----------|
-| Wallet | `check_wallet_balance`, token search |
-| Transfer | SPL/SOL sends |
-| Swap | `swap_tokens`, `check_price` (Jupiter) |
-| AirBills | Airtime, electricity |
-| PajCash | Onramp, offramp, verify, Naira rate |
-| MagicBlock | Private deposit/transfer/withdraw/balance |
-| Crossmint | Amazon search, product details, orders |
-| Jumia | Search, details, place order (backend-assisted) |
+| Tool domain | Examples                                                 |
+| ----------- | -------------------------------------------------------- |
+| Wallet      | `check_wallet_balance`, token search                     |
+| Transfer    | SPL/SOL sends                                            |
+| Swap        | `swap_tokens`, `check_price` (Jupiter)                   |
+| AirBills    | Airtime, electricity                                     |
+| PajCash     | Onramp, offramp, verify, Naira rate                      |
+| MagicBlock  | Private deposit/transfer/withdraw/balance                |
+| Crossmint   | Amazon search, product details, orders                   |
+| Jumia       | Search, details, place order (backend-assisted)          |
 | App control | Router/settings/end-stream helpers for in-app navigation |
 
 Purchases and sends typically flow through **confirmation sheets** (`PurchaseConfirmationSheet`, `ConfirmActionSheetGlobal`) before signing.
@@ -132,7 +132,7 @@ Brain is separate from the realtime voice loop; it adds proactive, session-spann
 
 ### 7. Backend integration
 
-The app talks to **Laravel** (`heysolanabackend`) when `EXPO_PUBLIC_API_URL` is set (e.g. `https://hey.yraytestings.com.ng/api` in production EAS updates):
+The app talks to **Laravel** (`heysolanabackend`) when `EXPO_PUBLIC_API_URL` is set (e.g. `https://api.heyorova.com/api` in production EAS updates):
 
 - User registration, wallet address save, voice auth status
 - Jumia scraping/order proxying
@@ -168,17 +168,17 @@ HeySolanaWallet/
 
 ## Tech stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | Expo ~54, React Native 0.81, React 19 |
-| Routing | expo-router |
-| Blockchain | `@solana/web3.js`, `@solana/spl-token`, Jupiter APIs |
-| AI / voice | OpenAI Realtime (WebRTC), optional Google Gemini paths in `voiceinfra/gemini` |
-| State | Zustand |
-| UI | NativeWind, Reanimated, Gorhom bottom sheet, Lottie |
-| Security | expo-secure-store, expo-local-authentication (PIN/biometric) |
-| Updates | EAS Build + EAS Update (OTA) |
-| P2P / experimental | hyperswarm, hyperdrive, bare-* (used in some advanced paths) |
+| Layer              | Technology                                                                    |
+| ------------------ | ----------------------------------------------------------------------------- |
+| Framework          | Expo ~54, React Native 0.81, React 19                                         |
+| Routing            | expo-router                                                                   |
+| Blockchain         | `@solana/web3.js`, `@solana/spl-token`, Jupiter APIs                          |
+| AI / voice         | OpenAI Realtime (WebRTC), optional Google Gemini paths in `voiceinfra/gemini` |
+| State              | Zustand                                                                       |
+| UI                 | NativeWind, Reanimated, Gorhom bottom sheet, Lottie                           |
+| Security           | expo-secure-store, expo-local-authentication (PIN/biometric)                  |
+| Updates            | EAS Build + EAS Update (OTA)                                                  |
+| P2P / experimental | hyperswarm, hyperdrive, bare-\* (used in some advanced paths)                 |
 
 ---
 
@@ -186,16 +186,16 @@ HeySolanaWallet/
 
 Copy `.env-example` to `.env` and set keys as needed. OpenAI realtime/chat is **proxied by Laravel** (`OPENAI_API_KEY` on the server) — no client OpenAI key.
 
-| Variable | Purpose |
-|----------|---------|
-| `EXPO_PUBLIC_API_URL` | Laravel backend base URL (`…/api`) |
-| `EXPO_PUBLIC_HELIUS_API` | Helius RPC/API key for balances and history |
-| `EXPO_PUBLIC_NETWORK` | Solana cluster RPC base |
-| `EXPO_PUBLIC_JUP_API_KEY` | Jupiter Swap / token search |
-| `EXPO_PUBLIC_PAJCASH_*` | Fiat ramp partner |
+| Variable                                 | Purpose                                         |
+| ---------------------------------------- | ----------------------------------------------- |
+| `EXPO_PUBLIC_API_URL`                    | Laravel backend base URL (`…/api`)              |
+| `EXPO_PUBLIC_HELIUS_API`                 | Helius RPC/API key for balances and history     |
+| `EXPO_PUBLIC_NETWORK`                    | Solana cluster RPC base                         |
+| `EXPO_PUBLIC_JUP_API_KEY`                | Jupiter Swap / token search                     |
+| `EXPO_PUBLIC_PAJCASH_*`                  | Fiat ramp partner                               |
 | `EXPO_PUBLIC_VOICE_VERIFICATION_ENABLED` | Speaker gate for AI commands (`true` / `false`) |
-| `EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM` | Enable Brain LLM suggestions |
-| `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` | Google Sign-In / Drive backup |
+| `EXPO_PUBLIC_BRAIN_SUGGESTIONS_LLM`      | Enable Brain LLM suggestions                    |
+| `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID`         | Google Sign-In / Drive backup                   |
 
 See `.env-example` for the full list (MagicBlock, Crossmint, AirBills, fees, etc.).
 
@@ -207,13 +207,13 @@ App version is tracked in **`app.json`** / **`package.json`** (keep them aligned
 
 ## Related projects in the HeySolana ecosystem
 
-| Repo | Role |
-|------|------|
+| Repo                           | Role                                                 |
+| ------------------------------ | ---------------------------------------------------- |
 | **heysolanabackend** (Laravel) | API, scraping (e.g. Jumia), user/voice/push services |
-| **Heysolana-admin-dashboard** | Admin/ops UI |
-| **hey-solana-landing** | Marketing site |
-| **HeySolana-Mobile** | Related mobile work (if split from this repo) |
-| **python-speech-brain** | Speech/voice ML services (verification, etc.) |
+| **Heysolana-admin-dashboard**  | Admin/ops UI                                         |
+| **hey-solana-landing**         | Marketing site                                       |
+| **HeySolana-Mobile**           | Related mobile work (if split from this repo)        |
+| **python-speech-brain**        | Speech/voice ML services (verification, etc.)        |
 
 ---
 
@@ -251,4 +251,4 @@ Build/release flows use **EAS** (`eas build`, `eas update`) with profiles for te
 
 ---
 
-*Document generated from codebase structure and implementation. For API contracts and backend behavior, see **heysolanabackend** routes and controllers.*
+_Document generated from codebase structure and implementation. For API contracts and backend behavior, see **heysolanabackend** routes and controllers._

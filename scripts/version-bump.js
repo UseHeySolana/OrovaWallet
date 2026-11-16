@@ -5,7 +5,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // API URL to set in .env before bundling
-const BUILD_API_URL = 'https://hey.yraytestings.com.ng/api';
+const BUILD_API_URL = 'https://api.heyorova.com/api';
 
 // Function to set EXPO_PUBLIC_API_URL in .env before bundling
 function setEnvApiUrl() {
