@@ -959,7 +959,7 @@ export default function Login() {
               />
 
               {appleEnabled || googleEnabled ? (
-                <View className="mt-2 w-full items-center gap-3">
+                <View className="mt-2 w-full flex-row items-center justify-center gap-6">
                   {appleEnabled ? (
                     <AppleSignInButton
                       loading={appleLoading}

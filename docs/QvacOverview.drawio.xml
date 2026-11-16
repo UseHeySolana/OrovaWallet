@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="QVAC System Overview" id="fhxfJpsLbZcd0F-gB-K9">
+    <mxGraphModel dx="4203" dy="2761" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-1" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#2D7600;rounded=1;labelBackgroundColor=none;fillColor=#60a917;fontColor=#ffffff;" value="Clients" vertex="1">
+          <mxGeometry height="220" width="320" x="-340" y="-230" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-2" parent="SYgpb5IG_zVsbZH6fDNg-1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="HeySolana Wallet&lt;br&gt;Expo / React Native app" vertex="1">
+          <mxGeometry height="70" width="260" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-3" parent="SYgpb5IG_zVsbZH6fDNg-1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="HeySolana Voice Host&lt;br&gt;Electron desktop app" vertex="1">
+          <mxGeometry height="70" width="260" x="30" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-61" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-4" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#3700CC;rounded=1;labelBackgroundColor=none;fillColor=#6a00ff;fontColor=#ffffff;" value="Features" vertex="1">
+          <mxGeometry height="340" width="320" x="-420" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-5" parent="SYgpb5IG_zVsbZH6fDNg-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="AiServiceProvider&lt;br&gt;voice + chat session orchestration" vertex="1">
+          <mxGeometry height="70" width="260" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-6" parent="SYgpb5IG_zVsbZH6fDNg-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="QvacVoiceSession&lt;br&gt;mic → ASR → LLM → TTS loop" vertex="1">
+          <mxGeometry height="80" width="260" x="30" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-7" parent="SYgpb5IG_zVsbZH6fDNg-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="QvacBrainProvider&lt;br&gt;local LLM + embeddings + P2P fallback" vertex="1">
+          <mxGeometry height="80" width="260" x="30" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-8" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#006EAF;swimlaneFillColor=none;rounded=1;labelBackgroundColor=none;fillColor=#1ba1e2;fontColor=#ffffff;" value="Wallet libs" vertex="1">
+          <mxGeometry height="340" width="360" x="170" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-9" parent="SYgpb5IG_zVsbZH6fDNg-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="libs/voiceinfra&lt;br&gt;Lan client, voice models, pairing, audio" vertex="1">
+          <mxGeometry height="80" width="300" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-10" parent="SYgpb5IG_zVsbZH6fDNg-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="libs/qvac&lt;br&gt;Hyperswarm seed, P2P manager, constants" vertex="1">
+          <mxGeometry height="80" width="300" x="30" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-11" parent="SYgpb5IG_zVsbZH6fDNg-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="services/qvacComputeApi&lt;br&gt;register, route, receipt, balance" vertex="1">
+          <mxGeometry height="80" width="300" x="30" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-12" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#314354;rounded=1;labelBackgroundColor=none;fillColor=#647687;fontColor=#ffffff;" value="Runtime" vertex="1">
+          <mxGeometry height="500" width="420" x="910" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-13" parent="SYgpb5IG_zVsbZH6fDNg-12" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="@qvac/sdk&lt;br&gt;loadModel, completion, transcribeStream,&lt;br&gt;textToSpeech, embed, startQVACProvider" vertex="1">
+          <mxGeometry height="95" width="360" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-14" parent="SYgpb5IG_zVsbZH6fDNg-12" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="ASR worker&lt;br&gt;Whisper Tiny + Silero VAD" vertex="1">
+          <mxGeometry height="70" width="160" x="30" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-15" parent="SYgpb5IG_zVsbZH6fDNg-12" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="LLM worker&lt;br&gt;Llama 3.2 1B Instruct Q4" vertex="1">
+          <mxGeometry height="70" width="170" x="210" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-16" parent="SYgpb5IG_zVsbZH6fDNg-12" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="TTS worker&lt;br&gt;Supertonic English" vertex="1">
+          <mxGeometry height="70" width="160" x="30" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-17" parent="SYgpb5IG_zVsbZH6fDNg-12" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Embed worker&lt;br&gt;EmbeddingGemma 300M Q4" vertex="1">
+          <mxGeometry height="70" width="170" x="210" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-18" parent="SYgpb5IG_zVsbZH6fDNg-12" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="LanVoiceBridge&lt;br&gt;HTTP /v1/chat, /v1/speak&lt;br&gt;WS /v1/transcribe on :8787" vertex="1">
+          <mxGeometry height="90" width="360" x="30" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-19" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#82b366;rounded=1;labelBackgroundColor=none;fillColor=#d5e8d4;gradientColor=#97d077;" value="Backend" vertex="1">
+          <mxGeometry height="270" width="320" x="440" y="1060" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-20" parent="SYgpb5IG_zVsbZH6fDNg-19" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="HeySolanaBackend&lt;br&gt;QvacComputeController&lt;br&gt;/sdk/qvac/wallet/*" vertex="1">
+          <mxGeometry height="90" width="260" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-21" parent="SYgpb5IG_zVsbZH6fDNg-19" style="ellipse;shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;rounded=1;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Postgres&lt;br&gt;providers, jobs, receipts, withdrawals" vertex="1">
+          <mxGeometry height="95" width="260" x="30" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-22" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;rounded=1;labelBackgroundColor=none;fillColor=#d0cee2;strokeColor=#56517e;" value="Infra" vertex="1">
+          <mxGeometry height="270" width="280" x="1310" y="1070" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-23" parent="SYgpb5IG_zVsbZH6fDNg-22" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="SecureStore&lt;br&gt;QVAC_HYPERSWARM_SEED per install" vertex="1">
+          <mxGeometry height="70" width="220" x="30" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-24" parent="SYgpb5IG_zVsbZH6fDNg-22" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Local model cache&lt;br&gt;GGUF weights (~1 GB voice bundle)" vertex="1">
+          <mxGeometry height="70" width="220" x="30" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-25" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#E07A5F;rounded=1;labelBackgroundColor=none;fillColor=#F2CC8F;fontColor=#393C56;" value="External" vertex="1">
+          <mxGeometry height="340" width="300" x="1330" y="-400" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-26" parent="SYgpb5IG_zVsbZH6fDNg-25" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Hyperswarm DHT&lt;br&gt;encrypted provider RPC + delegate" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-27" parent="SYgpb5IG_zVsbZH6fDNg-25" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Local Wi‑Fi LAN&lt;br&gt;same-network HTTP + WebSocket" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-28" parent="SYgpb5IG_zVsbZH6fDNg-25" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;dashed=1;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="OpenAI Realtime&lt;br&gt;optional cloud voice backend" vertex="1">
+          <mxGeometry height="75" width="230" x="35" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-29" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#E07A5F;swimlaneFillColor=none;rounded=1;labelBackgroundColor=none;fillColor=#F2CC8F;fontColor=#393C56;" value="Host modes" vertex="1">
+          <mxGeometry height="240" width="360" x="-440" y="915" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-30" parent="SYgpb5IG_zVsbZH6fDNg-29" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="laptop + LAN (recommended)&lt;br&gt;phone mic/speaker, inference on desktop" vertex="1">
+          <mxGeometry height="55" width="300" x="30" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-31" parent="SYgpb5IG_zVsbZH6fDNg-29" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="laptop + P2P&lt;br&gt;delegate loadModel to paired provider key" vertex="1">
+          <mxGeometry height="55" width="300" x="30" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-32" parent="SYgpb5IG_zVsbZH6fDNg-29" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="device&lt;br&gt;all models run on phone after download" vertex="1">
+          <mxGeometry height="55" width="300" x="30" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-33" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-5" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="60" y="-150" />
+              <mxPoint x="60" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-34" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-6" value="voiceBackend=qvac">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-35" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-7" value="brain digest / suggestions">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-20" y="380" />
+              <mxPoint x="-20" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-36" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-18" value="QvacHostService">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1370" y="-30" />
+              <mxPoint x="1370" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-37" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-9" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="35" y="430" />
+              <mxPoint x="35" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-38" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-10" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-260" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-39" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-11" value="share compute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-40" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-13" value="loadModel + streams">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="385" />
+              <mxPoint x="720" y="173" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-41" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-18" value="QvacLanVoiceClient">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="365" />
+              <mxPoint x="690" y="730" />
+              <mxPoint x="1120" y="730" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-42" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-13" value="completion + embed">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-260" y="660" />
+              <mxPoint x="780" y="660" />
+              <mxPoint x="780" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-43" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-14" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-44" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-15" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-45" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-16" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="190" />
+              <mxPoint x="810" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-46" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-17" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1410" y="173" />
+              <mxPoint x="1410" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-47" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-14" value="transcribeStream / completion / TTS">
+          <mxGeometry relative="1" x="0.3333" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="850" y="500" />
+              <mxPoint x="850" y="285" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-48" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-26" value="startQVACProvider + delegate RPC">
+          <mxGeometry relative="1" x="0.7708" y="-10" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1600" y="150" />
+              <mxPoint x="1600" y="390" />
+              <mxPoint x="1800" y="390" />
+              <mxPoint x="1800" y="-340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-49" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-27" value="0.0.0.0:8787">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1710" y="485" />
+              <mxPoint x="1710" y="-240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-50" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-27" value="phone → laptop">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="-450" />
+              <mxPoint x="1680" y="-450" />
+              <mxPoint x="1680" y="-223" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-51" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;dashed=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-28" value="voiceBackend=openai">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="90" y="360" />
+              <mxPoint x="90" y="20" />
+              <mxPoint x="1480" y="20" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-52" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-20" value="POST /sdk/qvac/wallet/*">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-53" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-21" value="providers + jobs + receipts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-54" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-11" value="/route + /receipts when local LLM unavailable">
+          <mxGeometry relative="1" x="0.0487" y="-5" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="30" y="560" />
+              <mxPoint x="30" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-55" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-26" value="returns provider_public_key + job ticket">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="1150" />
+              <mxPoint x="870" y="910" />
+              <mxPoint x="1750" y="910" />
+              <mxPoint x="1750" y="-317" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-56" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-23" value="ensureQvacHyperswarmSeed">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="630" y="460" />
+              <mxPoint x="630" y="800" />
+              <mxPoint x="1490" y="800" />
+              <mxPoint x="1490" y="900" />
+              <mxPoint x="1450" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-57" edge="1" parent="1" source="SYgpb5IG_zVsbZH6fDNg-13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" target="SYgpb5IG_zVsbZH6fDNg-24" value="GGUF cache">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1520" y="372" />
+              <mxPoint x="1520" y="985" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-58" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;labelBackgroundColor=none;fontColor=#393C56;" value="Voice loop: mic PCM → transcribeStream (VAD utterances) → completion(history) → textToSpeech → speaker&lt;br&gt;Mic gated during playback + 300 ms cooldown to prevent self-hearing." vertex="1">
+          <mxGeometry height="50" width="720" x="-440" y="1210" as="geometry" />
+        </mxCell>
+        <mxCell id="SYgpb5IG_zVsbZH6fDNg-59" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;labelBackgroundColor=none;fontColor=#393C56;" value="P2P marketplace: providers register + heartbeat → consumers /route → delegate inference → /receipts/submit credits points." vertex="1">
+          <mxGeometry height="40" width="720" x="-440" y="1270" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

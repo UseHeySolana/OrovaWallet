@@ -4,14 +4,19 @@ import CText from "@/components/TextComp";
 import IconLibrary from "@/utils/icons";
 import { router } from "expo-router";
 import { Pressable, TouchableOpacity, View } from "react-native";
+import { isFiatExchangeEnabled } from "@/utils/platform/fiatExchange";
 
 const depositOptions = [
-  {
-    title: "Buy with card or bank transfer",
-    description: "Use your preferred payment method",
-    icon: <Ionicons name="cash-outline" size={27} color="#6B6B78" />,
-    onPress: () => router.push("/dashboard/onramp" as any),
-  },
+  ...(isFiatExchangeEnabled()
+    ? [
+        {
+          title: "Buy with card or bank transfer",
+          description: "Use your preferred payment method",
+          icon: <Ionicons name="cash-outline" size={27} color="#6B6B78" />,
+          onPress: () => router.push("/dashboard/onramp" as any),
+        },
+      ]
+    : []),
   {
     title: "Receive crypto",
     description: "Receive on Solana or from another chain",

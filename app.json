@@ -10,13 +10,14 @@
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
+      "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIApplicationSupportsIndirectInputEvents": true,
         "NSMicrophoneUsageDescription": "This app uses the microphone for AI voice interactions.",
         "NSCameraUsageDescription": "This app uses the camera for QR code scanning.",
-        "NSPhotoLibraryUsageDescription": "Orova uses your photo library so you can choose a profile picture and attach screenshots when contacting support.",
+        "NSPhotoLibraryUsageDescription": "Orova needs access to your photo library so you can set a profile picture (for example, choosing a photo from Camera Roll) and attach screenshots or ID photos when contacting support or completing account verification.",
         "UIBackgroundModes": [
           "audio"
         ],
@@ -135,7 +136,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Orova uses your photo library so you can choose a profile picture and attach screenshots when contacting support."
+          "photosPermission": "Orova needs access to your photo library so you can set a profile picture (for example, choosing a photo from Camera Roll) and attach screenshots or ID photos when contacting support or completing account verification."
         }
       ]
     ],

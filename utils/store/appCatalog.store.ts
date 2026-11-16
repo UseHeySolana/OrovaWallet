@@ -2,6 +2,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { FALLBACK_APPS } from "@/libs/app/fallbackApps";
+import { filterFiatExchangeApps } from "@/utils/platform/fiatExchange";
 import {
   enhanceLocalApp,
   mergeCatalog,
@@ -73,7 +74,9 @@ function revokeHiddenActivations(hiddenSlugs: string[]) {
 }
 
 const publicFallbackApps = (): App[] =>
-  FALLBACK_APPS.filter((app) => app.visibility !== "beta").map(enhanceLocalApp);
+  filterFiatExchangeApps(
+    FALLBACK_APPS.filter((app) => app.visibility !== "beta").map(enhanceLocalApp)
+  );
 
 const AppCatalog = create<AppCatalogStore>()(
   persist(
@@ -120,7 +123,9 @@ const AppCatalog = create<AppCatalogStore>()(
           const remoteApps = remotePayload
             .map((item: RemoteAppRegistration) => remoteToPartialApp(item))
             .filter((item): item is App => !!item);
-          const merged = mergeCatalog(remoteApps, FALLBACK_APPS, { hiddenSlugs });
+          const merged = filterFiatExchangeApps(
+            mergeCatalog(remoteApps, FALLBACK_APPS, { hiddenSlugs })
+          );
           revokeHiddenActivations(hiddenSlugs);
           set({
             apps: merged,
@@ -173,6 +178,10 @@ const AppCatalog = create<AppCatalogStore>()(
         lastIdentityKey: state.lastIdentityKey,
         hiddenSlugs: state.hiddenSlugs,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state?.apps?.length) return;
+        state.apps = filterFiatExchangeApps(state.apps);
+      },
     }
   )
 );

@@ -54,6 +54,7 @@ import {
   type DextopusChain,
   type DextopusToken,
 } from "@/services/dextopusApi";
+import { isFiatExchangeEnabled } from "@/utils/platform/fiatExchange";
 
 type OnrampBridgeRoute = {
   deposit_address: string;
@@ -300,6 +301,11 @@ export default function Onramp() {
   const pajSession = PajCashSession();
   const paymentPollRunRef = useRef(0);
   const recordedOnrampStatesRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (isFiatExchangeEnabled()) return;
+    router.replace("/dashboard/deposit" as any);
+  }, []);
 
   const defaultRecipient = useMemo(
     () =>

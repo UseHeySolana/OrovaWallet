@@ -13,12 +13,22 @@ import { WalletBalanceTool } from "@/libs/tools/wallet/wallet.tool";
 import { TokenSearchTool } from "@/libs/tools/tokens/tokenSearch.tool";
 import SessionManager from "@/libs/voiceinfra/SessionManager";
 import { filterToolsByActivation } from "@/libs/app/enabledTools";
+import { isFiatExchangeEnabled } from "@/utils/platform/fiatExchange";
 
 const toolRouter = (SessionManager: SessionManager) => {
   const magicblock = new MagicBlockTool(SessionManager);
   const dextopus = new DextopusTool(SessionManager);
   const walletBalance = new WalletBalanceTool(SessionManager);
   const tokenSearch = new TokenSearchTool(SessionManager);
+  const pajCashTools = isFiatExchangeEnabled()
+    ? [
+        new PajCash(SessionManager).pajcashInitiate,
+        new PajCash(SessionManager).pajcashVerify,
+        new PajCash(SessionManager).pajitOfframp,
+        new PajCash(SessionManager).pajcashOnramp,
+        new PajCash(SessionManager).getNairaRate,
+      ]
+    : [];
   const allTools = [
     walletBalance.checkWalletBalance,
     tokenSearch.searchSplTokens,
@@ -28,11 +38,7 @@ const toolRouter = (SessionManager: SessionManager) => {
     new SwapFunction(SessionManager).checkPrice,
     new AirBills(SessionManager).buyElectricityBill,
     new AirBills(SessionManager).buyDataBundle,
-    new PajCash(SessionManager).pajcashInitiate,
-    new PajCash(SessionManager).pajcashVerify,
-    new PajCash(SessionManager).pajitOfframp,
-    new PajCash(SessionManager).pajcashOnramp,
-    new PajCash(SessionManager).getNairaRate,
+    ...pajCashTools,
 
     // MagicBlock Private Payments
     magicblock.privateDeposit,

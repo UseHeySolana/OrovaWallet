@@ -23,6 +23,7 @@ import {
   deletePajCashBeneficiary,
   savePajCashBeneficiary,
 } from "@/services/pajcashBeneficiariesApi";
+import { isFiatExchangeEnabled } from "@/utils/platform/fiatExchange";
 import IconLibrary from "@/utils/icons";
 import AppSettings from "@/utils/store/settingsstore.store";
 import PajCashBeneficiaries, {
@@ -132,6 +133,12 @@ export default function SendToBank() {
     decimals?: string | string[];
     image?: string | string[];
   }>();
+
+  useEffect(() => {
+    if (isFiatExchangeEnabled()) return;
+    router.replace("/dashboard/send" as any);
+  }, []);
+
   const selectedMint = normalizeMintParam(params.mint);
   const routeToken = useMemo(() => {
     if (!selectedMint) return null;

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+<diagram name="5. Sequence — Solana voice send" id="seq-solana">
+    <mxGraphModel dx="2300" dy="1700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="seq-solana-1" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#2D7600;rounded=1;labelBackgroundColor=none;fillColor=#60a917;fontColor=#ffffff;" value="People" vertex="1">
+          <mxGeometry x="40" y="40" width="240" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-2" parent="seq-solana-1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="User&lt;br&gt;speak send 5 USDC" vertex="1">
+          <mxGeometry x="20" y="50" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-3" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#3700CC;rounded=1;labelBackgroundColor=none;fillColor=#6a00ff;fontColor=#ffffff;" value="Orova app" vertex="1">
+          <mxGeometry x="330" y="40" width="300" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-4" parent="seq-solana-3" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="startSession&lt;br&gt;WebRTC + tool list" vertex="1">
+          <mxGeometry x="20" y="50" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-5" parent="seq-solana-3" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="function call&lt;br&gt;transfer_tokens" vertex="1">
+          <mxGeometry x="20" y="150" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-6" parent="seq-solana-3" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Confirmation sheet&lt;br&gt;amount, asset, destination" vertex="1">
+          <mxGeometry x="20" y="250" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-7" parent="seq-solana-3" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Sign from SecureStore" vertex="1">
+          <mxGeometry x="20" y="360" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-8" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#82b366;rounded=1;labelBackgroundColor=none;fillColor=#d5e8d4;gradientColor=#97d077;" value="Laravel API" vertex="1">
+          <mxGeometry x="680" y="40" width="300" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-9" parent="seq-solana-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="POST /api/open-token" vertex="1">
+          <mxGeometry x="20" y="50" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-10" parent="seq-solana-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="POST /api/add-tx" vertex="1">
+          <mxGeometry x="20" y="160" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-11" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#314354;rounded=1;labelBackgroundColor=none;fillColor=#647687;fontColor=#ffffff;" value="OpenAI Realtime" vertex="1">
+          <mxGeometry x="1030" y="40" width="300" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-12" parent="seq-solana-11" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Create client secret&lt;br&gt;gpt-realtime-mini" vertex="1">
+          <mxGeometry x="20" y="50" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-13" parent="seq-solana-11" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Audio + tools&lt;br&gt;returns function call" vertex="1">
+          <mxGeometry x="20" y="150" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-14" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#E07A5F;rounded=1;labelBackgroundColor=none;fillColor=#F2CC8F;fontColor=#393C56;" value="Solana RPC" vertex="1">
+          <mxGeometry x="1380" y="40" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-15" parent="seq-solana-14" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Broadcast transaction&lt;br&gt;Helius" vertex="1">
+          <mxGeometry x="20" y="50" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-solana-16" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-solana-2" target="seq-solana-4">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-17" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-solana-4" target="seq-solana-9">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-18" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-solana-9" target="seq-solana-12">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-19" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="client_secret" edge="1" source="seq-solana-12" target="seq-solana-4">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-20" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="WebRTC" edge="1" source="seq-solana-4" target="seq-solana-13">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-21" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-solana-13" target="seq-solana-5">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-22" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-solana-5" target="seq-solana-6">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-23" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;dashed=1;" value="confirm" edge="1" source="seq-solana-6" target="seq-solana-2">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-24" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="approve" edge="1" source="seq-solana-2" target="seq-solana-7">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-25" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-solana-7" target="seq-solana-15">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-26" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="signature" edge="1" source="seq-solana-15" target="seq-solana-5">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-27" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="tool result" edge="1" source="seq-solana-5" target="seq-solana-13">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-28" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="spoken confirmation" edge="1" source="seq-solana-13" target="seq-solana-2">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-29" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;dashed=1;" value="when logging enabled" edge="1" source="seq-solana-7" target="seq-solana-10">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-solana-30" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;labelBackgroundColor=none;fontColor=#393C56;" value="Signing happens only after the confirmation sheet, using the on-device Solana key. Same shape for Jupiter swap, AirBills, and PajCash off-ramp." vertex="1">
+          <mxGeometry x="40" y="600" width="1620" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

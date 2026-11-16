@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 
 import type { BrainEventLogItem, BrainSuggestion } from "@/utils/store/brain.store";
+import { isFiatExchangeEnabled } from "@/utils/platform/fiatExchange";
 
 type IntentId =
   | "tool_failed"
@@ -188,8 +189,9 @@ export function buildContextualBrainSuggestions(
   }
 
   if (
-    corpusMatches(/\b(naira|off-?ramp|bank|ngn|paj|withdraw to bank)\b/i, corpus) ||
-    slugMatches([...completed, ...failed], ["paj", "naira", "offramp"])
+    isFiatExchangeEnabled() &&
+    (corpusMatches(/\b(naira|off-?ramp|bank|ngn|paj|withdraw to bank)\b/i, corpus) ||
+      slugMatches([...completed, ...failed], ["paj", "naira", "offramp"]))
   ) {
     drafts.push({
       intent: "paj",

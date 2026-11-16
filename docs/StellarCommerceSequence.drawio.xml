@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+<diagram name="4. Sequence — Stellar commerce" id="seq-stellar">
+    <mxGraphModel dx="2400" dy="1700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="seq-stellar-1" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#2D7600;rounded=1;labelBackgroundColor=none;fillColor=#60a917;fontColor=#ffffff;" value="People" vertex="1">
+          <mxGeometry x="40" y="40" width="240" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-2" parent="seq-stellar-1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="User" vertex="1">
+          <mxGeometry x="20" y="50" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-3" parent="seq-stellar-1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Approve in Wallets Kit" vertex="1">
+          <mxGeometry x="20" y="150" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-4" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#3700CC;rounded=1;labelBackgroundColor=none;fillColor=#6a00ff;fontColor=#ffffff;" value="Orova" vertex="1">
+          <mxGeometry x="320" y="40" width="280" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-5" parent="seq-stellar-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Intent: pay for this order" vertex="1">
+          <mxGeometry x="20" y="50" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-6" parent="seq-stellar-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Build unsigned transaction" vertex="1">
+          <mxGeometry x="20" y="155" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-7" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#006EAF;rounded=1;labelBackgroundColor=none;fillColor=#1ba1e2;fontColor=#ffffff;" value="Alt: asset must be converted" vertex="1">
+          <mxGeometry x="640" y="40" width="520" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-8" parent="seq-stellar-7" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Request route + quote" vertex="1">
+          <mxGeometry x="20" y="50" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-9" parent="seq-stellar-7" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Quote" vertex="1">
+          <mxGeometry x="270" y="50" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-10" parent="seq-stellar-7" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Request authorization" vertex="1">
+          <mxGeometry x="20" y="145" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-11" parent="seq-stellar-7" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Submit authorized swap" vertex="1">
+          <mxGeometry x="270" y="145" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-12" parent="seq-stellar-7" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Swap result on Stellar" vertex="1">
+          <mxGeometry x="20" y="240" width="470" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-13" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#E07A5F;rounded=1;labelBackgroundColor=none;fillColor=#F2CC8F;fontColor=#393C56;" value="Alt: merchant accepts cards only" vertex="1">
+          <mxGeometry x="320" y="420" width="860" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-14" parent="seq-stellar-13" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Issue or charge card&lt;br&gt;from Stellar balance" vertex="1">
+          <mxGeometry x="20" y="50" width="250" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-15" parent="seq-stellar-13" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Card payment result" vertex="1">
+          <mxGeometry x="300" y="50" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-16" parent="seq-stellar-13" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Complete checkout" vertex="1">
+          <mxGeometry x="550" y="50" width="270" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-17" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#82b366;rounded=1;labelBackgroundColor=none;fillColor=#d5e8d4;gradientColor=#97d077;" value="Commerce" vertex="1">
+          <mxGeometry x="1220" y="420" width="400" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-18" parent="seq-stellar-17" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Order confirmation" vertex="1">
+          <mxGeometry x="20" y="50" width="360" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="seq-stellar-19" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-2" target="seq-stellar-5">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-20" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-5" target="seq-stellar-6">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-21" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="if conversion needed" edge="1" source="seq-stellar-6" target="seq-stellar-8">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-22" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-8" target="seq-stellar-9">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-23" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-9" target="seq-stellar-10">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-24" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-10" target="seq-stellar-3">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-25" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-3" target="seq-stellar-11">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-26" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-11" target="seq-stellar-12">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-27" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;dashed=1;" value="then settle by card" edge="1" source="seq-stellar-12" target="seq-stellar-14">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-28" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;dashed=1;" value="no conversion" edge="1" source="seq-stellar-6" target="seq-stellar-14">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-29" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-14" target="seq-stellar-15">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-30" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-15" target="seq-stellar-16">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-31" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="seq-stellar-16" target="seq-stellar-18">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seq-stellar-32" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;labelBackgroundColor=none;fontColor=#393C56;" value="The agent never receives the private key. Wallets Kit is the only authorization step. Soroswap is the conversion branch." vertex="1">
+          <mxGeometry x="40" y="680" width="1580" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  
+</mxfile>

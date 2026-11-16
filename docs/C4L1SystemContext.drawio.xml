@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+<diagram name="2. C4 L1 system context" id="c4-l1">
+    <mxGraphModel dx="2600" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c4-l1-1" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#2D7600;rounded=1;labelBackgroundColor=none;fillColor=#60a917;fontColor=#ffffff;" value="People" vertex="1">
+          <mxGeometry x="40" y="40" width="280" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-2" parent="c4-l1-1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Person with Orova app" vertex="1">
+          <mxGeometry x="20" y="50" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-3" parent="c4-l1-1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Operator" vertex="1">
+          <mxGeometry x="20" y="140" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-4" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#3700CC;rounded=1;labelBackgroundColor=none;fillColor=#6a00ff;fontColor=#ffffff;" value="Orova system" vertex="1">
+          <mxGeometry x="380" y="40" width="320" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-5" parent="c4-l1-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Orova mobile app&lt;br&gt;Expo / React Native" vertex="1">
+          <mxGeometry x="30" y="50" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-6" parent="c4-l1-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Laravel API&lt;br&gt;users, orders, OpenAI session" vertex="1">
+          <mxGeometry x="30" y="145" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-7" parent="c4-l1-4" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Admin dashboard" vertex="1">
+          <mxGeometry x="30" y="240" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-8" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#006EAF;rounded=1;labelBackgroundColor=none;fillColor=#1ba1e2;fontColor=#ffffff;" value="Planned Stellar commerce rail" vertex="1">
+          <mxGeometry x="760" y="40" width="360" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-9" parent="c4-l1-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Stellar Wallets Kit" vertex="1">
+          <mxGeometry x="30" y="50" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-10" parent="c4-l1-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Soroswap" vertex="1">
+          <mxGeometry x="30" y="140" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-11" parent="c4-l1-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Bridge card issuance and payments" vertex="1">
+          <mxGeometry x="30" y="230" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-12" parent="c4-l1-8" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Stellar network" vertex="1">
+          <mxGeometry x="30" y="320" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-13" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#314354;rounded=1;labelBackgroundColor=none;fillColor=#647687;fontColor=#ffffff;" value="Live chain + voice" vertex="1">
+          <mxGeometry x="1180" y="40" width="320" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-14" parent="c4-l1-13" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Solana via Helius" vertex="1">
+          <mxGeometry x="30" y="50" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-15" parent="c4-l1-13" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="OpenAI Realtime&lt;br&gt;gpt-realtime-mini" vertex="1">
+          <mxGeometry x="30" y="145" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-16" parent="1" style="swimlane;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;strokeColor=#E07A5F;rounded=1;labelBackgroundColor=none;fillColor=#F2CC8F;fontColor=#393C56;" value="Live partners" vertex="1">
+          <mxGeometry x="1560" y="40" width="300" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-17" parent="c4-l1-16" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="PajCash&lt;br&gt;AirBills&lt;br&gt;Jupiter&lt;br&gt;Jumia / Chowdeck / Crossmint" vertex="1">
+          <mxGeometry x="20" y="50" width="260" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=none;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=#393C56;" value="Merchant checkout engine" vertex="1">
+          <mxGeometry x="760" y="500" width="360" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c4-l1-19" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-2" target="c4-l1-5">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-20" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-3" target="c4-l1-7">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-21" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-7" target="c4-l1-6">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-22" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-5" target="c4-l1-6">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-23" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-5" target="c4-l1-9">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-24" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-9" target="c4-l1-12">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-25" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-5" target="c4-l1-10">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-26" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-10" target="c4-l1-12">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-27" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-5" target="c4-l1-11">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-28" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="cards when no Stellar" edge="1" source="c4-l1-11" target="c4-l1-18">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-29" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="order record" edge="1" source="c4-l1-18" target="c4-l1-6">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-30" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-5" target="c4-l1-14">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-31" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="WebRTC" edge="1" source="c4-l1-5" target="c4-l1-15">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-32" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="POST /open-token" edge="1" source="c4-l1-6" target="c4-l1-15">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-33" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;labelBackgroundColor=none;strokeColor=#E07A5F;fontColor=default;" value="" edge="1" source="c4-l1-5" target="c4-l1-17">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4-l1-34" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;labelBackgroundColor=none;fontColor=#393C56;" value="Laravel stores users and orders. It does not hold Stellar private keys. Solana, voice, and partners stay on the live path." vertex="1">
+          <mxGeometry x="40" y="620" width="1820" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  
+</mxfile>

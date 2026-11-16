@@ -1,15 +1,17 @@
-import { ActivityIndicator, Platform, View } from "react-native";
-import * as AppleAuthentication from "expo-apple-authentication";
+import { ActivityIndicator, Platform, Pressable } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useThemeContext } from "@/context/ThemeContext";
 
 interface AppleSignInButtonProps {
   loading?: boolean;
   onPress: () => void;
+  accessibilityLabel?: string;
 }
 
 export default function AppleSignInButton({
   loading = false,
   onPress,
+  accessibilityLabel = "Sign in with Apple",
 }: AppleSignInButtonProps) {
   const { isDarkMode } = useThemeContext();
 
@@ -18,26 +20,22 @@ export default function AppleSignInButton({
   }
 
   return (
-    <View className="h-14 w-full max-w-[280px] self-center overflow-hidden rounded-xl">
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      disabled={loading}
+      className="h-14 w-14 items-center justify-center self-center"
+    >
       {loading ? (
-        <View className="h-14 w-full items-center justify-center rounded-xl bg-black">
-          <ActivityIndicator color="#FFFFFF" />
-        </View>
+        <ActivityIndicator color={isDarkMode ? "#FFFFFF" : "#000000"} />
       ) : (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={
-            AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
-          }
-          buttonStyle={
-            isDarkMode
-              ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-              : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-          }
-          cornerRadius={12}
-          style={{ width: "100%", height: 56 }}
-          onPress={onPress}
+        <Ionicons
+          name="logo-apple"
+          size={40}
+          color={isDarkMode ? "#FFFFFF" : "#000000"}
         />
       )}
-    </View>
+    </Pressable>
   );
 }

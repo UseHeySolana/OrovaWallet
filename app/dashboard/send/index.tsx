@@ -14,6 +14,7 @@ import {
 import DragableSheet from "@/components/CustomItems/DragableSheet";
 import SearchInput from "@/components/SearchInput/SearchInput";
 import UserItem from "@/utils/store/userstore.store";
+import { isFiatExchangeEnabled } from "@/utils/platform/fiatExchange";
 
 type SendOption = "wallet" | "bank";
 
@@ -22,6 +23,7 @@ export default function Send() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedToken, setSelectedToken] = useState<any>(null);
   const [sendOptionsOpen, setSendOptionsOpen] = useState(false);
+  const fiatExchangeEnabled = isFiatExchangeEnabled();
 
   const tokens = userWallet?.tokenAccounts ?? [];
   const q = searchQuery.trim().toLowerCase();
@@ -34,7 +36,32 @@ export default function Send() {
     })
     : tokens;
 
+  const pushSendRoute = (token: any, option: SendOption) => {
+    if (!token?.mint) return;
+    router.push({
+      pathname:
+        option === "wallet"
+          ? "/dashboard/send/token"
+          : "/dashboard/send/bank",
+      params: {
+        mint: token.mint,
+        symbol: token.symbol,
+        name: token.name,
+        balance: String(token.balance ?? ""),
+        decimals: String(token.decimals ?? ""),
+        image:
+          typeof token.image === "string"
+            ? token.image
+            : undefined,
+      },
+    } as any);
+  };
+
   const openSendOptions = (token: any) => {
+    if (!fiatExchangeEnabled) {
+      pushSendRoute(token, "wallet");
+      return;
+    }
     setSelectedToken(token);
     setSendOptionsOpen(true);
   };
@@ -42,23 +69,7 @@ export default function Send() {
   const continueWithOption = (option: SendOption) => {
     if (!selectedToken?.mint) return;
     setSendOptionsOpen(false);
-    router.push({
-      pathname:
-        option === "wallet"
-          ? "/dashboard/send/token"
-          : "/dashboard/send/bank",
-      params: {
-        mint: selectedToken.mint,
-        symbol: selectedToken.symbol,
-        name: selectedToken.name,
-        balance: String(selectedToken.balance ?? ""),
-        decimals: String(selectedToken.decimals ?? ""),
-        image:
-          typeof selectedToken.image === "string"
-            ? selectedToken.image
-            : undefined,
-      },
-    } as any);
+    pushSendRoute(selectedToken, option);
   };
 
   return (
@@ -168,30 +179,32 @@ export default function Send() {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Send to fiat account"
-                onPress={() => continueWithOption("bank")}
-                className="w-full flex-row items-center py-3"
-              >
-                <View className="flex-row items-center gap-x-4 flex-1">
-                  <View className="w-11 items-center">
-                    <MaterialCommunityIcons
-                      name="bank-transfer-out"
-                      size={30}
-                      color="#6B6B78"
-                    />
+              {fiatExchangeEnabled ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Send to fiat account"
+                  onPress={() => continueWithOption("bank")}
+                  className="w-full flex-row items-center py-3"
+                >
+                  <View className="flex-row items-center gap-x-4 flex-1">
+                    <View className="w-11 items-center">
+                      <MaterialCommunityIcons
+                        name="bank-transfer-out"
+                        size={30}
+                        color="#6B6B78"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">
+                        Fiat account
+                      </CText>
+                      <CText className="mt-1 text-[0.95rem] text-gray-500 dark:text-gray-400">
+                        Offramp to a Nigerian bank account
+                      </CText>
+                    </View>
                   </View>
-                  <View className="flex-1">
-                    <CText style={{ fontFamily: "bold" }} className="text-[1.1rem]">
-                      Fiat account
-                    </CText>
-                    <CText className="mt-1 text-[0.95rem] text-gray-500 dark:text-gray-400">
-                      Offramp to a Nigerian bank account
-                    </CText>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              ) : null}
             </View>
           }
         />
